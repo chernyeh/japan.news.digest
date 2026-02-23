@@ -1,9 +1,11 @@
+"""
 collector.py  —  Phase 2
 - Batch translation via DeepL free API (fast) with MyMemory fallback
 - Additional RSS: Toyo Keizai, Diamond Online, Nikkei JP
 - HTML scrapers for trade papers: Nikkan Kogyo, Nikkan Jidosha, Denki Shimbun,
   Dempa Shimbun, Kagaku Kogyo Nippo, Japan Marine Daily, Nikkan Kensetsu, Nihon Nogyo
 - Concurrent fetching for speed
+"""
 
 import feedparser
 import requests
