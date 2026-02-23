@@ -20,6 +20,12 @@ RSS_SOURCES = [
     ("Japan Times",          "https://www.japantimes.co.jp/feed/",                          "en"),
     ("Japan Times Business", "https://www.japantimes.co.jp/feed/category/business/",        "en"),
     ("Nikkei Asia",          "https://asia.nikkei.com/rss/feed/nar",                        "en"),
+    ("Nikkei Asia Business",  "https://asia.nikkei.com/rss/feed/business",                    "en"),
+    ("Nikkei Asia Economy",   "https://asia.nikkei.com/rss/feed/economy",                     "en"),
+    ("Nikkei Asia Tech",      "https://asia.nikkei.com/rss/feed/tech",                        "en"),
+    ("Nikkei Asia Markets",   "https://asia.nikkei.com/rss/feed/markets",                     "en"),
+    ("Nikkei Asia Companies", "https://asia.nikkei.com/rss/feed/companies",                   "en"),
+    ("Nikkei Asia Japan",     "https://asia.nikkei.com/rss/feed/japan",                       "en"),
     ("Reuters Japan",        "https://feeds.reuters.com/reuters/JPbusinessNews",            "en"),
     ("Reuters Japan (all)",  "https://feeds.reuters.com/reuters/JPNews",                    "en"),
     ("NHK World Business",   "https://www3.nhk.or.jp/nhkworld/en/news/feeds/business.xml", "en"),
@@ -36,7 +42,6 @@ RSS_SOURCES = [
     ("Yahoo Japan Economy",  "https://news.yahoo.co.jp/rss/topics/economy.xml",             "ja"),
     ("IT Media Business",    "https://rss.itmedia.co.jp/rss/2.0/business_media.xml",        "ja"),
     ("Toyo Keizai",          "https://toyokeizai.net/list/feed/rss",                        "ja"),
-    ("Nikkei JP",            "https://www.nikkei.com/rss/index.rdf",                        "ja"),
     ("Diamond Online",       "https://diamond.jp/feed/newest",                              "ja"),
 ]
 
