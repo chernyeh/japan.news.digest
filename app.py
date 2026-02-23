@@ -327,14 +327,13 @@ if not st.session_state.articles:
 elif st.session_state.selected_sector:
     sector_name = st.session_state.selected_sector
     articles = st.session_state.articles.get(sector_name, [])
-    icon = next((i for n, i in MSCI_SECTORS if n == sector_name), "📰")
+    icon = next((i for n, i in MSCI_SECTORS if n == sector_name), "\U0001f4f0")
 
-    st.markdown(f'<div class="sector-header">{icon} {sector_name}</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="sector-count">{len(articles)} article{"s" if len(articles) != 1 else ""}</div>',
-        unsafe_allow_html=True
-    )
+    # Build all article cards as one HTML string, rendered in a single st.markdown call
+    # This avoids Streamlit escaping HTML inside nested f-strings
+    count_label = str(len(articles)) + " article" + ("s" if len(articles) != 1 else "")
 
+    cards = []
     for article in articles:
         original_title   = article.get("original_title", "")
         translated_title = article.get("translated_title", article.get("title", ""))
@@ -342,23 +341,29 @@ elif st.session_state.selected_sector:
         url              = article.get("url", "#")
         pub_date         = article.get("pub_date", "")
 
-        original_html = (
-            f'<div class="article-title-jp">{original_title}</div>'
-            if original_title and original_title != translated_title else ""
-        )
-        date_html = (
-            f'<div class="article-meta">{pub_date}</div>'
-            if pub_date else ""
-        )
+        orig_part = ""
+        if original_title and original_title != translated_title:
+            orig_part = "<div class=\"article-title-jp\">" + original_title + "</div>"
 
-        st.markdown(f"""
-        <div class="article-card">
-            <div class="article-source">{source}</div>
-            <div class="article-title"><a href="{url}" target="_blank">{translated_title}</a></div>
-            {original_html}
-            {date_html}
-        </div>
-        """, unsafe_allow_html=True)
+        date_part = ""
+        if pub_date:
+            date_part = "<div class=\"article-meta\">" + pub_date + "</div>"
+
+        card = (
+            "<div class=\"article-card\">"
+            "<div class=\"article-source\">" + source + "</div>"
+            "<div class=\"article-title\"><a href=\"" + url + "\" target=\"_blank\">" + translated_title + "</a></div>"
+            + orig_part + date_part +
+            "</div>"
+        )
+        cards.append(card)
+
+    full_html = (
+        "<div class=\"sector-header\">" + icon + " " + sector_name + "</div>"
+        "<div class=\"sector-count\">" + count_label + "</div>"
+        + "".join(cards)
+    )
+    st.markdown(full_html, unsafe_allow_html=True)
 
 # ── Email subscription strip ──────────────────────────────────────────────────
 st.markdown("""
