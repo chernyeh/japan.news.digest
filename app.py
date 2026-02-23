@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="Japan Business Digest",
     page_icon="🗾",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ html, body, [class*="css"] {
     color: #1A1A1A;
 }
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 900px; }
+.block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1000px; }
 
 /* Masthead */
 .masthead {
@@ -34,12 +34,11 @@ html, body, [class*="css"] {
 }
 .masthead-title {
     font-family: 'Playfair Display', serif;
-    font-size: 2.4rem;
+    font-size: 2.6rem;
     font-weight: 900;
     letter-spacing: -0.02em;
     line-height: 1;
     color: #1A1A1A;
-    margin: 0;
 }
 .masthead-sub {
     font-size: 0.72rem;
@@ -63,10 +62,56 @@ html, body, [class*="css"] {
     letter-spacing: 0.15em;
     text-transform: uppercase;
     font-weight: 600;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.2rem;
 }
 
-/* Sector header in main area */
+/* Sector tab bar */
+.sector-tab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.8rem 0;
+    border-bottom: 2px solid #1A1A1A;
+    margin-bottom: 1.5rem;
+}
+.sector-tab {
+    display: inline-block;
+    background: #1A1A1A;
+    color: #F7F4EF;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    white-space: nowrap;
+}
+.sector-tab:hover {
+    background: #8B4513;
+}
+.sector-tab.active {
+    background: #F7F4EF;
+    color: #1A1A1A;
+    border: 2px solid #1A1A1A;
+}
+.sector-tab .tab-count {
+    font-size: 0.62rem;
+    opacity: 0.7;
+    margin-left: 0.3rem;
+}
+
+/* Streamlit selectbox styled as tabs */
+[data-testid="stSelectbox"] > div > div {
+    background-color: #1A1A1A !important;
+    color: #F7F4EF !important;
+    border: 1px solid #3A3A3A !important;
+    border-radius: 3px !important;
+    font-size: 0.9rem !important;
+}
+
+/* Sector header */
 .sector-header {
     font-family: 'Playfair Display', serif;
     font-size: 1.5rem;
@@ -119,70 +164,40 @@ html, body, [class*="css"] {
     margin-top: 0.2rem;
 }
 
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background-color: #1A1A1A !important;
+/* Toolbar row */
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
 }
-[data-testid="stSidebar"] * {
-    color: #F7F4EF !important;
-}
-/* All sidebar buttons — unified style */
-[data-testid="stSidebar"] .stButton button,
-[data-testid="stSidebar"] .stFormSubmitButton button {
-    background-color: #2A2A2A !important;
-    color: #F7F4EF !important;
-    border: 1px solid #3A3A3A !important;
-    text-align: left !important;
-    font-size: 0.85rem !important;
-    padding: 0.4rem 0.7rem !important;
-    margin-bottom: 0.2rem !important;
-    border-radius: 3px !important;
-    width: 100% !important;
-}
-[data-testid="stSidebar"] .stButton button:hover,
-[data-testid="stSidebar"] .stFormSubmitButton button:hover {
-    background-color: #3A3A3A !important;
-    border-color: #8B4513 !important;
-    color: #F7F4EF !important;
-}
-[data-testid="stSidebar"] .stButton button p,
-[data-testid="stSidebar"] .stFormSubmitButton button p {
-    color: #F7F4EF !important;
-    font-size: 0.85rem !important;
-}
-[data-testid="stSidebar"] .stRadio label {
-    font-size: 0.85rem !important;
-    padding: 0.3rem 0 !important;
-    cursor: pointer;
-}
-[data-testid="stSidebar"] .stRadio > div {
-    gap: 0rem !important;
-}
-[data-testid="stSidebar"] hr {
-    border-color: #444 !important;
-    margin: 0.8rem 0 !important;
-}
-/* Sidebar text inputs */
-[data-testid="stSidebar"] .stTextInput input {
-    background-color: #2A2A2A !important;
-    color: #F7F4EF !important;
-    border: 1px solid #3A3A3A !important;
-}
-[data-testid="stSidebar"] .stTextInput input::placeholder {
-    color: #888 !important;
+.last-updated {
+    font-size: 0.75rem;
+    color: #9B8B7A;
 }
 
-/* Sidebar sector badge counts */
-.sector-badge {
-    display: inline-block;
-    background: #3A3A3A;
+/* Subscribe strip */
+.subscribe-strip {
+    background: #1A1A1A;
     color: #F7F4EF;
-    font-size: 0.65rem;
-    padding: 0.1rem 0.4rem;
-    border-radius: 10px;
-    margin-left: 0.4rem;
-    font-weight: 600;
-    vertical-align: middle;
+    padding: 1.2rem 1.5rem;
+    border-radius: 4px;
+    margin-top: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.subscribe-strip-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #F7F4EF;
+}
+.subscribe-strip-sub {
+    font-size: 0.78rem;
+    color: #A09890;
 }
 
 /* Empty state */
@@ -195,25 +210,15 @@ html, body, [class*="css"] {
     line-height: 1.8;
 }
 
-/* Subscribe box */
-.subscribe-box {
-    background: #1A1A1A;
-    color: #F7F4EF;
-    padding: 1.5rem;
-    border-radius: 4px;
-    margin-top: 2rem;
+/* Footer */
+.footer {
     text-align: center;
-}
-.subscribe-box h3 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.2rem;
-    margin-bottom: 0.4rem;
-    color: #F7F4EF;
-}
-.subscribe-box p {
-    font-size: 0.82rem;
-    color: #A09890;
-    margin-bottom: 0.8rem;
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid #D9D3C8;
+    font-size: 0.7rem;
+    color: #9B8B7A;
+    letter-spacing: 0.08em;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -242,7 +247,7 @@ if "last_fetch" not in st.session_state:
 if "selected_sector" not in st.session_state:
     st.session_state.selected_sector = None
 
-# ── Masthead (main area) ──────────────────────────────────────────────────────
+# ── Masthead ──────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="masthead">
     <div class="masthead-title">Japan Business Digest</div>
@@ -252,99 +257,66 @@ st.markdown(f"""
 <div class="dateline-strip">Petaling Jaya · RSS Edition · Major Japanese Business &amp; Trade Media</div>
 """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;
-                color:#F7F4EF;letter-spacing:0.05em;padding:0.5rem 0 0.3rem 0;
-                border-bottom:1px solid #444;margin-bottom:0.8rem;">
-        📰 MSCI Sectors
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Fetch button
+# ── Toolbar: fetch button + last updated ──────────────────────────────────────
+col_info, col_btn = st.columns([3, 1])
+with col_info:
+    if st.session_state.last_fetch:
+        total = sum(len(v) for v in st.session_state.articles.values())
+        active = sum(1 for v in st.session_state.articles.values() if v)
+        st.markdown(
+            f'<div class="last-updated">Last updated: '
+            f'{st.session_state.last_fetch.strftime("%H:%M")} · '
+            f'{total} articles across {active} sectors</div>',
+            unsafe_allow_html=True
+        )
+with col_btn:
     if st.button("🔄 Fetch Latest News", use_container_width=True):
-        with st.spinner("Fetching & translating..."):
+        with st.spinner("Fetching & translating headlines..."):
             st.session_state.articles = fetch_all_news()
             st.session_state.last_fetch = datetime.now()
-            # Auto-select first sector with articles
+            # Auto-select first populated sector
             for name, _ in MSCI_SECTORS:
                 if st.session_state.articles.get(name):
                     st.session_state.selected_sector = name
                     break
         st.rerun()
 
-    # Last updated info
-    if st.session_state.last_fetch:
-        total = sum(len(v) for v in st.session_state.articles.values())
-        st.markdown(f"""
-        <div style="font-size:0.68rem;color:#888;margin:0.5rem 0 0.8rem 0;line-height:1.5;">
-            Updated: {st.session_state.last_fetch.strftime("%H:%M")}<br>
-            {total} articles loaded
-        </div>
-        """, unsafe_allow_html=True)
+# ── Sector tab bar (dropdown on small screens) ────────────────────────────────
+if st.session_state.articles:
+    available_sectors = [
+        (name, icon, len(st.session_state.articles.get(name, [])))
+        for name, icon in MSCI_SECTORS
+        if st.session_state.articles.get(name)
+    ]
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    # Build label list for selectbox
+    sector_labels = [
+        f"{icon} {name}  ({count})"
+        for name, icon, count in available_sectors
+    ]
+    sector_names = [name for name, icon, count in available_sectors]
 
-    # Sector list — only show sectors that have articles
-    if st.session_state.articles:
-        available = [
-            (name, icon)
-            for name, icon in MSCI_SECTORS
-            if st.session_state.articles.get(name)
-        ]
+    # Find current index
+    current_index = 0
+    if st.session_state.selected_sector in sector_names:
+        current_index = sector_names.index(st.session_state.selected_sector)
 
-        for sector_name, icon in available:
-            count = len(st.session_state.articles.get(sector_name, []))
-            is_selected = st.session_state.selected_sector == sector_name
+    selected_label = st.selectbox(
+        "Select sector:",
+        options=sector_labels,
+        index=current_index,
+        label_visibility="collapsed",
+    )
 
-            # Highlight selected sector
-            bg = "#3A3A3A" if is_selected else "transparent"
-            border = "2px solid #8B4513" if is_selected else "2px solid transparent"
+    # Update selected sector from dropdown choice
+    chosen_index = sector_labels.index(selected_label)
+    st.session_state.selected_sector = sector_names[chosen_index]
 
-            button_label = f"{icon} {sector_name}  ({count})"
-            if st.button(
-                button_label,
-                key=f"sector_{sector_name}",
-                use_container_width=True,
-            ):
-                st.session_state.selected_sector = sector_name
-                st.rerun()
-
-    else:
-        st.markdown("""
-        <div style="font-size:0.78rem;color:#888;padding:0.5rem 0;line-height:1.6;">
-            Click "Fetch Latest News"<br>to load today's headlines.
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Email subscribe at bottom of sidebar
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;
-                text-transform:uppercase;color:#888;margin-bottom:0.5rem;">
-        📬 Email Digest
-    </div>
-    """, unsafe_allow_html=True)
-
-    with st.form("subscribe_form"):
-        email_input = st.text_input(
-            "", placeholder="your@email.com", label_visibility="collapsed"
-        )
-        if st.form_submit_button("Subscribe", use_container_width=True):
-            if email_input and "@" in email_input:
-                subscribe_email(email_input)
-                st.success("✓ Subscribed!")
-            else:
-                st.error("Enter a valid email.")
-
-# ── Main content area ─────────────────────────────────────────────────────────
+# ── Main content: selected sector articles ────────────────────────────────────
 if not st.session_state.articles:
-    # No data yet
     st.markdown("""
     <div class="empty-state">
-        Click <strong>🔄 Fetch Latest News</strong> in the sidebar<br>
-        to load today's Japan business headlines.<br><br>
+        Click <strong>🔄 Fetch Latest News</strong> above to load today's Japan business headlines.<br><br>
         <span style="font-size:0.8rem;font-family:'Source Sans 3',sans-serif;color:#9B8B7A;">
             Headlines are fetched live, translated to English,<br>
             and organised by MSCI Global Industry Classification sector.
@@ -352,20 +324,9 @@ if not st.session_state.articles:
     </div>
     """, unsafe_allow_html=True)
 
-elif not st.session_state.selected_sector:
-    # Data loaded but no sector selected yet — prompt user
-    st.markdown("""
-    <div class="empty-state">
-        ← Select a sector from the sidebar to view headlines.
-    </div>
-    """, unsafe_allow_html=True)
-
-else:
-    # Show selected sector's articles
+elif st.session_state.selected_sector:
     sector_name = st.session_state.selected_sector
     articles = st.session_state.articles.get(sector_name, [])
-
-    # Find icon
     icon = next((i for n, i in MSCI_SECTORS if n == sector_name), "📰")
 
     st.markdown(f'<div class="sector-header">{icon} {sector_name}</div>', unsafe_allow_html=True)
@@ -374,47 +335,75 @@ else:
         unsafe_allow_html=True
     )
 
-    if not articles:
-        st.markdown('<div class="no-articles">No articles found for this sector.</div>', unsafe_allow_html=True)
-    else:
-        for article in articles:
-            original_title  = article.get("original_title", "")
-            translated_title = article.get("translated_title", article.get("title", ""))
-            source   = article.get("source", "")
-            url      = article.get("url", "#")
-            pub_date = article.get("pub_date", "")
+    for article in articles:
+        original_title   = article.get("original_title", "")
+        translated_title = article.get("translated_title", article.get("title", ""))
+        source           = article.get("source", "")
+        url              = article.get("url", "#")
+        pub_date         = article.get("pub_date", "")
 
-            original_html = (
-                f'<div class="article-title-jp">{original_title}</div>'
-                if original_title and original_title != translated_title else ""
-            )
-            date_html = (
-                f'<div class="article-meta">{pub_date}</div>'
-                if pub_date else ""
-            )
+        original_html = (
+            f'<div class="article-title-jp">{original_title}</div>'
+            if original_title and original_title != translated_title else ""
+        )
+        date_html = (
+            f'<div class="article-meta">{pub_date}</div>'
+            if pub_date else ""
+        )
 
-            st.markdown(f"""
-            <div class="article-card">
-                <div class="article-source">{source}</div>
-                <div class="article-title"><a href="{url}" target="_blank">{translated_title}</a></div>
-                {original_html}
-                {date_html}
-            </div>
-            """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="article-card">
+            <div class="article-source">{source}</div>
+            <div class="article-title"><a href="{url}" target="_blank">{translated_title}</a></div>
+            {original_html}
+            {date_html}
+        </div>
+        """, unsafe_allow_html=True)
+
+# ── Email subscription strip ──────────────────────────────────────────────────
+st.markdown("""
+<div class="subscribe-strip">
+    <div>
+        <div class="subscribe-strip-label">📬 Morning Digest Email</div>
+        <div class="subscribe-strip-sub">Receive today's headlines by sector, every morning.</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+with st.form("subscribe_form"):
+    col_a, col_b = st.columns([3, 1])
+    with col_a:
+        email_input = st.text_input(
+            "", placeholder="your@email.com", label_visibility="collapsed"
+        )
+    with col_b:
+        submitted = st.form_submit_button("Subscribe", use_container_width=True)
+
+    if submitted:
+        if email_input and "@" in email_input:
+            result = subscribe_email(email_input)
+            if result:
+                st.success(f"✓ {email_input} subscribed successfully.")
+            else:
+                st.error("Subscription failed. Please try again.")
+        else:
+            st.error("Please enter a valid email address.")
 
 # ── Admin panel ───────────────────────────────────────────────────────────────
 if st.session_state.articles:
     with st.expander("⚙️ Admin: Send test digest"):
-        test_email = st.text_input("Send digest to:", placeholder="your@email.com")
-        if st.button("Send Test Digest"):
+        test_email = st.text_input("Send digest to:", placeholder="your@email.com", key="test_email")
+        if st.button("Send Test Digest", key="send_test"):
             if test_email:
-                send_digest(st.session_state.articles, [test_email])
-                st.success(f"Digest sent to {test_email}")
+                with st.spinner("Sending..."):
+                    send_digest(st.session_state.articles, [test_email])
+                st.success(f"✓ Digest sent to {test_email}")
+            else:
+                st.error("Enter an email address first.")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align:center;margin-top:3rem;padding-top:1rem;
-            border-top:1px solid #D9D3C8;font-size:0.7rem;color:#9B8B7A;letter-spacing:0.08em;">
+<div class="footer">
     JAPAN BUSINESS DIGEST · MSCI SECTOR EDITION<br>
     Japan Times · Nikkei Asia · Reuters · NHK · Asahi · Mainichi · Sankei · Yahoo Japan · Toyo Keizai & more
 </div>
