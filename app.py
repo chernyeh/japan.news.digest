@@ -292,13 +292,14 @@ else:
             pub_date = article.get("pub_date", "")
 
             original_html = f'<div class="article-title-jp">{original_title}</div>' if original_title and original_title != translated_title else ""
+            date_html = f'<div class="article-meta">{pub_date}</div>' if pub_date else ""
 
             st.markdown(f"""
             <div class="article-card">
                 <div class="article-source">{source}</div>
                 <div class="article-title"><a href="{url}" target="_blank">{translated_title}</a></div>
                 {original_html}
-                {f'<div class="article-meta">{pub_date}</div>' if pub_date else ""}
+                {date_html}
             </div>
             """, unsafe_allow_html=True)
 
