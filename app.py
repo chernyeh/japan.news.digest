@@ -298,7 +298,7 @@ else:
                 <div class="article-source">{source}</div>
                 <div class="article-title"><a href="{url}" target="_blank">{translated_title}</a></div>
                 {original_html}
-                <div class="article-meta">{pub_date}</div>
+                {f'<div class="article-meta">{pub_date}</div>' if pub_date else ""}
             </div>
             """, unsafe_allow_html=True)
 
