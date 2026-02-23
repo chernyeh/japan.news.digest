@@ -52,36 +52,96 @@ TSE_LARGE_CAPS = [
 
 
 def fetch_quote(symbol: str) -> dict:
-    """Fetch a single quote using Yahoo Finance's chart API."""
+    """
+    Fetch a single quote using Yahoo Finance chart API.
+    Works whether markets are open, closed, or in pre/post-market.
+    Always returns the most recent available price with change vs prior close.
+    """
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                           "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        params = {"interval": "1d", "range": "2d"}
+        # Fetch 5 days of daily data so we always have at least 2 closing prices
+        params = {"interval": "1d", "range": "5d"}
         resp = requests.get(url, headers=headers, params=params, timeout=10)
         data = resp.json()
 
         result = data["chart"]["result"][0]
-        meta = result["meta"]
+        meta   = result.get("meta", {})
+        market_state = meta.get("marketState", "CLOSED")
 
-        price = meta.get("regularMarketPrice", 0)
-        prev_close = meta.get("chartPreviousClose", meta.get("previousClose", price))
+        # ── Price resolution: try multiple fields in priority order ──────────
+        # Yahoo provides different fields depending on market state:
+        # REGULAR: regularMarketPrice is live
+        # PRE/POST: preMarketPrice / postMarketPrice available
+        # CLOSED:  regularMarketPrice = last closing price (what we want)
+
+        price = (
+            meta.get("regularMarketPrice")
+            or meta.get("postMarketPrice")
+            or meta.get("preMarketPrice")
+            or 0
+        )
+
+        # ── Previous close: try multiple fallback fields ──────────────────────
+        prev_close = (
+            meta.get("chartPreviousClose")
+            or meta.get("previousClose")
+            or meta.get("regularMarketPreviousClose")
+            or 0
+        )
+
+        # ── If regularMarketPrice is still 0, try last closing value in OHLC ─
+        if price == 0:
+            try:
+                closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+                closes = [c for c in closes if c is not None]
+                if closes:
+                    price = closes[-1]
+                    if len(closes) >= 2:
+                        prev_close = closes[-2]
+            except Exception:
+                pass
+
+        if price == 0:
+            return {"price": 0, "change": 0, "pct_change": 0,
+                    "currency": meta.get("currency", ""),
+                    "market_state": market_state, "symbol": symbol,
+                    "error": "No price available"}
+
+        # If prev_close still 0 after all fallbacks, no change to show
+        if prev_close == 0:
+            prev_close = price
+
         change = price - prev_close
-        pct = (change / prev_close * 100) if prev_close else 0
+        pct    = (change / prev_close * 100) if prev_close else 0
+
+        # ── Market status label for display ───────────────────────────────────
+        state_label = {
+            "REGULAR":  "Live",
+            "PRE":      "Pre-market",
+            "POST":     "After-hours",
+            "CLOSED":   "Closed · Last price",
+            "PREPRE":   "Closed · Last price",
+        }.get(market_state, "Last price")
 
         return {
-            "price": price,
-            "change": change,
-            "pct_change": pct,
-            "currency": meta.get("currency", ""),
-            "market_state": meta.get("marketState", ""),
-            "symbol": symbol,
+            "price":        price,
+            "change":       change,
+            "pct_change":   pct,
+            "currency":     meta.get("currency", ""),
+            "market_state": market_state,
+            "state_label":  state_label,
+            "symbol":       symbol,
         }
+
     except Exception as e:
         print(f"Quote error [{symbol}]: {e}")
-        return {"price": 0, "change": 0, "pct_change": 0, "currency": "", "error": str(e)}
+        return {"price": 0, "change": 0, "pct_change": 0,
+                "currency": "", "market_state": "ERROR",
+                "state_label": "Unavailable", "error": str(e)}
 
 
 def fetch_market_overview() -> dict:
