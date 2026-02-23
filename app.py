@@ -126,8 +126,9 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] * {
     color: #F7F4EF !important;
 }
-/* Sector buttons — light text on dark background */
-[data-testid="stSidebar"] .stButton button {
+/* All sidebar buttons — unified style */
+[data-testid="stSidebar"] .stButton button,
+[data-testid="stSidebar"] .stFormSubmitButton button {
     background-color: #2A2A2A !important;
     color: #F7F4EF !important;
     border: 1px solid #3A3A3A !important;
@@ -138,12 +139,14 @@ html, body, [class*="css"] {
     border-radius: 3px !important;
     width: 100% !important;
 }
-[data-testid="stSidebar"] .stButton button:hover {
+[data-testid="stSidebar"] .stButton button:hover,
+[data-testid="stSidebar"] .stFormSubmitButton button:hover {
     background-color: #3A3A3A !important;
     border-color: #8B4513 !important;
     color: #F7F4EF !important;
 }
-[data-testid="stSidebar"] .stButton button p {
+[data-testid="stSidebar"] .stButton button p,
+[data-testid="stSidebar"] .stFormSubmitButton button p {
     color: #F7F4EF !important;
     font-size: 0.85rem !important;
 }
