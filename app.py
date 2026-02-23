@@ -243,18 +243,21 @@ st.markdown(f"""
 # ── Market ticker strip ───────────────────────────────────────────────────────
 def render_ticker(label, data, is_index=True):
     if not data or data.get("price", 0) == 0:
-        return f'<div class="ticker-item"><div class="ticker-label">{label}</div><div class="ticker-price">—</div></div>'
+        return '<div class="ticker-item"><div class="ticker-label">' + label + '</div><div class="ticker-price">—</div></div>'
     price = data["price"]
     pct = data.get("pct_change", 0)
+    state_label = data.get("state_label", "")
     chg_class = "ticker-change-up" if pct >= 0 else "ticker-change-dn"
     arrow = "▲" if pct >= 0 else "▼"
-    price_str = f"{price:,.0f}" if is_index else f"{price:,.2f}"
+    price_str = f"{price:,.0f}" if is_index else f"{price:,.3f}"
+    state_html = '<div style="font-size:0.55rem;color:#555;margin-top:1px;">' + state_label + '</div>' if state_label else ""
     return (
-        f'<div class="ticker-item">'
-        f'<div class="ticker-label">{label}</div>'
-        f'<div class="ticker-price">{price_str}</div>'
-        f'<div class="{chg_class}">{arrow} {abs(pct):.2f}%</div>'
-        f'</div>'
+        '<div class="ticker-item">'
+        '<div class="ticker-label">' + label + '</div>'
+        '<div class="ticker-price">' + price_str + '</div>'
+        '<div class="' + chg_class + '">' + arrow + ' ' + f"{abs(pct):.2f}%" + '</div>'
+        + state_html +
+        '</div>'
     )
 
 if st.session_state.market_data:
@@ -424,20 +427,23 @@ with tab_market:
 
             def metric_box(label, data, is_index=True):
                 if not data or data.get("price", 0) == 0:
-                    return f'<div class="flow-box"><div class="ticker-label">{label}</div><div style="font-size:1.2rem;color:#9B8B7A;">Unavailable</div></div>'
+                    return '<div class="flow-box"><div class="ticker-label">' + label + '</div><div style="font-size:1.2rem;color:#9B8B7A;">Unavailable</div></div>'
                 price = data["price"]
                 pct   = data.get("pct_change", 0)
                 chg   = data.get("change", 0)
+                state_label = data.get("state_label", "")
                 price_str = f"{price:,.0f}" if is_index else f"{price:,.3f}"
                 chg_str   = f"{chg:+,.0f}" if is_index else f"{chg:+,.3f}"
                 val_class = "flow-value-up" if pct >= 0 else "flow-value-dn"
                 arrow = "▲" if pct >= 0 else "▼"
+                state_html = '<div style="font-size:0.65rem;color:#9B8B7A;margin-top:0.15rem;">' + state_label + '</div>' if state_label else ""
                 return (
-                    f'<div class="flow-box">'
-                    f'<div class="ticker-label">{label}</div>'
-                    f'<div class="{val_class}">{price_str}</div>'
-                    f'<div class="flow-label">{arrow} {abs(pct):.2f}% &nbsp;({chg_str})</div>'
-                    f'</div>'
+                    '<div class="flow-box">'
+                    '<div class="ticker-label">' + label + '</div>'
+                    '<div class="' + val_class + '">' + price_str + '</div>'
+                    '<div class="flow-label">' + arrow + ' ' + f"{abs(pct):.2f}%" + ' &nbsp;(' + chg_str + ')</div>'
+                    + state_html +
+                    '</div>'
                 )
 
             st.markdown(metric_box("Nikkei 225", md.get("nikkei"), True), unsafe_allow_html=True)
