@@ -126,6 +126,27 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] * {
     color: #F7F4EF !important;
 }
+/* Sector buttons — light text on dark background */
+[data-testid="stSidebar"] .stButton button {
+    background-color: #2A2A2A !important;
+    color: #F7F4EF !important;
+    border: 1px solid #3A3A3A !important;
+    text-align: left !important;
+    font-size: 0.85rem !important;
+    padding: 0.4rem 0.7rem !important;
+    margin-bottom: 0.2rem !important;
+    border-radius: 3px !important;
+    width: 100% !important;
+}
+[data-testid="stSidebar"] .stButton button:hover {
+    background-color: #3A3A3A !important;
+    border-color: #8B4513 !important;
+    color: #F7F4EF !important;
+}
+[data-testid="stSidebar"] .stButton button p {
+    color: #F7F4EF !important;
+    font-size: 0.85rem !important;
+}
 [data-testid="stSidebar"] .stRadio label {
     font-size: 0.85rem !important;
     padding: 0.3rem 0 !important;
@@ -137,6 +158,15 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] hr {
     border-color: #444 !important;
     margin: 0.8rem 0 !important;
+}
+/* Sidebar text inputs */
+[data-testid="stSidebar"] .stTextInput input {
+    background-color: #2A2A2A !important;
+    color: #F7F4EF !important;
+    border: 1px solid #3A3A3A !important;
+}
+[data-testid="stSidebar"] .stTextInput input::placeholder {
+    color: #888 !important;
 }
 
 /* Sidebar sector badge counts */
