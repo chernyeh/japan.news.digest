@@ -139,29 +139,46 @@ def batch_translate_deepl(texts: list, api_key: str) -> list:
     return texts
 
 
-def translate_single_mymemory(text: str) -> str:
-    """Translate single text via MyMemory (no key required, slower)."""
+def translate_single_google(text: str) -> str:
+    """
+    Translate using Google Translate free unofficial endpoint.
+    No API key, no daily cap. Falls back to original on error.
+    """
     if not text:
         return text
     try:
+        params = {
+            "client": "gtx",
+            "sl": "ja",
+            "tl": "en",
+            "dt": "t",
+            "q": text[:500],
+        }
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
         resp = requests.get(
-            "https://api.mymemory.translated.net/get",
-            params={"q": text[:400], "langpair": "ja|en"},
+            "https://translate.googleapis.com/translate_a/single",
+            params=params,
+            headers=headers,
             timeout=8,
         )
-        result = resp.json().get("responseData", {}).get("translatedText", "")
-        if result and result.upper() != text.upper():
-            return result
-    except Exception:
-        pass
+        if resp.status_code == 200:
+            data = resp.json()
+            translated = "".join(seg[0] for seg in data[0] if seg[0])
+            if translated and translated != text:
+                return translated.strip()
+    except Exception as e:
+        print(f"Google Translate error: {e}")
     return text
 
 
 def translate_articles(articles: list) -> list:
     """
     Translate all Japanese headlines.
-    DeepL batch (fast, high quality) if DEEPL_API_KEY env var is set,
-    otherwise concurrent MyMemory calls (slower, no key needed).
+    - DEEPL_API_KEY set: DeepL batch (fastest, best quality)
+    - Otherwise: Google Translate free endpoint, concurrent (no cap, no key needed)
     """
     ja_articles = [a for a in articles if a.get("language") == "ja" and not a.get("translated_title")]
     if not ja_articles:
@@ -178,14 +195,14 @@ def translate_articles(articles: list) -> list:
         print(f"✓ DeepL batch translated {len(ja_articles)} headlines")
     else:
         def translate_one(article):
-            t = translate_single_mymemory(article["original_title"])
+            t = translate_single_google(article["original_title"])
             article["translated_title"] = t
             article["title"] = t
             return article
 
         with ThreadPoolExecutor(max_workers=10) as ex:
             list(as_completed({ex.submit(translate_one, a): a for a in ja_articles}))
-        print(f"✓ MyMemory translated {len(ja_articles)} headlines (add DEEPL_API_KEY for faster translation)")
+        print(f"✓ Google Translate: translated {len(ja_articles)} headlines")
 
     return articles
 
