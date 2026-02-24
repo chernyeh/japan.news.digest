@@ -245,6 +245,51 @@ html, body, [class*="css"] {
     color: #6B6B6B; text-align: center; padding: 2rem 1rem; line-height: 1.8;
 }
 
+/* Instrument cards (Markets tab) */
+.instrument-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+}
+.instrument-card {
+    background: white; border: 1px solid #E8E3DC; border-radius: 4px;
+    padding: 0.6rem 0.75rem; position: relative;
+}
+.instrument-card.unavailable { opacity: 0.5; }
+.inst-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 0.15rem;
+}
+.inst-label {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #8B4513;
+}
+.inst-state {
+    font-size: 0.55rem; color: #AAAAAA; font-weight: 400;
+}
+.inst-price-row {
+    display: flex; align-items: baseline; gap: 0.4rem;
+    margin-bottom: 0.35rem;
+}
+.inst-price {
+    font-size: 1.15rem; font-weight: 700; color: #1A1A1A;
+    font-family: 'Playfair Display', serif;
+}
+.inst-change {
+    font-size: 0.72rem; font-weight: 600;
+}
+.ret-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 0.15rem; border-top: 1px solid #EDE8E0; padding-top: 0.3rem;
+}
+.ret-cell { text-align: center; }
+.ret-period {
+    font-size: 0.5rem; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; color: #AAAAAA; margin-bottom: 0.05rem;
+}
+.ret-value { font-size: 0.62rem; font-weight: 600; }
+
 /* Mobile responsive */
 @media (max-width: 600px) {
     .masthead-title { font-size: 1.6rem; }
@@ -314,18 +359,26 @@ def render_ticker(label, data):
         '</div>'
     )
 
-if st.session_state.market_data and not st.session_state.market_data.get("error"):
+if st.session_state.market_data and st.session_state.market_data.get("_source") not in (None, "error"):
     md = st.session_state.market_data
+    indices = md.get("indices", {})
+    forex   = md.get("forex", {})
+    # Build flat dicts for the ticker render function
+    ticker_items = [
+        ("Nikkei",  indices.get("nikkei")),
+        ("TOPIX",   indices.get("topix")),
+        ("USD/JPY", forex.get("usdjpy")),
+        ("EUR/JPY", forex.get("eurjpy")),
+        ("CNY/JPY", forex.get("cnyjpy")),
+        ("SGD/JPY", forex.get("sgdjpy")),
+    ]
     ticker_html = '<div class="ticker-strip">'
-    ticker_html += render_ticker("Nikkei 225", md.get("nikkei"))
-    ticker_html += '<div class="ticker-divider"></div>'
-    ticker_html += render_ticker("TOPIX", md.get("topix"))
-    ticker_html += '<div class="ticker-divider"></div>'
-    ticker_html += render_ticker("USD/JPY", md.get("usdjpy"))
-    ticker_html += '<div class="ticker-divider"></div>'
-    ticker_html += render_ticker("MYR/JPY", md.get("myrjpy"))
-    ticker_html += '<div class="ticker-divider"></div>'
-    ticker_html += render_ticker("EUR/JPY", md.get("eurjpy"))
+    first = True
+    for label, data in ticker_items:
+        if not first:
+            ticker_html += '<div class="ticker-divider"></div>'
+        ticker_html += render_ticker(label, data)
+        first = False
     last_mkt = st.session_state.last_market_fetch
     updated_str = format_local_dt(last_mkt) if last_mkt else "—"
     ticker_html += '<div style="margin-left:auto;font-size:0.55rem;color:#555;align-self:center;">Updated<br>' + updated_str + '</div>'
@@ -468,47 +521,109 @@ with tab_news:
 # TAB 2 — MARKETS
 # ════════════════════════════════════════════════════════════
 with tab_market:
-    if not st.session_state.market_data or st.session_state.market_data.get('_source') == 'error':
-        if not st.session_state.market_data:
-            st.markdown('<div class="empty-state">Click <strong>📈 Markets</strong> above to load live data.</div>', unsafe_allow_html=True)
-    else:
-        md = st.session_state.market_data
+    md = st.session_state.market_data
 
-        def metric_box(label, data):
+    if not md:
+        st.markdown('<div class="empty-state">Click <strong>📈 Markets</strong> above to load live data.</div>', unsafe_allow_html=True)
+    elif md.get("_source") == "error":
+        st.warning("⚠️ Market data unavailable: " + md.get("_error", "Unknown error"))
+    else:
+        RETURN_PERIODS = ["MTD", "1M", "3M", "YTD", "1Y", "3Y"]
+
+        def fmt_price(price, is_forex=False):
+            if is_forex:
+                return f"{price:,.3f}"
+            return f"{price:,.2f}" if price < 1000 else f"{price:,.0f}"
+
+        def fmt_ret(v):
+            if v is None:
+                return '<span style="color:#BBBBBB">—</span>'
+            color = "#2E7D32" if v >= 0 else "#C62828"
+            arrow = "▲" if v >= 0 else "▼"
+            return f'<span style="color:{color}">{arrow}{abs(v):.1f}%</span>'
+
+        def instrument_card(data, is_forex=False):
+            """Render a full instrument card with price + return grid."""
             if not data or data.get("price", 0) == 0:
-                return '<div class="flow-box"><div class="ticker-label">' + label + '</div><div style="font-size:1.1rem;color:#9B8B7A;">Unavailable</div></div>'
-            price = data["price"]
-            pct   = data.get("pct_change", 0)
-            chg   = data.get("change", 0)
-            state = data.get("state_label", "")
-            price_str = f"{price:,.0f}" if price > 100 else f"{price:,.3f}"
-            chg_str   = (f"{chg:+,.0f}" if price > 100 else f"{chg:+,.3f}")
-            val_class = "flow-value-up" if pct >= 0 else "flow-value-dn"
-            arrow = "▲" if pct >= 0 else "▼"
-            state_html = '<div style="font-size:0.63rem;color:#9B8B7A;margin-top:0.1rem;">' + state + '</div>' if state else ""
+                label = data.get("label", "—") if data else "—"
+                err   = data.get("error", "No data") if data else "No data"
+                return (
+                    '<div class="instrument-card unavailable">'
+                    '<div class="inst-label">' + label + '</div>'
+                    '<div style="font-size:0.75rem;color:#9B8B7A;">' + err + '</div>'
+                    '</div>'
+                )
+
+            price   = data["price"]
+            pct     = data.get("pct_change", 0)
+            chg     = data.get("change", 0)
+            state   = data.get("state_label", "Last close")
+            label   = data.get("label", "")
+            rets    = data.get("returns", {})
+
+            price_str = fmt_price(price, is_forex)
+            chg_str   = (f"{chg:+,.3f}" if is_forex else (f"{chg:+,.0f}" if price >= 1000 else f"{chg:+,.2f}"))
+            pct_color = "#2E7D32" if pct >= 0 else "#C62828"
+            pct_arrow = "▲" if pct >= 0 else "▼"
+
+            # Return cells
+            ret_cells = ""
+            for p in RETURN_PERIODS:
+                v = rets.get(p)
+                ret_cells += (
+                    '<div class="ret-cell">'
+                    '<div class="ret-period">' + p + '</div>'
+                    '<div class="ret-value">' + fmt_ret(v) + '</div>'
+                    '</div>'
+                )
+
             return (
-                '<div class="flow-box">'
-                '<div class="ticker-label">' + label + '</div>'
-                '<div class="' + val_class + '">' + price_str + '</div>'
-                '<div class="flow-label">' + arrow + ' ' + f"{abs(pct):.2f}%" + ' (' + chg_str + ')</div>'
-                + state_html + '</div>'
+                '<div class="instrument-card">'
+                '<div class="inst-header">'
+                '<div class="inst-label">' + label + '</div>'
+                '<div class="inst-state">' + state + '</div>'
+                '</div>'
+                '<div class="inst-price-row">'
+                '<span class="inst-price">' + price_str + '</span>'
+                '<span class="inst-change" style="color:' + pct_color + ';">'
+                + pct_arrow + ' ' + f"{abs(pct):.2f}%" + ' (' + chg_str + ')'
+                '</span>'
+                '</div>'
+                '<div class="ret-grid">' + ret_cells + '</div>'
+                '</div>'
             )
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown('<div class="section-title">📈 Indices</div>', unsafe_allow_html=True)
-            st.markdown(metric_box("Nikkei 225", md.get("nikkei")), unsafe_allow_html=True)
-            st.markdown(metric_box("TOPIX", md.get("topix")), unsafe_allow_html=True)
-        with col2:
-            st.markdown('<div class="section-title">💱 Currencies</div>', unsafe_allow_html=True)
-            st.markdown(metric_box("USD / JPY", md.get("usdjpy")), unsafe_allow_html=True)
-            st.markdown(metric_box("MYR / JPY", md.get("myrjpy")), unsafe_allow_html=True)
-            st.markdown(metric_box("EUR / JPY", md.get("eurjpy")), unsafe_allow_html=True)
+        # ── Indices ──────────────────────────────────────────
+        st.markdown('<div class="section-title">📈 Japanese Indices</div>', unsafe_allow_html=True)
+        indices = md.get("indices", {})
+        index_order = ["nikkei", "topix", "topix_c30", "topix_m400", "topix_1000", "tse_growth"]
+        idx_html = '<div class="instrument-grid">'
+        for key in index_order:
+            data = indices.get(key)
+            if data:
+                idx_html += instrument_card(data, is_forex=False)
+        idx_html += '</div>'
+        st.markdown(idx_html, unsafe_allow_html=True)
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
 
-        col3, col4 = st.columns(2)
+        # ── Forex ────────────────────────────────────────────
+        st.markdown('<div class="section-title">💱 Currency Pairs vs JPY</div>', unsafe_allow_html=True)
+        forex = md.get("forex", {})
+        forex_order = ["usdjpy", "eurjpy", "cnyjpy", "sgdjpy"]
+        fx_html = '<div class="instrument-grid">'
+        for key in forex_order:
+            data = forex.get(key)
+            if data:
+                fx_html += instrument_card(data, is_forex=True)
+        fx_html += '</div>'
+        st.markdown(fx_html, unsafe_allow_html=True)
+
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
+
+        # ── TSE Movers ───────────────────────────────────────
         movers = st.session_state.movers or {}
+        col3, col4 = st.columns(2)
         with col3:
             st.markdown('<div class="section-title">🚀 Top Gainers</div>', unsafe_allow_html=True)
             gainers = movers.get("gainers", [])
@@ -518,13 +633,13 @@ with tab_market:
                     html += (
                         '<div class="mover-card up">'
                         '<div><div class="mover-name">' + m["name"] + '</div>'
-                        '<div class="mover-sym">' + m["symbol"] + ' · ¥' + f'{m["price"]:,.0f}' + '</div></div>'
+                        '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
                         '<div class="mover-pct-up">▲ ' + f'{m["pct_change"]:.2f}%' + '</div>'
                         '</div>'
                     )
                 st.markdown(html, unsafe_allow_html=True)
             else:
-                st.markdown('<div class="info-box">No data — fetch markets first.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
         with col4:
             st.markdown('<div class="section-title">📉 Top Losers</div>', unsafe_allow_html=True)
             losers = movers.get("losers", [])
@@ -534,16 +649,17 @@ with tab_market:
                     html += (
                         '<div class="mover-card dn">'
                         '<div><div class="mover-name">' + m["name"] + '</div>'
-                        '<div class="mover-sym">' + m["symbol"] + ' · ¥' + f'{m["price"]:,.0f}' + '</div></div>'
+                        '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
                         '<div class="mover-pct-dn">▼ ' + f'{abs(m["pct_change"]):.2f}%' + '</div>'
                         '</div>'
                     )
                 st.markdown(html, unsafe_allow_html=True)
             else:
-                st.markdown('<div class="info-box">No data — fetch markets first.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
 
+        # ── Foreign flow ─────────────────────────────────────
         st.markdown('<div class="section-title">🌍 Foreign Investor Flow</div>', unsafe_allow_html=True)
         flow = st.session_state.foreign_flow
         if flow and flow.get("available"):
@@ -553,8 +669,8 @@ with tab_market:
             st.markdown(
                 '<div class="flow-box">'
                 '<div class="ticker-label">Weekly Net Flow — Foreign Investors (TSE)</div>'
-                '<div class="' + val_class + '">' + arrow + ' ¥' + f'{abs(net):.1f}B' + '</div>'
-                '<div class="flow-label">' + flow.get("direction","") + ' · ' + flow.get("as_of","") + '</div>'
+                '<div class="' + val_class + '">' + arrow + " ¥" + f"{abs(net):.1f}B" + '</div>'
+                '<div class="flow-label">' + flow.get("direction","") + " · " + flow.get("as_of","") + '</div>'
                 '</div>',
                 unsafe_allow_html=True
             )
