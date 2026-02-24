@@ -43,11 +43,12 @@ RSS_SOURCES = [
     ("IT Media Business",    "https://rss.itmedia.co.jp/rss/2.0/business_media.xml",        "ja"),
     ("Toyo Keizai",          "https://toyokeizai.net/list/feed/rss",                        "ja"),
     ("Diamond Online",       "https://diamond.jp/feed/newest",                              "ja"),
+    ("Nikkan Kogyo",         "https://www.nikkan.co.jp/rss/nksrdf.rdf",                      "ja"),
 ]
 
 # ── Trade paper scrape targets ────────────────────────────────────────────────
 SCRAPE_SOURCES = [
-    ("Nikkan Kogyo Shimbun", "https://www.nikkan.co.jp/",          "h2, h3, .news-title, article h2, .headline", "ja"),
+    # Nikkan Kogyo moved to RSS_SOURCES (has RSS feed)
     ("Nikkan Jidosha",       "https://www.njd.jp/",                "h2, h3, .article-title, .news-list li a",    "ja"),
     ("Denki Shimbun",        "https://www.denkishimbun.com/",      "h2, h3, .article-title, .news-item a",       "ja"),
     ("Dempa Shimbun",        "https://www.dempa.com/",             "h2, h3, .article-title, .headline",          "ja"),
