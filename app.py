@@ -56,6 +56,7 @@ MEDIA_SOURCES = [
     ("Nihon Nogyo",         "https://www.agrinews.co.jp/",                "🌾"),
     ("IT Media Business",   "https://www.itmedia.co.jp/business/",       "💻"),
     ("Japan Industry News", "https://japanindustrynews.com/",             "🏭"),
+    ("FACTA",               "https://facta.co.jp/",                        "🔍"),
 ]
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
