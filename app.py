@@ -468,10 +468,9 @@ with tab_news:
 # TAB 2 — MARKETS
 # ════════════════════════════════════════════════════════════
 with tab_market:
-    if not st.session_state.market_data:
-        st.markdown('<div class="empty-state">Click <strong>📈 Markets</strong> above to load live data.</div>', unsafe_allow_html=True)
-    elif st.session_state.market_data.get("error") == "no_key":
-        st.warning("⚠️ No Finnhub API key found. Add **FINNHUB_API_KEY** to your Streamlit Secrets. Sign up free at https://finnhub.io — no credit card needed.")
+    if not st.session_state.market_data or st.session_state.market_data.get('_source') == 'error':
+        if not st.session_state.market_data:
+            st.markdown('<div class="empty-state">Click <strong>📈 Markets</strong> above to load live data.</div>', unsafe_allow_html=True)
     else:
         md = st.session_state.market_data
 
@@ -880,6 +879,6 @@ st.markdown("""
 <div style="text-align:center;margin-top:2rem;padding-top:0.7rem;
             border-top:1px solid #D9D3C8;font-size:0.66rem;color:#9B8B7A;letter-spacing:0.07em;">
     JAPAN INVESTMENT DIGEST · MSCI SECTOR EDITION<br>
-    Market data via Finnhub · News via RSS · For informational purposes only · Not financial advice.
+    Indices via stooq · Forex via exchangerate-api · TSE stocks via Finnhub · News via RSS · For informational purposes only · Not financial advice.
 </div>
 """, unsafe_allow_html=True)
