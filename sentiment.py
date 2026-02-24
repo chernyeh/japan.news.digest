@@ -115,7 +115,9 @@ def score_sector(articles: list) -> dict:
 
 
 def score_all_sectors(articles_by_sector: dict) -> dict:
-    """Score all sectors at once."""
+    """Score all sectors at once. Handles None or non-dict input gracefully."""
+    if not articles_by_sector or not isinstance(articles_by_sector, dict):
+        return {}
     return {
         sector: score_sector(articles)
         for sector, articles in articles_by_sector.items()
