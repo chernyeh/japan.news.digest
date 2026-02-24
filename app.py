@@ -272,6 +272,7 @@ for key, default in [
     ("sentiment_scores", {}), ("watchlist_hits", {}),
     ("last_market_fetch", None),
     ("source_cache", {}),
+    ("source_map", {}),
     ("source_selected", None),
     ("source_group", None),
 ]:
@@ -354,12 +355,13 @@ with col_news:
     if st.button("🔄 News", use_container_width=True):
         with st.spinner("Fetching & translating..."):
             try:
-                result = fetch_all_news()
-                # Guard: ensure we always have a dict, never None
-                st.session_state.articles = result if isinstance(result, dict) else {}
+                sector_map, source_map = fetch_all_news()
+                st.session_state.articles = sector_map if isinstance(sector_map, dict) else {}
+                st.session_state.source_map = source_map if isinstance(source_map, dict) else {}
             except Exception as e:
                 st.error("News fetch failed: " + str(e))
                 st.session_state.articles = {}
+                st.session_state.source_map = {}
             st.session_state.last_fetch = now_local()
             # Only score if we actually have articles
             if st.session_state.articles:
@@ -800,8 +802,9 @@ with tab_bysource:
                 'border-bottom:1px solid #D9D3C8;padding-bottom:0.2rem;'
             )
             for date_key in sorted(by_date.keys(), reverse=True):
+                safe_date_key = str(date_key) if date_key else "Unknown date"
                 st.markdown(
-                    '<div style="' + date_header_style + '">' + date_key + '</div>',
+                    '<div style="' + date_header_style + '">' + safe_date_key + '</div>',
                     unsafe_allow_html=True
                 )
                 st.markdown(render_source_articles(by_date[date_key]), unsafe_allow_html=True)
