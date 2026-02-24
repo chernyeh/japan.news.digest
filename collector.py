@@ -11,7 +11,7 @@ import feedparser
 import requests
 import re
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ── RSS Sources ───────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ RSS_SOURCES = [
     ("Yahoo Japan Economy",  "https://news.yahoo.co.jp/rss/topics/economy.xml",             "ja"),
     ("IT Media Business",    "https://rss.itmedia.co.jp/rss/2.0/business_media.xml",        "ja"),
     ("Toyo Keizai",          "https://toyokeizai.net/list/feed/rss",                        "ja"),
-    ("Diamond Online",       "https://diamond.jp/feed/newest",                              "ja"),
+    ("Diamond Online",       "https://diamond.jp/list/feed/rss/dol",                        "ja"),
     ("Nikkan Kogyo",         "https://www.nikkan.co.jp/rss/nksrdf.rdf",                      "ja"),
 ]
 
@@ -231,13 +231,15 @@ def classify_sector(title: str, original: str = "") -> str:
 
 # ── RSS fetch ─────────────────────────────────────────────────────────────────
 
-def parse_date(entry) -> str:
+def parse_date(entry) -> tuple:
+    """Returns (display_string, datetime_object) for sorting and display."""
     try:
         if hasattr(entry, "published_parsed") and entry.published_parsed:
-            return datetime(*entry.published_parsed[:6]).strftime("%b %d, %Y · %H:%M")
+            dt = datetime(*entry.published_parsed[:6])
+            return dt.strftime("%b %d, %Y · %H:%M"), dt
     except Exception:
         pass
-    return ""
+    return "", None
 
 
 def fetch_rss(source_name: str, url: str, language: str) -> list:
@@ -248,13 +250,15 @@ def fetch_rss(source_name: str, url: str, language: str) -> list:
             title = re.sub(r"<[^>]+>", "", entry.get("title", "").strip())
             if not title:
                 continue
+            pub_display, pub_dt = parse_date(entry)
             articles.append({
                 "source": source_name,
                 "original_title": title,
                 "translated_title": title if language == "en" else "",
                 "title": title if language == "en" else "",
                 "url": entry.get("link", "#"),
-                "pub_date": parse_date(entry),
+                "pub_date": pub_display,
+                "pub_dt": pub_dt,
                 "sector": "",
                 "language": language,
             })
@@ -322,6 +326,117 @@ def scrape_trade_paper(source_name: str, url: str, selectors: str, language: str
     return articles[:12]
 
 
+# ── Source directory (for By Source tab) ─────────────────────────────────────
+# Maps display name → (url, language) for sources that have working RSS feeds
+SOURCE_DIRECTORY = {
+    # English sources
+    "Japan Times":          ("https://www.japantimes.co.jp/feed/category/business/", "en"),
+    "Nikkei Asia":          ("https://asia.nikkei.com/rss/feed/nar",                 "en"),
+    "Nikkei Business":      ("https://asia.nikkei.com/Business/Feed",                "en"),
+    "Nikkei Tech":          ("https://asia.nikkei.com/Business/Tech/Feed",           "en"),
+    "Nikkei Markets":       ("https://asia.nikkei.com/Markets/Feed",                 "en"),
+    "Nikkei Politics":      ("https://asia.nikkei.com/Politics/Feed",                "en"),
+    "Nikkei Economy":       ("https://asia.nikkei.com/Economy/Feed",                 "en"),
+    "Nikkei Companies":     ("https://asia.nikkei.com/Companies/Feed",               "en"),
+    "Reuters Japan":        ("https://feeds.reuters.com/reuters/JPbusinessNews",      "en"),
+    "NHK World Business":   ("https://www3.nhk.or.jp/nhkworld/en/news/feeds/business.xml", "en"),
+    "Japan Industry News":  ("https://japanindustrynews.com/feed/",                  "en"),
+    # Japanese sources (will be translated)
+    "Asahi Shimbun":        ("https://rss.asahi.com/rss/asahi/newsheadlines.rdf",   "ja"),
+    "NHK Economics":        ("https://www3.nhk.or.jp/rss/news/cat4.xml",             "ja"),
+    "NHK Business":         ("https://www3.nhk.or.jp/rss/news/cat5.xml",             "ja"),
+    "Mainichi Shimbun":     ("https://rss.mainichi.jp/rss/etc/mainichi-flash.xml",   "ja"),
+    "Sankei Shimbun":       ("https://www.sankei.com/rss/news/flash/flash.xml",      "ja"),
+    "Yahoo Japan Business": ("https://news.yahoo.co.jp/rss/topics/business.xml",     "ja"),
+    "Yahoo Japan Economy":  ("https://news.yahoo.co.jp/rss/topics/economy.xml",      "ja"),
+    "IT Media Business":    ("https://rss.itmedia.co.jp/rss/2.0/business_media.xml", "ja"),
+    "Toyo Keizai":          ("https://toyokeizai.net/list/feed/rss",                 "ja"),
+    "Diamond Online":       ("https://diamond.jp/list/feed/rss/dol",                 "ja"),
+    "Nikkan Kogyo":         ("https://www.nikkan.co.jp/rss/nksrdf.rdf",              "ja"),
+}
+
+# Group labels for the UI
+SOURCE_GROUPS = {
+    "🇬🇧 English — General": [
+        "Japan Times", "Reuters Japan", "NHK World Business", "Japan Industry News",
+    ],
+    "📊 English — Nikkei Asia": [
+        "Nikkei Asia", "Nikkei Business", "Nikkei Tech",
+        "Nikkei Markets", "Nikkei Politics", "Nikkei Economy", "Nikkei Companies",
+    ],
+    "🇯🇵 Japanese — General": [
+        "Asahi Shimbun", "Mainichi Shimbun", "Sankei Shimbun",
+        "NHK Economics", "NHK Business",
+        "Yahoo Japan Business", "Yahoo Japan Economy",
+    ],
+    "📰 Japanese — Business / Finance": [
+        "Toyo Keizai", "Diamond Online", "IT Media Business",
+    ],
+    "🏭 Japanese — Trade Papers": [
+        "Nikkan Kogyo",
+    ],
+}
+
+
+def fetch_source_headlines(source_name: str, days: int = 14) -> list:
+    """
+    Fetch all available headlines for a single source,
+    filtered to the last `days` days where dates are parseable.
+    Translates Japanese headlines automatically.
+    """
+    if source_name not in SOURCE_DIRECTORY:
+        return []
+
+    url, language = SOURCE_DIRECTORY[source_name]
+    cutoff = datetime.now() - timedelta(days=days)
+
+    try:
+        feed = feedparser.parse(url)
+        articles = []
+
+        for entry in feed.entries[:50]:  # fetch more than usual for 2-week window
+            title = re.sub(r"<[^>]+>", "", entry.get("title", "").strip())
+            if not title:
+                continue
+
+            link    = entry.get("link", "#")
+            summary = re.sub(r"<[^>]+>", "", entry.get("summary", "")[:200])
+            pub_str = parse_date(entry)
+
+            # Date filter — include if within window or if date unknown
+            include = True
+            if hasattr(entry, "published_parsed") and entry.published_parsed:
+                try:
+                    pub_dt = datetime(*entry.published_parsed[:6])
+                    if pub_dt < cutoff:
+                        include = False
+                except Exception:
+                    pass
+
+            if include:
+                articles.append({
+                    "source":           source_name,
+                    "original_title":   title,
+                    "translated_title": title if language == "en" else "",
+                    "title":            title if language == "en" else "",
+                    "url":              link,
+                    "pub_date":         pub_str,
+                    "summary":          summary,
+                    "language":         language,
+                    "sector":           "",
+                })
+
+        # Translate Japanese headlines
+        if language == "ja" and articles:
+            articles = translate_articles(articles)
+
+        return articles
+
+    except Exception as e:
+        print(f"Source fetch error [{source_name}]: {e}")
+        return []
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def fetch_all_news() -> dict:
@@ -374,10 +489,24 @@ def fetch_all_news() -> dict:
         sector_map.get(a.get("sector","General / Macro"), sector_map["General / Macro"]).append(a)
 
     for s in sector_map:
-        sector_map[s].sort(key=lambda x: x.get("pub_date",""), reverse=True)
+        sector_map[s].sort(key=lambda x: x.get("pub_dt") or datetime.min, reverse=True)
 
-    print(f"✓ Total: {sum(len(v) for v in sector_map.values())} articles across {sum(1 for v in sector_map.values() if v)} sectors")
-    return sector_map
+    # Also build a by-source map, sorted newest-first, up to 2 weeks
+    cutoff = datetime.now() - timedelta(days=14)
+    source_map = {}
+    for a in unique:
+        src = a.get("source", "Unknown")
+        if src not in source_map:
+            source_map[src] = []
+        pub_dt = a.get("pub_dt")
+        # Include article if date unknown (scraped) or within 2 weeks
+        if pub_dt is None or pub_dt >= cutoff:
+            source_map[src].append(a)
+    for src in source_map:
+        source_map[src].sort(key=lambda x: x.get("pub_dt") or datetime.min, reverse=True)
+
+    print(f"✓ Total: {sum(len(v) for v in sector_map.values())} articles across {sum(1 for v in sector_map.values() if v)} sectors, {len(source_map)} sources")
+    return sector_map, source_map
 
 
 if __name__ == "__main__":
