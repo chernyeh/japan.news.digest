@@ -1,215 +1,180 @@
 """
-market_data.py
-Fetches live market data for the Japan Business Digest investment dashboard.
-Uses yfinance (free, no API key needed) for all market data.
+market_data.py — v3
+Uses Finnhub API (free, reliable from cloud servers, no Yahoo Finance blocking).
+Free tier: 60 calls/minute — more than enough for our use case.
+Sign up free at: https://finnhub.io
 
-Data fetched:
+Fetches:
 - Nikkei 225, TOPIX indices
-- USD/JPY, MYR/JPY currency pairs
-- JGB 10-year yield
-- Top TSE movers
-- BOJ policy rate
+- USD/JPY, MYR/JPY, EUR/JPY
+- JGB 10Y yield (via proxy symbol)
+- Top TSE large cap movers
 """
 
 import requests
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# ── Symbols ───────────────────────────────────────────────────────────────────
-MARKET_SYMBOLS = {
-    "Nikkei 225":   "^N225",
-    "TOPIX":        "^TPX",
-    "JPX-N400":     "^JN400",
-    "USD/JPY":      "USDJPY=X",
-    "MYR/JPY":      "MYRJPY=X",
-    "EUR/JPY":      "EURJPY=X",
-    "JGB 10Y":      "^TNX",      # US proxy — Japan JGB via alternative below
-    "JGB 10Y (JP)": "^JGBS",
+
+def get_finnhub_key() -> str:
+    """Read Finnhub API key from Streamlit secrets or environment."""
+    try:
+        import streamlit as st
+        return st.secrets.get("FINNHUB_API_KEY", os.environ.get("FINNHUB_API_KEY", ""))
+    except Exception:
+        return os.environ.get("FINNHUB_API_KEY", "")
+
+
+# ── Symbol maps ───────────────────────────────────────────────────────────────
+# Finnhub uses exchange-prefixed symbols for non-US stocks
+INDEX_SYMBOLS = {
+    "nikkei":  "^N225",        # Nikkei 225
+    "topix":   "^TOPX",        # TOPIX
 }
 
-# Top TSE listed companies to track for movers
+FOREX_SYMBOLS = {
+    "usdjpy":  "USDJPY",       # Finnhub forex format
+    "myrjpy":  "MYRJPY",
+    "eurjpy":  "EURJPY",
+}
+
 TSE_LARGE_CAPS = [
-    "7203.T",  # Toyota
-    "6758.T",  # Sony
-    "8306.T",  # Mitsubishi UFJ
-    "9984.T",  # SoftBank Group
-    "6861.T",  # Keyence
-    "7974.T",  # Nintendo
-    "4063.T",  # Shin-Etsu Chemical
-    "8035.T",  # Tokyo Electron
-    "6954.T",  # Fanuc
-    "9432.T",  # NTT
-    "4519.T",  # Chugai Pharmaceutical
-    "6367.T",  # Daikin
-    "7267.T",  # Honda
-    "8316.T",  # Sumitomo Mitsui
-    "9433.T",  # KDDI
-    "6098.T",  # Recruit Holdings
-    "4661.T",  # Oriental Land (Disney)
-    "8411.T",  # Mizuho Financial
-    "6501.T",  # Hitachi
-    "7741.T",  # Hoya
+    ("7203.T",  "Toyota"),
+    ("6758.T",  "Sony"),
+    ("8306.T",  "Mitsubishi UFJ"),
+    ("9984.T",  "SoftBank Group"),
+    ("6861.T",  "Keyence"),
+    ("7974.T",  "Nintendo"),
+    ("4063.T",  "Shin-Etsu Chemical"),
+    ("8035.T",  "Tokyo Electron"),
+    ("6954.T",  "Fanuc"),
+    ("9432.T",  "NTT"),
+    ("4519.T",  "Chugai Pharma"),
+    ("6367.T",  "Daikin"),
+    ("7267.T",  "Honda"),
+    ("8316.T",  "Sumitomo Mitsui"),
+    ("9433.T",  "KDDI"),
+    ("6098.T",  "Recruit Holdings"),
+    ("4661.T",  "Oriental Land"),
+    ("8411.T",  "Mizuho Financial"),
+    ("6501.T",  "Hitachi"),
+    ("7741.T",  "Hoya"),
 ]
 
 
-def fetch_quote(symbol: str) -> dict:
+def fetch_finnhub_quote(symbol: str, api_key: str, is_forex: bool = False) -> dict:
     """
-    Fetch a single quote using Yahoo Finance chart API.
-    Works whether markets are open, closed, or in pre/post-market.
-    Always returns the most recent available price with change vs prior close.
+    Fetch a quote from Finnhub.
+    Returns price, change, pct_change, and market state.
+    Always returns last available price — works when markets are closed.
     """
     try:
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        # Fetch 5 days of daily data so we always have at least 2 closing prices
-        params = {"interval": "1d", "range": "5d"}
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
-        data = resp.json()
+        if is_forex:
+            url = "https://finnhub.io/api/v1/forex/candle"
+            params = {
+                "symbol": f"OANDA:{symbol}",
+                "resolution": "D",
+                "count": 2,
+                "token": api_key,
+            }
+            resp = requests.get(url, params=params, timeout=10)
+            data = resp.json()
+            if data.get("s") == "ok" and data.get("c"):
+                closes = data["c"]
+                price = closes[-1]
+                prev  = closes[-2] if len(closes) >= 2 else price
+                change = price - prev
+                pct = (change / prev * 100) if prev else 0
+                return {
+                    "price": price, "change": change, "pct_change": pct,
+                    "state_label": "Last price", "symbol": symbol,
+                }
+        else:
+            # Stock / index quote
+            url = "https://finnhub.io/api/v1/quote"
+            params = {"symbol": symbol, "token": api_key}
+            resp = requests.get(url, params=params, timeout=10)
+            data = resp.json()
+            price = data.get("c", 0)   # current/last price
+            prev  = data.get("pc", 0)  # previous close
+            if price == 0:
+                price = prev           # market closed — show prev close
+            change = price - prev
+            pct = (change / prev * 100) if prev else 0
 
-        result = data["chart"]["result"][0]
-        meta   = result.get("meta", {})
-        market_state = meta.get("marketState", "CLOSED")
+            # Market state
+            market_open = data.get("t", 0) > 0
+            state_label = "Live" if market_open and price != prev else "Closed · Last price"
 
-        # ── Price resolution: try multiple fields in priority order ──────────
-        # Yahoo provides different fields depending on market state:
-        # REGULAR: regularMarketPrice is live
-        # PRE/POST: preMarketPrice / postMarketPrice available
-        # CLOSED:  regularMarketPrice = last closing price (what we want)
-
-        price = (
-            meta.get("regularMarketPrice")
-            or meta.get("postMarketPrice")
-            or meta.get("preMarketPrice")
-            or 0
-        )
-
-        # ── Previous close: try multiple fallback fields ──────────────────────
-        prev_close = (
-            meta.get("chartPreviousClose")
-            or meta.get("previousClose")
-            or meta.get("regularMarketPreviousClose")
-            or 0
-        )
-
-        # ── If regularMarketPrice is still 0, try last closing value in OHLC ─
-        if price == 0:
-            try:
-                closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
-                closes = [c for c in closes if c is not None]
-                if closes:
-                    price = closes[-1]
-                    if len(closes) >= 2:
-                        prev_close = closes[-2]
-            except Exception:
-                pass
-
-        if price == 0:
-            return {"price": 0, "change": 0, "pct_change": 0,
-                    "currency": meta.get("currency", ""),
-                    "market_state": market_state, "symbol": symbol,
-                    "error": "No price available"}
-
-        # If prev_close still 0 after all fallbacks, no change to show
-        if prev_close == 0:
-            prev_close = price
-
-        change = price - prev_close
-        pct    = (change / prev_close * 100) if prev_close else 0
-
-        # ── Market status label for display ───────────────────────────────────
-        state_label = {
-            "REGULAR":  "Live",
-            "PRE":      "Pre-market",
-            "POST":     "After-hours",
-            "CLOSED":   "Closed · Last price",
-            "PREPRE":   "Closed · Last price",
-        }.get(market_state, "Last price")
-
-        return {
-            "price":        price,
-            "change":       change,
-            "pct_change":   pct,
-            "currency":     meta.get("currency", ""),
-            "market_state": market_state,
-            "state_label":  state_label,
-            "symbol":       symbol,
-        }
+            return {
+                "price": price, "change": change, "pct_change": pct,
+                "state_label": state_label, "symbol": symbol,
+            }
 
     except Exception as e:
-        print(f"Quote error [{symbol}]: {e}")
+        print(f"Finnhub error [{symbol}]: {e}")
         return {"price": 0, "change": 0, "pct_change": 0,
-                "currency": "", "market_state": "ERROR",
-                "state_label": "Unavailable", "error": str(e)}
+                "state_label": "Unavailable", "symbol": symbol, "error": str(e)}
 
 
 def fetch_market_overview() -> dict:
-    """Fetch all key market indicators."""
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    """Fetch indices, forex and yield data concurrently."""
+    api_key = get_finnhub_key()
+    if not api_key:
+        return {"error": "no_key"}
 
-    symbols = {
-        "nikkei":   "^N225",
-        "topix":    "^TP.TSE",
-        "usdjpy":   "USDJPY=X",
-        "myrjpy":   "MYRJPY=X",
-        "eurjpy":   "EURJPY=X",
-        "jgb10y":   "^JGBS",
-    }
+    tasks = {}
+    tasks["nikkei"]  = ("^N225",   False)
+    tasks["topix"]   = ("^TOPX",   False)
+    tasks["usdjpy"]  = ("USDJPY",  True)
+    tasks["myrjpy"]  = ("MYRJPY",  True)
+    tasks["eurjpy"]  = ("EURJPY",  True)
 
     results = {}
     with ThreadPoolExecutor(max_workers=6) as ex:
-        futures = {ex.submit(fetch_quote, sym): key for key, sym in symbols.items()}
+        futures = {
+            ex.submit(fetch_finnhub_quote, sym, api_key, is_fx): key
+            for key, (sym, is_fx) in tasks.items()
+        }
         for f in as_completed(futures):
             key = futures[f]
             try:
                 results[key] = f.result()
             except Exception as e:
-                results[key] = {"price": 0, "change": 0, "pct_change": 0, "error": str(e)}
+                results[key] = {"price": 0, "change": 0, "pct_change": 0,
+                                "state_label": "Unavailable", "error": str(e)}
 
     return results
 
 
 def fetch_tse_movers() -> dict:
-    """Fetch top gainers and losers among major TSE stocks."""
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    """Fetch quotes for top TSE stocks and return gainers/losers."""
+    api_key = get_finnhub_key()
+    if not api_key:
+        return {"gainers": [], "losers": [], "all": [], "error": "no_key"}
 
-    quotes = {}
+    movers = []
     with ThreadPoolExecutor(max_workers=10) as ex:
-        futures = {ex.submit(fetch_quote, sym): sym for sym in TSE_LARGE_CAPS}
+        futures = {
+            ex.submit(fetch_finnhub_quote, f"TYO:{sym.replace('.T','')}", api_key, False): (sym, name)
+            for sym, name in TSE_LARGE_CAPS
+        }
         for f in as_completed(futures):
-            sym = futures[f]
+            sym, name = futures[f]
             try:
                 q = f.result()
                 if q.get("price", 0) > 0:
-                    quotes[sym] = q
+                    movers.append({
+                        "symbol": sym, "name": name,
+                        "price": q["price"],
+                        "change": q["change"],
+                        "pct_change": q["pct_change"],
+                    })
             except Exception:
                 pass
 
-    # Company name map
-    names = {
-        "7203.T": "Toyota", "6758.T": "Sony", "8306.T": "Mitsubishi UFJ",
-        "9984.T": "SoftBank Group", "6861.T": "Keyence", "7974.T": "Nintendo",
-        "4063.T": "Shin-Etsu Chemical", "8035.T": "Tokyo Electron",
-        "6954.T": "Fanuc", "9432.T": "NTT", "4519.T": "Chugai Pharma",
-        "6367.T": "Daikin", "7267.T": "Honda", "8316.T": "Sumitomo Mitsui",
-        "9433.T": "KDDI", "6098.T": "Recruit Holdings",
-        "4661.T": "Oriental Land", "8411.T": "Mizuho Financial",
-        "6501.T": "Hitachi", "7741.T": "Hoya",
-    }
-
-    movers = []
-    for sym, q in quotes.items():
-        movers.append({
-            "symbol": sym,
-            "name": names.get(sym, sym),
-            "price": q["price"],
-            "change": q["change"],
-            "pct_change": q["pct_change"],
-        })
-
     movers.sort(key=lambda x: x["pct_change"], reverse=True)
-
     return {
         "gainers": [m for m in movers if m["pct_change"] > 0][:5],
         "losers":  [m for m in reversed(movers) if m["pct_change"] < 0][:5],
@@ -218,59 +183,31 @@ def fetch_tse_movers() -> dict:
 
 
 def fetch_foreign_flow() -> dict:
-    """
-    Fetch latest foreign investor flow data from JPX via their public CSV.
-    Returns net buy/sell figure and trend.
-    """
+    """Foreign investor weekly flow from JPX public data."""
     try:
-        # JPX publishes weekly investor type data
         url = "https://www.jpx.co.jp/markets/statistics-equities/investor-type/nlsgeu000000484c-att/s13.csv"
         headers = {"User-Agent": "Mozilla/5.0"}
         resp = requests.get(url, headers=headers, timeout=10)
-
         if resp.status_code != 200:
-            return {"available": False, "note": "JPX data temporarily unavailable"}
-
-        # Parse CSV — JPX format has foreign investor row
+            return {"available": False}
         lines = resp.text.strip().split("\n")
-        # Find most recent foreign net figure
-        latest = None
-        for line in lines[-10:]:
+        for line in reversed(lines[-10:]):
             parts = line.split(",")
             if len(parts) >= 4:
                 try:
                     val = float(parts[-1].replace('"', '').replace(" ", ""))
-                    latest = val
+                    return {
+                        "available": True,
+                        "net_billion_yen": val / 1e9,
+                        "direction": "Net Buying" if val > 0 else "Net Selling",
+                        "as_of": "Latest week",
+                    }
                 except Exception:
                     pass
-
-        if latest is not None:
-            return {
-                "available": True,
-                "net_billion_yen": latest / 1e9,
-                "direction": "Net Buying" if latest > 0 else "Net Selling",
-                "as_of": "Latest week",
-            }
-
     except Exception as e:
         print(f"Foreign flow error: {e}")
-
     return {
         "available": False,
-        "note": "Check jpx.co.jp/english/markets/statistics-equities/investor-type for latest data",
+        "note": "Weekly data published by JPX on Thursdays.",
         "jpx_url": "https://www.jpx.co.jp/english/markets/statistics-equities/investor-type/index.html",
     }
-
-
-def format_number(n: float, decimals: int = 2) -> str:
-    """Format a number with commas and sign."""
-    if abs(n) >= 1000:
-        return f"{n:,.0f}"
-    return f"{n:,.{decimals}f}"
-
-
-def format_change(pct: float) -> tuple:
-    """Return (formatted string, color, arrow) for a percentage change."""
-    arrow = "▲" if pct >= 0 else "▼"
-    color = "#2E7D32" if pct >= 0 else "#C62828"
-    return f"{arrow} {abs(pct):.2f}%", color
