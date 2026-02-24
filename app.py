@@ -778,21 +778,25 @@ with tab_bysource:
                 return ''.join(cards)
 
             # Render grouped by date
+            date_header_style = (
+                'font-size:0.72rem;font-weight:700;letter-spacing:0.1em;'
+                'text-transform:uppercase;color:#8B4513;margin:0.8rem 0 0.1rem 0;'
+                'border-bottom:1px solid #D9D3C8;padding-bottom:0.2rem;'
+            )
             for date_key in sorted(by_date.keys(), reverse=True):
                 st.markdown(
-                    '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;'
-                    'text-transform:uppercase;color:#8B4513;margin:0.8rem 0 0.1rem 0;'
-                    'border-bottom:1px solid #D9D3C8;padding-bottom:0.2rem;">'
-                    + date_key + '</div>',
+                    '<div style="' + date_header_style + '">' + date_key + '</div>',
                     unsafe_allow_html=True
                 )
                 st.markdown(render_source_articles(by_date[date_key]), unsafe_allow_html=True)
 
             if undated:
+                undated_style = (
+                    'font-size:0.72rem;font-weight:700;letter-spacing:0.1em;'
+                    'text-transform:uppercase;color:#8B4513;margin:0.8rem 0 0.1rem 0;'
+                )
                 st.markdown(
-                    '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;'
-                    'text-transform:uppercase;color:#8B4513;margin:0.8rem 0 0.1rem 0;">'
-                    'Date Unknown</div>',
+                    '<div style="' + undated_style + '">Date Unknown</div>',
                     unsafe_allow_html=True
                 )
                 st.markdown(render_source_articles(undated), unsafe_allow_html=True)
