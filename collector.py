@@ -439,13 +439,23 @@ def fetch_source_headlines(source_name: str, days: int = 14) -> list:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def fetch_all_news() -> dict:
-    """Fetch all news. Always returns a dict, never None."""
+def fetch_all_news() -> tuple:
+    """
+    Fetch all news.
+    Returns (sector_map: dict, source_map: dict).
+    Always returns valid dicts, never None.
+    """
     try:
-        return _fetch_all_news_inner()
+        result = _fetch_all_news_inner()
+        if isinstance(result, tuple) and len(result) == 2:
+            return result
+        # If somehow only sector_map returned
+        if isinstance(result, dict):
+            return result, {}
+        return {}, {}
     except Exception as e:
         print(f"fetch_all_news failed: {e}")
-        return {}
+        return {}, {}
 
 
 def _fetch_all_news_inner() -> dict:
@@ -513,6 +523,10 @@ def _fetch_all_news_inner() -> dict:
             source_map[src].append(a)
     for src in source_map:
         source_map[src].sort(key=lambda x: x.get("pub_dt") or datetime.min, reverse=True)
+        # Ensure pub_date is always a string
+        for a in source_map[src]:
+            if not a.get("pub_date"):
+                a["pub_date"] = ""
 
     print(f"✓ Total: {sum(len(v) for v in sector_map.values())} articles across {sum(1 for v in sector_map.values() if v)} sectors, {len(source_map)} sources")
     return sector_map, source_map
