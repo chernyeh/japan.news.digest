@@ -353,16 +353,32 @@ with col_mkt:
 with col_news:
     if st.button("🔄 News", use_container_width=True):
         with st.spinner("Fetching & translating..."):
-            st.session_state.articles = fetch_all_news()
+            try:
+                result = fetch_all_news()
+                # Guard: ensure we always have a dict, never None
+                st.session_state.articles = result if isinstance(result, dict) else {}
+            except Exception as e:
+                st.error("News fetch failed: " + str(e))
+                st.session_state.articles = {}
             st.session_state.last_fetch = now_local()
-            st.session_state.sentiment_scores = score_all_sectors(st.session_state.articles)
-            wl = load_watchlist()
-            st.session_state.watchlist_hits = scan_all_watchlist(wl, st.session_state.articles)
-            if not st.session_state.selected_sector:
-                for name, _ in MSCI_SECTORS:
-                    if st.session_state.articles.get(name):
-                        st.session_state.selected_sector = name
-                        break
+            # Only score if we actually have articles
+            if st.session_state.articles:
+                try:
+                    st.session_state.sentiment_scores = score_all_sectors(st.session_state.articles)
+                except Exception as e:
+                    print(f"Sentiment scoring failed: {e}")
+                    st.session_state.sentiment_scores = {}
+                try:
+                    wl = load_watchlist()
+                    st.session_state.watchlist_hits = scan_all_watchlist(wl, st.session_state.articles)
+                except Exception as e:
+                    print(f"Watchlist scan failed: {e}")
+                    st.session_state.watchlist_hits = {}
+                if not st.session_state.selected_sector:
+                    for name, _ in MSCI_SECTORS:
+                        if st.session_state.articles.get(name):
+                            st.session_state.selected_sector = name
+                            break
             if not st.session_state.market_data:
                 st.session_state.market_data = fetch_market_overview()
                 st.session_state.movers = fetch_tse_movers()
