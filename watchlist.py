@@ -116,11 +116,15 @@ def scan_all_watchlist(watchlist: list, articles_by_sector: dict) -> dict:
     Scan all articles for all watchlist companies.
     Returns dict of {company_name: [matching_articles]}
     """
+    if not articles_by_sector or not isinstance(articles_by_sector, dict):
+        return {}
+    if not watchlist:
+        return {}
     # Flatten all articles
     all_articles = [
         article
         for sector_articles in articles_by_sector.values()
-        for article in sector_articles
+        for article in (sector_articles or [])
     ]
 
     results = {}
