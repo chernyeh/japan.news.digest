@@ -440,6 +440,15 @@ def fetch_source_headlines(source_name: str, days: int = 14) -> list:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def fetch_all_news() -> dict:
+    """Fetch all news. Always returns a dict, never None."""
+    try:
+        return _fetch_all_news_inner()
+    except Exception as e:
+        print(f"fetch_all_news failed: {e}")
+        return {}
+
+
+def _fetch_all_news_inner() -> dict:
     all_articles = []
 
     # Concurrent RSS fetching
