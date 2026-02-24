@@ -60,6 +60,7 @@ SCRAPE_SOURCES = [
     ("Japan Marine Daily",   "https://www.jmd.co.jp/",             "h2, h3, .article-title, .news-title",        "ja"),
     ("Nikkan Kensetsu",      "https://www.constnews.com/",         "h2, h3, .article-title, .news-list a",       "ja"),
     ("Nihon Nogyo Shimbun",  "https://www.agrinews.co.jp/",        "h2, h3, .article-title, .headline",          "ja"),
+    ("FACTA",                 "https://facta.co.jp/",               "h3",                                         "ja"),
 ]
 
 # ── MSCI Sector keywords ──────────────────────────────────────────────────────
@@ -353,6 +354,7 @@ SOURCE_DIRECTORY = {
     "Toyo Keizai":          ("https://toyokeizai.net/list/feed/rss",                 "ja"),
     "Diamond Online":       ("https://diamond.jp/list/feed/rss/dol",                 "ja"),
     "Nikkan Kogyo":         ("https://www.nikkan.co.jp/rss/nksrdf.rdf",              "ja"),
+    "FACTA":                 ("https://facta.co.jp/",                                "ja"),
 }
 
 # Group labels for the UI
@@ -375,19 +377,38 @@ SOURCE_GROUPS = {
     "🏭 Japanese — Trade Papers": [
         "Nikkan Kogyo",
     ],
+    "🔍 Japanese — Investigative": [
+        "FACTA",
+    ],
 }
 
 
+# Sources that must be scraped rather than RSS-fetched
+SCRAPE_ONLY_SOURCES = {"FACTA"}
+
 def fetch_source_headlines(source_name: str, days: int = 14) -> list:
     """
-    Fetch all available headlines for a single source,
-    filtered to the last `days` days where dates are parseable.
+    Fetch all available headlines for a single source.
+    Uses RSS for most sources; falls back to HTML scraping for scrape-only sources.
     Translates Japanese headlines automatically.
     """
     if source_name not in SOURCE_DIRECTORY:
         return []
 
     url, language = SOURCE_DIRECTORY[source_name]
+
+    # Scrape-only sources (no RSS available)
+    if source_name in SCRAPE_ONLY_SOURCES:
+        try:
+            articles = scrape_trade_paper(source_name, url, "h3", language)
+            articles = [a for a in articles if a.get("title") or a.get("original_title")]
+            if language == "ja":
+                articles = translate_articles(articles)
+            return articles
+        except Exception as e:
+            print(f"Scrape error [{source_name}]: {e}")
+            return []
+
     cutoff = datetime.now() - timedelta(days=days)
 
     try:
