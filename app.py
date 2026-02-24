@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime
 import pytz
-from collector import fetch_all_news
+from collector import fetch_all_news, fetch_source_headlines, SOURCE_DIRECTORY, SOURCE_GROUPS
 from emailer import subscribe_email, send_digest
 from market_data import fetch_market_overview, fetch_tse_movers, fetch_foreign_flow
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
@@ -271,6 +271,9 @@ for key, default in [
     ("market_data", None), ("movers", None), ("foreign_flow", None),
     ("sentiment_scores", {}), ("watchlist_hits", {}),
     ("last_market_fetch", None),
+    ("source_cache", {}),
+    ("source_selected", None),
+    ("source_group", None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -370,8 +373,8 @@ with col_news:
 st.markdown("<div style='margin-bottom:0.4rem'></div>", unsafe_allow_html=True)
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab_news, tab_market, tab_watchlist, tab_sentiment, tab_sources, tab_subscribe = st.tabs([
-    "📰 News", "📊 Markets", "⭐ Watchlist", "🌡️ Sentiment", "🔗 Sources", "📬 Subscribe",
+tab_news, tab_market, tab_watchlist, tab_sentiment, tab_bysource, tab_sources, tab_subscribe = st.tabs([
+    "📰 News", "📊 Markets", "⭐ Watchlist", "🌡️ Sentiment", "📁 By Source", "🔗 Sources", "📬 Subscribe",
 ])
 
 # ════════════════════════════════════════════════════════════
@@ -658,6 +661,142 @@ with tab_sentiment:
             )
         st.markdown(rows, unsafe_allow_html=True)
         st.markdown('<div class="info-box" style="margin-top:0.8rem">Keyword-based scoring. Use as directional indicator only.</div>', unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════════
+# TAB 5 — BY SOURCE
+# ════════════════════════════════════════════════════════════
+with tab_bysource:
+    st.markdown('<div class="section-title">📁 Headlines by Source</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="info-box">Select a publication to browse its headlines from the last 14 days. '
+        'Japanese sources are auto-translated. Older articles may not appear if the feed does not carry them.</div>',
+        unsafe_allow_html=True
+    )
+
+    # Group selector
+    group_names = list(SOURCE_GROUPS.keys())
+    selected_group = st.selectbox(
+        "Publication group:", group_names,
+        index=group_names.index(st.session_state.source_group) if st.session_state.source_group in group_names else 0,
+        label_visibility="collapsed", key="group_selector"
+    )
+    if selected_group != st.session_state.source_group:
+        st.session_state.source_group = selected_group
+        st.session_state.source_selected = None
+        st.rerun()
+
+    # Source selector within group
+    sources_in_group = SOURCE_GROUPS.get(selected_group, [])
+    # Only show sources that are in SOURCE_DIRECTORY
+    available = [s for s in sources_in_group if s in SOURCE_DIRECTORY]
+
+    if not available:
+        st.markdown('<div class="info-box">No sources available in this group.</div>', unsafe_allow_html=True)
+    else:
+        # Default to first source in group if none selected or selection changed group
+        if st.session_state.source_selected not in available:
+            st.session_state.source_selected = available[0]
+
+        selected_source = st.selectbox(
+            "Publication:", available,
+            index=available.index(st.session_state.source_selected),
+            label_visibility="collapsed", key="source_selector"
+        )
+        if selected_source != st.session_state.source_selected:
+            st.session_state.source_selected = selected_source
+            st.rerun()
+
+        # Fetch / cache button
+        col_src_info, col_src_btn = st.columns([3, 1])
+        cached = st.session_state.source_cache.get(selected_source)
+        with col_src_info:
+            if cached is not None:
+                st.markdown(
+                    '<div style="font-size:0.72rem;color:#9B8B7A;padding-top:0.35rem;">'
+                    + str(len(cached)) + ' headlines loaded for ' + selected_source + '</div>',
+                    unsafe_allow_html=True
+                )
+        with col_src_btn:
+            if st.button("🔄 Load Headlines", use_container_width=True, key="load_source"):
+                with st.spinner("Fetching " + selected_source + "..."):
+                    results = fetch_source_headlines(selected_source, days=14)
+                    st.session_state.source_cache[selected_source] = results
+                st.rerun()
+
+        st.markdown("<div style='margin-bottom:0.3rem'></div>", unsafe_allow_html=True)
+
+        # Display headlines
+        articles = st.session_state.source_cache.get(selected_source)
+
+        if articles is None:
+            st.markdown(
+                '<div class="empty-state">Click <strong>🔄 Load Headlines</strong> to fetch from ' + selected_source + '.</div>',
+                unsafe_allow_html=True
+            )
+        elif len(articles) == 0:
+            st.markdown(
+                '<div class="info-box">No headlines found for ' + selected_source + ' in the last 14 days. '
+                'The feed may carry fewer articles than expected.</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            from sentiment import flag_high_value_articles
+            articles = flag_high_value_articles(articles)
+
+            # Group by date for cleaner layout
+            by_date = {}
+            undated = []
+            for a in articles:
+                date = a.get("pub_date", "")
+                # Extract just the date portion (before the · time separator)
+                date_key = date.split("·")[0].strip() if "·" in date else date
+                if date_key:
+                    by_date.setdefault(date_key, []).append(a)
+                else:
+                    undated.append(a)
+
+            def render_source_articles(arts):
+                cards = []
+                for a in arts:
+                    trans  = a.get("translated_title", a.get("title", ""))
+                    orig   = a.get("original_title", "")
+                    url    = a.get("url", "#")
+                    date   = a.get("pub_date", "")
+                    hv     = a.get("high_value", False)
+                    hv_tag = '<span class="high-value-tag">★ Corp Action</span>' if hv else ""
+                    orig_p = '<div class="article-title-jp">' + orig + '</div>' if orig and orig != trans else ""
+                    time_p = ""
+                    if "·" in date:
+                        time_p = '<div class="article-meta">' + date.split("·")[1].strip() + '</div>'
+                    cards.append(
+                        '<div class="article-card">'
+                        '<div class="article-title"><a href="' + url + '" target="_blank">'
+                        + trans + '</a>' + hv_tag + '</div>'
+                        + orig_p + time_p +
+                        '</div>'
+                    )
+                return ''.join(cards)
+
+            # Render grouped by date
+            for date_key in sorted(by_date.keys(), reverse=True):
+                st.markdown(
+                    '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;'
+                    'text-transform:uppercase;color:#8B4513;margin:0.8rem 0 0.1rem 0;'
+                    'border-bottom:1px solid #D9D3C8;padding-bottom:0.2rem;">'
+                    + date_key + '</div>',
+                    unsafe_allow_html=True
+                )
+                st.markdown(render_source_articles(by_date[date_key]), unsafe_allow_html=True)
+
+            if undated:
+                st.markdown(
+                    '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;'
+                    'text-transform:uppercase;color:#8B4513;margin:0.8rem 0 0.1rem 0;">'
+                    'Date Unknown</div>',
+                    unsafe_allow_html=True
+                )
+                st.markdown(render_source_articles(undated), unsafe_allow_html=True)
+
 
 # ════════════════════════════════════════════════════════════
 # TAB 5 — SOURCES
