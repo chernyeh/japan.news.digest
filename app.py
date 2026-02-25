@@ -1289,7 +1289,7 @@ with tab_filings:
                 # Translate Japanese titles to English using Google free translate
                 from collector import translate_single_google
                 _to_translate = [f for f in filings if f["title"] and not f["title_en"]]
-                # Batch in groups of 20 to avoid rate limits
+                # Translate both title AND company name in batches of 20
                 for _i in range(0, min(len(_to_translate), 200), 20):
                     _batch = _to_translate[_i:_i+20]
                     for _f in _batch:
@@ -1298,6 +1298,11 @@ with tab_filings:
                             _f["title_en"] = _en if _en and _en != _f["title"] else _f["title"]
                         except Exception:
                             _f["title_en"] = _f["title"]
+                        try:
+                            _nm = translate_single_google(_f["name"])
+                            _f["name_en"] = _nm if _nm and _nm != _f["name"] else _f["name"]
+                        except Exception:
+                            _f["name_en"] = _f["name"]
 
                 # Sort newest first (all pub_dt are naive UTC now)
                 filings.sort(key=lambda x: x["pub_dt"] or _dt.min, reverse=True)
@@ -1319,7 +1324,7 @@ with tab_filings:
     # Apply keyword filter
     kw = (keyword_filter or "").strip().lower()
     if kw:
-        filings = [f for f in filings if kw in f["name"].lower() or kw in f["title"].lower() or kw in f["code"].lower()]
+        filings = [f for f in filings if kw in (f.get("name_en") or f.get("name","")).lower() or kw in (f.get("title_en") or f.get("title","")).lower() or kw in f.get("code","").lower()]
 
     if not filings:
         st.markdown('<div class="empty-state">No filings found. Click 🔄 Load to fetch disclosures.</div>', unsafe_allow_html=True)
@@ -1331,7 +1336,7 @@ with tab_filings:
         filing_articles = [
             {
                 "title": f.get("title_en") or f.get("title",""),
-                "source": f.get("name",""),
+                "source": f.get("name_en") or f.get("name",""),
                 # Use doc_url only if it's a proper tdnet URL, else skip linking
                 "url": f.get("doc_url","") if f.get("doc_url","").startswith("https://www.release.tdnet") else "",
                 "pub_date": f.get("pub_date",""),
@@ -1373,7 +1378,7 @@ with tab_filings:
             table_html += (
                 "<tr>"
                 f'<td style="font-family:monospace;font-size:0.75rem;white-space:nowrap;">{f.get("code","")}</td>'
-                f'<td style="font-size:0.8rem;font-weight:600;white-space:nowrap;">{f.get("name","")}</td>'
+                f'<td style="font-size:0.8rem;font-weight:600;white-space:nowrap;">{f.get("name_en") or f.get("name","")}</td>'
                 f'<td style="font-size:0.8rem;">{_display_title}{_orig_note}</td>'
                 f'<td style="font-size:0.72rem;color:#9B8B7A;white-space:nowrap;">{f.get("pub_date","")}</td>'
                 f'<td style="text-align:center;">{doc_link}</td>'
