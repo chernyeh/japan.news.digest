@@ -207,10 +207,7 @@ AV_EQUITY_INSTRUMENTS = {
 STOOQ_INDEX_INSTRUMENTS = {
     "nikkei":     ("^NKX",    "Nikkei 225"),
     "topix":      ("^TPX",    "TOPIX"),
-    "topix_c30":  ("^TPXC30", "TOPIX Core 30"),
-    "topix_m400": ("^TPXM400","TOPIX Mid 400"),
-    "topix_1000": ("^TPX1000","TOPIX 1000"),
-    "tse_growth": ("^TSEG250","TSE Growth 250"),
+    # Sub-indices removed — not reliably available from any free source without JS
 }
 
 AV_FOREX_INSTRUMENTS = {
