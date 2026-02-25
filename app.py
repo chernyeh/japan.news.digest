@@ -294,6 +294,23 @@ html, body, [class*="css"] {
 }
 .ret-value { font-size: 0.62rem; font-weight: 600; }
 
+/* Filings table */
+.filings-table {
+    width: 100%; border-collapse: collapse; font-size: 0.82rem;
+    background: white; border: 1px solid #E8E3DC;
+}
+.filings-table th {
+    background: #F5F0EA; text-align: left; padding: 0.45rem 0.6rem;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: #5C4033; border-bottom: 2px solid #D9D3C8;
+    white-space: nowrap;
+}
+.filings-table td {
+    padding: 0.4rem 0.6rem; border-bottom: 1px solid #EDE8E0;
+    vertical-align: top; line-height: 1.4;
+}
+.filings-table tr:hover td { background: #FDFAF7; }
+
 /* Mobile responsive */
 @media (max-width: 600px) {
     .masthead-title { font-size: 1.6rem; }
@@ -332,7 +349,7 @@ for key, default in [
 st.markdown(f"""
 <div class="masthead">
     <div class="masthead-title">Japan Investment Digest</div>
-    <div class="masthead-sub">日本経済・市場情報 — MSCI Sector Edition · TSE Investment Intelligence</div>
+    <div class="masthead-sub">日本経済・市場情報</div>
     <div class="masthead-date">{now_local().strftime('%A, %d %B %Y · %H:%M MYT')}</div>
 </div>
 <div class="dateline-strip">Petaling Jaya · Live Market Data · RSS News · TSE Intelligence · Foreign Flow Tracker</div>
@@ -353,7 +370,7 @@ def render_ticker(label, data):
     chg_class = "ticker-change-up" if pct >= 0 else "ticker-change-dn"
     arrow = "▲" if pct >= 0 else "▼"
     # Format: large numbers as integers, small as 3dp
-    price_str = f"{price:,.0f}" if price > 100 else f"{price:,.3f}"
+    price_str = f"{price:,.0f}" if price > 100 else f"{price:,.2f}"
     return (
         '<div class="ticker-item">'
         '<div class="ticker-label">' + label + '</div>'
@@ -448,12 +465,183 @@ with col_news:
 st.markdown("<div style='margin-bottom:0.4rem'></div>", unsafe_allow_html=True)
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab_news, tab_market, tab_watchlist, tab_sentiment, tab_bysource, tab_sources, tab_subscribe = st.tabs([
-    "📰 News", "📊 Markets", "⭐ Watchlist", "🌡️ Sentiment", "📁 By Source", "🔗 Sources", "📬 Subscribe",
+(tab_market, tab_bytime, tab_breaking, tab_news, tab_bysource,
+ tab_sources, tab_filings, tab_sentiment, tab_watchlist, tab_subscribe) = st.tabs([
+    "📊 Markets", "🕐 By Time", "⚡ Breaking News", "📰 By Industry",
+    "📁 By Source", "🔗 Sources", "📋 Co Filings",
+    "🌡️ Sentiment", "⭐ Watchlist", "📬 Subscribe",
 ])
 
 # ════════════════════════════════════════════════════════════
-# TAB 1 — NEWS
+# ════════════════════════════════════════════════════════════
+# TAB — BY TIME (all headlines newest first)
+# ════════════════════════════════════════════════════════════
+with tab_bytime:
+    st.markdown('<div class="section-title">🕐 All Headlines — Latest First</div>', unsafe_allow_html=True)
+    all_articles = []
+    sm = st.session_state.get("sector_map", {})
+    seen_urls = set()
+    for sector_articles in sm.values():
+        for a in sector_articles:
+            url = a.get("url", "")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                all_articles.append(a)
+    # Also pull from source_map for any articles not in sector_map
+    srm = st.session_state.get("source_map", {})
+    for src_articles in srm.values():
+        for a in src_articles:
+            url = a.get("url", "")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                all_articles.append(a)
+
+    if not all_articles:
+        st.markdown('<div class="empty-state">Fetch news first — click <strong>🔄 Fetch All News</strong>.</div>', unsafe_allow_html=True)
+    else:
+        # Sort by pub_dt descending (articles without dates go last)
+        def sort_key(a):
+            dt = a.get("pub_dt")
+            if dt is None:
+                from datetime import datetime
+                return datetime.min
+            return dt
+        all_articles.sort(key=sort_key, reverse=True)
+
+        st.markdown(
+            f'<div class="info-box">{len(all_articles)} headlines from all sources, newest first.</div>',
+            unsafe_allow_html=True
+        )
+
+        html = ""
+        last_date = None
+        for a in all_articles:
+            pub_dt = a.get("pub_dt")
+            if pub_dt:
+                day_str = pub_dt.strftime("%A, %d %B %Y")
+            else:
+                day_str = "Undated"
+            if day_str != last_date:
+                if last_date is not None:
+                    html += "</div>"
+                html += (
+                    '<div class="date-group">'
+                    '<div class="date-header">' + day_str + '</div>'
+                )
+                last_date = day_str
+
+            title  = a.get("title") or a.get("translated_title") or a.get("original_title", "")
+            orig   = a.get("original_title", "")
+            url    = a.get("url", "#")
+            source = a.get("source", "")
+            pub    = a.get("pub_date", "")
+            is_jp  = a.get("language", "en") == "ja"
+            badges = flag_high_value(a)
+            badge_html = " ".join(f'<span class="hv-badge">{b}</span>' for b in badges)
+
+            time_str = ""
+            if pub_dt:
+                time_str = format_local_dt(pub_dt)
+
+            html += (
+                '<div class="article-card">'
+                '<div class="article-meta">'
+                + source
+                + (' · ' + time_str if time_str else '')
+                + '</div>'
+                '<a class="article-link" href="' + url + '" target="_blank">' + title + '</a>'
+                + (badge_html if badge_html else '')
+                + ('<div class="original-title">' + orig + '</div>' if is_jp and orig and orig != title else '')
+                + '</div>'
+            )
+        if last_date:
+            html += "</div>"
+        st.markdown(html, unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════════
+# TAB — BREAKING NEWS (Nikkei.com via Google News RSS)
+# ════════════════════════════════════════════════════════════
+with tab_breaking:
+    st.markdown('<div class="section-title">⚡ Breaking News — Nikkei Shimbun</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="info-box">Latest headlines from Nikkei Shimbun (日本経済新聞) via Google News feed. '
+        'Auto-translated. Click any headline to read on nikkei.com (subscription may be required).</div>',
+        unsafe_allow_html=True
+    )
+
+    if "breaking_news" not in st.session_state:
+        st.session_state.breaking_news = []
+    if "breaking_last_fetch" not in st.session_state:
+        st.session_state.breaking_last_fetch = None
+
+    col_b1, col_b2 = st.columns([3, 1])
+    with col_b2:
+        fetch_breaking = st.button("🔄 Refresh", key="btn_breaking", use_container_width=True)
+    with col_b1:
+        if st.session_state.breaking_last_fetch:
+            st.markdown(
+                '<div style="font-size:0.7rem;color:#9B8B7A;padding-top:0.5rem;">Updated: '
+                + format_local_dt(st.session_state.breaking_last_fetch) + '</div>',
+                unsafe_allow_html=True
+            )
+
+    if fetch_breaking or not st.session_state.breaking_news:
+        with st.spinner("Fetching Nikkei breaking news…"):
+            try:
+                from collector import fetch_rss, translate_articles
+                # Google News RSS for nikkei.com — broader than category page
+                breaking = fetch_rss(
+                    "Nikkei Shimbun",
+                    "https://news.google.com/rss/search?q=site:nikkei.com&hl=ja&gl=JP&ceid=JP:ja",
+                    "ja"
+                )
+                # Also fetch the Nikkei main news category RSS if available
+                import feedparser, requests as _req
+                try:
+                    _hdrs = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36", "Accept": "application/rss+xml,*/*", "Referer": "https://www.google.com/"}
+                    _r = _req.get("https://news.google.com/rss/search?q=nikkei+%E6%97%A5%E7%B5%8C+%E7%B5%8C%E6%B8%88&hl=ja&gl=JP&ceid=JP:ja", headers=_hdrs, timeout=12)
+                    _feed = feedparser.parse(_r.content)
+                    import re as _re
+                    from collector import parse_date
+                    for entry in _feed.entries[:20]:
+                        _title = _re.sub(r"<[^>]+>", "", entry.get("title","").strip())
+                        if not _title or "nikkei" not in entry.get("link","").lower():
+                            continue
+                        _pub, _dt = parse_date(entry)
+                        _url = entry.get("link","#")
+                        if not any(a["url"] == _url for a in breaking):
+                            breaking.append({"source":"Nikkei Shimbun","original_title":_title,"translated_title":"","title":"","url":_url,"pub_date":_pub,"pub_dt":_dt,"sector":"","language":"ja"})
+                except Exception:
+                    pass
+                breaking = translate_articles(breaking)
+                breaking.sort(key=lambda a: a.get("pub_dt") or __import__("datetime").datetime.min, reverse=True)
+                st.session_state.breaking_news = breaking
+                st.session_state.breaking_last_fetch = now_local()
+            except Exception as e:
+                st.error(f"Error fetching breaking news: {e}")
+
+    items = st.session_state.breaking_news
+    if not items:
+        st.markdown('<div class="empty-state">No headlines loaded. Click Refresh.</div>', unsafe_allow_html=True)
+    else:
+        html = ""
+        for a in items[:60]:
+            title  = a.get("title") or a.get("translated_title") or a.get("original_title","")
+            orig   = a.get("original_title","")
+            url    = a.get("url","#")
+            pub_dt = a.get("pub_dt")
+            time_str = format_local_dt(pub_dt) if pub_dt else a.get("pub_date","")
+            html += (
+                '<div class="article-card">'
+                '<div class="article-meta">Nikkei Shimbun'
+                + (' · ' + time_str if time_str else '') + '</div>'
+                '<a class="article-link" href="' + url + '" target="_blank">' + title + '</a>'
+                + ('<div class="original-title">' + orig + '</div>' if orig and orig != title else '')
+                + '</div>'
+            )
+        st.markdown(html, unsafe_allow_html=True)
+
+# TAB — BY INDUSTRY (formerly News)
 # ════════════════════════════════════════════════════════════
 with tab_news:
     if not st.session_state.articles:
@@ -540,7 +728,7 @@ with tab_market:
 
         def fmt_price(price, is_forex=False):
             if is_forex:
-                return f"{price:,.3f}"
+                return f"{price:,.2f}"
             return f"{price:,.2f}" if price < 1000 else f"{price:,.0f}"
 
         def fmt_ret(v):
@@ -766,6 +954,142 @@ with tab_watchlist:
             st.markdown(html, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════
+
+# ════════════════════════════════════════════════════════════
+# TAB — CO FILINGS (TDnet via Yanoshin free API)
+# ════════════════════════════════════════════════════════════
+with tab_filings:
+    st.markdown('<div class="section-title">📋 Corporate Filings — TDnet Timely Disclosures</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="info-box">Timely disclosures (適時開示) from the Tokyo Stock Exchange, '
+        'sourced via the free <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet API</a>. '
+        'Covers earnings, dividends, buybacks, M&amp;A, forecasts. Updates every few minutes during market hours.</div>',
+        unsafe_allow_html=True
+    )
+
+    if "filings" not in st.session_state:
+        st.session_state.filings = []
+    if "filings_last_fetch" not in st.session_state:
+        st.session_state.filings_last_fetch = None
+    if "filings_date" not in st.session_state:
+        st.session_state.filings_date = "today"
+
+    # ── Controls ──
+    col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
+    with col_f1:
+        date_choice = st.selectbox(
+            "Period:",
+            ["Today", "Yesterday", "Last 3 days", "This week"],
+            key="filings_period"
+        )
+    with col_f2:
+        keyword_filter = st.text_input("Filter by keyword or company:", key="filings_keyword", placeholder="e.g. Toyota, 決算")
+    with col_f3:
+        st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
+        fetch_filings_btn = st.button("🔄 Load", key="btn_filings", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if fetch_filings_btn or not st.session_state.filings:
+        with st.spinner("Fetching TDnet disclosures…"):
+            try:
+                import requests as _req, json as _json
+                from datetime import datetime as _dt, timedelta as _td
+
+                today = _dt.now()
+                if date_choice == "Today":
+                    url = "https://webapi.yanoshin.jp/webapi/tdnet/list/today.json?limit=300"
+                elif date_choice == "Yesterday":
+                    url = "https://webapi.yanoshin.jp/webapi/tdnet/list/yesterday.json?limit=300"
+                elif date_choice == "Last 3 days":
+                    d_from = (today - _td(days=3)).strftime("%Y%m%d")
+                    d_to   = today.strftime("%Y%m%d")
+                    url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{d_from}-{d_to}.json?limit=300"
+                else:  # This week
+                    # Monday of current week
+                    monday = today - _td(days=today.weekday())
+                    d_from = monday.strftime("%Y%m%d")
+                    d_to   = today.strftime("%Y%m%d")
+                    url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{d_from}-{d_to}.json?limit=300"
+
+                _hdrs = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+                resp = _req.get(url, headers=_hdrs, timeout=20)
+                data = resp.json()
+
+                filings = []
+                # Yanoshin JSON structure: {"items": {"TDnet": [...]} } or {"TDnet": [...]}
+                items = []
+                if isinstance(data, dict):
+                    items = (data.get("items") or {}).get("TDnet") or data.get("TDnet") or []
+                elif isinstance(data, list):
+                    items = data
+
+                for item in items:
+                    # Each item has: company_code, company_name, title, pub_date, document_url, xbrl_flag
+                    code  = item.get("company_code", "")
+                    name  = item.get("company_name", "")
+                    title = item.get("title", "")
+                    pdate = item.get("pub_date", "")
+                    durl  = item.get("document_url", "")
+                    xbrl  = item.get("xbrl_flag", "0")
+                    if not title:
+                        continue
+                    filings.append({
+                        "code": code, "name": name, "title": title,
+                        "pub_date": pdate, "doc_url": durl, "xbrl": xbrl == "1",
+                    })
+
+                st.session_state.filings = filings
+                st.session_state.filings_last_fetch = now_local()
+            except Exception as e:
+                st.error(f"Error fetching TDnet data: {e}")
+                import traceback; print(traceback.format_exc())
+
+    filings = st.session_state.filings
+    if st.session_state.filings_last_fetch:
+        st.markdown(
+            '<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.4rem;">Updated: '
+            + format_local_dt(st.session_state.filings_last_fetch) + f" · {len(filings)} disclosures</div>",
+            unsafe_allow_html=True
+        )
+
+    # Apply keyword filter
+    kw = (keyword_filter or "").strip().lower()
+    if kw:
+        filings = [f for f in filings if kw in f["name"].lower() or kw in f["title"].lower() or kw in f["code"].lower()]
+
+    if not filings:
+        st.markdown('<div class="empty-state">No filings found. Click 🔄 Load to fetch disclosures.</div>', unsafe_allow_html=True)
+    else:
+        # ── Table header (matches TDnet layout) ──
+        table_html = """
+        <div style="overflow-x:auto;margin-top:0.4rem;">
+        <table class="filings-table">
+        <thead>
+          <tr>
+            <th style="width:80px">Code</th>
+            <th style="width:180px">Company</th>
+            <th>Title</th>
+            <th style="width:130px">Date/Time</th>
+            <th style="width:50px">Doc</th>
+          </tr>
+        </thead>
+        <tbody>
+        """
+        for f in filings:
+            xbrl_badge = '<span style="font-size:0.55rem;background:#1565C0;color:white;padding:1px 4px;border-radius:2px;margin-left:4px;">XBRL</span>' if f["xbrl"] else ""
+            doc_link = f'<a href="{f["doc_url"]}" target="_blank" style="color:#8B4513;font-size:0.75rem;">PDF</a>' if f["doc_url"] else "—"
+            table_html += (
+                "<tr>"
+                f'<td style="font-family:monospace;font-size:0.75rem;">{f["code"]}</td>'
+                f'<td style="font-size:0.8rem;font-weight:600;">{f["name"]}</td>'
+                f'<td style="font-size:0.8rem;">{f["title"]}{xbrl_badge}</td>'
+                f'<td style="font-size:0.72rem;color:#9B8B7A;">{f["pub_date"]}</td>'
+                f'<td style="text-align:center;">{doc_link}</td>'
+                "</tr>"
+            )
+        table_html += "</tbody></table></div>"
+        st.markdown(table_html, unsafe_allow_html=True)
+
 # TAB 4 — SENTIMENT
 # ════════════════════════════════════════════════════════════
 with tab_sentiment:
@@ -1002,7 +1326,7 @@ with tab_subscribe:
 st.markdown("""
 <div style="text-align:center;margin-top:2rem;padding-top:0.7rem;
             border-top:1px solid #D9D3C8;font-size:0.66rem;color:#9B8B7A;letter-spacing:0.07em;">
-    JAPAN INVESTMENT DIGEST · MSCI SECTOR EDITION<br>
-    Indices via stooq · Forex via exchangerate-api · TSE stocks via Finnhub · News via RSS · For informational purposes only · Not financial advice.
+    JAPAN INVESTMENT DIGEST<br>
+    Market data via Stooq / Alpha Vantage · News via RSS · TDnet filings via Yanoshin · For informational purposes only · Not financial advice.
 </div>
 """, unsafe_allow_html=True)
