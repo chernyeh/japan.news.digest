@@ -37,6 +37,9 @@ MEDIA_SOURCES = [
     # General / Business news
     ("Japan Times",         "https://www.japantimes.co.jp/business/",     "🗞️"),
     ("Nikkei Asia",         "https://asia.nikkei.com/Business",           "📊"),
+    ("Nikkei.com",          "https://www.nikkei.com/",                    "📰"),
+    ("Nikkei Business",     "https://business.nikkei.com/",               "💼"),
+    ("Nikkei Xtech",        "https://xtech.nikkei.com/",                  "⚙️"),
     ("Reuters Japan",       "https://www.reuters.com/world/japan/",       "📡"),
     ("NHK World Business",  "https://www3.nhk.or.jp/nhkworld/en/news/business/", "📺"),
     ("Asahi Shimbun",       "https://www.asahi.com/business/",            "🗞️"),
