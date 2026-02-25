@@ -527,7 +527,11 @@ with tab_market:
     if not md:
         st.markdown('<div class="empty-state">Click <strong>📈 Markets</strong> above to load live data.</div>', unsafe_allow_html=True)
     elif md.get("_source") == "error":
-        st.warning("⚠️ Market data unavailable: " + md.get("_error", "Unknown error"))
+        err = md.get("_error", "Unknown error")
+        st.warning("⚠️ " + err)
+        # Still show any sub-index data that came through from Stooq
+        if md.get("indices") or md.get("forex"):
+            st.markdown("Partial data from Stooq (may be incomplete):", unsafe_allow_html=False)
     else:
         RETURN_PERIODS = ["MTD", "1M", "3M", "YTD", "1Y", "3Y"]
 
