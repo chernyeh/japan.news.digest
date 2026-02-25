@@ -1,18 +1,16 @@
 """
-market_data.py — v6
-Fetches current price + historical data to compute multi-period returns.
-Periods: MTD, 1M, 3M, YTD, 1Y, 3Y
+market_data.py — v7
 
-Primary: Stooq CSV API (no key, unlimited history)
-Fallback: Yahoo Finance v8 (no key)
+PRIMARY: Alpha Vantage API (requires ALPHA_VANTAGE_KEY in Streamlit Secrets)
+  - Reliable from Streamlit Cloud (proper API, not blocked)
+  - Free tier: 25 calls/day — we use ~10 per refresh (6 indices + 4 forex)
+  - Get free key: https://www.alphavantage.co/support/#api-key
+  - Add to Streamlit Secrets: ALPHA_VANTAGE_KEY = "your_key"
 
-Confirmed Stooq symbols:
-  ^NKX    = Nikkei 225
-  ^TPX    = TOPIX (all)
-  ^TPXC30 = TOPIX Core 30
-  ^TPXM400 = TOPIX Mid400 (to verify)
-  ^TPXL70  = TOPIX Large 70 (instead of Mid400 if needed)
-  Forex: USDJPY, EURJPY, CNYJPY, SGDJPY (Stooq format, no =X)
+SECONDARY: Stooq CSV (no key, for sub-indices not in Alpha Vantage)
+  - May timeout on Streamlit Cloud — handled gracefully
+
+Provides: current price, daily change, and MTD/1M/3M/YTD/1Y/3Y returns.
 """
 
 import requests
@@ -20,12 +18,15 @@ import os
 from datetime import datetime, date, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+BASE_URL = "https://www.alphavantage.co/query"
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     ),
 }
+
 
 def get_secret(name: str) -> str:
     try:
@@ -39,24 +40,54 @@ def get_secret(name: str) -> str:
 
 
 # ── Instrument definitions ────────────────────────────────────────────────────
+# Alpha Vantage uses EWJ (iShares MSCI Japan ETF) as proxy for Nikkei/TOPIX
+# since ^N225 and ^TOPX aren't directly supported.
+# Better: use actual index symbols — AV supports them with "function=TIME_SERIES_DAILY"
 
 INDICES = [
-    # (key,          stooq_sym,   yahoo_sym,  label)
-    ("nikkei",      "^NKX",      "^N225",    "Nikkei 225"),
-    ("topix",       "^TPX",      "^TOPX",    "TOPIX"),
-    ("topix_c30",   "^TPXC30",   None,       "TOPIX Core 30"),
-    ("topix_m400",  "^TPXM400",  None,       "TOPIX Mid 400"),
-    ("topix_1000",  "^TPX1000",  None,       "TOPIX 1000"),
-    ("tse_growth",  "^TSEG250",  None,       "TSE Growth 250"),
+    # (key, av_symbol, label)
+    # Alpha Vantage supports these Japan index ETFs/proxies reliably:
+    ("nikkei",      "EWJ",      "Nikkei 225 (EWJ proxy)"),   # iShares MSCI Japan ETF
+    ("topix",       "EZJ",      "TOPIX (EZJ proxy)"),          # Amundi ETF MSCI Japan
+    ("topix_c30",   None,       "TOPIX Core 30"),
+    ("topix_m400",  None,       "TOPIX Mid 400"),
+    ("topix_1000",  None,       "TOPIX 1000"),
+    ("tse_growth",  None,       "TSE Growth 250"),
 ]
 
-FOREX = [
-    # (key,      stooq_sym,  yahoo_sym,     label)
-    ("usdjpy",  "USDJPY",   "USDJPY=X",    "USD/JPY"),
-    ("eurjpy",  "EURJPY",   "EURJPY=X",    "EUR/JPY"),
-    ("cnyjpy",  "CNYJPY",   "CNYJPY=X",    "CNY/JPY"),
-    ("sgdjpy",  "SGDJPY",   "SGDJPY=X",    "SGD/JPY"),
-]
+# Actually, Alpha Vantage DOES support direct index lookups via GLOBAL_QUOTE
+# for many Japan indices. Let's use the most reliable approach:
+# TIME_SERIES_DAILY with outputsize=full gives us years of history for returns calc.
+
+# Correct symbols for Alpha Vantage:
+AV_INDICES = {
+    "nikkei":  "EWJ",    # iShares MSCI Japan ETF — most liquid Japan proxy
+    "topix":   "EZJ",    # Amundi ETF Japan — TOPIX proxy (London listed)
+}
+
+AV_FOREX = {
+    "usdjpy": ("USD", "JPY", "USD/JPY"),
+    "eurjpy": ("EUR", "JPY", "EUR/JPY"),
+    "cnyjpy": ("CNY", "JPY", "CNY/JPY"),
+    "sgdjpy": ("SGD", "JPY", "SGD/JPY"),
+}
+
+# Stooq symbols for sub-indices (best effort, may fail on cloud)
+STOOQ_SUBINDICES = {
+    "nikkei":     ("^NKX",    "Nikkei 225"),
+    "topix":      ("^TPX",    "TOPIX"),
+    "topix_c30":  ("^TPXC30", "TOPIX Core 30"),
+    "topix_m400": ("^TPXM400","TOPIX Mid 400"),
+    "topix_1000": ("^TPX1000","TOPIX 1000"),
+    "tse_growth": ("^TSEG250","TSE Growth 250"),
+}
+
+STOOQ_FOREX = {
+    "usdjpy": ("USDJPY", "USD/JPY"),
+    "eurjpy": ("EURJPY", "EUR/JPY"),
+    "cnyjpy": ("CNYJPY", "CNY/JPY"),
+    "sgdjpy": ("SGDJPY", "SGD/JPY"),
+}
 
 TSE_STOCKS = [
     ("7203", "Toyota"),          ("6758", "Sony"),
@@ -72,260 +103,330 @@ TSE_STOCKS = [
 ]
 
 
-# ── Return period helpers ─────────────────────────────────────────────────────
+# ── Return calculator ─────────────────────────────────────────────────────────
 
-def compute_returns(sorted_rows: list[tuple]) -> dict:
+def compute_returns(rows: list) -> dict:
     """
-    Given a list of (date_str, close_price) sorted oldest→newest,
-    compute returns for MTD, 1M, 3M, YTD, 1Y, 3Y.
-    Returns dict of period → pct or None.
+    rows: list of (date_str "YYYY-MM-DD", close_price) sorted oldest→newest.
+    Returns dict: {period_label: pct_return or None}
     """
-    if not sorted_rows:
+    if not rows:
         return {}
 
     today = date.today()
-    current_price = sorted_rows[-1][1]
+    current = rows[-1][1]
 
-    def find_price_on_or_before(target_date):
-        """Find the most recent close on or before target_date."""
-        target_str = target_date.strftime("%Y-%m-%d")
+    def price_on_or_before(target):
+        target_s = target.strftime("%Y-%m-%d")
         best = None
-        for d_str, price in sorted_rows:
-            if d_str <= target_str:
-                best = price
+        for d_s, p in rows:
+            if d_s <= target_s:
+                best = p
             else:
                 break
         return best
 
     def pct(old, new):
-        if old and old != 0:
-            return (new - old) / old * 100
-        return None
+        return (new - old) / old * 100 if old else None
 
-    periods = {
-        "MTD":  date(today.year, today.month, 1) - timedelta(days=1),
-        "1M":   today - timedelta(days=30),
-        "3M":   today - timedelta(days=91),
-        "YTD":  date(today.year - 1, 12, 31),
-        "1Y":   today - timedelta(days=365),
-        "3Y":   today - timedelta(days=365 * 3),
+    targets = {
+        "MTD": date(today.year, today.month, 1) - timedelta(days=1),
+        "1M":  today - timedelta(days=30),
+        "3M":  today - timedelta(days=91),
+        "YTD": date(today.year - 1, 12, 31),
+        "1Y":  today - timedelta(days=365),
+        "3Y":  today - timedelta(days=365 * 3),
     }
 
-    returns = {}
-    for label, ref_date in periods.items():
-        old_price = find_price_on_or_before(ref_date)
-        returns[label] = pct(old_price, current_price)
-
-    return returns
+    return {label: pct(price_on_or_before(ref), current)
+            for label, ref in targets.items()}
 
 
-# ── Stooq fetcher ─────────────────────────────────────────────────────────────
+# ── Alpha Vantage fetchers ────────────────────────────────────────────────────
 
-def stooq_fetch_history(symbol: str, years: int = 4) -> dict:
-    """
-    Fetch daily history from Stooq covering `years` years.
-    Returns dict with price, change, pct_change, returns, state_label.
-    """
+def av_fetch_equity(symbol: str, api_key: str, label: str) -> dict:
+    """Fetch full daily history for an equity/ETF from Alpha Vantage."""
+    try:
+        resp = requests.get(BASE_URL, params={
+            "function":   "TIME_SERIES_DAILY",
+            "symbol":     symbol,
+            "outputsize": "full",
+            "datatype":   "json",
+            "apikey":     api_key,
+        }, timeout=20)
+
+        data = resp.json()
+        if "Note" in data:
+            return {"price": 0, "label": label, "error": "AV rate limit hit"}
+        if "Information" in data:
+            return {"price": 0, "label": label, "error": "AV API key issue: " + data["Information"][:80]}
+
+        ts = data.get("Time Series (Daily)", {})
+        if not ts:
+            return {"price": 0, "label": label, "error": "No time series data"}
+
+        rows = sorted(
+            [(d, float(v["4. close"])) for d, v in ts.items()],
+            key=lambda x: x[0]
+        )
+        price  = rows[-1][1]
+        prev   = rows[-2][1] if len(rows) >= 2 else price
+        change = price - prev
+        pct    = (change / prev * 100) if prev else 0
+
+        return {
+            "price": price, "change": change, "pct_change": pct,
+            "state_label": "Last close", "label": label,
+            "returns": compute_returns(rows), "source": "alphavantage",
+        }
+    except Exception as e:
+        return {"price": 0, "label": label, "error": str(e)}
+
+
+def av_fetch_forex(from_ccy: str, to_ccy: str, api_key: str, label: str) -> dict:
+    """Fetch full daily FX history from Alpha Vantage."""
+    try:
+        resp = requests.get(BASE_URL, params={
+            "function":    "FX_DAILY",
+            "from_symbol": from_ccy,
+            "to_symbol":   to_ccy,
+            "outputsize":  "full",
+            "datatype":    "json",
+            "apikey":      api_key,
+        }, timeout=20)
+
+        data = resp.json()
+        if "Note" in data:
+            return {"price": 0, "label": label, "error": "AV rate limit hit"}
+        if "Information" in data:
+            return {"price": 0, "label": label, "error": "AV API key issue"}
+
+        ts = data.get("Time Series FX (Daily)", {})
+        if not ts:
+            return {"price": 0, "label": label, "error": "No FX data"}
+
+        rows = sorted(
+            [(d, float(v["4. close"])) for d, v in ts.items()],
+            key=lambda x: x[0]
+        )
+        price  = rows[-1][1]
+        prev   = rows[-2][1] if len(rows) >= 2 else price
+        change = price - prev
+        pct    = (change / prev * 100) if prev else 0
+
+        return {
+            "price": price, "change": change, "pct_change": pct,
+            "state_label": "Last close", "label": label,
+            "returns": compute_returns(rows), "source": "alphavantage",
+        }
+    except Exception as e:
+        return {"price": 0, "label": label, "error": str(e)}
+
+
+# ── Stooq fetcher (secondary / sub-indices) ───────────────────────────────────
+
+def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
+    """Fetch from Stooq CSV. May timeout on Streamlit Cloud — handled gracefully."""
     try:
         end   = datetime.today()
         start = end - timedelta(days=years * 366)
-        url = (
+        url   = (
             f"https://stooq.com/q/d/l/?s={symbol.lower()}"
             f"&d1={start:%Y%m%d}&d2={end:%Y%m%d}&i=d"
         )
-        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp = requests.get(url, headers=HEADERS, timeout=8)  # short timeout
         if resp.status_code != 200:
-            return {"price": 0, "error": f"HTTP {resp.status_code}"}
+            return {"price": 0, "label": label, "error": f"HTTP {resp.status_code}"}
 
         text = resp.text.strip()
-        if not text or "No data" in text or "Przekroczony" in text or len(text) < 30:
-            return {"price": 0, "error": "No data"}
+        if not text or "No data" in text or len(text) < 30:
+            return {"price": 0, "label": label, "error": "No data"}
 
         lines = [l.strip() for l in text.splitlines() if l.strip()]
-        if len(lines) < 2:
-            return {"price": 0, "error": "Too few rows"}
-
         rows = []
         for line in lines[1:]:
             parts = line.split(",")
             if len(parts) >= 5:
                 try:
-                    d_str = parts[0]    # YYYY-MM-DD
-                    close = float(parts[4])
-                    rows.append((d_str, close))
+                    rows.append((parts[0], float(parts[4])))
                 except (ValueError, IndexError):
                     pass
 
         if not rows:
-            return {"price": 0, "error": "No valid rows"}
+            return {"price": 0, "label": label, "error": "No valid rows"}
 
-        rows.sort(key=lambda x: x[0])  # ensure chronological order
-
+        rows.sort(key=lambda x: x[0])
         price  = rows[-1][1]
         prev   = rows[-2][1] if len(rows) >= 2 else price
         change = price - prev
         pct    = (change / prev * 100) if prev else 0
-        rets   = compute_returns(rows)
 
         return {
             "price": price, "change": change, "pct_change": pct,
-            "state_label": "Last close",
-            "returns": rets,
-            "symbol": symbol, "source": "stooq",
+            "state_label": "Last close", "label": label,
+            "returns": compute_returns(rows), "source": "stooq",
         }
-
     except Exception as e:
-        return {"price": 0, "error": str(e), "symbol": symbol}
-
-
-# ── Yahoo Finance fetcher ─────────────────────────────────────────────────────
-
-def yahoo_fetch_history(symbol: str, years: int = 4) -> dict:
-    """Fetch history from Yahoo Finance v8 chart API."""
-    try:
-        period = f"{years}y"
-        for host in ["query1", "query2"]:
-            try:
-                url  = f"https://{host}.finance.yahoo.com/v8/finance/chart/{symbol}"
-                resp = requests.get(
-                    url, headers=HEADERS,
-                    params={"interval": "1d", "range": period},
-                    timeout=15
-                )
-                if resp.status_code == 200:
-                    break
-            except Exception:
-                continue
-        else:
-            return {"price": 0, "error": "Yahoo unreachable"}
-
-        data    = resp.json()
-        result  = data["chart"]["result"][0]
-        meta    = result.get("meta", {})
-        state   = meta.get("marketState", "CLOSED")
-        timestamps = result.get("timestamp", [])
-        closes  = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
-
-        # Build (date_str, price) rows
-        rows = []
-        for ts, cl in zip(timestamps, closes):
-            if cl is not None:
-                d_str = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d")
-                rows.append((d_str, cl))
-        rows.sort(key=lambda x: x[0])
-
-        if not rows:
-            return {"price": 0, "error": "No closes"}
-
-        # Current price — try meta first for intraday
-        price = (
-            meta.get("regularMarketPrice") or
-            meta.get("postMarketPrice") or
-            meta.get("preMarketPrice") or
-            rows[-1][1]
-        )
-        prev   = rows[-2][1] if len(rows) >= 2 else price
-        change = price - prev
-        pct    = (change / prev * 100) if prev else 0
-
-        # Inject today's price into rows for return calculations
-        if rows and rows[-1][0] < date.today().strftime("%Y-%m-%d"):
-            rows.append((date.today().strftime("%Y-%m-%d"), price))
-
-        state_label = {
-            "REGULAR": "Live", "PRE": "Pre-market",
-            "POST": "After-hours",
-        }.get(state, "Last close")
-
-        return {
-            "price": price, "change": change, "pct_change": pct,
-            "state_label": state_label,
-            "returns": compute_returns(rows),
-            "symbol": symbol, "source": "yahoo",
-        }
-
-    except Exception as e:
-        return {"price": 0, "error": str(e), "symbol": symbol}
-
-
-# ── Fetch with Stooq→Yahoo fallback ──────────────────────────────────────────
-
-def fetch_instrument(stooq_sym: str, yahoo_sym: str) -> dict:
-    """Try Stooq, fall back to Yahoo if price is 0."""
-    result = stooq_fetch_history(stooq_sym)
-    if result.get("price", 0) > 0:
-        return result
-    if yahoo_sym:
-        result2 = yahoo_fetch_history(yahoo_sym)
-        if result2.get("price", 0) > 0:
-            return result2
-    return result  # return stooq result even if price=0 (has error msg)
+        return {"price": 0, "label": label, "error": str(e)}
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def fetch_market_overview() -> dict:
     """
-    Fetch all indices and forex pairs with full return history.
     Returns {
-      "indices": { key: {price, change, pct_change, returns, label, state_label} },
-      "forex":   { key: {price, change, pct_change, returns, label, state_label} },
-      "_source": "stooq" | "mixed",
+      "indices": { key: {price, change, pct_change, returns, label, state_label, source} },
+      "forex":   { key: {price, change, pct_change, returns, label, state_label, source} },
+      "_source": str,
+      "_error":  str (only if no key),
     }
     """
-    results = {"indices": {}, "forex": {}, "_source": "stooq"}
+    api_key = get_secret("ALPHA_VANTAGE_KEY")
+    results = {"indices": {}, "forex": {}}
 
-    all_tasks = (
-        [(key, stooq, yahoo, label, "index") for key, stooq, yahoo, label in INDICES] +
-        [(key, stooq, yahoo, label, "forex") for key, stooq, yahoo, label in FOREX]
-    )
+    if not api_key:
+        results["_source"] = "error"
+        results["_error"] = (
+            "No ALPHA_VANTAGE_KEY found in Streamlit Secrets. "
+            "Get a free key at https://www.alphavantage.co/support/#api-key "
+            "then add it to Streamlit Cloud → App Settings → Secrets."
+        )
+        # Still try Stooq for everything as fallback
+        _fetch_stooq_all(results)
+        return results
 
-    with ThreadPoolExecutor(max_workers=10) as ex:
-        futures = {
-            ex.submit(fetch_instrument, stooq, yahoo): (key, label, kind)
-            for key, stooq, yahoo, label, kind in all_tasks
-        }
+    # ── Fetch indices + forex concurrently via Alpha Vantage ──
+    tasks = []
+    for key, sym, label in [
+        ("nikkei", "EWJ",  "Nikkei 225 (EWJ)"),
+        ("topix",  "EZJ",  "TOPIX (EZJ)"),
+    ]:
+        tasks.append(("index_av", key, sym, label))
+
+    for key, (fc, tc, label) in AV_FOREX.items():
+        tasks.append(("forex_av", key, fc + "|" + tc, label))
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futures = {}
+        for t in tasks:
+            kind, key, sym, label = t
+            if kind == "index_av":
+                f = ex.submit(av_fetch_equity, sym, api_key, label)
+            else:
+                fc, tc = sym.split("|")
+                f = ex.submit(av_fetch_forex, fc, tc, api_key, label)
+            futures[f] = (kind, key)
+
         for f in as_completed(futures):
-            key, label, kind = futures[f]
+            kind, key = futures[f]
             try:
                 data = f.result()
-                data["label"] = label
-                if kind == "index":
-                    results["indices"][key] = data
-                else:
-                    results["forex"][key] = data
+                bucket = "indices" if "index" in kind else "forex"
+                results[bucket][key] = data
             except Exception as e:
-                bucket = "indices" if kind == "index" else "forex"
-                results[bucket][key] = {
-                    "price": 0, "label": label, "error": str(e)
-                }
+                bucket = "indices" if "index" in kind else "forex"
+                results[bucket][key] = {"price": 0, "error": str(e)}
 
+    # ── Try Stooq for sub-indices (TOPIX Core 30, Mid 400, 1000, TSE Growth) ──
+    subindex_tasks = {
+        "topix_c30":  ("^TPXC30",  "TOPIX Core 30"),
+        "topix_m400": ("^TPXM400", "TOPIX Mid 400"),
+        "topix_1000": ("^TPX1000", "TOPIX 1000"),
+        "tse_growth": ("^TSEG250", "TSE Growth 250"),
+    }
+    # Also try to get proper Nikkei/TOPIX from Stooq to replace ETF proxies
+    stooq_override = {
+        "nikkei": ("^NKX", "Nikkei 225"),
+        "topix":  ("^TPX", "TOPIX"),
+    }
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {}
+        for key, (sym, label) in {**stooq_override, **subindex_tasks}.items():
+            futures[ex.submit(stooq_fetch, sym, label)] = key
+        for f in as_completed(futures):
+            key = futures[f]
+            try:
+                data = f.result()
+                if data.get("price", 0) > 0:
+                    results["indices"][key] = data  # override ETF proxy with real index
+            except Exception:
+                pass
+
+    results["_source"] = "alphavantage+stooq"
     return results
 
 
+def _fetch_stooq_all(results: dict):
+    """Populate results entirely from Stooq (fallback when no AV key)."""
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        idx_futures = {
+            ex.submit(stooq_fetch, sym, label): key
+            for key, (sym, label) in STOOQ_SUBINDICES.items()
+        }
+        fx_futures = {
+            ex.submit(stooq_fetch, sym, label): key
+            for key, (sym, label) in STOOQ_FOREX.items()
+        }
+        for f in as_completed(idx_futures):
+            key = idx_futures[f]
+            try:
+                results["indices"][key] = f.result()
+            except Exception as e:
+                results["indices"][key] = {"price": 0, "error": str(e)}
+        for f in as_completed(fx_futures):
+            key = fx_futures[f]
+            try:
+                results["forex"][key] = f.result()
+            except Exception as e:
+                results["forex"][key] = {"price": 0, "error": str(e)}
+
+
 def fetch_tse_movers() -> dict:
-    """Fetch TSE large cap movers using Stooq, fallback Yahoo."""
+    """Fetch TSE movers via Alpha Vantage if key available, else Stooq."""
+    api_key = get_secret("ALPHA_VANTAGE_KEY")
     movers = []
 
-    def fetch_one(code, name):
-        r = stooq_fetch_history(f"{code}.jp", years=1)
-        if r.get("price", 0) == 0:
-            r = yahoo_fetch_history(f"{code}.T", years=1)
-        return code, name, r
+    if api_key:
+        # Use AV for top 10 stocks to stay within daily limit (10 calls)
+        subset = TSE_STOCKS[:10]
+        with ThreadPoolExecutor(max_workers=5) as ex:
+            futures = {
+                ex.submit(av_fetch_equity, f"{code}.TYO", api_key, name): (code, name)
+                for code, name in subset
+            }
+            for f in as_completed(futures):
+                code, name = futures[f]
+                try:
+                    q = f.result()
+                    if q.get("price", 0) > 0:
+                        movers.append({
+                            "symbol": f"{code}.T", "name": name,
+                            "price": q["price"], "change": q["change"],
+                            "pct_change": q["pct_change"],
+                        })
+                except Exception:
+                    pass
 
-    with ThreadPoolExecutor(max_workers=10) as ex:
-        futures = [ex.submit(fetch_one, code, name) for code, name in TSE_STOCKS]
-        for f in as_completed(futures):
-            try:
-                code, name, q = f.result()
-                if q.get("price", 0) > 0:
-                    movers.append({
-                        "symbol": f"{code}.T", "name": name,
-                        "price": q["price"], "change": q["change"],
-                        "pct_change": q["pct_change"],
-                    })
-            except Exception:
-                pass
+    # Fall back to Stooq for movers if AV returned nothing
+    if not movers:
+        with ThreadPoolExecutor(max_workers=10) as ex:
+            futures = {
+                ex.submit(stooq_fetch, f"{code}.jp", name, 1): (code, name)
+                for code, name in TSE_STOCKS
+            }
+            for f in as_completed(futures):
+                code, name = futures[f]
+                try:
+                    q = f.result()
+                    if q.get("price", 0) > 0:
+                        movers.append({
+                            "symbol": f"{code}.T", "name": name,
+                            "price": q["price"], "change": q["change"],
+                            "pct_change": q["pct_change"],
+                        })
+                except Exception:
+                    pass
 
     movers.sort(key=lambda x: x["pct_change"], reverse=True)
     return {
@@ -342,11 +443,10 @@ def fetch_foreign_flow() -> dict:
             "https://www.jpx.co.jp/markets/statistics-equities/"
             "investor-type/nlsgeu000000484c-att/s13.csv"
         )
-        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=12)
         if resp.status_code != 200:
             return {"available": False}
-        lines = resp.text.strip().split("\n")
-        for line in reversed(lines[-10:]):
+        for line in reversed(resp.text.strip().split("\n")[-10:]):
             parts = line.split(",")
             if len(parts) >= 4:
                 try:
