@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import datetime
 import pytz
 from collector import fetch_all_news, fetch_source_headlines, SOURCE_DIRECTORY, SOURCE_GROUPS
-from emailer import subscribe_email, send_digest
+from emailer import subscribe_email, send_digest, get_secret
 from market_data import fetch_market_overview, fetch_tse_movers, fetch_foreign_flow
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES)
