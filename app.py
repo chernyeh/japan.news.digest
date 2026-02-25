@@ -296,20 +296,32 @@ html, body, [class*="css"] {
 
 /* AI Summary panel */
 .ai-summary {
-    background: #FDFAF7; border: 1px solid #D9D3C8; border-left: 3px solid #8B4513;
-    border-radius: 3px; padding: 0.8rem 1rem; margin: 0.5rem 0 0.8rem 0;
-    font-size: 0.82rem; line-height: 1.65; color: #2A2A2A;
+    background: #FDFAF7; border: 1px solid #D9D3C8; border-left: 4px solid #8B4513;
+    border-radius: 4px; padding: 1.2rem 1.4rem; margin: 0.6rem 0 1rem 0;
+    font-size: 1.0rem; line-height: 1.8; color: #1A1A1A;
 }
 .ai-summary h2 {
-    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; color: #8B4513; margin: 0.8rem 0 0.3rem 0;
-    border-bottom: 1px solid #EDE8E0; padding-bottom: 0.15rem;
+    font-size: 0.95rem; font-weight: 800; letter-spacing: 0.05em;
+    text-transform: uppercase; color: #8B4513; margin: 1.2rem 0 0.5rem 0;
+    border-bottom: 2px solid #EDE8E0; padding-bottom: 0.25rem;
 }
 .ai-summary h2:first-child { margin-top: 0; }
-.ai-summary ul { margin: 0.2rem 0 0.4rem 1rem; padding: 0; }
-.ai-summary li { margin-bottom: 0.3rem; }
-.ai-summary a { color: #8B4513; text-decoration: underline; }
-.ai-summary p { margin: 0.3rem 0; }
+.ai-summary ul { margin: 0.4rem 0 0.6rem 1.2rem; padding: 0; }
+.ai-summary li { margin-bottom: 0.55rem; font-size: 1.0rem; line-height: 1.75; }
+.ai-summary li strong, .ai-summary strong { font-weight: 700; color: #1A1A1A; }
+.ai-summary a.summary-link {
+    display: inline-block; margin-left: 0.4rem;
+    background: #8B4513; color: #FFF !important; font-size: 0.72rem;
+    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.1rem 0.45rem; border-radius: 3px; text-decoration: none !important;
+    vertical-align: middle; line-height: 1.6;
+}
+.ai-summary a.summary-link:hover { background: #5C2E00; }
+.ai-summary p { margin: 0.5rem 0; font-size: 1.0rem; line-height: 1.8; }
+.ai-summary .intro-block {
+    background: #F5F0EA; border-radius: 3px; padding: 0.6rem 0.9rem;
+    margin-bottom: 0.8rem; font-size: 1.0rem; line-height: 1.8;
+}
 
 /* Filings table */
 .filings-table {
@@ -455,8 +467,72 @@ Respond only with the briefing, no preamble."""
                         st.error(f"AI summary error: {e}")
 
     if st.session_state[session_key]:
+        def _summary_to_html(text: str) -> str:
+            """Convert AI summary markdown to styled HTML."""
+            import re as _re2, html as _html2
+            lines  = text.split("\n")
+            out    = []
+            in_ul  = False
+            in_intro = True   # first paragraph(s) before any ## header get styled as intro
+
+            for line in lines:
+                line = line.rstrip()
+
+                # Convert **bold** → <strong>
+                line = _re2.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
+
+                # Convert [text](url) → <a class="summary-link" href="url">Link</a>
+                line = _re2.sub(
+                    r"\[([^\]]+)\]\(([^)]+)\)",
+                    r'<a class="summary-link" href="\2">Link</a>',
+                    line
+                )
+
+                if line.startswith("## "):
+                    if in_ul:
+                        out.append("</ul>"); in_ul = False
+                    if in_intro:
+                        if out: out.append("</div>")
+                        in_intro = False
+                    out.append(f'<h2>{line[3:]}</h2>')
+
+                elif line.startswith("# "):
+                    if in_ul:
+                        out.append("</ul>"); in_ul = False
+                    if in_intro and out:
+                        out.append("</div>"); in_intro = False
+                    out.append(f'<h2>{line[2:]}</h2>')
+
+                elif line.startswith("- ") or line.startswith("* "):
+                    if in_intro and out:
+                        out.append("</div>"); in_intro = False
+                    if not in_ul:
+                        out.append("<ul>"); in_ul = True
+                    out.append(f"<li>{line[2:]}</li>")
+
+                elif line.strip() == "":
+                    if in_ul:
+                        out.append("</ul>"); in_ul = False
+                    # blank line — skip, spacing handled by CSS
+
+                else:
+                    if in_ul:
+                        out.append("</ul>"); in_ul = False
+                    if in_intro:
+                        if not any("<div class" in o for o in out):
+                            out.append('<div class="intro-block">')
+                        out.append(f"<p>{line}</p>")
+                    else:
+                        out.append(f"<p>{line}</p>")
+
+            if in_ul:
+                out.append("</ul>")
+            if in_intro and any("<div class" in o for o in out):
+                out.append("</div>")
+            return "\n".join(out)
+
         st.markdown(
-            '<div class="ai-summary">' + st.session_state[session_key].replace("\n", "<br>") + '</div>',
+            '<div class="ai-summary">' + _summary_to_html(st.session_state[session_key]) + '</div>',
             unsafe_allow_html=True
         )
 
@@ -1152,52 +1228,63 @@ with tab_filings:
                 _resp = _req.get(_url, headers=_hdrs, timeout=20)
                 _feed = _fp.parse(_resp.content)
 
+                import html as _html_mod
+
                 filings = []
                 for _entry in _feed.entries:
-                    # Title format: "[CODE0] CompanyName / FilingTitle"
-                    _raw_title = _entry.get("title", "")
-                    _link      = _entry.get("link", "")
-                    _pub       = _entry.get("published", "") or _entry.get("updated", "")
+                    # Decode HTML entities and strip tags from title
+                    _raw_title = _html_mod.unescape(_re.sub(r"<[^>]+>", "", _entry.get("title", "")))
+                    # Also try summary/description field as fallback
+                    if not _raw_title:
+                        _raw_title = _html_mod.unescape(_re.sub(r"<[^>]+>", "", _entry.get("summary", "")))
+                    _link = _entry.get("link", "")
+                    _pub  = _entry.get("published", "") or _entry.get("updated", "")
 
-                    # Parse date
+                    # Parse date — handle both timezone-aware and naive datetimes
                     _pdate_str = ""
+                    _pdate_dt  = None
                     try:
                         _parsed = _eu.parsedate_to_datetime(_pub)
                         _pdate_str = _parsed.strftime("%Y-%m-%d %H:%M")
-                        _pdate_dt  = _parsed
+                        # Normalise to naive UTC for safe comparison
+                        try:
+                            import datetime as _dtmod
+                            _pdate_dt = _parsed.astimezone(_dtmod.timezone.utc).replace(tzinfo=None)
+                        except Exception:
+                            _pdate_dt = _parsed.replace(tzinfo=None)
                     except Exception:
-                        _pdate_str = _pub[:16] if _pub else ""
-                        _pdate_dt  = None
+                        # Try feedparser's parsed_published tuple
+                        _t = _entry.get("published_parsed") or _entry.get("updated_parsed")
+                        if _t:
+                            import time as _time_mod
+                            import datetime as _dtmod
+                            _pdate_dt  = _dtmod.datetime(*_t[:6])
+                            _pdate_str = _pdate_dt.strftime("%Y-%m-%d %H:%M")
+                        else:
+                            _pdate_str = _pub[:16] if _pub else ""
 
-                    # Parse code, company name, filing title from RSS title
-                    # Typical: "[72990] フジオーゼ / 執行役員の人事異動に関するお知らせ"
-                    _code, _name, _title = "", "", _raw_title
+                    # Parse "[CODE] Company / Filing title" from RSS entry title
+                    _code, _name, _filing_title = "", "", _raw_title
                     _m = _re.match(r"\[([^\]]+)\]\s*(.*?)\s*/\s*(.*)", _raw_title)
                     if _m:
-                        _code  = _m.group(1).strip()
-                        _name  = _m.group(2).strip()
-                        _title = _m.group(3).strip()
-                    else:
-                        # Fallback: split on " / " if present
-                        if " / " in _raw_title:
-                            _parts = _raw_title.split(" / ", 1)
-                            _name, _title = _parts[0].strip(), _parts[1].strip()
+                        _code         = _m.group(1).strip()
+                        _name         = _m.group(2).strip()
+                        _filing_title = _m.group(3).strip()
+                    elif " / " in _raw_title:
+                        _parts = _raw_title.split(" / ", 1)
+                        _name, _filing_title = _parts[0].strip(), _parts[1].strip()
 
-                    if not _title:
+                    if not _filing_title:
                         continue
 
-                    # doc_url: link goes to Yanoshin redirect → actual PDF
                     filings.append({
-                        "code": _code, "name": _name, "title": _title,
+                        "code": _code, "name": _name, "title": _filing_title,
                         "pub_date": _pdate_str, "pub_dt": _pdate_dt,
                         "doc_url": _link,
                     })
 
-                # Sort newest first
-                filings.sort(
-                    key=lambda x: x["pub_dt"] or _dt.min,
-                    reverse=True
-                )
+                # Sort newest first (all pub_dt are naive UTC now)
+                filings.sort(key=lambda x: x["pub_dt"] or _dt.min, reverse=True)
                 st.session_state.filings = filings
                 st.session_state.filings_last_fetch = now_local()
 
