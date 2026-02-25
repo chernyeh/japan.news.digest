@@ -481,12 +481,13 @@ Respond only with the briefing, no preamble."""
                 # Convert **bold** → <strong>
                 line = _re2.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
 
-                # Convert [text](url) → <a class="summary-link" href="url">Link</a>
-                line = _re2.sub(
-                    r"\[([^\]]+)\]\(([^)]+)\)",
-                    r'<a class="summary-link" href="\2">Link</a>',
-                    line
-                )
+                # Convert [text](url) → Link button, skip if URL looks truncated/invalid
+                def _make_link(m):
+                    _u = m.group(2).strip()
+                    if not _u or not _u.startswith("http") or len(_u) < 12:
+                        return m.group(1)  # just return the text, no link
+                    return f'<a class="summary-link" href="{_u}" target="_blank">Link</a>'
+                line = _re2.sub(r"\[([^\]]+)\]\(([^)]+)\)", _make_link, line)
 
                 if line.startswith("## "):
                     if in_ul:
@@ -1013,7 +1014,7 @@ with tab_market:
         # ── Indices ──────────────────────────────────────────
         st.markdown('<div class="section-title">📈 Japanese Indices</div>', unsafe_allow_html=True)
         indices = md.get("indices", {})
-        index_order = ["nikkei", "topix", "topix_c30", "topix_m400", "topix_1000", "tse_growth"]
+        index_order = ["nikkei", "topix"]
         idx_html = '<div class="instrument-grid">'
         for key in index_order:
             data = indices.get(key)
@@ -1207,81 +1208,96 @@ with tab_filings:
     if fetch_filings_btn or not st.session_state.filings:
         with st.spinner("Fetching TDnet disclosures (last 5 days)…"):
             try:
-                import feedparser as _fp
                 import requests as _req
                 import re as _re
-                from datetime import datetime as _dt, timedelta as _td
-                import email.utils as _eu
+                import html as _html_mod
+                import datetime as _dtmod
+                from datetime import timedelta as _td
+                from bs4 import BeautifulSoup as _BS
 
-                # Fetch last 5 days via date-range RSS — most reliable Yanoshin endpoint
-                _today = _dt.now()
+                _today = _dtmod.datetime.now()
                 _d_from = (_today - _td(days=5)).strftime("%Y%m%d")
                 _d_to   = _today.strftime("%Y%m%d")
-                _url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{_d_from}-{_d_to}.rss?limit=500"
 
+                # Scrape Yanoshin HTML table — most reliable, clear structure
+                # Format: date | [CODE]Company | FilingTitle(linked to PDF)
+                _url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{_d_from}-{_d_to}.html?limit=500"
                 _hdrs = {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
-                    "Referer": "https://webapi.yanoshin.jp/",
+                    "Accept": "text/html,*/*",
+                    "Accept-Language": "ja,en;q=0.9",
                 }
                 _resp = _req.get(_url, headers=_hdrs, timeout=20)
-                _feed = _fp.parse(_resp.content)
-
-                import html as _html_mod
+                _soup = _BS(_resp.content, "lxml")
 
                 filings = []
-                for _entry in _feed.entries:
-                    # Decode HTML entities and strip tags from title
-                    _raw_title = _html_mod.unescape(_re.sub(r"<[^>]+>", "", _entry.get("title", "")))
-                    # Also try summary/description field as fallback
-                    if not _raw_title:
-                        _raw_title = _html_mod.unescape(_re.sub(r"<[^>]+>", "", _entry.get("summary", "")))
-                    _link = _entry.get("link", "")
-                    _pub  = _entry.get("published", "") or _entry.get("updated", "")
+                for _row in _soup.find_all("tr"):
+                    _cells = _row.find_all("td")
+                    if len(_cells) < 3:
+                        continue
 
-                    # Parse date — handle both timezone-aware and naive datetimes
-                    _pdate_str = ""
+                    # Cell 0: date/time  e.g. "2026-02-25 15:00:00"
+                    _pdate_str = _cells[0].get_text(strip=True)
                     _pdate_dt  = None
                     try:
-                        _parsed = _eu.parsedate_to_datetime(_pub)
-                        _pdate_str = _parsed.strftime("%Y-%m-%d %H:%M")
-                        # Normalise to naive UTC for safe comparison
-                        try:
-                            import datetime as _dtmod
-                            _pdate_dt = _parsed.astimezone(_dtmod.timezone.utc).replace(tzinfo=None)
-                        except Exception:
-                            _pdate_dt = _parsed.replace(tzinfo=None)
+                        _pdate_dt = _dtmod.datetime.strptime(_pdate_str, "%Y-%m-%d %H:%M:%S")
+                        _pdate_str = _pdate_dt.strftime("%Y-%m-%d %H:%M")
                     except Exception:
-                        # Try feedparser's parsed_published tuple
-                        _t = _entry.get("published_parsed") or _entry.get("updated_parsed")
-                        if _t:
-                            import time as _time_mod
-                            import datetime as _dtmod
-                            _pdate_dt  = _dtmod.datetime(*_t[:6])
-                            _pdate_str = _pdate_dt.strftime("%Y-%m-%d %H:%M")
-                        else:
-                            _pdate_str = _pub[:16] if _pub else ""
+                        try:
+                            _pdate_dt = _dtmod.datetime.strptime(_pdate_str[:16], "%Y-%m-%d %H:%M")
+                        except Exception:
+                            pass
 
-                    # Parse "[CODE] Company / Filing title" from RSS entry title
-                    _code, _name, _filing_title = "", "", _raw_title
-                    _m = _re.match(r"\[([^\]]+)\]\s*(.*?)\s*/\s*(.*)", _raw_title)
-                    if _m:
-                        _code         = _m.group(1).strip()
-                        _name         = _m.group(2).strip()
-                        _filing_title = _m.group(3).strip()
-                    elif " / " in _raw_title:
-                        _parts = _raw_title.split(" / ", 1)
-                        _name, _filing_title = _parts[0].strip(), _parts[1].strip()
+                    # Cell 1: [CODE]CompanyName  e.g. "[19590]クラフティア"
+                    _company_raw = _cells[1].get_text(strip=True)
+                    _code, _name = "", _company_raw
+                    _cm = _re.match(r"\[([^\]]+)\](.*)", _company_raw)
+                    if _cm:
+                        _code = _cm.group(1).strip()
+                        _name = _cm.group(2).strip()
+
+                    # Cell 2: FilingTitle (with link to PDF)
+                    _title_cell = _cells[2]
+                    _filing_title = _title_cell.get_text(strip=True)
+                    _a_tag = _title_cell.find("a")
+                    _doc_url = ""
+                    if _a_tag and _a_tag.get("href"):
+                        _href = _a_tag["href"]
+                        # Yanoshin links: /rd.php?https://... → extract real URL
+                        _rd = _re.search(r"/rd\.php\?(https?://.*)", _href)
+                        if _rd:
+                            _doc_url = _rd.group(1)
+                        elif _href.startswith("http"):
+                            _doc_url = _href
+                        else:
+                            _doc_url = "https://webapi.yanoshin.jp" + _href
 
                     if not _filing_title:
                         continue
 
                     filings.append({
-                        "code": _code, "name": _name, "title": _filing_title,
-                        "pub_date": _pdate_str, "pub_dt": _pdate_dt,
-                        "doc_url": _link,
+                        "code": _code,
+                        "name": _name,
+                        "title": _filing_title,
+                        "title_en": "",          # filled by translation below
+                        "pub_date": _pdate_str,
+                        "pub_dt": _pdate_dt,
+                        "doc_url": _doc_url,
                     })
+
+                # Translate Japanese titles to English using Google free translate
+                from collector import translate_single_google
+                _to_translate = [f for f in filings if f["title"] and not f["title_en"]]
+                # Batch in groups of 20 to avoid rate limits
+                for _i in range(0, min(len(_to_translate), 200), 20):
+                    _batch = _to_translate[_i:_i+20]
+                    for _f in _batch:
+                        try:
+                            _en = translate_single_google(_f["title"])
+                            _f["title_en"] = _en if _en and _en != _f["title"] else _f["title"]
+                        except Exception:
+                            _f["title_en"] = _f["title"]
 
                 # Sort newest first (all pub_dt are naive UTC now)
                 filings.sort(key=lambda x: x["pub_dt"] or _dt.min, reverse=True)
@@ -1313,9 +1329,16 @@ with tab_filings:
         _3d_ago = _dt3.now() - _td3(days=3)
         filings_3d = [f for f in filings if f.get("pub_dt") and f["pub_dt"].replace(tzinfo=None) >= _3d_ago]
         filing_articles = [
-            {"title": f["title"], "source": f["name"], "url": f["doc_url"],
-             "pub_date": f["pub_date"], "pub_dt": None,
-             "translated_title": f["title"], "original_title": f["title"]}
+            {
+                "title": f.get("title_en") or f.get("title",""),
+                "source": f.get("name",""),
+                # Use doc_url only if it's a proper tdnet URL, else skip linking
+                "url": f.get("doc_url","") if f.get("doc_url","").startswith("https://www.release.tdnet") else "",
+                "pub_date": f.get("pub_date",""),
+                "pub_dt": None,
+                "translated_title": f.get("title_en") or f.get("title",""),
+                "original_title": f.get("title",""),
+            }
             for f in (filings_3d or filings)[:80]
         ]
         render_ai_summary(
@@ -1342,14 +1365,17 @@ with tab_filings:
         <tbody>
         """
         for f in filings:
-            xbrl_badge = '<span style="font-size:0.55rem;background:#1565C0;color:white;padding:1px 4px;border-radius:2px;margin-left:4px;">XBRL</span>' if f.get("xbrl") else ""
-            doc_link = f'<a href="{f["doc_url"]}" target="_blank" style="color:#8B4513;font-size:0.75rem;">PDF</a>' if f["doc_url"] else "—"
+            _display_title = f.get("title_en") or f.get("title", "")
+            _orig_title    = f.get("title", "")
+            _orig_note     = (f'<div style="font-size:0.65rem;color:#9B8B7A;margin-top:2px;">{_orig_title}</div>'
+                              if _orig_title and _orig_title != _display_title else "")
+            doc_link = f'<a href="{f["doc_url"]}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if f.get("doc_url") else "—"
             table_html += (
                 "<tr>"
-                f'<td style="font-family:monospace;font-size:0.75rem;">{f["code"]}</td>'
-                f'<td style="font-size:0.8rem;font-weight:600;">{f["name"]}</td>'
-                f'<td style="font-size:0.8rem;">{f["title"]}{xbrl_badge}</td>'
-                f'<td style="font-size:0.72rem;color:#9B8B7A;">{f["pub_date"]}</td>'
+                f'<td style="font-family:monospace;font-size:0.75rem;white-space:nowrap;">{f.get("code","")}</td>'
+                f'<td style="font-size:0.8rem;font-weight:600;white-space:nowrap;">{f.get("name","")}</td>'
+                f'<td style="font-size:0.8rem;">{_display_title}{_orig_note}</td>'
+                f'<td style="font-size:0.72rem;color:#9B8B7A;white-space:nowrap;">{f.get("pub_date","")}</td>'
                 f'<td style="text-align:center;">{doc_link}</td>'
                 "</tr>"
             )
