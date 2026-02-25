@@ -230,7 +230,7 @@ html, body, [class*="css"] {
 }
 .stTabs [data-baseweb="tab"] {
     background: #EDE8E0; border-radius: 3px 3px 0 0;
-    font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem;
+    font-size: 0.62rem; font-weight: 600; padding: 0.28rem 0.45rem;
     color: #6B6B6B; border: none;
 }
 .stTabs [aria-selected="true"] {
@@ -294,6 +294,23 @@ html, body, [class*="css"] {
 }
 .ret-value { font-size: 0.62rem; font-weight: 600; }
 
+/* AI Summary panel */
+.ai-summary {
+    background: #FDFAF7; border: 1px solid #D9D3C8; border-left: 3px solid #8B4513;
+    border-radius: 3px; padding: 0.8rem 1rem; margin: 0.5rem 0 0.8rem 0;
+    font-size: 0.82rem; line-height: 1.65; color: #2A2A2A;
+}
+.ai-summary h2 {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #8B4513; margin: 0.8rem 0 0.3rem 0;
+    border-bottom: 1px solid #EDE8E0; padding-bottom: 0.15rem;
+}
+.ai-summary h2:first-child { margin-top: 0; }
+.ai-summary ul { margin: 0.2rem 0 0.4rem 1rem; padding: 0; }
+.ai-summary li { margin-bottom: 0.3rem; }
+.ai-summary a { color: #8B4513; text-decoration: underline; }
+.ai-summary p { margin: 0.3rem 0; }
+
 /* Filings table */
 .filings-table {
     width: 100%; border-collapse: collapse; font-size: 0.82rem;
@@ -317,7 +334,7 @@ html, body, [class*="css"] {
     .ticker-strip { gap: 0.7rem; padding: 0.4rem 0.6rem; }
     .ticker-price { font-size: 0.78rem; }
     .media-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-    .stTabs [data-baseweb="tab"] { font-size: 0.68rem; padding: 0.3rem 0.5rem; }
+    .stTabs [data-baseweb="tab"] { font-size: 0.58rem; padding: 0.25rem 0.35rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -344,6 +361,89 @@ for key, default in [
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
+
+
+# ── AI Summary helper ─────────────────────────────────────────────────────────
+def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60):
+    """
+    Renders an AI-powered summary panel with a Generate button.
+    Uses the Anthropic API (ANTHROPIC_API_KEY in Streamlit Secrets).
+    articles: list of article dicts with title/translated_title/url/source/pub_date
+    context:  short description for the prompt ("last 24h news", "co filings today", etc.)
+    session_key: unique key for caching the summary in session_state
+    """
+    import anthropic as _anthropic
+
+    if session_key not in st.session_state:
+        st.session_state[session_key] = None
+
+    col_s1, col_s2 = st.columns([4, 1])
+    with col_s2:
+        gen_btn = st.button("✨ Summarise", key=f"btn_{session_key}", use_container_width=True)
+    with col_s1:
+        if st.session_state[session_key]:
+            st.markdown(
+                '<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">AI summary generated · click ✨ Summarise to refresh</div>',
+                unsafe_allow_html=True
+            )
+
+    if gen_btn:
+        if not articles:
+            st.warning("No articles to summarise — fetch news first.")
+        else:
+            api_key = get_secret("ANTHROPIC_API_KEY")
+            if not api_key:
+                st.warning("Add ANTHROPIC_API_KEY to Streamlit Secrets to enable AI summaries.")
+            else:
+                # Build article list for the prompt (newest first, capped)
+                subset = articles[:max_articles]
+                lines = []
+                for i, a in enumerate(subset, 1):
+                    title  = a.get("title") or a.get("translated_title") or a.get("original_title","")
+                    url    = a.get("url","")
+                    source = a.get("source","")
+                    pub    = a.get("pub_date","")
+                    lines.append(f"{i}. [{source}] {title} | {pub} | {url}")
+                article_text = "\n".join(lines)
+
+                prompt = f"""You are an analyst helping a Malaysian investor track Japan business and investment news.
+
+Here are {len(subset)} headlines from {context}:
+
+{article_text}
+
+Write a structured briefing that:
+1. Opens with 2-3 sentences on the overall mood/theme of the day
+2. Groups stories into 4-6 thematic clusters (e.g. "BOJ & Macro", "Corporate Earnings", "M&A / Restructuring", "Yen & FX", "Sector Moves" — use whatever fits the actual stories)
+3. Under each cluster: 3-5 bullet points summarising the key developments, with each bullet ending with a markdown hyperlink [Source Name](url) to the most relevant article
+4. Closes with 2-3 sentences on what to watch next
+
+Format rules:
+- Use markdown headers (##) for cluster names
+- Keep each bullet to one clear sentence + link
+- If multiple articles support a point, link the most important one only
+- Be factual and concise — no padding or filler phrases
+- Do not reproduce article titles verbatim; synthesise them
+
+Respond only with the briefing, no preamble."""
+
+                with st.spinner("Generating AI summary…"):
+                    try:
+                        client = _anthropic.Anthropic(api_key=api_key)
+                        msg = client.messages.create(
+                            model="claude-sonnet-4-20250514",
+                            max_tokens=1200,
+                            messages=[{"role": "user", "content": prompt}]
+                        )
+                        st.session_state[session_key] = msg.content[0].text
+                    except Exception as e:
+                        st.error(f"AI summary error: {e}")
+
+    if st.session_state[session_key]:
+        st.markdown(
+            '<div class="ai-summary">' + st.session_state[session_key].replace("\n", "<br>") + '</div>',
+            unsafe_allow_html=True
+        )
 
 # ── Masthead ──────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -496,9 +596,22 @@ with tab_bytime:
                 seen_urls.add(url)
                 all_articles.append(a)
 
+    # 24h subset for summary
+    from datetime import datetime as _dtnow, timedelta as _td24
+    _24h_ago = _dtnow.now() - _td24(hours=24)
+    articles_24h = [a for a in all_articles if a.get("pub_dt") and a["pub_dt"] >= _24h_ago]
+
     if not all_articles:
         st.markdown('<div class="empty-state">Fetch news first — click <strong>🔄 Fetch All News</strong>.</div>', unsafe_allow_html=True)
     else:
+        st.markdown('<div class="section-title" style="font-size:0.78rem;margin-top:0.2rem;">✨ AI Briefing — Last 24 Hours</div>', unsafe_allow_html=True)
+        render_ai_summary(
+            articles_24h or all_articles[:60],
+            "the last 24 hours of Japan business news across all sources",
+            "summary_bytime"
+        )
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
+
         # Ensure high_value flags are set
         all_articles = flag_high_value_articles(all_articles)
 
@@ -576,6 +689,10 @@ with tab_breaking:
         st.session_state.breaking_news = []
     if "breaking_last_fetch" not in st.session_state:
         st.session_state.breaking_last_fetch = None
+    # AI summary caches
+    for _sk in ["summary_bytime", "summary_breaking", "summary_industry", "summary_filings"]:
+        if _sk not in st.session_state:
+            st.session_state[_sk] = None
 
     col_b1, col_b2 = st.columns([3, 1])
     with col_b2:
@@ -627,6 +744,9 @@ with tab_breaking:
     if not items:
         st.markdown('<div class="empty-state">No headlines loaded. Click Refresh.</div>', unsafe_allow_html=True)
     else:
+        st.markdown('<div class="section-title" style="font-size:0.78rem;margin-top:0.2rem;">✨ AI Briefing</div>', unsafe_allow_html=True)
+        render_ai_summary(items, "Nikkei Shimbun breaking news", "summary_breaking")
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
         html = ""
         for a in items[:60]:
             title  = a.get("title") or a.get("translated_title") or a.get("original_title","")
@@ -675,6 +795,13 @@ with tab_news:
 
         sector_name = st.session_state.selected_sector
         raw_articles = st.session_state.articles.get(sector_name, [])
+        # AI summary for this sector
+        if raw_articles:
+            render_ai_summary(
+                raw_articles,
+                f"{sector_name} sector news",
+                f"summary_industry_{sector_name.replace(' ','_').replace('/','_')}"
+            )
         articles = flag_high_value_articles(raw_articles)
         icon = next((i for n, i in MSCI_SECTORS if n == sector_name), "📰")
 
@@ -1019,23 +1146,40 @@ with tab_filings:
                 data = resp.json()
 
                 filings = []
-                # Yanoshin JSON structure: {"items": {"TDnet": [...]} } or {"TDnet": [...]}
-                items = []
-                if isinstance(data, dict):
-                    items = (data.get("items") or {}).get("TDnet") or data.get("TDnet") or []
-                elif isinstance(data, list):
-                    items = data
+                # Yanoshin JSON: {"items": {"TDnet": [ {"TDnet": {...}} , ... ] }}
+                # Unwrap all nesting levels defensively
+                raw = data
+                # Level 1: might be {"items": ...}
+                if isinstance(raw, dict) and "items" in raw:
+                    raw = raw["items"]
+                # Level 2: might be {"TDnet": [...]}
+                if isinstance(raw, dict) and "TDnet" in raw:
+                    raw = raw["TDnet"]
+                # raw should now be a list
+                if not isinstance(raw, list):
+                    raw = []
 
-                for item in items:
-                    # Each item has: company_code, company_name, title, pub_date, document_url, xbrl_flag
-                    code  = item.get("company_code", "")
-                    name  = item.get("company_name", "")
-                    title = item.get("title", "")
-                    pdate = item.get("pub_date", "")
-                    durl  = item.get("document_url", "")
-                    xbrl  = item.get("xbrl_flag", "0")
-                    if not title:
+                for entry in raw:
+                    # Each entry might be {"TDnet": {...}} or directly a dict
+                    if isinstance(entry, dict) and "TDnet" in entry:
+                        item = entry["TDnet"]
+                    elif isinstance(entry, dict):
+                        item = entry
+                    else:
                         continue
+                    if not isinstance(item, dict):
+                        continue
+                    code  = str(item.get("company_code") or item.get("code") or "")
+                    name  = str(item.get("company_name") or item.get("name") or "")
+                    title = str(item.get("title") or item.get("document_title") or "")
+                    pdate = str(item.get("pub_date") or item.get("updated_date") or "")
+                    durl  = str(item.get("document_url") or item.get("url") or "")
+                    xbrl  = str(item.get("xbrl_flag") or "0")
+                    if not title or title == "None":
+                        continue
+                    # Prefix doc URL with redirect if not already absolute
+                    if durl and not durl.startswith("http"):
+                        durl = "https://webapi.yanoshin.jp/rd.php?" + durl
                     filings.append({
                         "code": code, "name": name, "title": title,
                         "pub_date": pdate, "doc_url": durl, "xbrl": xbrl == "1",
@@ -1063,6 +1207,21 @@ with tab_filings:
     if not filings:
         st.markdown('<div class="empty-state">No filings found. Click 🔄 Load to fetch disclosures.</div>', unsafe_allow_html=True)
     else:
+        # ── AI summary of filings ──
+        filing_articles = [
+            {"title": f["title"], "source": f["name"], "url": f["doc_url"],
+             "pub_date": f["pub_date"], "pub_dt": None,
+             "translated_title": f["title"], "original_title": f["title"]}
+            for f in filings[:80]
+        ]
+        render_ai_summary(
+            filing_articles,
+            f"TDnet corporate filings ({date_choice.lower()})",
+            "summary_filings",
+            max_articles=80
+        )
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
+
         # ── Table header (matches TDnet layout) ──
         table_html = """
         <div style="overflow-x:auto;margin-top:0.4rem;">
@@ -1300,30 +1459,67 @@ with tab_sources:
 # ════════════════════════════════════════════════════════════
 with tab_subscribe:
     st.markdown('<div class="section-title">📬 Email Digest</div>', unsafe_allow_html=True)
-    st.markdown('<div class="info-box">Subscribe to receive the daily Japan investment digest by email — market data, movers, watchlist alerts, and sector news.</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="info-box">
+    Subscribe to receive the <strong>Japan Investment Digest</strong> by email — automatically sent twice daily:<br><br>
+    <strong>🌅 Pre-market edition</strong> &nbsp;·&nbsp; 07:00 JST (2 hours before TSE open at 09:00)&nbsp; — <em>6:00 MYT</em><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Market recap, overnight news, what to watch at open<br><br>
+    <strong>🌆 Close-of-day edition</strong> &nbsp;·&nbsp; 19:00 JST (4 hours after TSE close at 15:30)&nbsp; — <em>18:00 MYT</em><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Full day summary · AI briefing · corporate filings · sector moves · market data
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
     with st.form("subscribe_form"):
         email_input = st.text_input("Email address:", placeholder="your@email.com")
-        if st.form_submit_button("Subscribe", use_container_width=True):
+        col_sub1, col_sub2 = st.columns(2)
+        with col_sub1:
+            want_premarket  = st.checkbox("🌅 Pre-market edition (07:00 JST)", value=True)
+        with col_sub2:
+            want_close      = st.checkbox("🌆 Close-of-day edition (19:00 JST)", value=True)
+
+        submitted = st.form_submit_button("Subscribe", use_container_width=True)
+        if submitted:
             if email_input and "@" in email_input:
                 if subscribe_email(email_input):
-                    st.success(f"✓ {email_input} subscribed.")
+                    editions = []
+                    if want_premarket: editions.append("pre-market")
+                    if want_close:     editions.append("close-of-day")
+                    edition_str = " & ".join(editions) if editions else "selected"
+                    st.success(f"✓ {email_input} subscribed to {edition_str} digest.")
                 else:
-                    st.error("Subscription failed. Try again.")
+                    st.error("Subscription failed — please try again.")
+            else:
+                st.error("Please enter a valid email address.")
+
+    st.markdown("<hr style='border-color:#D9D3C8;margin:1rem 0'>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="font-size:0.72rem;color:#9B8B7A;line-height:1.7;">
+    <strong>What's in each edition:</strong><br>
+    📊 Live market data — Nikkei, TOPIX, key indices, FX pairs with daily change<br>
+    📰 AI-generated briefing of the top news stories with article links<br>
+    📋 Summary of corporate filings (TDnet timely disclosures) with PDF links<br>
+    ⭐ Watchlist alerts — any mention of companies you track<br>
+    🏭 Sector-by-sector summary across MSCI sectors<br><br>
+    <strong>Scheduling note:</strong> Emails are sent via a scheduled job triggered by Streamlit Cloud.
+    Delivery requires <code>SENDGRID_API_KEY</code> and <code>DIGEST_FROM_EMAIL</code> to be set in Streamlit Secrets.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Manual send (for admin use) ──
+    if get_secret("SENDGRID_API_KEY"):
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
+        st.markdown('<div style="font-size:0.72rem;font-weight:700;color:#8B4513;margin-bottom:0.4rem;">ADMIN: Send Digest Now</div>', unsafe_allow_html=True)
+        manual_email = st.text_input("Send to email:", placeholder="your@email.com", key="manual_email")
+        if st.button("Send Digest Now", use_container_width=False):
+            if manual_email and "@" in manual_email:
+                with st.spinner("Sending…"):
+                    send_digest(st.session_state.articles, [manual_email])
+                st.success(f"✓ Sent to {manual_email}")
             else:
                 st.error("Enter a valid email address.")
-
-    if st.session_state.articles:
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
-        st.markdown('<div class="section-title">⚙️ Send Test Digest</div>', unsafe_allow_html=True)
-        test_email = st.text_input("Send to:", placeholder="your@email.com", key="test_email")
-        if st.button("Send Test Digest", use_container_width=True):
-            if test_email:
-                with st.spinner("Sending..."):
-                    send_digest(st.session_state.articles, [test_email])
-                st.success(f"✓ Sent to {test_email}")
-            else:
-                st.error("Enter an email address first.")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("""
