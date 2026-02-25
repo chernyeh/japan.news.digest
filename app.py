@@ -499,6 +499,9 @@ with tab_bytime:
     if not all_articles:
         st.markdown('<div class="empty-state">Fetch news first — click <strong>🔄 Fetch All News</strong>.</div>', unsafe_allow_html=True)
     else:
+        # Ensure high_value flags are set
+        all_articles = flag_high_value_articles(all_articles)
+
         # Sort by pub_dt descending (articles without dates go last)
         def sort_key(a):
             dt = a.get("pub_dt")
@@ -536,8 +539,8 @@ with tab_bytime:
             source = a.get("source", "")
             pub    = a.get("pub_date", "")
             is_jp  = a.get("language", "en") == "ja"
-            badges = flag_high_value(a)
-            badge_html = " ".join(f'<span class="hv-badge">{b}</span>' for b in badges)
+            hv = a.get("high_value", False)
+            badge_html = '<span class="hv-badge">★ Corp Action</span>' if hv else ""
 
             time_str = ""
             if pub_dt:
