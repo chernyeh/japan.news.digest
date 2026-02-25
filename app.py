@@ -1255,7 +1255,7 @@ with tab_filings:
         <tbody>
         """
         for f in filings:
-            xbrl_badge = '<span style="font-size:0.55rem;background:#1565C0;color:white;padding:1px 4px;border-radius:2px;margin-left:4px;">XBRL</span>' if f["xbrl"] else ""
+            xbrl_badge = '<span style="font-size:0.55rem;background:#1565C0;color:white;padding:1px 4px;border-radius:2px;margin-left:4px;">XBRL</span>' if f.get("xbrl") else ""
             doc_link = f'<a href="{f["doc_url"]}" target="_blank" style="color:#8B4513;font-size:0.75rem;">PDF</a>' if f["doc_url"] else "—"
             table_html += (
                 "<tr>"
