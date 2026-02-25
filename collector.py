@@ -19,17 +19,17 @@ RSS_SOURCES = [
     # English (no translation needed)
     ("Japan Times",          "https://www.japantimes.co.jp/feed/",                          "en"),
     ("Japan Times Business", "https://www.japantimes.co.jp/feed/category/business/",        "en"),
-    # Nikkei Asia — main feed plus all known category feed URL patterns
-    # Two URL patterns used: /rss/feed/X (old) and /X/Feed (new) — both attempted,
-    # deduplication by URL ensures no article appears twice even if both patterns work
+    # ── Nikkei Group feeds ──────────────────────────────────────────────────────
+    # Nikkei Asia (English) — confirmed working
     ("Nikkei Asia",           "https://asia.nikkei.com/rss/feed/nar",                        "en"),
-    ("Nikkei Business",       "https://asia.nikkei.com/Business/Feed",                       "en"),
-    ("Nikkei Tech",           "https://asia.nikkei.com/Business/Tech/Feed",                  "en"),
-    ("Nikkei Markets",        "https://asia.nikkei.com/Markets/Feed",                        "en"),
-    ("Nikkei Politics",       "https://asia.nikkei.com/Politics/Feed",                       "en"),
-    ("Nikkei Economy",        "https://asia.nikkei.com/Economy/Feed",                        "en"),
-    ("Nikkei Companies",      "https://asia.nikkei.com/Companies/Feed",                      "en"),
-    ("Nikkei China",          "https://asia.nikkei.com/Economy/China-economy/Feed",          "en"),
+    # Nikkei.com (Japanese flagship) — no direct RSS; Google News RSS proxy works reliably
+    ("Nikkei Shimbun",        "https://news.google.com/rss/search?q=site:nikkei.com&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    # Nikkei Business (日経ビジネス) — confirmed RSS
+    ("Nikkei Business",       "https://business.nikkei.com/rss/sns/nb.rdf",                  "ja"),
+    # Nikkei Xtech (日経クロステック) — tech/manufacturing/auto/energy
+    ("Nikkei Xtech",          "https://xtech.nikkei.com/rss/index.rdf",                      "ja"),
+    ("Nikkei Xtech IT",       "https://xtech.nikkei.com/rss/xtech-it.rdf",                   "ja"),
+    ("Nikkei Xtech Auto",     "https://xtech.nikkei.com/rss/xtech-at.rdf",                   "ja"),
     ("Reuters Japan",        "https://feeds.reuters.com/reuters/JPbusinessNews",            "en"),
     ("Reuters Japan (all)",  "https://feeds.reuters.com/reuters/JPNews",                    "en"),
     ("NHK World Business",   "https://www3.nhk.or.jp/nhkworld/en/news/feeds/business.xml", "en"),
@@ -349,13 +349,12 @@ def scrape_trade_paper(source_name: str, url: str, selectors: str, language: str
 SOURCE_DIRECTORY = {
     # English sources
     "Japan Times":          ("https://www.japantimes.co.jp/feed/category/business/", "en"),
-    "Nikkei Asia":          ("https://asia.nikkei.com/rss/feed/nar",                 "en"),
-    "Nikkei Business":      ("https://asia.nikkei.com/Business/Feed",                "en"),
-    "Nikkei Tech":          ("https://asia.nikkei.com/Business/Tech/Feed",           "en"),
-    "Nikkei Markets":       ("https://asia.nikkei.com/Markets/Feed",                 "en"),
-    "Nikkei Politics":      ("https://asia.nikkei.com/Politics/Feed",                "en"),
-    "Nikkei Economy":       ("https://asia.nikkei.com/Economy/Feed",                 "en"),
-    "Nikkei Companies":     ("https://asia.nikkei.com/Companies/Feed",               "en"),
+    "Nikkei Asia":          ("https://asia.nikkei.com/rss/feed/nar",                                          "en"),
+    "Nikkei Shimbun":       ("https://news.google.com/rss/search?q=site:nikkei.com&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    "Nikkei Business":      ("https://business.nikkei.com/rss/sns/nb.rdf",                                  "ja"),
+    "Nikkei Xtech":         ("https://xtech.nikkei.com/rss/index.rdf",                                      "ja"),
+    "Nikkei Xtech IT":      ("https://xtech.nikkei.com/rss/xtech-it.rdf",                                   "ja"),
+    "Nikkei Xtech Auto":    ("https://xtech.nikkei.com/rss/xtech-at.rdf",                                   "ja"),
     "Reuters Japan":        ("https://feeds.reuters.com/reuters/JPbusinessNews",      "en"),
     "NHK World Business":   ("https://www3.nhk.or.jp/nhkworld/en/news/feeds/business.xml", "en"),
     "Japan Industry News":  ("https://japanindustrynews.com/feed/",                  "en"),
@@ -379,9 +378,9 @@ SOURCE_GROUPS = {
     "🇬🇧 English — General": [
         "Japan Times", "Reuters Japan", "NHK World Business", "Japan Industry News",
     ],
-    "📊 English — Nikkei Asia": [
-        "Nikkei Asia", "Nikkei Business", "Nikkei Tech",
-        "Nikkei Markets", "Nikkei Politics", "Nikkei Economy", "Nikkei Companies",
+    "📊 Nikkei Group": [
+        "Nikkei Asia", "Nikkei Shimbun", "Nikkei Business",
+        "Nikkei Xtech", "Nikkei Xtech IT", "Nikkei Xtech Auto",
     ],
     "🇯🇵 Japanese — General": [
         "Asahi Shimbun", "Mainichi Shimbun", "Sankei Shimbun",
