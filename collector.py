@@ -243,10 +243,27 @@ def parse_date(entry) -> tuple:
     return "", None
 
 
+RSS_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    "Accept-Language": "en-US,en;q=0.9,ja;q=0.8",
+    "Cache-Control": "no-cache",
+    "Referer": "https://www.google.com/",
+}
+
 def fetch_rss(source_name: str, url: str, language: str) -> list:
     articles = []
     try:
-        feed = feedparser.parse(url)
+        # Use requests with browser headers to avoid blocks, then parse the content
+        try:
+            resp = requests.get(url, headers=RSS_HEADERS, timeout=15)
+            feed = feedparser.parse(resp.content)
+        except Exception:
+            # Fall back to plain feedparser if requests fails
+            feed = feedparser.parse(url)
         for entry in feed.entries[:20]:
             title = re.sub(r"<[^>]+>", "", entry.get("title", "").strip())
             if not title:
