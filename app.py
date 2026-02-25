@@ -372,7 +372,6 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
     context:  short description for the prompt ("last 24h news", "co filings today", etc.)
     session_key: unique key for caching the summary in session_state
     """
-    import anthropic as _anthropic
 
     if session_key not in st.session_state:
         st.session_state[session_key] = None
@@ -391,6 +390,11 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
         if not articles:
             st.warning("No articles to summarise — fetch news first.")
         else:
+            try:
+                import anthropic as _anthropic
+            except ImportError:
+                st.error("The `anthropic` package is not installed. Add `anthropic>=0.25.0` to requirements.txt and redeploy.")
+                st.stop()
             api_key = get_secret("ANTHROPIC_API_KEY")
             if not api_key:
                 st.warning("Add ANTHROPIC_API_KEY to Streamlit Secrets to enable AI summaries.")
