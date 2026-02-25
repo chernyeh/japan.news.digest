@@ -397,7 +397,18 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
                 st.stop()
             api_key = get_secret("ANTHROPIC_API_KEY")
             if not api_key:
-                st.warning("Add ANTHROPIC_API_KEY to Streamlit Secrets to enable AI summaries.")
+                st.warning("ANTHROPIC_API_KEY not found in Streamlit Secrets.")
+                with st.expander("How to add it"):
+                    st.markdown("""
+1. Go to [console.anthropic.com](https://console.anthropic.com/) and sign in (or create a free account)
+2. Navigate to **API Keys** and create a new key
+3. In Streamlit Cloud, open your app → **⋮ menu → Settings → Secrets**
+4. Add this line (paste your actual key):
+```
+ANTHROPIC_API_KEY = "sk-ant-..."
+```
+5. Click **Save** — the app restarts in ~30 seconds and summaries will work
+""")
             else:
                 # Build article list for the prompt (newest first, capped)
                 subset = articles[:max_articles]
@@ -435,7 +446,7 @@ Respond only with the briefing, no preamble."""
                     try:
                         client = _anthropic.Anthropic(api_key=api_key)
                         msg = client.messages.create(
-                            model="claude-sonnet-4-20250514",
+                            model="claude-haiku-4-5-20251001",
                             max_tokens=1200,
                             messages=[{"role": "user", "content": prompt}]
                         )
@@ -1475,27 +1486,44 @@ with tab_subscribe:
 
     st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
-    with st.form("subscribe_form"):
-        email_input = st.text_input("Email address:", placeholder="your@email.com")
-        col_sub1, col_sub2 = st.columns(2)
-        with col_sub1:
-            want_premarket  = st.checkbox("🌅 Pre-market edition (07:00 JST)", value=True)
-        with col_sub2:
-            want_close      = st.checkbox("🌆 Close-of-day edition (19:00 JST)", value=True)
-
-        submitted = st.form_submit_button("Subscribe", use_container_width=True)
-        if submitted:
-            if email_input and "@" in email_input:
-                if subscribe_email(email_input):
-                    editions = []
-                    if want_premarket: editions.append("pre-market")
-                    if want_close:     editions.append("close-of-day")
-                    edition_str = " & ".join(editions) if editions else "selected"
-                    st.success(f"✓ {email_input} subscribed to {edition_str} digest.")
+    col_tab1, col_tab2 = st.columns(2)
+    with col_tab1:
+        st.markdown('<div class="section-subtitle">Subscribe</div>', unsafe_allow_html=True)
+        with st.form("subscribe_form"):
+            email_input = st.text_input("Email address:", placeholder="your@email.com", key="sub_email")
+            col_sub1, col_sub2 = st.columns(2)
+            with col_sub1:
+                want_premarket = st.checkbox("Pre-market (07:00 JST)", value=True)
+            with col_sub2:
+                want_close     = st.checkbox("Close-of-day (19:00 JST)", value=True)
+            submitted = st.form_submit_button("Subscribe", use_container_width=True)
+            if submitted:
+                if email_input and "@" in email_input:
+                    if subscribe_email(email_input):
+                        editions = []
+                        if want_premarket: editions.append("pre-market")
+                        if want_close:     editions.append("close-of-day")
+                        edition_str = " & ".join(editions) if editions else "selected"
+                        st.success(f"Subscribed to {edition_str} digest.")
+                    else:
+                        st.error("Subscription failed.")
                 else:
-                    st.error("Subscription failed — please try again.")
-            else:
-                st.error("Please enter a valid email address.")
+                    st.error("Enter a valid email address.")
+
+    with col_tab2:
+        st.markdown('<div class="section-subtitle">Unsubscribe</div>', unsafe_allow_html=True)
+        with st.form("unsubscribe_form"):
+            unsub_email = st.text_input("Email address:", placeholder="your@email.com", key="unsub_email")
+            unsub_submitted = st.form_submit_button("Unsubscribe", use_container_width=True)
+            if unsub_submitted:
+                if unsub_email and "@" in unsub_email:
+                    from emailer import unsubscribe_email
+                    if unsubscribe_email(unsub_email):
+                        st.success(f"Removed from all digest lists.")
+                    else:
+                        st.error("Could not unsubscribe.")
+                else:
+                    st.error("Enter a valid email address.")
 
     st.markdown("<hr style='border-color:#D9D3C8;margin:1rem 0'>", unsafe_allow_html=True)
 
