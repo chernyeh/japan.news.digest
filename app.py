@@ -1101,14 +1101,14 @@ with tab_watchlist:
 # ════════════════════════════════════════════════════════════
 
 # ════════════════════════════════════════════════════════════
-# TAB — CO FILINGS (TDnet via Yanoshin free API)
+# TAB — CO FILINGS (TDnet via Yanoshin RSS — most reliable method)
 # ════════════════════════════════════════════════════════════
 with tab_filings:
     st.markdown('<div class="section-title">📋 Corporate Filings — TDnet Timely Disclosures</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="info-box">Timely disclosures (適時開示) from the Tokyo Stock Exchange, '
-        'sourced via the free <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet API</a>. '
-        'Covers earnings, dividends, buybacks, M&amp;A, forecasts. Updates every few minutes during market hours.</div>',
+        '<div class="info-box">Timely disclosures (適時開示) from the Tokyo Stock Exchange — '
+        'last 5 days. Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a>. '
+        'Covers earnings, dividends, buybacks, M&amp;A, guidance changes.</div>',
         unsafe_allow_html=True
     )
 
@@ -1116,92 +1116,91 @@ with tab_filings:
         st.session_state.filings = []
     if "filings_last_fetch" not in st.session_state:
         st.session_state.filings_last_fetch = None
-    if "filings_date" not in st.session_state:
-        st.session_state.filings_date = "today"
 
-    # ── Controls ──
-    col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
+    # ── Controls: keyword filter + refresh only ──
+    col_f1, col_f2 = st.columns([3, 1])
     with col_f1:
-        date_choice = st.selectbox(
-            "Period:",
-            ["Today", "Yesterday", "Last 3 days", "This week"],
-            key="filings_period"
-        )
+        keyword_filter = st.text_input("Filter by keyword or company:", key="filings_keyword",
+                                       placeholder="e.g. Toyota, 決算, dividend")
     with col_f2:
-        keyword_filter = st.text_input("Filter by keyword or company:", key="filings_keyword", placeholder="e.g. Toyota, 決算")
-    with col_f3:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
-        fetch_filings_btn = st.button("🔄 Load", key="btn_filings", use_container_width=True)
+        fetch_filings_btn = st.button("🔄 Refresh", key="btn_filings", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
+    # Auto-load on first visit OR on button click
     if fetch_filings_btn or not st.session_state.filings:
-        with st.spinner("Fetching TDnet disclosures…"):
+        with st.spinner("Fetching TDnet disclosures (last 5 days)…"):
             try:
-                import requests as _req, json as _json
+                import feedparser as _fp
+                import requests as _req
+                import re as _re
                 from datetime import datetime as _dt, timedelta as _td
+                import email.utils as _eu
 
-                today = _dt.now()
-                if date_choice == "Today":
-                    url = "https://webapi.yanoshin.jp/webapi/tdnet/list/today.json?limit=300"
-                elif date_choice == "Yesterday":
-                    url = "https://webapi.yanoshin.jp/webapi/tdnet/list/yesterday.json?limit=300"
-                elif date_choice == "Last 3 days":
-                    d_from = (today - _td(days=3)).strftime("%Y%m%d")
-                    d_to   = today.strftime("%Y%m%d")
-                    url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{d_from}-{d_to}.json?limit=300"
-                else:  # This week
-                    # Monday of current week
-                    monday = today - _td(days=today.weekday())
-                    d_from = monday.strftime("%Y%m%d")
-                    d_to   = today.strftime("%Y%m%d")
-                    url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{d_from}-{d_to}.json?limit=300"
+                # Fetch last 5 days via date-range RSS — most reliable Yanoshin endpoint
+                _today = _dt.now()
+                _d_from = (_today - _td(days=5)).strftime("%Y%m%d")
+                _d_to   = _today.strftime("%Y%m%d")
+                _url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{_d_from}-{_d_to}.rss?limit=500"
 
-                _hdrs = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-                resp = _req.get(url, headers=_hdrs, timeout=20)
-                data = resp.json()
+                _hdrs = {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                                  "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+                    "Referer": "https://webapi.yanoshin.jp/",
+                }
+                _resp = _req.get(_url, headers=_hdrs, timeout=20)
+                _feed = _fp.parse(_resp.content)
 
                 filings = []
-                # Yanoshin JSON: {"items": {"TDnet": [ {"TDnet": {...}} , ... ] }}
-                # Unwrap all nesting levels defensively
-                raw = data
-                # Level 1: might be {"items": ...}
-                if isinstance(raw, dict) and "items" in raw:
-                    raw = raw["items"]
-                # Level 2: might be {"TDnet": [...]}
-                if isinstance(raw, dict) and "TDnet" in raw:
-                    raw = raw["TDnet"]
-                # raw should now be a list
-                if not isinstance(raw, list):
-                    raw = []
+                for _entry in _feed.entries:
+                    # Title format: "[CODE0] CompanyName / FilingTitle"
+                    _raw_title = _entry.get("title", "")
+                    _link      = _entry.get("link", "")
+                    _pub       = _entry.get("published", "") or _entry.get("updated", "")
 
-                for entry in raw:
-                    # Each entry might be {"TDnet": {...}} or directly a dict
-                    if isinstance(entry, dict) and "TDnet" in entry:
-                        item = entry["TDnet"]
-                    elif isinstance(entry, dict):
-                        item = entry
+                    # Parse date
+                    _pdate_str = ""
+                    try:
+                        _parsed = _eu.parsedate_to_datetime(_pub)
+                        _pdate_str = _parsed.strftime("%Y-%m-%d %H:%M")
+                        _pdate_dt  = _parsed
+                    except Exception:
+                        _pdate_str = _pub[:16] if _pub else ""
+                        _pdate_dt  = None
+
+                    # Parse code, company name, filing title from RSS title
+                    # Typical: "[72990] フジオーゼ / 執行役員の人事異動に関するお知らせ"
+                    _code, _name, _title = "", "", _raw_title
+                    _m = _re.match(r"\[([^\]]+)\]\s*(.*?)\s*/\s*(.*)", _raw_title)
+                    if _m:
+                        _code  = _m.group(1).strip()
+                        _name  = _m.group(2).strip()
+                        _title = _m.group(3).strip()
                     else:
+                        # Fallback: split on " / " if present
+                        if " / " in _raw_title:
+                            _parts = _raw_title.split(" / ", 1)
+                            _name, _title = _parts[0].strip(), _parts[1].strip()
+
+                    if not _title:
                         continue
-                    if not isinstance(item, dict):
-                        continue
-                    code  = str(item.get("company_code") or item.get("code") or "")
-                    name  = str(item.get("company_name") or item.get("name") or "")
-                    title = str(item.get("title") or item.get("document_title") or "")
-                    pdate = str(item.get("pub_date") or item.get("updated_date") or "")
-                    durl  = str(item.get("document_url") or item.get("url") or "")
-                    xbrl  = str(item.get("xbrl_flag") or "0")
-                    if not title or title == "None":
-                        continue
-                    # Prefix doc URL with redirect if not already absolute
-                    if durl and not durl.startswith("http"):
-                        durl = "https://webapi.yanoshin.jp/rd.php?" + durl
+
+                    # doc_url: link goes to Yanoshin redirect → actual PDF
                     filings.append({
-                        "code": code, "name": name, "title": title,
-                        "pub_date": pdate, "doc_url": durl, "xbrl": xbrl == "1",
+                        "code": _code, "name": _name, "title": _title,
+                        "pub_date": _pdate_str, "pub_dt": _pdate_dt,
+                        "doc_url": _link,
                     })
 
+                # Sort newest first
+                filings.sort(
+                    key=lambda x: x["pub_dt"] or _dt.min,
+                    reverse=True
+                )
                 st.session_state.filings = filings
                 st.session_state.filings_last_fetch = now_local()
+
             except Exception as e:
                 st.error(f"Error fetching TDnet data: {e}")
                 import traceback; print(traceback.format_exc())
@@ -1222,16 +1221,19 @@ with tab_filings:
     if not filings:
         st.markdown('<div class="empty-state">No filings found. Click 🔄 Load to fetch disclosures.</div>', unsafe_allow_html=True)
     else:
-        # ── AI summary of filings ──
+        # ── AI summary: last 3 days only ──
+        from datetime import datetime as _dt3, timedelta as _td3
+        _3d_ago = _dt3.now() - _td3(days=3)
+        filings_3d = [f for f in filings if f.get("pub_dt") and f["pub_dt"].replace(tzinfo=None) >= _3d_ago]
         filing_articles = [
             {"title": f["title"], "source": f["name"], "url": f["doc_url"],
              "pub_date": f["pub_date"], "pub_dt": None,
              "translated_title": f["title"], "original_title": f["title"]}
-            for f in filings[:80]
+            for f in (filings_3d or filings)[:80]
         ]
         render_ai_summary(
             filing_articles,
-            f"TDnet corporate filings ({date_choice.lower()})",
+            "TDnet corporate filings — last 3 days",
             "summary_filings",
             max_articles=80
         )
