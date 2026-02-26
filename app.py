@@ -1183,9 +1183,11 @@ with tab_watchlist:
 with tab_filings:
     st.markdown('<div class="section-title">📋 Corporate Filings — TDnet Timely Disclosures</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="info-box">Timely disclosures (適時開示) from the Tokyo Stock Exchange — '
-        'last 5 days. Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a>. '
-        'Covers earnings, dividends, buybacks, M&amp;A, guidance changes.</div>',
+        '<div class="info-box">Timely disclosures (&#9002;&#26178;&#38283;&#31034;) from the Tokyo Stock Exchange &mdash; '
+        'last 5 days. <strong>JPN</strong> opens the Japanese PDF directly. '
+        '<strong>All Filings</strong> (&nearr;) opens the company filing history on Yanoshin where English PDFs '
+        'are listed when available (required for TSE Prime companies from April 2025). '
+        'Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a>.</div>',
         unsafe_allow_html=True
     )
 
@@ -1365,7 +1367,7 @@ with tab_filings:
             <th>Title</th>
             <th style="width:120px">Date/Time</th>
             <th style="width:42px">JPN</th>
-            <th style="width:42px">ENG</th>
+            <th style="width:55px">All Filings</th>
           </tr>
         </thead>
         <tbody>
@@ -1378,13 +1380,11 @@ with tab_filings:
             # Japanese PDF link
             _jpn_url  = f.get("doc_url", "")
             _jpn_link = f'<a href="{_jpn_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if _jpn_url else "—"
-            # English PDF: same filename but under /inbs_e/ instead of /inbs/
-            import re as _re_pdf
-            _eng_url  = _re_pdf.sub(r'/inbs/', '/inbs_e/', _jpn_url) if _jpn_url else ""
-            # Only show English link if the URL was actually transformed
-            _eng_link = (f'<a href="{_eng_url}" target="_blank" style="color:#1565C0;font-size:0.75rem;font-weight:600;">PDF ↗</a>'
-                         if _eng_url and _eng_url != _jpn_url else
-                         '<span style="color:#ccc;font-size:0.72rem;">—</span>')
+            # "All Filings" — links to TDnet English search for this company code
+            # English PDFs are only filed by some companies; this page shows all available versions
+            _code_val   = f.get("code", "").replace("0", "", 1) if f.get("code","").endswith("0") else f.get("code","")
+            _tdnet_en   = f"https://www.release.tdnet.info/index_e.html" if not _code_val else f"https://webapi.yanoshin.jp/webapi/tdnet/list/{f.get('code','')}.html"
+            _all_link   = f'<a href="{_tdnet_en}" target="_blank" style="color:#1565C0;font-size:0.72rem;font-weight:600;">↗</a>' if _code_val else '<a href="https://www.release.tdnet.info/index_e.html" target="_blank" style="color:#1565C0;font-size:0.72rem;">↗</a>'
             table_html += (
                 "<tr>"
                 f'<td style="font-family:monospace;font-size:0.75rem;white-space:nowrap;">{f.get("code","")}</td>'
@@ -1392,7 +1392,7 @@ with tab_filings:
                 f'<td style="font-size:0.8rem;">{_display_title}{_orig_note}</td>'
                 f'<td style="font-size:0.72rem;color:#9B8B7A;white-space:nowrap;">{f.get("pub_date","")}</td>'
                 f'<td style="text-align:center;">{_jpn_link}</td>'
-                f'<td style="text-align:center;">{_eng_link}</td>'
+                f'<td style="text-align:center;">{_all_link}</td>'
                 "</tr>"
             )
         table_html += "</tbody></table></div>"
