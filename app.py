@@ -1382,9 +1382,12 @@ with tab_filings:
             _jpn_link = f'<a href="{_jpn_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if _jpn_url else "—"
             # "All Filings" — links to TDnet English search for this company code
             # English PDFs are only filed by some companies; this page shows all available versions
-            _code_val   = f.get("code", "").replace("0", "", 1) if f.get("code","").endswith("0") else f.get("code","")
-            _tdnet_en   = f"https://www.release.tdnet.info/index_e.html" if not _code_val else f"https://webapi.yanoshin.jp/webapi/tdnet/list/{f.get('code','')}.html"
-            _all_link   = f'<a href="{_tdnet_en}" target="_blank" style="color:#1565C0;font-size:0.72rem;font-weight:600;">↗</a>' if _code_val else '<a href="https://www.release.tdnet.info/index_e.html" target="_blank" style="color:#1565C0;font-size:0.72rem;">↗</a>'
+            # Yanoshin company pages use 4-digit TSE code: strip trailing zero
+            # e.g. "86010" -> "8601", "19590" -> "1959", "490A0" -> "490A"
+            _raw_code = f.get("code", "")
+            _code4    = _raw_code[:-1] if (_raw_code and _raw_code[-1] == "0" and len(_raw_code) == 5) else _raw_code
+            _tdnet_url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{_code4}.html" if _code4 else "https://webapi.yanoshin.jp/webapi/tdnet/list/recent.html"
+            _all_link  = f'<a href="{_tdnet_url}" target="_blank" style="color:#1565C0;font-size:0.72rem;font-weight:600;">↗</a>'
             table_html += (
                 "<tr>"
                 f'<td style="font-family:monospace;font-size:0.75rem;white-space:nowrap;">{f.get("code","")}</td>'
