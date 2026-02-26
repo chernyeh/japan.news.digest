@@ -1366,8 +1366,7 @@ with tab_filings:
             <th style="width:160px">Company</th>
             <th>Title</th>
             <th style="width:120px">Date/Time</th>
-            <th style="width:42px">JPN</th>
-            <th style="width:55px">All Filings</th>
+            <th style="width:50px">PDF</th>
           </tr>
         </thead>
         <tbody>
@@ -1382,12 +1381,6 @@ with tab_filings:
             _jpn_link = f'<a href="{_jpn_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if _jpn_url else "—"
             # "All Filings" — links to TDnet English search for this company code
             # English PDFs are only filed by some companies; this page shows all available versions
-            # Yanoshin company pages use 4-digit TSE code: strip trailing zero
-            # e.g. "86010" -> "8601", "19590" -> "1959", "490A0" -> "490A"
-            _raw_code = f.get("code", "")
-            _code4    = _raw_code[:-1] if (_raw_code and _raw_code[-1] == "0" and len(_raw_code) == 5) else _raw_code
-            _tdnet_url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{_code4}.html" if _code4 else "https://webapi.yanoshin.jp/webapi/tdnet/list/recent.html"
-            _all_link  = f'<a href="{_tdnet_url}" target="_blank" style="color:#1565C0;font-size:0.72rem;font-weight:600;">↗</a>'
             table_html += (
                 "<tr>"
                 f'<td style="font-family:monospace;font-size:0.75rem;white-space:nowrap;">{f.get("code","")}</td>'
@@ -1395,7 +1388,6 @@ with tab_filings:
                 f'<td style="font-size:0.8rem;">{_display_title}{_orig_note}</td>'
                 f'<td style="font-size:0.72rem;color:#9B8B7A;white-space:nowrap;">{f.get("pub_date","")}</td>'
                 f'<td style="text-align:center;">{_jpn_link}</td>'
-                f'<td style="text-align:center;">{_all_link}</td>'
                 "</tr>"
             )
         table_html += "</tbody></table></div>"
