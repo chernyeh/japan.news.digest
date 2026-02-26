@@ -17,8 +17,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # ── RSS Sources ───────────────────────────────────────────────────────────────
 RSS_SOURCES = [
     # English (no translation needed)
-    ("Japan Times",          "https://www.japantimes.co.jp/feed/",                          "en"),
-    ("Japan Times Business", "https://www.japantimes.co.jp/feed/category/business/",        "en"),
+    # Japan Times blocks cloud IPs on their native feed — use Google News proxy
+    ("Japan Times",          "https://news.google.com/rss/search?q=site:japantimes.co.jp&hl=en&gl=JP&ceid=JP:en", "en"),
+    ("Japan Times Business", "https://news.google.com/rss/search?q=site:japantimes.co.jp+business&hl=en&gl=JP&ceid=JP:en", "en"),
+    ("Japan Times Economy",  "https://news.google.com/rss/search?q=site:japantimes.co.jp+economy&hl=en&gl=JP&ceid=JP:en", "en"),
     # ── Nikkei Group feeds ──────────────────────────────────────────────────────
     # Nikkei Asia (English) — confirmed working
     ("Nikkei Asia",           "https://asia.nikkei.com/rss/feed/nar",                        "en"),
@@ -30,8 +32,8 @@ RSS_SOURCES = [
     ("Nikkei Xtech",          "https://xtech.nikkei.com/rss/index.rdf",                      "ja"),
     ("Nikkei Xtech IT",       "https://xtech.nikkei.com/rss/xtech-it.rdf",                   "ja"),
     ("Nikkei Xtech Auto",     "https://xtech.nikkei.com/rss/xtech-at.rdf",                   "ja"),
-    ("Reuters Japan",        "https://feeds.reuters.com/reuters/JPbusinessNews",            "en"),
-    ("Reuters Japan (all)",  "https://feeds.reuters.com/reuters/JPNews",                    "en"),
+    # Reuters killed public RSS in 2020. Use Google News proxy — search for Reuters Japan coverage.
+    ("Reuters Japan",        "https://news.google.com/rss/search?q=reuters+japan+economy+OR+business+OR+markets&hl=en&gl=JP&ceid=JP:en", "en"),
     ("NHK World Business",   "https://www3.nhk.or.jp/nhkworld/en/news/feeds/business.xml", "en"),
     ("NHK World",            "https://www3.nhk.or.jp/nhkworld/en/news/feeds/top.xml",      "en"),
     ("Japan Industry News",  "https://japanindustrynews.com/feed/",                         "en"),
@@ -348,14 +350,15 @@ def scrape_trade_paper(source_name: str, url: str, selectors: str, language: str
 # Maps display name → (url, language) for sources that have working RSS feeds
 SOURCE_DIRECTORY = {
     # English sources
-    "Japan Times":          ("https://www.japantimes.co.jp/feed/category/business/", "en"),
+    "Japan Times":          ("https://news.google.com/rss/search?q=site:japantimes.co.jp&hl=en&gl=JP&ceid=JP:en", "en"),
+    "Japan Times Business": ("https://news.google.com/rss/search?q=site:japantimes.co.jp+business&hl=en&gl=JP&ceid=JP:en", "en"),
     "Nikkei Asia":          ("https://asia.nikkei.com/rss/feed/nar",                                          "en"),
     "Nikkei Shimbun":       ("https://news.google.com/rss/search?q=site:nikkei.com&hl=ja&gl=JP&ceid=JP:ja", "ja"),
     "Nikkei Business":      ("https://business.nikkei.com/rss/sns/nb.rdf",                                  "ja"),
     "Nikkei Xtech":         ("https://xtech.nikkei.com/rss/index.rdf",                                      "ja"),
     "Nikkei Xtech IT":      ("https://xtech.nikkei.com/rss/xtech-it.rdf",                                   "ja"),
     "Nikkei Xtech Auto":    ("https://xtech.nikkei.com/rss/xtech-at.rdf",                                   "ja"),
-    "Reuters Japan":        ("https://feeds.reuters.com/reuters/JPbusinessNews",      "en"),
+    "Reuters Japan":        ("https://news.google.com/rss/search?q=reuters+japan+economy+OR+business+OR+markets&hl=en&gl=JP&ceid=JP:en", "en"),
     "NHK World Business":   ("https://www3.nhk.or.jp/nhkworld/en/news/feeds/business.xml", "en"),
     "Japan Industry News":  ("https://japanindustrynews.com/feed/",                  "en"),
     # Japanese sources (will be translated)
@@ -376,7 +379,8 @@ SOURCE_DIRECTORY = {
 # Group labels for the UI
 SOURCE_GROUPS = {
     "🇬🇧 English — General": [
-        "Japan Times", "Reuters Japan", "NHK World Business", "Japan Industry News",
+        "Japan Times", "Japan Times Business",
+        "Reuters Japan", "NHK World Business", "Japan Industry News",
     ],
     "📊 Nikkei Group": [
         "Nikkei Asia", "Nikkei Shimbun", "Nikkei Business",
