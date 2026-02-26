@@ -541,10 +541,10 @@ Respond only with the briefing, no preamble."""
 st.markdown(f"""
 <div class="masthead">
     <div class="masthead-title">Japan Investment Digest</div>
-    <div class="masthead-sub">日本経済・市場情報</div>
+    <div class="masthead-sub">Japan equities · macro · corporate news · TDnet filings · JPY rates</div>
     <div class="masthead-date">{now_local().strftime('%A, %d %B %Y · %H:%M MYT')}</div>
 </div>
-<div class="dateline-strip">Petaling Jaya · Live Market Data · RSS News · TSE Intelligence · Foreign Flow Tracker</div>
+<div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 36 News Sources</div>
 """, unsafe_allow_html=True)
 
 # ── Market ticker strip ───────────────────────────────────────────────────────
@@ -1360,11 +1360,12 @@ with tab_filings:
         <table class="filings-table">
         <thead>
           <tr>
-            <th style="width:80px">Code</th>
-            <th style="width:180px">Company</th>
+            <th style="width:70px">Code</th>
+            <th style="width:160px">Company</th>
             <th>Title</th>
-            <th style="width:130px">Date/Time</th>
-            <th style="width:50px">Doc</th>
+            <th style="width:120px">Date/Time</th>
+            <th style="width:42px">JPN</th>
+            <th style="width:42px">ENG</th>
           </tr>
         </thead>
         <tbody>
@@ -1374,14 +1375,24 @@ with tab_filings:
             _orig_title    = f.get("title", "")
             _orig_note     = (f'<div style="font-size:0.65rem;color:#9B8B7A;margin-top:2px;">{_orig_title}</div>'
                               if _orig_title and _orig_title != _display_title else "")
-            doc_link = f'<a href="{f["doc_url"]}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if f.get("doc_url") else "—"
+            # Japanese PDF link
+            _jpn_url  = f.get("doc_url", "")
+            _jpn_link = f'<a href="{_jpn_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if _jpn_url else "—"
+            # English PDF: same filename but under /inbs_e/ instead of /inbs/
+            import re as _re_pdf
+            _eng_url  = _re_pdf.sub(r'/inbs/', '/inbs_e/', _jpn_url) if _jpn_url else ""
+            # Only show English link if the URL was actually transformed
+            _eng_link = (f'<a href="{_eng_url}" target="_blank" style="color:#1565C0;font-size:0.75rem;font-weight:600;">PDF ↗</a>'
+                         if _eng_url and _eng_url != _jpn_url else
+                         '<span style="color:#ccc;font-size:0.72rem;">—</span>')
             table_html += (
                 "<tr>"
                 f'<td style="font-family:monospace;font-size:0.75rem;white-space:nowrap;">{f.get("code","")}</td>'
                 f'<td style="font-size:0.8rem;font-weight:600;white-space:nowrap;">{f.get("name_en") or f.get("name","")}</td>'
                 f'<td style="font-size:0.8rem;">{_display_title}{_orig_note}</td>'
                 f'<td style="font-size:0.72rem;color:#9B8B7A;white-space:nowrap;">{f.get("pub_date","")}</td>'
-                f'<td style="text-align:center;">{doc_link}</td>'
+                f'<td style="text-align:center;">{_jpn_link}</td>'
+                f'<td style="text-align:center;">{_eng_link}</td>'
                 "</tr>"
             )
         table_html += "</tbody></table></div>"
@@ -1650,13 +1661,22 @@ with tab_subscribe:
     st.markdown("""
     <div style="font-size:0.72rem;color:#9B8B7A;line-height:1.7;">
     <strong>What's in each edition:</strong><br>
-    📊 Live market data — Nikkei, TOPIX, key indices, FX pairs with daily change<br>
-    📰 AI-generated briefing of the top news stories with article links<br>
-    📋 Summary of corporate filings (TDnet timely disclosures) with PDF links<br>
-    ⭐ Watchlist alerts — any mention of companies you track<br>
-    🏭 Sector-by-sector summary across MSCI sectors<br><br>
-    <strong>Scheduling note:</strong> Emails are sent via a scheduled job triggered by Streamlit Cloud.
-    Delivery requires <code>SENDGRID_API_KEY</code> and <code>DIGEST_FROM_EMAIL</code> to be set in Streamlit Secrets.
+    📊 Nikkei 225, TOPIX, FX rates with daily change<br>
+    📰 AI-generated news briefing with article links<br>
+    📋 Corporate filings summary (TDnet) with PDF links<br>
+    ⭐ Watchlist alerts — mentions of companies you track<br>
+    🏭 Sector-by-sector headlines across MSCI sectors
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="font-size:0.72rem;background:#FFF8F0;border:1px solid #F0C080;border-radius:3px;padding:0.6rem 0.8rem;margin-top:0.6rem;line-height:1.7;">
+    <strong>⚠️ Important — to receive emails you need to:</strong><br>
+    1. Add <code>SENDGRID_API_KEY</code> and <code>DIGEST_FROM_EMAIL</code> to Streamlit Secrets (for sending)<br>
+    2. Add <code>SUBSCRIBER_EMAILS = "your@email.com"</code> to Streamlit Secrets — this is the <strong>persistent</strong> subscriber list.<br>
+    &nbsp;&nbsp;&nbsp;The Subscribe form above saves to a temporary file that is <strong>erased on every app restart</strong> (Streamlit Cloud limitation).<br>
+    &nbsp;&nbsp;&nbsp;Emails in <code>SUBSCRIBER_EMAILS</code> are always loaded regardless of restarts.<br>
+    3. A scheduled trigger (e.g. GitHub Actions cron job) is needed to call the send function at 07:00 and 19:00 JST.
     </div>
     """, unsafe_allow_html=True)
 
