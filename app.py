@@ -8,6 +8,31 @@ from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES)
 from sentiment import score_all_sectors, flag_high_value_articles
 
+# ── Shared in-memory cache (survives browser close, lives as long as app is awake) ──
+# Uses st.cache_resource so it's shared across ALL sessions on the same server instance.
+# This means your data persists when you close and reopen the tab.
+CACHE_TTL_HOURS = 3  # Show stale warning after this many hours
+
+@st.cache_resource
+def _get_app_cache():
+    """Returns a single shared dict that persists across sessions."""
+    return {
+        "articles":         {},
+        "source_map":       {},
+        "market_data":      None,
+        "movers":           None,
+        "foreign_flow":     None,
+        "sentiment_scores": {},
+        "watchlist_hits":   {},
+        "breaking_news":    [],
+        "filings":          [],
+        "ai_summaries":     {},   # key -> summary text
+        "last_fetch":             None,
+        "last_market_fetch":      None,
+        "breaking_last_fetch":    None,
+        "filings_last_fetch":     None,
+    }
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Japan Investment Digest",
@@ -466,6 +491,8 @@ Respond only with the briefing."""
                             messages=[{"role": "user", "content": prompt}]
                         )
                         st.session_state[session_key] = msg.content[0].text
+                        # Persist AI summary to shared cache
+                        _get_app_cache()["ai_summaries"][session_key] = msg.content[0].text
                     except Exception as e:
                         st.error(f"AI summary error: {e}")
 
@@ -619,6 +646,11 @@ with col_mkt:
             st.session_state.movers = fetch_tse_movers()
             st.session_state.foreign_flow = fetch_foreign_flow()
             st.session_state.last_market_fetch = now_local()
+            _c = _get_app_cache()
+            _c["market_data"]       = st.session_state.market_data
+            _c["movers"]            = st.session_state.movers
+            _c["foreign_flow"]      = st.session_state.foreign_flow
+            _c["last_market_fetch"] = st.session_state.last_market_fetch
         st.rerun()
 with col_news:
     if st.button("🔄 News", use_container_width=True):
@@ -655,9 +687,48 @@ with col_news:
                 st.session_state.movers = fetch_tse_movers()
                 st.session_state.foreign_flow = fetch_foreign_flow()
                 st.session_state.last_market_fetch = now_local()
+            # Save to shared cache so next session restores this data
+            _c = _get_app_cache()
+            _c["articles"]          = st.session_state.articles
+            _c["source_map"]        = st.session_state.source_map
+            _c["sentiment_scores"]  = st.session_state.sentiment_scores
+            _c["watchlist_hits"]    = st.session_state.watchlist_hits
+            _c["last_fetch"]        = st.session_state.last_fetch
+            _c["market_data"]       = st.session_state.market_data
+            _c["movers"]            = st.session_state.movers
+            _c["foreign_flow"]      = st.session_state.foreign_flow
+            _c["last_market_fetch"] = st.session_state.last_market_fetch
         st.rerun()
 
-st.markdown("<div style='margin-bottom:0.4rem'></div>", unsafe_allow_html=True)
+# ── Stale data banner (shows after 3 hours) ──────────────────────────────────
+_now = now_local()
+_stale_news   = st.session_state.last_fetch and (_now - st.session_state.last_fetch).total_seconds() > CACHE_TTL_HOURS * 3600
+_stale_market = st.session_state.last_market_fetch and (_now - st.session_state.last_market_fetch).total_seconds() > CACHE_TTL_HOURS * 3600
+_from_cache   = st.session_state.get("_cache_loaded") and (st.session_state.last_fetch or st.session_state.last_market_fetch)
+
+if _stale_news or _stale_market:
+    _stale_parts = []
+    if _stale_news:
+        _stale_parts.append("news (" + format_local_dt(st.session_state.last_fetch) + ")")
+    if _stale_market:
+        _stale_parts.append("market data (" + format_local_dt(st.session_state.last_market_fetch) + ")")
+    st.markdown(
+        '<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:3px;'
+        'padding:0.35rem 0.8rem;font-size:0.75rem;color:#795548;margin-bottom:0.4rem;">'
+        '⏱ Data may be stale — last fetched: ' + " · ".join(_stale_parts) +
+        '. Click <strong>📈 Markets</strong> or <strong>🔄 News</strong> to refresh.</div>',
+        unsafe_allow_html=True
+    )
+elif _from_cache and not _stale_news and not _stale_market:
+    # Fresh data restored from cache — show a quiet note
+    _cache_time = st.session_state.last_fetch or st.session_state.last_market_fetch
+    st.markdown(
+        '<div style="font-size:0.66rem;color:#9B8B7A;margin-bottom:0.3rem;">'
+        '✓ Restored from previous session · fetched ' + format_local_dt(_cache_time) + '</div>',
+        unsafe_allow_html=True
+    )
+
+st.markdown("<div style='margin-bottom:0.2rem'></div>", unsafe_allow_html=True)
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 (tab_market, tab_bytime, tab_breaking, tab_news, tab_bysource,
@@ -789,6 +860,32 @@ with tab_breaking:
         if _sk not in st.session_state:
             st.session_state[_sk] = None
 
+# ── Restore from shared cache on first page load of a new session ─────────────
+if "_cache_loaded" not in st.session_state:
+    _c = _get_app_cache()
+    if _c["articles"]:
+        st.session_state.articles         = _c["articles"]
+        st.session_state.source_map       = _c["source_map"]
+        st.session_state.sentiment_scores = _c["sentiment_scores"]
+        st.session_state.watchlist_hits   = _c["watchlist_hits"]
+        st.session_state.last_fetch       = _c["last_fetch"]
+    if _c["market_data"]:
+        st.session_state.market_data      = _c["market_data"]
+        st.session_state.movers           = _c["movers"]
+        st.session_state.foreign_flow     = _c["foreign_flow"]
+        st.session_state.last_market_fetch = _c["last_market_fetch"]
+    if _c["breaking_news"]:
+        st.session_state.breaking_news        = _c["breaking_news"]
+        st.session_state.breaking_last_fetch  = _c["breaking_last_fetch"]
+    if _c["filings"]:
+        st.session_state.filings              = _c["filings"]
+        st.session_state.filings_last_fetch   = _c["filings_last_fetch"]
+    # Restore AI summaries
+    for _sk, _sv in _c.get("ai_summaries", {}).items():
+        if _sk not in st.session_state:
+            st.session_state[_sk] = _sv
+    st.session_state._cache_loaded = True
+
     col_b1, col_b2 = st.columns([3, 1])
     with col_b2:
         fetch_breaking = st.button("🔄 Refresh", key="btn_breaking", use_container_width=True)
@@ -832,6 +929,9 @@ with tab_breaking:
                 breaking.sort(key=lambda a: a.get("pub_dt") or __import__("datetime").datetime.min, reverse=True)
                 st.session_state.breaking_news = breaking
                 st.session_state.breaking_last_fetch = now_local()
+                _c = _get_app_cache()
+                _c["breaking_news"]       = breaking
+                _c["breaking_last_fetch"] = st.session_state.breaking_last_fetch
             except Exception as e:
                 st.error(f"Error fetching breaking news: {e}")
 
@@ -1313,6 +1413,9 @@ with tab_filings:
                 filings.sort(key=lambda x: x["pub_dt"] or _dt.min, reverse=True)
                 st.session_state.filings = filings
                 st.session_state.filings_last_fetch = now_local()
+                _c = _get_app_cache()
+                _c["filings"]             = filings
+                _c["filings_last_fetch"]  = st.session_state.filings_last_fetch
 
             except Exception as e:
                 st.error(f"Error fetching TDnet data: {e}")
