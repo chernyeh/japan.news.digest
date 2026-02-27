@@ -439,27 +439,30 @@ Here are {len(subset)} headlines from {context}:
 
 {article_text}
 
-Write a structured briefing that:
-1. Opens with 2-3 sentences on the overall mood/theme of the day
-2. Groups stories into 4-6 thematic clusters (e.g. "BOJ & Macro", "Corporate Earnings", "M&A / Restructuring", "Yen & FX", "Sector Moves" — use whatever fits the actual stories)
-3. Under each cluster: 3-5 bullet points summarising the key developments, with each bullet ending with a markdown hyperlink [Source Name](url) to the most relevant article
-4. Closes with 2-3 sentences on what to watch next
+Write a COMPLETE structured briefing that covers ALL significant stories above. Do not cut off or truncate — every meaningful story should appear somewhere in the briefing.
+
+Structure:
+1. Opens with 2-3 sentences on the overall mood/theme
+2. Groups ALL stories into thematic clusters — use as many clusters as needed to cover everything (e.g. "BOJ & Macro", "Corporate Earnings", "M&A / Restructuring", "Yen & FX", "Sector Moves", "Politics & Policy", "Technology", "Energy" etc.)
+3. Under each cluster: bullet points for every notable development, each ending with a markdown hyperlink [Source Name](url)
+4. Closes with 2-3 sentences on key things to watch
 
 Format rules:
-- Use markdown headers (##) for cluster names
-- Keep each bullet to one clear sentence + link
-- If multiple articles support a point, link the most important one only
-- Be factual and concise — no padding or filler phrases
+- Use markdown ## headers for each cluster
+- One clear sentence per bullet + link
+- If multiple articles support a point, link the most relevant one
+- Do not skip or merge stories just to keep the briefing short — completeness is essential
 - Do not reproduce article titles verbatim; synthesise them
+- No preamble, no padding
 
-Respond only with the briefing, no preamble."""
+Respond only with the briefing."""
 
                 with st.spinner("Generating AI summary…"):
                     try:
                         client = _anthropic.Anthropic(api_key=api_key)
                         msg = client.messages.create(
                             model="claude-haiku-4-5-20251001",
-                            max_tokens=1200,
+                            max_tokens=4096,
                             messages=[{"role": "user", "content": prompt}]
                         )
                         st.session_state[session_key] = msg.content[0].text
