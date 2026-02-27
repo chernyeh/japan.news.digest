@@ -11,6 +11,12 @@ import os, json
 from datetime import datetime
 
 SUBSCRIBERS_FILE = "subscribers.json"
+# NOTE: Streamlit Community Cloud has an ephemeral filesystem — subscribers.json
+# is lost on every app restart/redeploy. For persistent storage, add a
+# SUBSCRIBER_EMAILS secret (comma-separated emails) as a seed list, e.g.:
+#   SUBSCRIBER_EMAILS = "you@email.com,other@email.com"
+# Any emails added via the Subscribe form during the session are kept in memory
+# but won't survive a restart unless the secret is updated.
 
 SECTOR_ICONS = {
     "Energy": "⛽", "Materials": "🏭", "Industrials": "⚙️",
@@ -30,13 +36,22 @@ def get_secret(key: str, default: str = "") -> str:
 
 
 def load_subscribers() -> list:
+    """Load subscribers from file + SUBSCRIBER_EMAILS secret as seed."""
+    subscribers = []
+    # 1. Load from file (works locally, lost on Streamlit Cloud restart)
     if os.path.exists(SUBSCRIBERS_FILE):
         try:
             with open(SUBSCRIBERS_FILE, "r") as f:
-                return json.load(f)
+                subscribers = json.load(f)
         except Exception:
-            return []
-    return []
+            subscribers = []
+    # 2. Merge in any emails from the SUBSCRIBER_EMAILS secret
+    seed = get_secret("SUBSCRIBER_EMAILS", "")
+    for email in seed.split(","):
+        email = email.strip()
+        if email and "@" in email and email not in subscribers:
+            subscribers.append(email)
+    return subscribers
 
 
 def save_subscribers(subscribers: list):
@@ -84,7 +99,7 @@ def generate_ai_briefing(articles: list, context: str, api_key: str) -> str:
 Headlines from {context}:
 {chr(10).join(lines)}
 
-Write a concise briefing (max 400 words) that:
+Write a complete briefing covering all significant stories that:
 1. Opens with 1-2 sentences on the day's overall theme
 2. Groups key stories into 3-5 clusters with ## headers
 3. Each cluster has 2-4 bullet points with [Source](url) links
@@ -95,7 +110,7 @@ Use markdown. Be factual. No filler."""
         client = anthropic.Anthropic(api_key=api_key)
         msg    = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=600,
+            max_tokens=2048,
             messages=[{"role": "user", "content": prompt}]
         )
         return msg.content[0].text
