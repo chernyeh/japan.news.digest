@@ -399,6 +399,31 @@ for key, default in [
     if key not in st.session_state:
         st.session_state[key] = default
 
+# ── Restore from shared cache on first page load of a new session ─────────────
+if "_cache_loaded" not in st.session_state:
+    _c = _get_app_cache()
+    if _c["articles"]:
+        st.session_state.articles          = _c["articles"]
+        st.session_state.source_map        = _c["source_map"]
+        st.session_state.sentiment_scores  = _c["sentiment_scores"]
+        st.session_state.watchlist_hits    = _c["watchlist_hits"]
+        st.session_state.last_fetch        = _c["last_fetch"]
+    if _c["market_data"]:
+        st.session_state.market_data       = _c["market_data"]
+        st.session_state.movers            = _c["movers"]
+        st.session_state.foreign_flow      = _c["foreign_flow"]
+        st.session_state.last_market_fetch = _c["last_market_fetch"]
+    if _c["breaking_news"]:
+        st.session_state.breaking_news       = _c["breaking_news"]
+        st.session_state.breaking_last_fetch = _c["breaking_last_fetch"]
+    if _c.get("filings"):
+        st.session_state.filings             = _c["filings"]
+        st.session_state.filings_last_fetch  = _c["filings_last_fetch"]
+    for _sk, _sv in _c.get("ai_summaries", {}).items():
+        if _sk not in st.session_state:
+            st.session_state[_sk] = _sv
+    st.session_state._cache_loaded = True
+
 
 # ── AI Summary helper ─────────────────────────────────────────────────────────
 def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60):
@@ -855,36 +880,6 @@ with tab_breaking:
         st.session_state.breaking_news = []
     if "breaking_last_fetch" not in st.session_state:
         st.session_state.breaking_last_fetch = None
-    # AI summary caches
-    for _sk in ["summary_bytime", "summary_breaking", "summary_industry", "summary_filings"]:
-        if _sk not in st.session_state:
-            st.session_state[_sk] = None
-
-# ── Restore from shared cache on first page load of a new session ─────────────
-if "_cache_loaded" not in st.session_state:
-    _c = _get_app_cache()
-    if _c["articles"]:
-        st.session_state.articles         = _c["articles"]
-        st.session_state.source_map       = _c["source_map"]
-        st.session_state.sentiment_scores = _c["sentiment_scores"]
-        st.session_state.watchlist_hits   = _c["watchlist_hits"]
-        st.session_state.last_fetch       = _c["last_fetch"]
-    if _c["market_data"]:
-        st.session_state.market_data      = _c["market_data"]
-        st.session_state.movers           = _c["movers"]
-        st.session_state.foreign_flow     = _c["foreign_flow"]
-        st.session_state.last_market_fetch = _c["last_market_fetch"]
-    if _c["breaking_news"]:
-        st.session_state.breaking_news        = _c["breaking_news"]
-        st.session_state.breaking_last_fetch  = _c["breaking_last_fetch"]
-    if _c["filings"]:
-        st.session_state.filings              = _c["filings"]
-        st.session_state.filings_last_fetch   = _c["filings_last_fetch"]
-    # Restore AI summaries
-    for _sk, _sv in _c.get("ai_summaries", {}).items():
-        if _sk not in st.session_state:
-            st.session_state[_sk] = _sv
-    st.session_state._cache_loaded = True
 
     col_b1, col_b2 = st.columns([3, 1])
     with col_b2:
