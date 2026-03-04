@@ -654,7 +654,7 @@ if st.session_state.market_data and st.session_state.market_data.get("_source") 
     st.markdown(ticker_html, unsafe_allow_html=True)
 
 # ── Toolbar ───────────────────────────────────────────────────────────────────
-col_info, col_spacer, col_mkt, col_news = st.columns([3, 1, 1, 1])
+col_info, col_spacer, col_mkt, col_news, col_clear = st.columns([3, 0.6, 1, 1, 1])
 with col_info:
     if st.session_state.last_fetch:
         total = sum(len(v) for v in st.session_state.articles.values())
@@ -723,6 +723,22 @@ with col_news:
             _c["movers"]            = st.session_state.movers
             _c["foreign_flow"]      = st.session_state.foreign_flow
             _c["last_market_fetch"] = st.session_state.last_market_fetch
+        st.rerun()
+
+with col_clear:
+    if st.button("🗑️ Clear", use_container_width=True, help="Clear all cached data and summaries"):
+        # Wipe the shared cache
+        _c = _get_app_cache()
+        for _k in list(_c.keys()):
+            if isinstance(_c[_k], dict):
+                _c[_k].clear()
+            elif isinstance(_c[_k], list):
+                _c[_k].clear()
+            else:
+                _c[_k] = None
+        # Wipe session state
+        for _k in list(st.session_state.keys()):
+            del st.session_state[_k]
         st.rerun()
 
 # ── Stale data banner (shows after 3 hours) ──────────────────────────────────
