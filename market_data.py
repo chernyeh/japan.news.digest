@@ -1,20 +1,14 @@
 """
-market_data.py — v8
+market_data.py — v9
 
-PRIMARY: Alpha Vantage (ALPHA_VANTAGE_KEY in Streamlit Secrets)
-  Free tier: 25 calls/day, 5/minute
-  Strategy: GLOBAL_QUOTE for current price (1 call each),
-            FX_DAILY compact for forex (1 call each = 100 days of history for returns).
-  Total calls per refresh: ~10 (2 equity quotes + 4 forex daily = 6, plus 4 spare)
+SOURCE WATERFALL (first success wins):
+  1. Yahoo Finance via yfinance  — no key, works reliably from cloud IPs
+  2. Stooq CSV                   — no key, may be blocked by datacenter IPs
+  3. Alpha Vantage               — requires ALPHA_VANTAGE_KEY in Streamlit Secrets
+                                   Free tier: 25 calls/day, 5/min
 
-  Return periods computed from:
-  - Equity: uses GLOBAL_QUOTE only (no history → returns shown as N/A)
-  - Forex: FX_DAILY compact (100 days) → can compute MTD, 1M, 3M; longer periods N/A
-
-  Get free key: https://www.alphavantage.co/support/#api-key
+  Get free AV key: https://www.alphavantage.co/support/#api-key
   Add to Streamlit Secrets: ALPHA_VANTAGE_KEY = "your_key"
-
-SECONDARY: Stooq (no key, best-effort — may timeout on Streamlit Cloud)
 """
 
 import requests
@@ -22,6 +16,12 @@ import os
 from datetime import datetime, date, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+
+try:
+    import yfinance as yf
+    _YF_AVAILABLE = True
+except ImportError:
+    _YF_AVAILABLE = False
 
 BASE_AV = "https://www.alphavantage.co/query"
 HEADERS = {
@@ -195,6 +195,70 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
         return {"price": 0, "label": label, "error": str(e)}
 
 
+# ── Yahoo Finance (primary — works from cloud IPs) ────────────────────────────
+
+# Yahoo Finance ticker symbols
+YF_INDEX_INSTRUMENTS = {
+    "nikkei": ("^N225",   "Nikkei 225"),
+    "topix":  ("^TOPX",   "TOPIX"),
+}
+
+YF_FOREX_INSTRUMENTS = {
+    "usdjpy": ("JPY=X",    "USD/JPY"),
+    "eurjpy": ("EURJPY=X", "EUR/JPY"),
+    "cnyjpy": ("CNYJPY=X", "CNY/JPY"),
+    "sgdjpy": ("SGDJPY=X", "SGD/JPY"),
+}
+
+# Yahoo Finance tickers for TSE movers  (appended .T for Tokyo Stock Exchange)
+YF_TSE_SUFFIX = ".T"
+
+
+def yf_fetch(ticker: str, label: str, years: int = 2) -> dict:
+    """Fetch price + history via yfinance. Works reliably from Streamlit Cloud."""
+    if not _YF_AVAILABLE:
+        return {"price": 0, "label": label, "error": "yfinance not installed"}
+    try:
+        t = yf.Ticker(ticker)
+        hist = t.history(period=f"{years}y", auto_adjust=True)
+        if hist.empty:
+            # Fallback: just get fast_info
+            info = t.fast_info
+            price = getattr(info, "last_price", 0) or 0
+            prev  = getattr(info, "previous_close", price) or price
+            if not price:
+                return {"price": 0, "label": label, "error": "No data"}
+            chg = price - prev
+            pct = (chg / prev * 100) if prev else 0
+            return {
+                "price": price, "change": chg, "pct_change": pct,
+                "state_label": "Last close", "label": label,
+                "returns": {p: None for p in ["MTD","1M","3M","YTD","1Y","3Y"]},
+                "source": "yahoo",
+            }
+
+        rows = [(d.strftime("%Y-%m-%d"), float(c))
+                for d, c in zip(hist.index, hist["Close"])
+                if c and c == c]  # filter NaN
+        if not rows:
+            return {"price": 0, "label": label, "error": "Empty history"}
+
+        rows.sort(key=lambda x: x[0])
+        price  = rows[-1][1]
+        prev   = rows[-2][1] if len(rows) >= 2 else price
+        change = price - prev
+        pct    = (change / prev * 100) if prev else 0
+
+        return {
+            "price": price, "change": change, "pct_change": pct,
+            "state_label": "Last close", "label": label,
+            "returns": compute_returns(rows),
+            "source": "yahoo",
+        }
+    except Exception as e:
+        return {"price": 0, "label": label, "error": str(e)}
+
+
 # ── Instrument config ─────────────────────────────────────────────────────────
 
 # AV equity symbols for Japan proxies
@@ -242,86 +306,96 @@ TSE_STOCKS = [
 
 def fetch_market_overview() -> dict:
     """
-    Fetch all indices and forex. Returns:
-    {"indices": {key: data}, "forex": {key: data}, "_source": str, "_error": str}
+    Fetch all indices and forex using a waterfall:
+      1. Yahoo Finance (yfinance) — reliable from cloud IPs, no key needed
+      2. Stooq CSV                — no key, may be blocked from datacenter IPs
+      3. Alpha Vantage            — requires ALPHA_VANTAGE_KEY in Streamlit Secrets
 
-    Call budget per refresh (AV free tier = 25/day):
-      2 equity GLOBAL_QUOTE + 4 FX_DAILY = 6 calls total.
+    Returns: {"indices": {key: data}, "forex": {key: data}, "_source": str, "_error": str}
     """
     api_key = get_secret("ALPHA_VANTAGE_KEY")
     results = {"indices": {}, "forex": {}}
 
-    if not api_key:
-        results["_source"] = "error"
-        results["_error"] = (
-            "No ALPHA_VANTAGE_KEY in Streamlit Secrets. "
-            "Get a free key (no credit card) at https://www.alphavantage.co/support/#api-key "
-            "then add:  ALPHA_VANTAGE_KEY = \"your_key\"  to Streamlit Cloud Secrets."
-        )
-        # Try Stooq as full fallback
-        _stooq_all(results)
-        return results
+    # ── Step 1: Yahoo Finance (concurrent, works from cloud IPs) ────────────
+    if _YF_AVAILABLE:
+        all_yf = {}
+        all_yf.update({k: (sym, lbl, "index") for k, (sym, lbl) in YF_INDEX_INSTRUMENTS.items()})
+        all_yf.update({k: (sym, lbl, "forex") for k, (sym, lbl) in YF_FOREX_INSTRUMENTS.items()})
 
-    # ── Step 1: Stooq for real indices (concurrent, short timeout) ──
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        idx_futures = {
-            ex.submit(stooq_fetch, sym, label, 4): key
-            for key, (sym, label) in STOOQ_INDEX_INSTRUMENTS.items()
-        }
-        fx_futures = {
-            ex.submit(stooq_fetch, sym, label, 4): key
-            for key, (sym, label) in STOOQ_FOREX_INSTRUMENTS.items()
-        }
-        for f in as_completed(idx_futures):
-            key = idx_futures[f]
-            try:
-                d = f.result()
-                if d.get("price", 0) > 0:
-                    results["indices"][key] = d
-            except Exception:
-                pass
-        for f in as_completed(fx_futures):
-            key = fx_futures[f]
-            try:
-                d = f.result()
-                if d.get("price", 0) > 0:
-                    results["forex"][key] = d
-            except Exception:
-                pass
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futures = {
+                ex.submit(yf_fetch, sym, lbl, 2): (k, kind)
+                for k, (sym, lbl, kind) in all_yf.items()
+            }
+            for f in as_completed(futures):
+                k, kind = futures[f]
+                try:
+                    d = f.result()
+                    if d.get("price", 0) > 0:
+                        bucket = "indices" if kind == "index" else "forex"
+                        results[bucket][k] = d
+                except Exception:
+                    pass
 
-    stooq_got_indices = any(results["indices"].get(k, {}).get("price", 0) > 0
-                            for k in ["nikkei", "topix"])
-    stooq_got_forex   = any(results["forex"].get(k, {}).get("price", 0) > 0
-                            for k in ["usdjpy", "eurjpy"])
+    yf_got_indices = any(results["indices"].get(k, {}).get("price", 0) > 0
+                         for k in ["nikkei", "topix"])
+    yf_got_forex   = any(results["forex"].get(k, {}).get("price", 0) > 0
+                         for k in ["usdjpy", "eurjpy"])
 
-    # ── Step 2: Alpha Vantage for anything Stooq missed ──
-    av_tasks = []
+    # ── Step 2: Stooq for anything Yahoo missed ──────────────────────────────
+    if not yf_got_indices or not yf_got_forex:
+        stooq_tasks = {}
+        if not yf_got_indices:
+            stooq_tasks.update({k: (sym, lbl, "index")
+                                 for k, (sym, lbl) in STOOQ_INDEX_INSTRUMENTS.items()})
+        if not yf_got_forex:
+            stooq_tasks.update({k: (sym, lbl, "forex")
+                                 for k, (sym, lbl) in STOOQ_FOREX_INSTRUMENTS.items()})
 
-    if not stooq_got_indices:
-        for key, (sym, label) in AV_EQUITY_INSTRUMENTS.items():
-            av_tasks.append(("equity", key, sym, label))
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futures = {
+                ex.submit(stooq_fetch, sym, lbl, 4): (k, kind)
+                for k, (sym, lbl, kind) in stooq_tasks.items()
+            }
+            for f in as_completed(futures):
+                k, kind = futures[f]
+                try:
+                    d = f.result()
+                    if d.get("price", 0) > 0:
+                        bucket = "indices" if kind == "index" else "forex"
+                        results[bucket][k] = d
+                except Exception:
+                    pass
 
-    if not stooq_got_forex:
-        for key, (fc, tc, label) in AV_FOREX_INSTRUMENTS.items():
-            av_tasks.append(("forex", key, fc + "|" + tc, label))
+    got_indices = any(results["indices"].get(k, {}).get("price", 0) > 0
+                      for k in ["nikkei", "topix"])
+    got_forex   = any(results["forex"].get(k, {}).get("price", 0) > 0
+                      for k in ["usdjpy", "eurjpy"])
 
-    if av_tasks:
-        # Respect AV 5 req/min limit — add small delay between calls
+    # ── Step 3: Alpha Vantage for anything still missing ─────────────────────
+    if api_key and (not got_indices or not got_forex):
+        av_tasks = []
+        if not got_indices:
+            for key, (sym, label) in AV_EQUITY_INSTRUMENTS.items():
+                av_tasks.append(("equity", key, sym, label))
+        if not got_forex:
+            for key, (fc, tc, label) in AV_FOREX_INSTRUMENTS.items():
+                av_tasks.append(("forex", key, fc + "|" + tc, label))
+
         for i, task in enumerate(av_tasks):
             if i > 0 and i % 5 == 0:
-                time.sleep(12)  # pause after every 5 calls
+                time.sleep(12)
             kind, key, sym, label = task
             if kind == "equity":
                 d = av_global_quote(sym, api_key, label)
             else:
                 fc, tc = sym.split("|")
                 d = av_fx_daily(fc, tc, api_key, label)
-
             if d.get("price", 0) > 0:
                 bucket = "indices" if kind == "equity" else "forex"
                 results[bucket][key] = d
 
-    # ── Determine source label ──
+    # ── Determine source label ────────────────────────────────────────────────
     sources = set()
     for bucket in [results["indices"], results["forex"]]:
         for v in bucket.values():
@@ -357,11 +431,21 @@ def _stooq_all(results: dict):
 
 
 def fetch_tse_movers() -> dict:
-    """Fetch TSE movers from Stooq (no key needed)."""
+    """Fetch TSE movers — tries Yahoo Finance first, falls back to Stooq."""
     movers = []
+
+    def _fetch_one(code, name):
+        # Try Yahoo Finance (.T suffix) first
+        if _YF_AVAILABLE:
+            d = yf_fetch(f"{code}{YF_TSE_SUFFIX}", name, 1)
+            if d.get("price", 0) > 0:
+                return d
+        # Fallback to Stooq (.jp suffix)
+        return stooq_fetch(f"{code}.jp", name, 1)
+
     with ThreadPoolExecutor(max_workers=10) as ex:
         futures = {
-            ex.submit(stooq_fetch, f"{code}.jp", name, 1): (code, name)
+            ex.submit(_fetch_one, code, name): (code, name)
             for code, name in TSE_STOCKS
         }
         for f in as_completed(futures):
