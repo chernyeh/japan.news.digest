@@ -547,7 +547,7 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
                     _u   = info.get("url", "")
                     if _src and _u and _u.startswith("http") and len(_u) > 12:
                         _display = _src if len(_src) <= 40 else _src[:38] + "…"
-                        return f'<a class="summary-link" href="{_u}" target="_blank">{_display}</a>'
+                        return f'<a class="summary-link" href="{_safe_url(_u)}" target="_blank">{_display}</a>'
                     elif _src:
                         return f'<span class="summary-source-text">{_src}</span>'
                 except (ValueError, AttributeError):
@@ -563,7 +563,7 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
             if not _u or not _u.startswith("http") or len(_u) < 12:
                 return _label
             _display = _label if len(_label) <= 40 else _label[:38] + "…"
-            return f'<a class="summary-link" href="{_u}" target="_blank">{_display}</a>'
+            return f'<a class="summary-link" href="{_safe_url(_u)}" target="_blank">{_display}</a>'
         line = _re2.sub(r"\[([^\]]+)\]\(([^)]+)\)", _make_link, line)
 
         if line.startswith("## "):
@@ -605,7 +605,7 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
                     _u   = art_index[best_idx].get("url", "")
                     _disp = _src if len(_src) <= 40 else _src[:38] + "…"
                     if _src and _u and _u.startswith("http"):
-                        bullet_text += f' <a class="summary-link" href="{_u}" target="_blank">{_disp}</a>'
+                        bullet_text += f' <a class="summary-link" href="{_safe_url(_u)}" target="_blank">{_disp}</a>'
                     elif _src:
                         bullet_text += f' <span class="summary-source-text">{_disp}</span>'
             out.append(f"<li>{bullet_text}</li>")
@@ -629,6 +629,27 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
     if in_intro and any("<div class" in o for o in out):
         out.append("</div>")
     return "\n".join(out)
+
+
+def _safe_url(url: str) -> str:
+    """Sanitize a URL for safe insertion into an HTML href attribute."""
+    if not url or url == "#":
+        return "#"
+    import re as _re_url, html as _html_url
+    # Strip whitespace and control characters
+    url = _re_url.sub(r'[\x00-\x1f\x7f]', '', url.strip())
+    # Escape & for HTML attribute context
+    url = url.replace("&", "&amp;")
+    # Must start with http
+    if not url.startswith("http"):
+        return "#"
+    return url
+
+
+def _safe_text(text: str) -> str:
+    """Escape text for safe insertion into HTML."""
+    import html as _h
+    return _h.escape(str(text)) if text else ""
 
 
 def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60):
@@ -1084,7 +1105,7 @@ with tab_bytime:
                 + source
                 + (' · ' + time_str if time_str else '')
                 + '</div>'
-                '<a class="article-link" href="' + url + '" target="_blank">' + title + '</a>'
+                '<a class="article-link" href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a>'
                 + nt_badge
                 + (badge_html if badge_html else '')
                 + ('<div class="original-title">' + orig + '</div>' if is_jp and orig and orig != title else '')
@@ -1177,7 +1198,7 @@ with tab_breaking:
                 '<div class="article-card">'
                 '<div class="article-meta">Nikkei Shimbun'
                 + (' · ' + time_str if time_str else '') + '</div>'
-                '<a class="article-link" href="' + url + '" target="_blank">' + title + '</a>'
+                '<a class="article-link" href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a>'
                 + ('<div class="original-title">' + orig + '</div>' if orig and orig != title else '')
                 + '</div>'
             )
@@ -1272,7 +1293,7 @@ with tab_news:
             cards.append(
                 '<div class="article-card">'
                 '<div class="article-source">' + source + '</div>'
-                '<div class="article-title"><a href="' + url + '" target="_blank">' + trans + '</a>'
+                '<div class="article-title"><a href="' + _safe_url(url) + '" target="_blank">' + _safe_text(trans) + '</a>'
                 + nt_badge + hv_tag + '</div>'
                 + orig_part + date_part + '</div>'
             )
@@ -1741,7 +1762,7 @@ with tab_watchlist:
                 html += (
                     '<div class="watchlist-hit">'
                     '<div style="font-size:0.62rem;font-weight:700;color:#F9A825;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.15rem;">' + source + '</div>'
-                    '<div>' + _ca_badge + _co_badge + '<a href="' + url + '" target="_blank" style="font-size:0.88rem;font-weight:600;color:#1A1A1A;text-decoration:none;">' + title + '</a></div>'
+                    '<div>' + _ca_badge + _co_badge + '<a href="' + _safe_url(url) + '" target="_blank" style="font-size:0.88rem;font-weight:600;color:#1A1A1A;text-decoration:none;">' + _safe_text(title) + '</a></div>'
                     + date_p + '</div>'
                 )
             st.markdown(html, unsafe_allow_html=True)
@@ -2228,8 +2249,8 @@ with tab_bysource:
                         time_p = '<div class="article-meta">' + date.split("·")[1].strip() + '</div>'
                     cards.append(
                         '<div class="article-card">'
-                        '<div class="article-title"><a href="' + url + '" target="_blank">'
-                        + trans + '</a>' + nt_badge + hv_tag + '</div>'
+                        '<div class="article-title"><a href="' + _safe_url(url) + '" target="_blank">'
+                        + _safe_text(trans) + '</a>' + nt_badge + hv_tag + '</div>'
                         + orig_p + time_p +
                         '</div>'
                     )
@@ -2273,7 +2294,7 @@ with tab_sources:
     general = [s for s in MEDIA_SOURCES if s[2] in ["🗞️","📊","📡","📺","🔎","📈","💎"]]
     grid = '<div class="media-grid">'
     for name, url, icon in general:
-        grid += '<a href="' + url + '" target="_blank" class="media-card"><span class="media-icon">' + icon + '</span><span class="media-name">' + name + '</span></a>'
+        grid += '<a href="' + _safe_url(url) + '" target="_blank" class="media-card"><span class="media-icon">' + icon + '</span><span class="media-name">' + name + '</span></a>'
     grid += '</div>'
     st.markdown(grid, unsafe_allow_html=True)
 
@@ -2281,7 +2302,7 @@ with tab_sources:
     trade = [s for s in MEDIA_SOURCES if s[2] not in ["🗞️","📊","📡","📺","🔎","📈","💎"]]
     grid2 = '<div class="media-grid">'
     for name, url, icon in trade:
-        grid2 += '<a href="' + url + '" target="_blank" class="media-card"><span class="media-icon">' + icon + '</span><span class="media-name">' + name + '</span></a>'
+        grid2 += '<a href="' + _safe_url(url) + '" target="_blank" class="media-card"><span class="media-icon">' + icon + '</span><span class="media-name">' + name + '</span></a>'
     grid2 += '</div>'
     st.markdown(grid2, unsafe_allow_html=True)
 
@@ -2660,9 +2681,48 @@ with tab_earnings:
 """)
 
     # ── Repo config ──────────────────────────────────────────────────────────
-    _ec_repo = "chernyeh/japan-news-digest"
+    # Repo can be set in Streamlit Secrets as GITHUB_REPO, or entered below
+    _ec_repo_default = "chernyeh/japan-news-digest"
+    try:
+        import streamlit as _st2
+        _ec_repo = _st2.secrets.get("GITHUB_REPO", _ec_repo_default)
+    except Exception:
+        _ec_repo = _ec_repo_default
+
+    # Allow manual override in the UI
+    _repo_col, _ = st.columns([3, 2])
+    with _repo_col:
+        _ec_repo = st.text_input(
+            "GitHub repo (owner/name):",
+            value=_ec_repo,
+            key="ec_repo_input",
+            help="Your GitHub repo in the format: username/repo-name",
+        )
 
     # ── Controls ─────────────────────────────────────────────────────────────
+    # Test button to verify repo path before loading
+    _test_col1, _test_col2, _test_col3 = st.columns([2, 1, 2])
+    with _test_col2:
+        _test_btn = st.button("🔗 Test repo", use_container_width=True, key="btn_ec_test")
+    if _test_btn:
+        import requests as _tr
+        _api = f"https://api.github.com/repos/{_ec_repo}/contents/data/jpx_earnings"
+        try:
+            _tr_resp = _tr.get(_api, timeout=8,
+                headers={"Accept": "application/vnd.github.v3+json"})
+            if _tr_resp.status_code == 200:
+                _files = [f["name"] for f in _tr_resp.json() if f.get("name","").endswith(".xlsx")]
+                if _files:
+                    st.success(f"✅ Found {len(_files)} Excel file(s): {", ".join(_files)}")
+                else:
+                    st.warning("⚠️ Folder found but no .xlsx files inside — upload the JPX Excel files.")
+            elif _tr_resp.status_code == 404:
+                st.error(f"❌ Not found. Check the repo name. Got: {_ec_repo}/data/jpx_earnings")
+            else:
+                st.error(f"❌ GitHub API error: HTTP {_tr_resp.status_code}")
+        except Exception as _te:
+            st.error(f"❌ Connection error: {_te}")
+
     ec_col1, ec_col2, ec_col3 = st.columns([2, 2, 1])
     with ec_col1:
         ec_bucket = st.radio(
@@ -2677,11 +2737,17 @@ with tab_earnings:
     with ec_col3:
         ec_fetch = st.button("🔄 Load from GitHub", use_container_width=True, key="btn_ec_fetch")
 
-    if ec_fetch or (not st.session_state.earnings_cal):
+    if ec_fetch or (not st.session_state.earnings_cal and ec_fetch):
         with st.spinner("Loading JPX Excel files from GitHub…"):
             _raw = fetch_jpx_excel_from_github(_ec_repo)
-            st.session_state.earnings_cal = _raw
-            st.session_state.earnings_last_fetch = now_local()
+            if _raw:
+                st.session_state.earnings_cal = _raw
+                st.session_state.earnings_last_fetch = now_local()
+            else:
+                st.warning(
+                    "No Excel files found in `data/jpx_earnings/` folder of your GitHub repo. "
+                    "Follow the setup guide above to upload JPX Excel files."
+                )
 
         if st.session_state.earnings_cal:
             _codes = list({e["code"] for e in st.session_state.earnings_cal if e.get("code")})
