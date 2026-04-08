@@ -463,6 +463,15 @@ for key, default in [
     ("source_map", {}),
     ("source_selected", None),
     ("source_group", None),
+    # Market / JPX
+    ("jpx_movers", {}), ("topix_returns", {}),
+    ("screen_data", []), ("screen_last_fetch", None), ("wl_perf", {}),
+    # Breaking news
+    ("breaking_news", []), ("breaking_last_fetch", None),
+    # Filings
+    ("filings", []), ("filings_last_fetch", None),
+    # AI summaries
+    ("ai_market_wrap", None), ("ai_market_wrap_ts", None), ("ai_market_wrap_idx", {}),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -1558,12 +1567,12 @@ with tab_market:
         with col_w1:
             if st.session_state.ai_market_wrap:
                 _wrap_ts = st.session_state.get("ai_market_wrap_ts")
-            _wrap_ts_str = (" · generated " + format_local_dt(_wrap_ts)) if _wrap_ts else ""
-            st.markdown(
-                f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'
-                f'✨ Market wrap{_wrap_ts_str} · click Generate to refresh</div>',
-                unsafe_allow_html=True
-            )
+                _wrap_ts_str = (" · generated " + format_local_dt(_wrap_ts)) if _wrap_ts else ""
+                st.markdown(
+                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'
+                    f'✨ Market wrap{_wrap_ts_str} · click Generate to refresh</div>',
+                    unsafe_allow_html=True
+                )
 
         if gen_wrap:
             api_key = get_secret("ANTHROPIC_API_KEY")
