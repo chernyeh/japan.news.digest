@@ -15,7 +15,8 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      group_calendar_by_date, label_date_bucket,
                      fetch_financial_summary, format_summary_for_display,
                      safe_num, guidance_direction,
-                     get_performance_band, fetch_3m_performance_batch)
+                     get_performance_band, fetch_3m_performance_batch,
+                     fetch_jpx_excel_from_github, filter_upcoming)
 
 # ── Shared in-memory cache (survives browser close, lives as long as app is awake) ──
 # Uses st.cache_resource so it's shared across ALL sessions on the same server instance.
@@ -2284,6 +2285,27 @@ with tab_sources:
     grid2 += '</div>'
     st.markdown(grid2, unsafe_allow_html=True)
 
+    # ── Official Data Sources ──────────────────────────────
+    st.markdown('<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8B4513;margin:1rem 0 0.4rem 0;">Official Regulatory & Earnings Data</div>', unsafe_allow_html=True)
+    official_links = [
+        ("JPX Earnings Calendar", "https://www.jpx.co.jp/listing/event-schedules/financial-announcement/index.html", "📅",
+         "Download Excel files of scheduled earnings announcement dates for all TSE-listed companies by fiscal quarter-end month."),
+        ("EDINET (FSA Disclosures)", "https://disclosure2.edinet-fsa.go.jp/week0020.aspx", "📋",
+         "Japan's official electronic disclosure system. Search annual securities reports, quarterly reports, and large shareholding filings for all listed companies."),
+        ("TDnet (TSE Timely Disclosures)", "https://www.release.tdnet.info/inbs/I_main_00.html", "📢",
+         "Tokyo Stock Exchange real-time corporate disclosure service. Earnings releases, guidance revisions, M&A announcements, and all material information."),
+        ("JPX Listed Company Search", "https://www.jpx.co.jp/english/listing/co-search/index.html", "🔍",
+         "Search individual company profiles, segment information, and announcement schedules on the TSE."),
+    ]
+    for _name, _url, _icon, _desc in official_links:
+        st.markdown(
+            f'<div style="padding:0.5rem 0;border-bottom:1px solid #EDE8E0;">'
+            f'<a href="{_url}" target="_blank" style="font-size:0.88rem;font-weight:700;color:#8B4513;text-decoration:none;">{_icon} {_name} ↗</a>'
+            f'<div style="font-size:0.72rem;color:#6B6B6B;margin-top:0.15rem;">{_desc}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
 # ════════════════════════════════════════════════════════════
 # TAB — SCREENER (Underperformance vs TOPIX)
 # ════════════════════════════════════════════════════════════
@@ -2610,300 +2632,301 @@ with tab_signals:
 
 
 # ════════════════════════════════════════════════════════════
-# TAB — EARNINGS CALENDAR (J-Quants API)
+# ════════════════════════════════════════════════════════════
+# TAB — EARNINGS CALENDAR (JPX Excel + J-Quants)
 # ════════════════════════════════════════════════════════════
 with tab_earnings:
     st.markdown('<div class="section-title">📅 Earnings Calendar — TSE Listed Companies</div>', unsafe_allow_html=True)
 
-    _jq_key = get_jquants_secret()
-
-    if not _jq_key:
+    # ── How this works info box ──────────────────────────────────────────────
+    with st.expander("ℹ️ How this calendar works — and how to keep it updated", expanded=False):
         st.markdown("""
-<div class="info-box" style="border-left:4px solid #C62828;">
-<strong>⚙️ J-Quants API key not configured.</strong><br><br>
-To use the Earnings Calendar:<br>
-1. Register free at <a href="https://jpx-jquants.com" target="_blank">jpx-jquants.com</a><br>
-2. Go to Dashboard → copy your API Key<br>
-3. In Streamlit Cloud: click ⋮ (bottom-right) → Settings → Secrets<br>
-4. Add: <code>JQUANTS_API_KEY = "your-key-here"</code><br>
-5. Save — app restarts in ~30 seconds
+**Data source:** JPX (Tokyo Stock Exchange) publishes official Excel files listing every company's scheduled earnings announcement date, grouped by the month their fiscal quarter ends.
+
+**To populate the calendar:**
+1. Go to **[JPX Earnings Schedule page](https://www.jpx.co.jp/listing/event-schedules/financial-announcement/index.html)** (Japanese page — use Google Translate if needed)
+2. Download the Excel file(s) for recent fiscal quarter-end months (e.g. the March 2026 file covers all March FY companies reporting in May/June 2026)
+3. In your GitHub repo, create a folder called **`data/jpx_earnings/`**
+4. Upload the Excel file(s) into that folder and commit
+5. Come back here and click **🔄 Load from GitHub**
+
+**When to refresh:** JPX updates the files as companies confirm their dates. Re-download and re-upload around the start of each reporting season:
+- **February**: Q3 results season (Jan-Feb quarter-end files)
+- **May**: Full-year results season (March FY — the biggest season)
+- **August**: Q1 results season
+- **November**: Half-year results season
+
+**Tip:** The March FY file is the most important — it covers ~70% of TOPIX companies.
+""")
+
+    # ── Repo config ──────────────────────────────────────────────────────────
+    _ec_repo = "chernyeh/japan-news-digest"
+
+    # ── Controls ─────────────────────────────────────────────────────────────
+    ec_col1, ec_col2, ec_col3 = st.columns([2, 2, 1])
+    with ec_col1:
+        ec_bucket = st.radio(
+            "Show:", ["Next 60 days", "Today", "Tomorrow", "This Week", "Next Week", "Next 30 Days", "All"],
+            horizontal=True, key="ec_bucket", label_visibility="collapsed",
+        )
+    with ec_col2:
+        ec_search = st.text_input(
+            "Search:", placeholder="Company name or TSE code…",
+            key="ec_search", label_visibility="collapsed",
+        )
+    with ec_col3:
+        ec_fetch = st.button("🔄 Load from GitHub", use_container_width=True, key="btn_ec_fetch")
+
+    if ec_fetch or (not st.session_state.earnings_cal):
+        with st.spinner("Loading JPX Excel files from GitHub…"):
+            _raw = fetch_jpx_excel_from_github(_ec_repo)
+            st.session_state.earnings_cal = _raw
+            st.session_state.earnings_last_fetch = now_local()
+
+        if st.session_state.earnings_cal:
+            _codes = list({e["code"] for e in st.session_state.earnings_cal if e.get("code")})
+            if _codes:
+                with st.spinner(f"Fetching 3M price performance for {len(_codes)} companies (~20s)…"):
+                    st.session_state.earnings_perf = fetch_3m_performance_batch(_codes)
+
+    cal_all  = st.session_state.earnings_cal
+    perf_map = st.session_state.earnings_perf
+    wl       = load_watchlist()
+
+    if not cal_all:
+        st.markdown("""
+<div class="info-box" style="border-left:4px solid #8B4513;">
+<strong>No earnings data loaded yet.</strong><br><br>
+<strong>Step 1:</strong> Download Excel files from <a href="https://www.jpx.co.jp/listing/event-schedules/financial-announcement/index.html" target="_blank">JPX Earnings Schedule ↗</a><br>
+<strong>Step 2:</strong> Create folder <code>data/jpx_earnings/</code> in your GitHub repo and upload the files<br>
+<strong>Step 3:</strong> Click <strong>🔄 Load from GitHub</strong> above
 </div>""", unsafe_allow_html=True)
     else:
-        # ── Controls ──────────────────────────────────────────────────────────
-        _ec_col1, _ec_col2, _ec_col3 = st.columns([2, 2, 1])
-        with _ec_col1:
-            _ec_bucket_filter = st.radio(
-                "Show:",
-                ["All upcoming", "Today", "Tomorrow", "This Week", "Next Week", "Next 30 Days"],
-                horizontal=True, key="ec_bucket", label_visibility="collapsed",
-            )
-        with _ec_col2:
-            _ec_search = st.text_input(
-                "Search:", placeholder="Company name or TSE code…",
-                key="ec_search", label_visibility="collapsed",
-            )
-        with _ec_col3:
-            _ec_fetch = st.button("🔄 Load Calendar", use_container_width=True, key="btn_ec_fetch")
+        # ── Stats bar ─────────────────────────────────────────────────────
+        _jq_key = get_jquants_secret()
+        _tomorrow_count = 0
+        if _jq_key:
+            _jq_cal = fetch_earnings_calendar(_jq_key)
+            _tomorrow_count = len([e for e in _jq_cal if e.get("Date")])
 
-        if _ec_fetch or (not st.session_state.earnings_cal and _jq_key):
-            with st.spinner("Fetching earnings calendar from J-Quants…"):
-                _raw_cal = fetch_earnings_calendar(_jq_key)
-                st.session_state.earnings_cal = _raw_cal
-                st.session_state.earnings_last_fetch = now_local()
-                # Kick off 3M performance fetch for all codes in calendar
-                _cal_codes = list({e["Code"][:4] for e in _raw_cal if e.get("Code")})
-                if _cal_codes:
-                    with st.spinner(f"Fetching 3-month price performance for {len(_cal_codes)} companies… (~20–30s)"):
-                        st.session_state.earnings_perf = fetch_3m_performance_batch(_cal_codes)
+        st.markdown(
+            f'<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.3rem;">'
+            f'Last loaded: {format_local_dt(st.session_state.earnings_last_fetch)} · '
+            f'<strong>{len(cal_all):,}</strong> total entries across all uploaded files'
+            f'{f" · <strong>{_tomorrow_count}</strong> filing tomorrow (J-Quants)" if _tomorrow_count else ""}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
-        cal_entries = st.session_state.earnings_cal
-        perf_map    = st.session_state.earnings_perf  # code → vs_topix_pct
-        wl          = load_watchlist()
+        # ── Legend ────────────────────────────────────────────────────────
+        st.markdown(
+            '<div style="font-size:0.65rem;color:#6B6B6B;margin-bottom:0.5rem;">'
+            '3M vs TOPIX: '
+            '<span style="background:#C8E6C9;color:#1B5E20;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;font-size:0.62rem;">🟢 &gt;+15%</span> '
+            '<span style="background:#DCEDC8;color:#2E7D32;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;font-size:0.62rem;">🟩 +5–15%</span> '
+            '<span style="background:#FFF9C4;color:#6B4C00;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;font-size:0.62rem;">🟨 ±5%</span> '
+            '<span style="background:#FFE0B2;color:#E65100;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;font-size:0.62rem;">🟧 -5–15%</span> '
+            '<span style="background:#FFCDD2;color:#B71C1C;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;font-size:0.62rem;">🔴 &lt;-15%</span>'
+            ' &nbsp;·&nbsp; <span style="color:#F9A825;font-weight:700;">★ on your watchlist</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
-        if not cal_entries:
-            st.markdown(
-                '<div class="empty-state">Click <strong>🔄 Load Calendar</strong> to fetch earnings dates from J-Quants.</div>',
-                unsafe_allow_html=True,
-            )
+        # ── Apply filters ─────────────────────────────────────────────────
+        # Bucket filter
+        if ec_bucket == "Next 60 days":
+            cal_filtered = filter_upcoming(cal_all, 60)
+        elif ec_bucket == "All":
+            cal_filtered = cal_all
         else:
-            if st.session_state.earnings_last_fetch:
-                st.markdown(
-                    f'<div style="font-size:0.66rem;color:#9B8B7A;margin-bottom:0.4rem;">'
-                    f'Last fetched: {format_local_dt(st.session_state.earnings_last_fetch)} · '
-                    f'{len(cal_entries):,} companies · covers March/September fiscal year-ends</div>',
-                    unsafe_allow_html=True,
-                )
+            cal_filtered = [
+                e for e in cal_all
+                if label_date_bucket(e.get("announcement_date", "")) == ec_bucket
+            ]
 
-            # ── Legend ────────────────────────────────────────────────────────
+        # Search filter
+        _search = ec_search.strip().lower()
+        if _search:
+            cal_filtered = [
+                e for e in cal_filtered
+                if _search in (e.get("name") or "").lower()
+                or _search in (e.get("code") or "")
+            ]
+
+        # Watchlist lookup
+        _wl_codes = set()
+        for _wn in wl:
+            from watchlist import get_company_aliases as _gca
+            for _a in _gca(_wn):
+                if _a.isdigit() and len(_a) == 4:
+                    _wl_codes.add(_a)
+
+        if not cal_filtered:
+            st.markdown('<div class="info-box">No companies match the current filter.</div>', unsafe_allow_html=True)
+        else:
+            # Summary
+            _wl_hits = sum(1 for e in cal_filtered if e.get("code") in _wl_codes)
             st.markdown(
-                '<div style="font-size:0.65rem;color:#6B6B6B;margin-bottom:0.5rem;">'
-                '3M vs TOPIX: '
-                '<span style="background:#C8E6C9;color:#1B5E20;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;">🟢 &gt;+15%</span> '
-                '<span style="background:#DCEDC8;color:#2E7D32;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;">🟩 +5–15%</span> '
-                '<span style="background:#FFF9C4;color:#6B4C00;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;">🟨 ±5%</span> '
-                '<span style="background:#FFE0B2;color:#E65100;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;">🟧 -5–15%</span> '
-                '<span style="background:#FFCDD2;color:#B71C1C;padding:0.1rem 0.4rem;border-radius:2px;font-weight:700;">🔴 &lt;-15%</span>'
-                '</div>',
+                f'<div style="font-size:0.72rem;color:#6B6B6B;margin-bottom:0.6rem;">'
+                f'<strong>{len(cal_filtered):,}</strong> companies · '
+                f'<span style="color:#F9A825;font-weight:700;">★ {_wl_hits} on your watchlist</span>'
+                f'</div>',
                 unsafe_allow_html=True,
             )
 
-            # ── Filter & group ────────────────────────────────────────────────
-            # Apply search filter
-            _search_lower = _ec_search.strip().lower()
-            if _search_lower:
-                cal_entries = [
-                    e for e in cal_entries
-                    if _search_lower in e.get("CoName", "").lower()
-                    or _search_lower in (e.get("Code") or "")[:4]
-                ]
+            # Group by announcement date
+            from collections import defaultdict as _dd
+            _by_date = _dd(list)
+            _no_date = []
+            for e in cal_filtered:
+                d = e.get("announcement_date", "")
+                if d:
+                    _by_date[d].append(e)
+                else:
+                    _no_date.append(e)
 
-            # Apply bucket filter
-            if _ec_bucket_filter != "All upcoming":
-                cal_entries = [
-                    e for e in cal_entries
-                    if label_date_bucket(e.get("Date", "")) == _ec_bucket_filter
-                ]
-            else:
-                # Exclude past entries in "All upcoming" view
-                cal_entries = [
-                    e for e in cal_entries
-                    if label_date_bucket(e.get("Date", "")) not in ("Past",)
-                ]
+            _sorted_dates = sorted(_by_date.keys())
 
-            if not cal_entries:
+            # ── Render date groups ─────────────────────────────────────────
+            for _date_key in _sorted_dates:
+                _entries = _by_date[_date_key]
+                _bucket  = label_date_bucket(_date_key)
+
+                try:
+                    from datetime import datetime as _dtp
+                    _date_display = _dtp.strptime(_date_key, "%Y-%m-%d").strftime("%A, %d %B %Y")
+                except Exception:
+                    _date_display = _date_key
+
+                _bucket_badge = {
+                    "Today":    '<span style="background:#1B5E20;color:white;font-size:0.58rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:2px;margin-left:0.4rem;">TODAY</span>',
+                    "Tomorrow": '<span style="background:#E65100;color:white;font-size:0.58rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:2px;margin-left:0.4rem;">TOMORROW</span>',
+                    "This Week":'<span style="background:#1565C0;color:white;font-size:0.58rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:2px;margin-left:0.4rem;">THIS WEEK</span>',
+                }.get(_bucket, "")
+
                 st.markdown(
-                    '<div class="info-box">No companies match the current filter.</div>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                # Group by date
-                _grouped = group_calendar_by_date(cal_entries)
-
-                # Count watchlist hits
-                _wl_codes = set()
-                for _wn in wl:
-                    from watchlist import get_company_aliases as _gca
-                    _aliases = _gca(_wn)
-                    for _a in _aliases:
-                        if _a.isdigit() and len(_a) == 4:
-                            _wl_codes.add(_a)
-
-                _total_shown = sum(len(v) for v in _grouped.values())
-                _wl_hits = sum(
-                    1 for e in cal_entries
-                    if e.get("Code", "")[:4] in _wl_codes
-                )
-                st.markdown(
-                    f'<div style="font-size:0.72rem;color:#6B6B6B;margin-bottom:0.6rem;">'
-                    f'<strong>{_total_shown:,}</strong> companies reporting · '
-                    f'<span style="color:#F9A825;font-weight:700;">★ {_wl_hits} on your watchlist</span>'
-                    f'</div>',
+                    f'<div style="font-size:1.0rem;font-weight:700;color:#1A1A1A;'
+                    f'border-bottom:2px solid #1A1A1A;padding-bottom:0.2rem;margin:1rem 0 0.3rem;">'
+                    f'{_date_display}{_bucket_badge}'
+                    f' <span style="font-size:0.68rem;font-weight:400;color:#9B8B7A;">'
+                    f'— {len(_entries)} companies</span></div>',
                     unsafe_allow_html=True,
                 )
 
-                # ── Render each date group ─────────────────────────────────
-                for _date_key, _entries in _grouped.items():
-                    _bucket = label_date_bucket(_date_key)
+                # Table header
+                st.markdown(
+                    '<div style="display:grid;grid-template-columns:1.5rem 0.8fr 0.5fr 0.7fr 1fr 1fr;"'
+                    ' gap:0.25rem;padding:0.2rem 0.35rem;background:#1A1A1A;color:#F7F4EF;'
+                    'font-size:0.57rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
+                    'border-radius:3px 3px 0 0;">'
+                    '<div></div><div>Company</div><div>Code</div>'
+                    '<div>Period</div><div>Sector</div>'
+                    '<div style="text-align:right;">3M vs TOPIX</div>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
 
-                    # Date header
-                    try:
-                        _dobj = datetime.strptime(_date_key, "%Y-%m-%d")
-                        _date_display = _dobj.strftime("%A, %d %B %Y")
-                    except Exception:
-                        _date_display = _date_key
+                # Sort: watchlist first, then alphabetical
+                _sorted_entries = sorted(
+                    _entries,
+                    key=lambda e: (0 if e.get("code") in _wl_codes else 1, e.get("name", ""))
+                )
 
-                    _bucket_badge = {
-                        "Today":       '<span style="background:#1B5E20;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:2px;margin-left:0.4rem;">TODAY</span>',
-                        "Tomorrow":    '<span style="background:#E65100;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:2px;margin-left:0.4rem;">TOMORROW</span>',
-                        "This Week":   '<span style="background:#1565C0;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:2px;margin-left:0.4rem;">THIS WEEK</span>',
-                        "TBD":         '<span style="background:#6B6B6B;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:2px;margin-left:0.4rem;">DATE TBD</span>',
-                    }.get(_bucket, "")
+                rows_html = ""
+                for _idx, _e in enumerate(_sorted_entries):
+                    _code   = _e.get("code", "")
+                    _name   = _e.get("name", "")
+                    _period = _e.get("period_type", "")
+                    _sector = (_e.get("sector") or "")[:22]
+                    _is_wl  = _code in _wl_codes
+                    _bg     = "#FFFDE7" if _is_wl else ("#FAFAF8" if _idx % 2 == 0 else "#F7F4EF")
+                    _border = "border-left:3px solid #F9A825;" if _is_wl else "border-left:3px solid transparent;"
+                    _star   = "★ " if _is_wl else ""
+                    _weight = "700" if _is_wl else "500"
 
-                    st.markdown(
-                        f'<div style="font-family:Playfair Display,serif;font-size:1.05rem;font-weight:700;'
-                        f'color:#1A1A1A;border-bottom:2px solid #1A1A1A;padding-bottom:0.2rem;margin:1rem 0 0.4rem;">'
-                        f'{_date_display}{_bucket_badge}'
-                        f' <span style="font-size:0.7rem;font-weight:400;color:#9B8B7A;font-family:sans-serif;">'
-                        f'— {len(_entries)} companies</span></div>',
-                        unsafe_allow_html=True,
+                    _perf = perf_map.get(_code)
+                    _band = get_performance_band(_perf)
+
+                    _perf_cell = (
+                        f'<div style="text-align:right;">'
+                        f'<span style="background:{_band["bg"]};color:{_band["color"]};'
+                        f'font-size:0.68rem;font-weight:700;padding:0.08rem 0.35rem;border-radius:3px;">'
+                        f'{_band["emoji"]} {_band["label"]}</span></div>'
                     )
 
-                    # Table header
-                    st.markdown(
-                        '<div style="display:grid;grid-template-columns:2rem 3fr 1.2fr 1fr 1.2fr 2.5fr;'
-                        'gap:0.3rem;padding:0.25rem 0.4rem;background:#1A1A1A;color:#F7F4EF;'
-                        'font-size:0.58rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
-                        'border-radius:3px 3px 0 0;margin-bottom:0;">'
-                        '<div></div><div>Company</div><div>Code</div>'
-                        '<div>Quarter</div><div>Sector</div>'
-                        '<div style="text-align:right;">3M vs TOPIX</div>'
-                        '</div>',
-                        unsafe_allow_html=True,
+                    rows_html += (
+                        f'<div style="display:grid;grid-template-columns:1.5rem 0.8fr 0.5fr 0.7fr 1fr 1fr;'
+                        f'gap:0.25rem;padding:0.28rem 0.35rem;background:{_bg};{_border}'
+                        f'border-bottom:1px solid #EDE8E0;align-items:center;">'
+                        f'<div style="color:#F9A825;font-size:0.72rem;">{_star}</div>'
+                        f'<div style="font-size:0.78rem;font-weight:{_weight};">{_name}</div>'
+                        f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;">{_code}</div>'
+                        f'<div style="font-size:0.68rem;">{_period}</div>'
+                        f'<div style="font-size:0.62rem;color:#6B6B6B;">{_sector}</div>'
+                        f'{_perf_cell}'
+                        f'</div>'
                     )
 
-                    # Rows — sort watchlist companies first
-                    _entries_sorted = sorted(
-                        _entries,
-                        key=lambda e: (0 if e.get("Code","")[:4] in _wl_codes else 1, e.get("CoName",""))
-                    )
+                st.markdown(rows_html, unsafe_allow_html=True)
 
-                    rows_html = ""
-                    for _idx, _e in enumerate(_entries_sorted):
-                        _code4 = (_e.get("Code") or "")[:4]
-                        _name  = _e.get("CoName", "")
-                        _fq    = _e.get("FQ", "")
-                        _sect  = _e.get("SectorNm", "")[:20]
-                        _seg   = _e.get("Section", "")
-
-                        _is_wl = _code4 in _wl_codes
-                        _bg    = "#FFFDE7" if _is_wl else ("#FAFAF8" if _idx % 2 == 0 else "#F7F4EF")
-                        _left  = "border-left:3px solid #F9A825;" if _is_wl else "border-left:3px solid transparent;"
-                        _star  = "★ " if _is_wl else ""
-
-                        # Performance band
-                        _perf  = perf_map.get(_code4)
-                        _band  = get_performance_band(_perf)
-
-                        # Quarter translation (Japanese → English)
-                        _fq_en = (_fq
-                            .replace("第１四半期", "Q1").replace("第2四半期", "Q2")
-                            .replace("第3四半期", "Q3").replace("第4四半期", "Q4")
-                            .replace("第１四半期", "Q1").replace("第２四半期", "Q2")
-                            .replace("第３四半期", "Q3").replace("第４四半期", "Q4")
-                            .replace("通期", "Full Year").replace("半期", "Half Year"))
-
-                        # Performance cell
-                        _perf_cell = (
-                            f'<div style="text-align:right;">'
-                            f'<span style="background:{_band["bg"]};color:{_band["color"]};'
-                            f'font-size:0.72rem;font-weight:700;padding:0.1rem 0.4rem;'
-                            f'border-radius:3px;white-space:nowrap;">'
-                            f'{_band["emoji"]} {_band["label"]}'
-                            f'</span></div>'
-                        )
-
-                        rows_html += (
-                            f'<div style="display:grid;grid-template-columns:2rem 3fr 1.2fr 1fr 1.2fr 2.5fr;'
-                            f'gap:0.3rem;padding:0.3rem 0.4rem;background:{_bg};{_left}'
-                            f'border-bottom:1px solid #EDE8E0;align-items:center;">'
-                            f'<div style="font-size:0.75rem;color:#F9A825;">{_star}</div>'
-                            f'<div style="font-size:0.8rem;font-weight:{"700" if _is_wl else "500"};">{_name}</div>'
-                            f'<div style="font-size:0.72rem;color:#6B6B6B;font-family:monospace;">{_code4}</div>'
-                            f'<div style="font-size:0.72rem;color:#1A1A1A;">{_fq_en}</div>'
-                            f'<div style="font-size:0.65rem;color:#6B6B6B;">{_sect}</div>'
-                            f'{_perf_cell}'
-                            f'</div>'
-                        )
-
-                    st.markdown(rows_html, unsafe_allow_html=True)
-
-                    # Expandable: show financial snapshot for watchlist companies in this date group
-                    _wl_in_group = [e for e in _entries_sorted if e.get("Code","")[:4] in _wl_codes]
-                    if _wl_in_group:
-                        with st.expander(f"📊 Financial snapshots for {len(_wl_in_group)} watchlist company/ies reporting on {_date_display}", expanded=False):
-                            for _we in _wl_in_group:
-                                _wcode = (_we.get("Code") or "")[:4]
-                                _wname = _we.get("CoName", "")
-                                st.markdown(f'<div style="font-size:0.82rem;font-weight:700;color:#8B4513;margin:0.5rem 0 0.2rem;">📋 {_wname} ({_wcode})</div>', unsafe_allow_html=True)
-
-                                # Fetch financial summary
-                                _fs_key = f"fs_{_wcode}"
-                                if _fs_key not in st.session_state.fin_summary_cache:
-                                    with st.spinner(f"Fetching financials for {_wname}…"):
-                                        _fs_raw = fetch_financial_summary(_jq_key, code=_wcode)
-                                        _fs_data = format_summary_for_display(_fs_raw)
-                                        st.session_state.fin_summary_cache[_fs_key] = _fs_data
-
-                                _fs = st.session_state.fin_summary_cache.get(_fs_key, [])
-
-                                if not _fs:
-                                    st.markdown('<div style="color:#9B8B7A;font-size:0.75rem;">No financial data available (12-week delay on free plan).</div>', unsafe_allow_html=True)
-                                else:
-                                    # Show last 4 quarters in a mini table
-                                    _recent = _fs[:4]
-                                    _mini_header = (
-                                        '<div style="display:grid;grid-template-columns:1fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr;"'
-                                        'gap:0.2rem;padding:0.2rem 0.3rem;background:#F0EDE8;'
-                                        'font-size:0.58rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;">'
-                                        '<div>Period</div><div>Revenue</div><div>Op Profit</div>'
-                                        '<div>Net Profit</div><div>EPS</div><div>FY Guidance OP</div>'
-                                        '</div>'
+                # Watchlist financial snapshots
+                _wl_here = [e for e in _sorted_entries if e.get("code") in _wl_codes]
+                if _wl_here and get_jquants_secret():
+                    _jq_key2 = get_jquants_secret()
+                    with st.expander(f"📊 Financial snapshots for {len(_wl_here)} watchlist company/ies on {_date_display}", expanded=False):
+                        for _we in _wl_here:
+                            _wcode = _we.get("code", "")
+                            _wname = _we.get("name", "")
+                            st.markdown(f'<div style="font-size:0.82rem;font-weight:700;color:#8B4513;margin:0.4rem 0 0.2rem;">📋 {_wname} ({_wcode})</div>', unsafe_allow_html=True)
+                            _fs_key = f"fs_{_wcode}"
+                            if _fs_key not in st.session_state.fin_summary_cache:
+                                with st.spinner(f"Fetching financials for {_wname}…"):
+                                    _fs_raw  = fetch_financial_summary(_jq_key2, code=_wcode)
+                                    _fs_data = format_summary_for_display(_fs_raw)
+                                    st.session_state.fin_summary_cache[_fs_key] = _fs_data
+                            _fs = st.session_state.fin_summary_cache.get(_fs_key, [])
+                            if not _fs:
+                                st.markdown('<div style="color:#9B8B7A;font-size:0.75rem;">No financial data (12-week delay on J-Quants free plan — data only for past quarters).</div>', unsafe_allow_html=True)
+                            else:
+                                _mini = (
+                                    '<div style="display:grid;grid-template-columns:0.8fr 1fr 1fr 1fr 1fr 1fr;'
+                                    'gap:0.15rem;padding:0.2rem 0.3rem;background:#F0EDE8;'
+                                    'font-size:0.57rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">'
+                                    '<div>Period</div><div>Revenue</div><div>Op Profit</div>'
+                                    '<div>Net Profit</div><div>EPS</div><div>FY Guidance OP</div></div>'
+                                )
+                                st.markdown(_mini, unsafe_allow_html=True)
+                                for _qi, _q in enumerate(_fs[:4]):
+                                    _qbg  = "#FAFAF8" if _qi % 2 == 0 else "#F7F4EF"
+                                    _per  = f"{_q.get('CurPerType','')} {_q.get('CurFYEn','')[:4]}"
+                                    _eps  = f"¥{float(_q['EPS']):.1f}" if _q.get("EPS") and _q["EPS"] != "" else "—"
+                                    st.markdown(
+                                        f'<div style="display:grid;grid-template-columns:0.8fr 1fr 1fr 1fr 1fr 1fr;'
+                                        f'gap:0.15rem;padding:0.2rem 0.3rem;background:{_qbg};'
+                                        f'font-size:0.67rem;border-bottom:1px solid #EDE8E0;">'
+                                        f'<div style="font-weight:600;">{_per}</div>'
+                                        f'<div>{safe_num(_q.get("Sales"))}</div>'
+                                        f'<div>{safe_num(_q.get("OP"))}</div>'
+                                        f'<div>{safe_num(_q.get("NP"))}</div>'
+                                        f'<div style="font-family:monospace;">{_eps}</div>'
+                                        f'<div>{safe_num(_q.get("FOP"))}</div>'
+                                        f'</div>',
+                                        unsafe_allow_html=True,
                                     )
-                                    st.markdown(_mini_header, unsafe_allow_html=True)
-                                    for _qi, _q in enumerate(_recent):
-                                        _q_bg = "#FAFAF8" if _qi % 2 == 0 else "#F7F4EF"
-                                        _period = f"{_q.get('CurPerType','')} {_q.get('CurFYEn','')[:4]}"
-                                        _row = (
-                                            f'<div style="display:grid;grid-template-columns:1fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr;'
-                                            f'gap:0.2rem;padding:0.2rem 0.3rem;background:{_q_bg};'
-                                            f'font-size:0.68rem;border-bottom:1px solid #EDE8E0;">'
-                                            f'<div style="font-weight:600;">{_period}</div>'
-                                            f'<div>{safe_num(_q.get("Sales"))}</div>'
-                                            f'<div>{safe_num(_q.get("OP"))}</div>'
-                                            f'<div>{safe_num(_q.get("NP"))}</div>'
-                                            f'<div style="font-family:monospace;">¥{float(_q["EPS"]):.1f}' if _q.get("EPS") and _q["EPS"] != "" else '<div style="color:#9B8B7A;">—'
-                                            f'</div>'
-                                            f'<div>{safe_num(_q.get("FOP"))}</div>'
-                                            f'</div>'
-                                        )
-                                        st.markdown(_row, unsafe_allow_html=True)
+                                if len(_fs) >= 2:
+                                    _gdir = guidance_direction(_fs[0].get("FOP",""), _fs[1].get("FOP",""))
+                                    if _gdir:
+                                        _gc = "#2E7D32" if "raised" in _gdir else ("#C62828" if "cut" in _gdir else "#6B6B6B")
+                                        st.markdown(f'<div style="font-size:0.7rem;color:{_gc};font-weight:700;margin-top:0.2rem;">FY Operating Profit guidance: {_gdir} vs prior quarter</div>', unsafe_allow_html=True)
 
-                                    # Guidance direction vs prior period
-                                    if len(_fs) >= 2:
-                                        _latest_fop = _fs[0].get("FOP","")
-                                        _prior_fop  = _fs[1].get("FOP","")
-                                        _gdir = guidance_direction(_latest_fop, _prior_fop)
-                                        if _gdir:
-                                            _gcolor = "#2E7D32" if "raised" in _gdir else ("#C62828" if "cut" in _gdir else "#6B6B6B")
-                                            st.markdown(
-                                                f'<div style="font-size:0.7rem;color:{_gcolor};font-weight:700;margin-top:0.2rem;">'
-                                                f'FY Operating Profit guidance: {_gdir} vs prior quarter</div>',
-                                                unsafe_allow_html=True,
-                                            )
+            # TBD entries
+            if _no_date:
+                st.markdown(
+                    f'<div style="margin-top:1rem;font-size:0.78rem;color:#9B8B7A;">'
+                    f'{len(_no_date)} companies have not yet confirmed their announcement date.</div>',
+                    unsafe_allow_html=True,
+                )
 
-# ════════════════════════════════════════════════════════════
-# TAB 6 — SUBSCRIBE
-# ════════════════════════════════════════════════════════════
 with tab_subscribe:
     st.markdown('<div class="section-title">📬 Email Digest</div>', unsafe_allow_html=True)
     st.markdown("""

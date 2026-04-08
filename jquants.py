@@ -388,3 +388,247 @@ def fetch_3m_performance_batch(codes: list) -> dict:
             results[code] = None
 
     return results
+
+
+# ── JPX Excel Earnings Calendar ───────────────────────────────────────────────
+
+# Column name mappings from Japanese Excel headers to English
+# Based on known JPX Excel format for earnings announcement schedules
+JPX_COL_MAP = {
+    # Announcement date column (first data column)
+    "発表予定日":         "announcement_date",
+    "決算発表予定日":      "announcement_date",
+    # Company code
+    "コード":             "code",
+    "証券コード":         "code",
+    # Company name
+    "会社名":             "name",
+    "社名":               "name",
+    # Market segment
+    "市場区分":           "market",
+    "市場・商品区分":     "market",
+    # Period type (FY, Q1, Q2, Q3)
+    "決算期区分":         "period_type",
+    "期区分":             "period_type",
+    # Fiscal year end
+    "決算期":             "fiscal_year_end",
+    "期末":               "fiscal_year_end",
+    # Sector
+    "業種":               "sector",
+    "33業種":             "sector",
+}
+
+# Period type translation from Japanese
+PERIOD_TYPE_MAP = {
+    "本決算":    "Full Year",
+    "第１四半期": "Q1",
+    "第2四半期":  "Q2",
+    "第３四半期": "Q3",
+    "第1四半期":  "Q1",
+    "第２四半期": "Q2",
+    "第3四半期":  "Q3",
+    "第４四半期": "Q4",
+    "第4四半期":  "Q4",
+    "半期":       "Half Year",
+    "中間":       "Half Year",
+}
+
+
+def parse_jpx_earnings_excel(file_bytes: bytes, source_label: str = "") -> list:
+    """
+    Parse a JPX earnings announcement Excel file.
+    
+    Returns list of dicts with standardised fields:
+      announcement_date, code, name, market, period_type, fiscal_year_end, sector, source
+    
+    The Excel files are in .xlsx format with Japanese headers.
+    Columns vary slightly between files but follow a consistent pattern.
+    """
+    try:
+        import openpyxl
+        import io
+        from datetime import datetime as _dt
+    except ImportError:
+        print("openpyxl not installed — run: pip install openpyxl")
+        return []
+
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
+        ws = wb.active
+    except Exception as e:
+        print(f"Excel open error: {e}")
+        return []
+
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        return []
+
+    # Find header row — look for row containing Japanese column headers
+    header_row_idx = None
+    headers = []
+    for i, row in enumerate(rows[:10]):
+        row_vals = [str(c).strip() if c is not None else "" for c in row]
+        # Header row contains at least one known Japanese column name
+        if any(v in JPX_COL_MAP for v in row_vals):
+            header_row_idx = i
+            headers = row_vals
+            break
+
+    if header_row_idx is None:
+        # Fallback: assume first non-empty row is header
+        for i, row in enumerate(rows[:5]):
+            if any(c is not None for c in row):
+                header_row_idx = i
+                headers = [str(c).strip() if c is not None else "" for c in row]
+                break
+
+    if header_row_idx is None:
+        print("Could not find header row in Excel file")
+        return []
+
+    # Map column indices to English names
+    col_map = {}
+    for idx, h in enumerate(headers):
+        en = JPX_COL_MAP.get(h)
+        if en:
+            col_map[en] = idx
+        # Also try partial matching for announcement date
+        if "発表" in h and "日" in h:
+            col_map["announcement_date"] = idx
+        if "コード" in h or "code" in h.lower():
+            if "announcement_date" not in col_map or idx != col_map.get("announcement_date"):
+                col_map.setdefault("code", idx)
+        if "会社" in h or "社名" in h:
+            col_map.setdefault("name", idx)
+        if "業種" in h:
+            col_map.setdefault("sector", idx)
+        if "市場" in h:
+            col_map.setdefault("market", idx)
+        if "区分" in h and "市場" not in h and "業種" not in h:
+            col_map.setdefault("period_type", idx)
+
+    results = []
+    for row in rows[header_row_idx + 1:]:
+        if not any(c is not None for c in row):
+            continue  # skip empty rows
+
+        def _get(field):
+            idx = col_map.get(field)
+            if idx is None or idx >= len(row):
+                return ""
+            v = row[idx]
+            return str(v).strip() if v is not None else ""
+
+        # Parse announcement date
+        ann_raw = _get("announcement_date")
+        ann_date = ""
+        if ann_raw:
+            # Try various date formats
+            for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%Y年%m月%d日", "%m/%d/%Y"):
+                try:
+                    ann_date = _dt.strptime(ann_raw, fmt).strftime("%Y-%m-%d")
+                    break
+                except ValueError:
+                    pass
+            # Handle Excel date serial numbers
+            if not ann_date:
+                try:
+                    from openpyxl.utils.datetime import from_excel
+                    d = from_excel(float(ann_raw))
+                    ann_date = d.strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+
+        # Get company code (strip to 4 digits)
+        code_raw = _get("code")
+        code = ""
+        if code_raw:
+            # Remove .0 suffix if Excel stored as float
+            code_clean = code_raw.replace(".0", "").strip()
+            # Take first 4 digits
+            digits = "".join(c for c in code_clean if c.isdigit())
+            code = digits[:4] if len(digits) >= 4 else digits
+
+        name        = _get("name")
+        market      = _get("market")
+        sector      = _get("sector")
+        period_raw  = _get("period_type")
+        period_type = PERIOD_TYPE_MAP.get(period_raw, period_raw)
+        fy_end      = _get("fiscal_year_end")
+
+        # Skip rows without a company code or name
+        if not code and not name:
+            continue
+
+        results.append({
+            "announcement_date": ann_date,
+            "code":              code,
+            "name":              name,
+            "market":            market,
+            "sector":            sector,
+            "period_type":       period_type,
+            "fiscal_year_end":   fy_end,
+            "source":            source_label,
+        })
+
+    return results
+
+
+def fetch_jpx_excel_from_github(repo: str, branch: str = "main") -> list:
+    """
+    Download and parse all JPX Excel files committed to a GitHub repo
+    under the path data/jpx_earnings/*.xlsx.
+
+    repo: e.g. "chernyeh/japan-news-digest"
+    Returns combined list of earnings entries.
+    """
+    import requests as _req
+
+    base_url = f"https://raw.githubusercontent.com/{repo}/{branch}/data/jpx_earnings"
+
+    # First get the directory listing via GitHub API
+    api_url = f"https://api.github.com/repos/{repo}/contents/data/jpx_earnings"
+    try:
+        resp = _req.get(api_url, timeout=10,
+                        headers={"Accept": "application/vnd.github.v3+json"})
+        if resp.status_code != 200:
+            print(f"GitHub API error: {resp.status_code}")
+            return []
+
+        files = [f for f in resp.json() if f.get("name", "").endswith(".xlsx")]
+        print(f"Found {len(files)} Excel file(s) in data/jpx_earnings/")
+    except Exception as e:
+        print(f"GitHub listing error: {e}")
+        return []
+
+    all_entries = []
+    for f in files:
+        fname = f["name"]
+        try:
+            file_resp = _req.get(f["download_url"], timeout=20)
+            if file_resp.status_code == 200:
+                entries = parse_jpx_earnings_excel(file_resp.content, source_label=fname)
+                print(f"  {fname}: {len(entries)} entries")
+                all_entries.extend(entries)
+            else:
+                print(f"  {fname}: HTTP {file_resp.status_code}")
+        except Exception as e:
+            print(f"  {fname}: download error {e}")
+
+    # Sort by announcement date
+    all_entries.sort(key=lambda x: x.get("announcement_date") or "9999")
+    return all_entries
+
+
+def filter_upcoming(entries: list, days_ahead: int = 60) -> list:
+    """Filter to entries with announcement dates within the next N days."""
+    from datetime import date as _date, timedelta as _td
+    today = _date.today()
+    cutoff = today + _td(days=days_ahead)
+    today_str   = today.strftime("%Y-%m-%d")
+    cutoff_str  = cutoff.strftime("%Y-%m-%d")
+    return [
+        e for e in entries
+        if e.get("announcement_date") and
+           today_str <= e["announcement_date"] <= cutoff_str
+    ]
