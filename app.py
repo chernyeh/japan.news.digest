@@ -1,9 +1,13 @@
 import streamlit as st
 from datetime import datetime
 import pytz
-from collector import fetch_all_news, fetch_source_headlines, SOURCE_DIRECTORY, SOURCE_GROUPS
+from collector import (fetch_all_news, fetch_source_headlines,
+                        SOURCE_DIRECTORY, SOURCE_GROUPS,
+                        CORP_ACTION_META, PRIORITY_ACTIONS, DIRECTION_ORDER)
 from emailer import subscribe_email, send_digest, get_secret
-from market_data import fetch_market_overview, fetch_tse_movers, fetch_foreign_flow
+from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_flow,
+                          fetch_jpx_daily_movers, fetch_topix_returns,
+                          fetch_underperformance_screen, TSE_STOCKS)
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES)
 from sentiment import score_all_sectors, flag_high_value_articles
@@ -83,6 +87,7 @@ MEDIA_SOURCES = [
     ("Nikkan Kensetsu",     "https://www.constnews.com/",                 "🏗️"),
     ("Nihon Nogyo",         "https://www.agrinews.co.jp/",                "🌾"),
     ("IT Media Business",   "https://www.itmedia.co.jp/business/",       "💻"),
+    ("Bloomberg Japan",     "https://www.bloomberg.com/asia",               "📰"),
     ("Japan Industry News", "https://japanindustrynews.com/",             "🏭"),
     ("FACTA",               "https://facta.co.jp/",                        "🔍"),
 ]
@@ -219,6 +224,63 @@ html, body, [class*="css"] {
     text-transform: uppercase; padding: 0.08rem 0.35rem;
     border-radius: 2px; margin-left: 0.35rem; vertical-align: middle;
 }
+.badge-micro {
+    display: inline-block; background: #1B4F72; color: #D6EAF8;
+    font-size: 0.54rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 0.07rem 0.32rem;
+    border-radius: 2px; margin-left: 0.32rem; vertical-align: middle;
+}
+.badge-macro {
+    display: inline-block; background: #4A4A4A; color: #E8E8E8;
+    font-size: 0.54rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 0.07rem 0.32rem;
+    border-radius: 2px; margin-left: 0.32rem; vertical-align: middle;
+}
+.signal-positive {
+    display: inline-block; background: #1B5E20; color: #C8E6C9;
+    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
+    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
+    letter-spacing: 0.04em;
+}
+.signal-negative {
+    display: inline-block; background: #B71C1C; color: #FFCDD2;
+    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
+    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
+    letter-spacing: 0.04em;
+}
+.signal-mixed {
+    display: inline-block; background: #E65100; color: #FFE0B2;
+    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
+    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
+    letter-spacing: 0.04em;
+}
+.signal-neutral {
+    display: inline-block; background: #37474F; color: #CFD8DC;
+    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
+    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
+    letter-spacing: 0.04em;
+}
+.signal-priority {
+    display: inline-block; background: #F9A825; color: #1A1A1A;
+    font-size: 0.55rem; font-weight: 900; padding: 0.08rem 0.3rem;
+    border-radius: 2px; margin-right: 0.2rem; vertical-align: middle;
+    letter-spacing: 0.06em; text-transform: uppercase;
+}
+.signal-company {
+    display: inline-block; background: #E8F4F8; color: #0D47A1;
+    font-size: 0.6rem; font-weight: 700; padding: 0.06rem 0.32rem;
+    border-radius: 2px; margin-right: 0.25rem; vertical-align: middle;
+}
+.signal-card {
+    border-left: 4px solid #D9D3C8;
+    padding: 0.55rem 0.6rem 0.45rem;
+    margin-bottom: 0.4rem;
+    background: #FDFCFB;
+    border-radius: 0 3px 3px 0;
+}
+.signal-card.pos { border-left-color: #2E7D32; }
+.signal-card.neg { border-left-color: #C62828; }
+.signal-card.mix { border-left-color: #E65100; }
 .sector-header {
     font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700;
     color: #1A1A1A; border-bottom: 2px solid #1A1A1A;
@@ -342,6 +404,12 @@ html, body, [class*="css"] {
     vertical-align: middle; line-height: 1.6;
 }
 .ai-summary a.summary-link:hover { background: #5C2E00; }
+.summary-source-text {
+    display: inline-block; background: #6B6B6B; color: white;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 0.1rem 0.45rem;
+    border-radius: 3px; margin-left: 0.3rem; vertical-align: middle;
+}
 .ai-summary p { margin: 0.5rem 0; font-size: 1.0rem; line-height: 1.8; }
 .ai-summary .intro-block {
     background: #F5F0EA; border-radius: 3px; padding: 0.6rem 0.9rem;
@@ -421,11 +489,130 @@ if "_cache_loaded" not in st.session_state:
         st.session_state.filings_last_fetch  = _c["filings_last_fetch"]
     for _sk, _sv in _c.get("ai_summaries", {}).items():
         if _sk not in st.session_state:
+            # Discard old-format briefings that used [LINK](url) instead of [N] citations
+            if isinstance(_sv, str) and "](" in _sv and "[LINK]" in _sv.upper():
+                continue  # force regeneration
             st.session_state[_sk] = _sv
+    # Also restore _idx lookups for citation rendering
+    for _sk in list(st.session_state.keys()):
+        if _sk.endswith("_idx") and _sk not in st.session_state:
+            _cached_idx = _c.get("ai_summaries", {}).get(_sk)
+            if _cached_idx:
+                st.session_state[_sk] = _cached_idx
     st.session_state._cache_loaded = True
 
 
 # ── AI Summary helper ─────────────────────────────────────────────────────────
+def _summary_to_html(text: str, art_index: dict = None) -> str:
+    """Convert AI summary markdown to styled HTML.
+    art_index: optional dict of {int: {source, url}} for resolving [N] citations.
+    """
+    import re as _re2, html as _html2
+    lines  = text.split("\n")
+    out    = []
+    in_ul  = False
+    in_intro = True   # first paragraph(s) before any ## header get styled as intro
+
+    for line in lines:
+        line = line.rstrip()
+
+        # Convert **bold** → <strong>
+        line = _re2.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
+
+        # [N] resolver disabled — source pills now appended via keyword matching
+        if False and art_index:
+            def _resolve_idx(m):
+                try:
+                    idx = int(m.group(1))
+                    info = art_index.get(idx, {})
+                    _src = info.get("source", "")
+                    _u   = info.get("url", "")
+                    if _src and _u and _u.startswith("http") and len(_u) > 12:
+                        _display = _src if len(_src) <= 40 else _src[:38] + "…"
+                        return f'<a class="summary-link" href="{_u}" target="_blank">{_display}</a>'
+                    elif _src:
+                        return f'<span class="summary-source-text">{_src}</span>'
+                except (ValueError, AttributeError):
+                    pass
+                return m.group(0)  # leave unchanged if can't resolve
+            # Match [N] or [N][M] patterns — only pure integers inside brackets
+            line = _re2.sub(r"\[(\d+)\]", _resolve_idx, line)
+
+        # Convert [Source Name](url) → source-labelled button (legacy format)
+        def _make_link(m):
+            _label = m.group(1).strip()
+            _u     = m.group(2).strip()
+            if not _u or not _u.startswith("http") or len(_u) < 12:
+                return _label
+            _display = _label if len(_label) <= 40 else _label[:38] + "…"
+            return f'<a class="summary-link" href="{_u}" target="_blank">{_display}</a>'
+        line = _re2.sub(r"\[([^\]]+)\]\(([^)]+)\)", _make_link, line)
+
+        if line.startswith("## "):
+            if in_ul:
+                out.append("</ul>"); in_ul = False
+            if in_intro:
+                if out: out.append("</div>")
+                in_intro = False
+            out.append(f'<h2>{line[3:]}</h2>')
+
+        elif line.startswith("# "):
+            if in_ul:
+                out.append("</ul>"); in_ul = False
+            if in_intro and out:
+                out.append("</div>"); in_intro = False
+            out.append(f'<h2>{line[2:]}</h2>')
+
+        elif line.startswith("- ") or line.startswith("* "):
+            if in_intro and out:
+                out.append("</div>"); in_intro = False
+            if not in_ul:
+                out.append("<ul>"); in_ul = True
+            bullet_text = line[2:]
+            # Auto-append source pill by keyword matching against art_index
+            if art_index:
+                best_idx, best_score = None, 0
+                bullet_lower = bullet_text.lower()
+                for _ai, _ad in art_index.items():
+                    if not _ad.get("url"):
+                        continue
+                    _title = (_ad.get("title_for_match") or "").lower()
+                    _title_words = [w for w in _re2.sub(r"[^a-z0-9 ]", "", _title).split() if len(w) > 3]
+                    score = sum(1 for w in _title_words if w in bullet_lower)
+                    if score > best_score:
+                        best_score = score
+                        best_idx = _ai
+                if best_idx and best_score >= 1:
+                    _src = art_index[best_idx].get("source", "")
+                    _u   = art_index[best_idx].get("url", "")
+                    _disp = _src if len(_src) <= 40 else _src[:38] + "…"
+                    if _src and _u and _u.startswith("http"):
+                        bullet_text += f' <a class="summary-link" href="{_u}" target="_blank">{_disp}</a>'
+                    elif _src:
+                        bullet_text += f' <span class="summary-source-text">{_disp}</span>'
+            out.append(f"<li>{bullet_text}</li>")
+
+        elif line.strip() == "":
+            if in_ul:
+                out.append("</ul>"); in_ul = False
+
+        else:
+            if in_ul:
+                out.append("</ul>"); in_ul = False
+            if in_intro:
+                if not any("<div class" in o for o in out):
+                    out.append('<div class="intro-block">')
+                out.append(f"<p>{line}</p>")
+            else:
+                out.append(f"<p>{line}</p>")
+
+    if in_ul:
+        out.append("</ul>")
+    if in_intro and any("<div class" in o for o in out):
+        out.append("</div>")
+    return "\n".join(out)
+
+
 def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60):
     """
     Renders an AI-powered summary panel with a Generate button.
@@ -443,8 +630,11 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
         gen_btn = st.button("✨ Summarise", key=f"btn_{session_key}", use_container_width=True)
     with col_s1:
         if st.session_state[session_key]:
+            _sum_ts = st.session_state.get(session_key + "_ts")
+            _sum_ts_str = (" · generated " + format_local_dt(_sum_ts)) if _sum_ts else ""
             st.markdown(
-                '<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">AI summary generated · click ✨ Summarise to refresh</div>',
+                f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'  
+                f'✨ AI briefing{_sum_ts_str} · click Summarise to refresh</div>',
                 unsafe_allow_html=True
             )
 
@@ -474,36 +664,40 @@ ANTHROPIC_API_KEY = "sk-ant-..."
             else:
                 # Build article list for the prompt (newest first, capped)
                 subset = articles[:max_articles]
+                # Build index lookup: article number → {source, url}
+                _art_index = {}
                 lines = []
                 for i, a in enumerate(subset, 1):
                     title  = a.get("title") or a.get("translated_title") or a.get("original_title","")
                     url    = a.get("url","")
                     source = a.get("source","")
                     pub    = a.get("pub_date","")
-                    lines.append(f"{i}. [{source}] {title} | {pub} | {url}")
+                    _art_index[i] = {"source": source, "url": url, "title_for_match": title}
+                    lines.append(f"{i}. [{source}] {title} ({pub})")
                 article_text = "\n".join(lines)
 
-                prompt = f"""You are an analyst helping a Malaysian investor track Japan business and investment news.
+                prompt = f"""You are an investment analyst helping a Malaysian fundamental investor monitor Japan equities and macroeconomics.
 
 Here are {len(subset)} headlines from {context}:
 
 {article_text}
 
-Write a COMPLETE structured briefing that covers ALL significant stories above. Do not cut off or truncate — every meaningful story should appear somewhere in the briefing.
+Write a COMPLETE, INVESTMENT-FOCUSED briefing. For each story, go beyond the headline — provide context, historical levels where relevant (e.g. previous interest rate levels, prior guidance figures, historical precedent), and flag whether this is part of a trend or a one-off event. Highlight actionable implications for stock or sector positioning.
 
 Structure:
-1. Opens with 2-3 sentences on the overall mood/theme
-2. Groups ALL stories into thematic clusters — use as many clusters as needed to cover everything (e.g. "BOJ & Macro", "Corporate Earnings", "M&A / Restructuring", "Yen & FX", "Sector Moves", "Politics & Policy", "Technology", "Energy" etc.)
-3. Under each cluster: bullet points for every notable development, each ending with a markdown hyperlink [Source Name](url)
-4. Closes with 2-3 sentences on key things to watch
+1. Opening paragraph (3-4 sentences): overall market tone, dominant themes, and top investment implication
+2. Thematic clusters with ## headers — group stories logically (e.g. "BOJ & Rates", "Corporate Earnings", "M&A", "Yen & FX", "Energy & Commodities", "Sector Moves", "Geopolitics")
+3. Under each cluster: bullet points covering every significant story
+4. Closing ## What to Watch section: 3-5 forward-looking points with specific catalysts to monitor
 
 Format rules:
-- Use markdown ## headers for each cluster
-- One clear sentence per bullet + link
-- If multiple articles support a point, link the most relevant one
-- Do not skip or merge stories just to keep the briefing short — completeness is essential
-- Do not reproduce article titles verbatim; synthesise them
-- No preamble, no padding
+- ## headers for each cluster
+- Each bullet: 2-4 sentences. Lead with the key fact, then add context/comparison (e.g. "vs prior quarter", "first time since...", "X-year high/low"), then state the investment implication or risk
+- Write clean prose only — do NOT include any links, URLs, brackets, or citation markers of any kind
+- Cover every meaningful story — do not skip or truncate
+- No preamble, no filler, no generic observations
+
+IMPORTANT: Complete the entire briefing including What to Watch. Never truncate mid-bullet.
 
 Respond only with the briefing."""
 
@@ -512,83 +706,23 @@ Respond only with the briefing."""
                         client = _anthropic.Anthropic(api_key=api_key)
                         msg = client.messages.create(
                             model="claude-haiku-4-5-20251001",
-                            max_tokens=4096,
+                            max_tokens=8192,
                             messages=[{"role": "user", "content": prompt}]
                         )
                         st.session_state[session_key] = msg.content[0].text
+                        st.session_state[session_key + "_ts"] = now_local()
+                        st.session_state[session_key + "_idx"] = _art_index
                         # Persist AI summary to shared cache
                         _get_app_cache()["ai_summaries"][session_key] = msg.content[0].text
+                        _get_app_cache()["ai_summaries"][session_key + "_ts"] = st.session_state[session_key + "_ts"]
+                        _get_app_cache()["ai_summaries"][session_key + "_idx"] = _art_index
                     except Exception as e:
                         st.error(f"AI summary error: {e}")
 
     if st.session_state[session_key]:
-        def _summary_to_html(text: str) -> str:
-            """Convert AI summary markdown to styled HTML."""
-            import re as _re2, html as _html2
-            lines  = text.split("\n")
-            out    = []
-            in_ul  = False
-            in_intro = True   # first paragraph(s) before any ## header get styled as intro
-
-            for line in lines:
-                line = line.rstrip()
-
-                # Convert **bold** → <strong>
-                line = _re2.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
-
-                # Convert [text](url) → Link button, skip if URL looks truncated/invalid
-                def _make_link(m):
-                    _u = m.group(2).strip()
-                    if not _u or not _u.startswith("http") or len(_u) < 12:
-                        return m.group(1)  # just return the text, no link
-                    return f'<a class="summary-link" href="{_u}" target="_blank">Link</a>'
-                line = _re2.sub(r"\[([^\]]+)\]\(([^)]+)\)", _make_link, line)
-
-                if line.startswith("## "):
-                    if in_ul:
-                        out.append("</ul>"); in_ul = False
-                    if in_intro:
-                        if out: out.append("</div>")
-                        in_intro = False
-                    out.append(f'<h2>{line[3:]}</h2>')
-
-                elif line.startswith("# "):
-                    if in_ul:
-                        out.append("</ul>"); in_ul = False
-                    if in_intro and out:
-                        out.append("</div>"); in_intro = False
-                    out.append(f'<h2>{line[2:]}</h2>')
-
-                elif line.startswith("- ") or line.startswith("* "):
-                    if in_intro and out:
-                        out.append("</div>"); in_intro = False
-                    if not in_ul:
-                        out.append("<ul>"); in_ul = True
-                    out.append(f"<li>{line[2:]}</li>")
-
-                elif line.strip() == "":
-                    if in_ul:
-                        out.append("</ul>"); in_ul = False
-                    # blank line — skip, spacing handled by CSS
-
-                else:
-                    if in_ul:
-                        out.append("</ul>"); in_ul = False
-                    if in_intro:
-                        if not any("<div class" in o for o in out):
-                            out.append('<div class="intro-block">')
-                        out.append(f"<p>{line}</p>")
-                    else:
-                        out.append(f"<p>{line}</p>")
-
-            if in_ul:
-                out.append("</ul>")
-            if in_intro and any("<div class" in o for o in out):
-                out.append("</div>")
-            return "\n".join(out)
-
+        _art_idx_stored = st.session_state.get(session_key + "_idx", {})
         st.markdown(
-            '<div class="ai-summary">' + _summary_to_html(st.session_state[session_key]) + '</div>',
+            '<div class="ai-summary">' + _summary_to_html(st.session_state[session_key], _art_idx_stored) + '</div>',
             unsafe_allow_html=True
         )
 
@@ -599,7 +733,7 @@ st.markdown(f"""
     <div class="masthead-sub">Japan equities · macro · corporate news · TDnet filings · JPY rates</div>
     <div class="masthead-date">{now_local().strftime('%A, %d %B %Y · %H:%M MYT')}</div>
 </div>
-<div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 36 News Sources</div>
+<div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 33 News Sources</div>
 """, unsafe_allow_html=True)
 
 # ── Market ticker strip ───────────────────────────────────────────────────────
@@ -670,11 +804,15 @@ with col_mkt:
             st.session_state.market_data = fetch_market_overview()
             st.session_state.movers = fetch_tse_movers()
             st.session_state.foreign_flow = fetch_foreign_flow()
+            st.session_state.jpx_movers = fetch_jpx_daily_movers()
+            st.session_state.topix_returns = fetch_topix_returns()
             st.session_state.last_market_fetch = now_local()
             _c = _get_app_cache()
             _c["market_data"]       = st.session_state.market_data
             _c["movers"]            = st.session_state.movers
             _c["foreign_flow"]      = st.session_state.foreign_flow
+            _c["jpx_movers"]        = st.session_state.jpx_movers
+            _c["topix_returns"]     = st.session_state.topix_returns
             _c["last_market_fetch"] = st.session_state.last_market_fetch
         st.rerun()
 with col_news:
@@ -711,6 +849,8 @@ with col_news:
                 st.session_state.market_data = fetch_market_overview()
                 st.session_state.movers = fetch_tse_movers()
                 st.session_state.foreign_flow = fetch_foreign_flow()
+                st.session_state.jpx_movers = fetch_jpx_daily_movers()
+                st.session_state.topix_returns = fetch_topix_returns()
                 st.session_state.last_market_fetch = now_local()
             # Save to shared cache so next session restores this data
             _c = _get_app_cache()
@@ -771,12 +911,48 @@ elif _from_cache and not _stale_news and not _stale_market:
 
 st.markdown("<div style='margin-bottom:0.2rem'></div>", unsafe_allow_html=True)
 
+
+# ── Digest webhook (triggered by cron-job.org or GitHub Actions) ─────────────
+# Hit: https://your-app.streamlit.app/?digest=premarket  or  ?digest=close
+_digest_trigger = st.query_params.get("digest", "")
+if _digest_trigger in ("premarket", "close"):
+    _wh_token  = get_secret("DIGEST_WEBHOOK_TOKEN")
+    _req_token = st.query_params.get("token", "")
+    if _wh_token and _req_token != _wh_token:
+        st.error("Unauthorised digest request.")
+        st.stop()
+    # Ensure we have data — fetch if needed
+    _wh_articles = st.session_state.get("articles") or {}
+    _wh_market   = st.session_state.get("market_data")
+    _wh_filings  = st.session_state.get("filings", [])
+    if not _wh_articles:
+        from collector import fetch_all_news as _fn
+        _wh_sector_map, _ = _fn()
+        _wh_articles = _wh_sector_map
+    if not _wh_market:
+        _wh_market = fetch_market_overview()
+    try:
+        from emailer import send_digest as _sd
+        _ok = _sd(
+            articles_by_sector=_wh_articles,
+            edition=_digest_trigger,
+            market_data=_wh_market,
+            filings=_wh_filings,
+        )
+        st.success(f"✅ {_digest_trigger.title()} digest sent to all subscribers." if _ok
+                   else "⚠️ Digest send failed — check SENDGRID_API_KEY.")
+    except Exception as _e:
+        st.error(f"Digest webhook error: {_e}")
+    st.stop()
+
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 (tab_market, tab_bytime, tab_breaking, tab_news, tab_bysource,
- tab_sources, tab_filings, tab_sentiment, tab_watchlist, tab_subscribe) = st.tabs([
+ tab_sources, tab_filings, tab_sentiment, tab_watchlist, tab_screener,
+ tab_signals, tab_subscribe) = st.tabs([
     "📊 Markets", "🕐 By Time", "⚡ Breaking News", "📰 By Industry",
     "📁 By Source", "🔗 Sources", "📋 Co Filings",
-    "🌡️ Sentiment", "⭐ Watchlist", "📬 Subscribe",
+    "🌡️ Sentiment", "⭐ Watchlist", "🔬 Screener",
+    "🚦 Signals", "📬 Subscribe",
 ])
 
 # ════════════════════════════════════════════════════════════
@@ -831,14 +1007,29 @@ with tab_bytime:
             return dt
         all_articles.sort(key=sort_key, reverse=True)
 
+
+        _micro_count = sum(1 for a in all_articles if a.get("news_type") == "micro")
+        _macro_count = len(all_articles) - _micro_count
         st.markdown(
-            f'<div class="info-box">{len(all_articles)} headlines from all sources, newest first.</div>',
+            f'<div class="info-box">{len(all_articles)} headlines — '
+            f'<span style="color:#1B4F72;font-weight:700;">🏢 {_micro_count} company/micro</span> · '
+            f'<span style="color:#4A4A4A;font-weight:700;">🌐 {_macro_count} macro/policy</span></div>',
             unsafe_allow_html=True
         )
 
+        # ── News type filter ──────────────────────────────────────────────
+        news_type_filter = st.radio(
+            "Filter:", ["All", "🏢 Company / Micro", "🌐 Macro / Policy"],
+            horizontal=True, key="nt_filter_bytime", label_visibility="collapsed",
+        )
+        _nt_map = {"All": None, "🏢 Company / Micro": "micro", "🌐 Macro / Policy": "macro"}
+        _nt_sel = _nt_map[news_type_filter]
+        filtered_bytime = [a for a in all_articles
+                           if _nt_sel is None or a.get("news_type", "macro") == _nt_sel]
+
         html = ""
         last_date = None
-        for a in all_articles:
+        for a in filtered_bytime:
             pub_dt = a.get("pub_dt")
             if pub_dt:
                 day_str = pub_dt.strftime("%A, %d %B %Y")
@@ -860,7 +1051,10 @@ with tab_bytime:
             pub    = a.get("pub_date", "")
             is_jp  = a.get("language", "en") == "ja"
             hv = a.get("high_value", False)
+            news_type = a.get("news_type", "macro")
             badge_html = '<span class="hv-badge">★ Corp Action</span>' if hv else ""
+            nt_badge = ('<span class="badge-micro">🏢 Co</span>' if news_type == "micro"
+                        else '<span class="badge-macro">🌐 Macro</span>')
 
             time_str = ""
             if pub_dt:
@@ -873,6 +1067,7 @@ with tab_bytime:
                 + (' · ' + time_str if time_str else '')
                 + '</div>'
                 '<a class="article-link" href="' + url + '" target="_blank">' + title + '</a>'
+                + nt_badge
                 + (badge_html if badge_html else '')
                 + ('<div class="original-title">' + orig + '</div>' if is_jp and orig and orig != title else '')
                 + '</div>'
@@ -989,15 +1184,20 @@ with tab_news:
         if st.session_state.selected_sector in sector_names:
             current_index = sector_names.index(st.session_state.selected_sector)
 
+        def _on_sector_change():
+            st.session_state.selected_sector = sector_names[
+                sector_labels.index(st.session_state._sector_sel)
+            ]
+
         selected_label = st.selectbox(
             "Sector:", options=sector_labels, index=current_index,
-            label_visibility="collapsed", key="sector_selector"
+            label_visibility="collapsed", key="_sector_sel",
+            on_change=_on_sector_change,
         )
-        # Update immediately on change — no double-click needed
-        new_sector = sector_names[sector_labels.index(selected_label)]
-        if new_sector != st.session_state.selected_sector:
-            st.session_state.selected_sector = new_sector
-            st.rerun()
+        # Sync in case on_change hasn't fired yet (first render)
+        _cur = sector_names[sector_labels.index(selected_label)]
+        if _cur != st.session_state.selected_sector:
+            st.session_state.selected_sector = _cur
 
         sector_name = st.session_state.selected_sector
         raw_articles = st.session_state.articles.get(sector_name, [])
@@ -1017,24 +1217,45 @@ with tab_news:
         badge_class = "badge-pos" if sent_label == "Positive" else ("badge-neg" if sent_label == "Negative" else "badge-neu")
         sentiment_html = (' &nbsp;<span class="sentiment-badge ' + badge_class + '">' + sent.get("icon","") + ' ' + sent_label + '</span>') if sent_label else ""
 
-        count_label = str(len(articles)) + " article" + ("s" if len(articles) != 1 else "")
+        # ── News type filter ─────────────────────────────────────────────
+        _micro_n = sum(1 for a in articles if a.get("news_type") == "micro")
+        _macro_n = len(articles) - _micro_n
+        _ni_filter = st.radio(
+            "Filter:", ["All", "🏢 Company / Micro", "🌐 Macro / Policy"],
+            horizontal=True, key=f"nt_filter_industry_{sector_name}", label_visibility="collapsed",
+        )
+        _ni_map = {"All": None, "🏢 Company / Micro": "micro", "🌐 Macro / Policy": "macro"}
+        _ni_sel = _ni_map[_ni_filter]
+        if _ni_sel:
+            articles = [a for a in articles if a.get("news_type", "macro") == _ni_sel]
+
+        _micro_shown = sum(1 for a in articles if a.get("news_type") == "micro")
+        count_label = (
+            str(len(articles)) + " article" + ("s" if len(articles) != 1 else "") +
+            f' &nbsp;<span style="color:#1B4F72;font-size:0.62rem;">🏢 {_micro_n} co</span>'
+            f' &nbsp;<span style="color:#4A4A4A;font-size:0.62rem;">🌐 {_macro_n} macro</span>'
+        )
         cards = []
         for article in articles:
-            orig   = article.get("original_title", "")
-            trans  = article.get("translated_title", article.get("title", ""))
-            source = article.get("source", "")
-            url    = article.get("url", "#")
-            date   = article.get("pub_date", "")
-            hv     = article.get("high_value", False)
+            orig      = article.get("original_title", "")
+            trans     = article.get("translated_title", article.get("title", ""))
+            source    = article.get("source", "")
+            url       = article.get("url", "#")
+            date      = article.get("pub_date", "")
+            hv        = article.get("high_value", False)
+            news_type = article.get("news_type", "macro")
 
             hv_tag    = '<span class="high-value-tag">★ Corp Action</span>' if hv else ""
+            nt_badge  = ('<span class="badge-micro">🏢 Co</span>' if news_type == "micro"
+                         else '<span class="badge-macro">🌐 Macro</span>')
             orig_part = '<div class="article-title-jp">' + orig + '</div>' if orig and orig != trans else ""
             date_part = '<div class="article-meta">' + date + '</div>' if date else ""
 
             cards.append(
                 '<div class="article-card">'
                 '<div class="article-source">' + source + '</div>'
-                '<div class="article-title"><a href="' + url + '" target="_blank">' + trans + '</a>' + hv_tag + '</div>'
+                '<div class="article-title"><a href="' + url + '" target="_blank">' + trans + '</a>'
+                + nt_badge + hv_tag + '</div>'
                 + orig_part + date_part + '</div>'
             )
 
@@ -1153,73 +1374,281 @@ with tab_market:
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
 
-        # ── TSE Movers ───────────────────────────────────────
-        movers = st.session_state.movers or {}
-        col3, col4 = st.columns(2)
-        with col3:
-            st.markdown('<div class="section-title">🚀 Top Gainers</div>', unsafe_allow_html=True)
-            gainers = movers.get("gainers", [])
-            if gainers:
-                html = ""
-                for m in gainers:
-                    html += (
-                        '<div class="mover-card up">'
-                        '<div><div class="mover-name">' + m["name"] + '</div>'
-                        '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
-                        '<div class="mover-pct-up">▲ ' + f'{m["pct_change"]:.2f}%' + '</div>'
-                        '</div>'
-                    )
-                st.markdown(html, unsafe_allow_html=True)
-            else:
-                st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
-        with col4:
-            st.markdown('<div class="section-title">📉 Top Losers</div>', unsafe_allow_html=True)
-            losers = movers.get("losers", [])
-            if losers:
-                html = ""
-                for m in losers:
-                    html += (
-                        '<div class="mover-card dn">'
-                        '<div><div class="mover-name">' + m["name"] + '</div>'
-                        '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
-                        '<div class="mover-pct-dn">▼ ' + f'{abs(m["pct_change"]):.2f}%' + '</div>'
-                        '</div>'
-                    )
-                st.markdown(html, unsafe_allow_html=True)
-            else:
-                st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
+    # ── TSE Movers ───────────────────────────────────────
+    movers    = st.session_state.movers or {}
+    scr_data  = st.session_state.get("screen_data", [])
+    topix_ret = st.session_state.get("topix_returns", {})
+    _under_lookup = {d["code"]: d for d in scr_data}  # code → screen row
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
+    # Threshold for flag — share the screener slider value if set, else 10%
+    _mover_threshold = st.session_state.get("scr_threshold", 10)
 
-        # ── Foreign flow ─────────────────────────────────────
-        st.markdown('<div class="section-title">🌍 Foreign Investor Flow</div>', unsafe_allow_html=True)
-        flow = st.session_state.foreign_flow
-        if flow and flow.get("available"):
-            net = flow["net_billion_yen"]
-            val_class = "flow-value-up" if net > 0 else "flow-value-dn"
-            arrow = "▲" if net > 0 else "▼"
-            st.markdown(
-                '<div class="flow-box">'
-                '<div class="ticker-label">Weekly Net Flow — Foreign Investors (TSE)</div>'
-                '<div class="' + val_class + '">' + arrow + " ¥" + f"{abs(net):.1f}B" + '</div>'
-                '<div class="flow-label">' + flow.get("direction","") + " · " + flow.get("as_of","") + '</div>'
-                '</div>',
-                unsafe_allow_html=True
-            )
+    def _under_flags(symbol: str) -> str:
+        """Return underperformance badges for a mover card given its .T symbol."""
+        code = symbol.replace(".T", "")
+        d = _under_lookup.get(code)
+        if not d:
+            return ""
+        flags = []
+        for period, key in [("3M", "under_3m"), ("6M", "under_6m"), ("12M", "under_12m")]:
+            val = d.get(key)
+            if val is not None and val < -_mover_threshold:
+                flags.append(period)
+        if not flags:
+            return ""
+        return (
+            f' <span style="background:#C62828;color:white;font-size:0.52rem;font-weight:700;'
+            f'padding:0.04rem 0.28rem;border-radius:2px;letter-spacing:0.05em;vertical-align:middle;">'
+            f'⚠ {" ".join(flags)}</span>'
+        )
+
+    col3, col4 = st.columns(2)
+    with col3:
+        st.markdown('<div class="section-title">🚀 Top Gainers</div>', unsafe_allow_html=True)
+        gainers = movers.get("gainers", [])
+        if gainers:
+            html = ""
+            for m in gainers:
+                flags_html = _under_flags(m["symbol"])
+                html += (
+                    '<div class="mover-card up">'
+                    '<div><div class="mover-name">' + m["name"] + flags_html + '</div>'
+                    '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
+                    '<div class="mover-pct-up">▲ ' + f'{m["pct_change"]:.2f}%' + '</div>'
+                    '</div>'
+                )
+            st.markdown(html, unsafe_allow_html=True)
         else:
-            jpx_url = (flow or {}).get("jpx_url", "https://www.jpx.co.jp/english/markets/statistics-equities/investor-type/index.html")
+            st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
+    with col4:
+        st.markdown('<div class="section-title">📉 Top Losers</div>', unsafe_allow_html=True)
+        losers = movers.get("losers", [])
+        if losers:
+            html = ""
+            for m in losers:
+                flags_html = _under_flags(m["symbol"])
+                html += (
+                    '<div class="mover-card dn">'
+                    '<div><div class="mover-name">' + m["name"] + flags_html + '</div>'
+                    '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
+                    '<div class="mover-pct-dn">▼ ' + f'{abs(m["pct_change"]):.2f}%' + '</div>'
+                    '</div>'
+                )
+            st.markdown(html, unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
+    if scr_data:
+        st.markdown(
+            f'<div style="font-size:0.62rem;color:#9B8B7A;margin-top:0.2rem;">'
+            f'⚠ badge = underperforms TOPIX by >{_mover_threshold}% · '
+            f'Run <strong>🔬 Screener</strong> tab to populate flags</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            '<div style="font-size:0.62rem;color:#9B8B7A;margin-top:0.2rem;">'
+            'Run the <strong>🔬 Screener</strong> tab to add underperformance flags to movers.</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
+
+    # ── Foreign flow ─────────────────────────────────────
+    st.markdown('<div class="section-title">🌍 Foreign Investor Flow</div>', unsafe_allow_html=True)
+    flow = st.session_state.foreign_flow
+    if flow and flow.get("available"):
+        net = flow["net_billion_yen"]
+        val_class = "flow-value-up" if net > 0 else "flow-value-dn"
+        arrow = "▲" if net > 0 else "▼"
+        st.markdown(
+            '<div class="flow-box">'
+            '<div class="ticker-label">Weekly Net Flow — Foreign Investors (TSE)</div>'
+            '<div class="' + val_class + '">' + arrow + " ¥" + f"{abs(net):.1f}B" + '</div>'
+            '<div class="flow-label">' + flow.get("direction","") + " · " + flow.get("as_of","") + '</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        jpx_url = (flow or {}).get("jpx_url", "https://www.jpx.co.jp/english/markets/statistics-equities/investor-type/index.html")
+        st.markdown(
+            '<div class="info-box">Foreign flow data published weekly by JPX (Thursdays). '
+            '<a href="' + jpx_url + '" target="_blank" style="color:#8B4513;">→ View on JPX</a></div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown("""
+    <div class="info-box" style="margin-top:0.8rem">
+        <strong>Key BOJ/macro themes:</strong> Rate normalisation · YCC exit · Yen carry trade ·
+        Shunto wage growth · Core CPI · TSE capital efficiency reforms (PBR &lt; 1x pressure)
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Daily Market Wrap ─────────────────────────────────────────────────
+    st.markdown("<hr style='border-color:#D9D3C8;margin:1rem 0 0.5rem'>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title" style="font-size:0.95rem;">📰 Daily Market Wrap</div>', unsafe_allow_html=True)
+
+    jpx = st.session_state.get("jpx_movers", {})
+    topix_ret = st.session_state.get("topix_returns", {})
+
+    if not jpx:
+        st.markdown(
+            '<div class="empty-state">Click <strong>📈 Markets</strong> to load today\'s market wrap.</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        jpx_date   = jpx.get("date", "")
+        advancing  = jpx.get("advancing", 0)
+        declining  = jpx.get("declining", 0)
+        unchanged  = jpx.get("unchanged", 0)
+        total      = jpx.get("total_stocks", 0)
+        src_label  = jpx.get("source", "")
+
+        # Breadth bar
+        if total > 0:
+            adv_pct = advancing / total * 100
+            dec_pct = declining / total * 100
             st.markdown(
-                '<div class="info-box">Foreign flow data published weekly by JPX (Thursdays). '
-                '<a href="' + jpx_url + '" target="_blank" style="color:#8B4513;">→ View on JPX</a></div>',
+                f'<div style="margin:0.4rem 0 0.6rem;">'
+                f'<span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#9B8B7A;">Market breadth · {jpx_date}</span><br>'
+                f'<span style="color:#2E7D32;font-weight:700;">▲ {advancing} advancing</span>'
+                f'  <span style="color:#9B8B7A;font-size:0.8rem;">·</span>  '
+                f'<span style="color:#C62828;font-weight:700;">▼ {declining} declining</span>'
+                f'  <span style="color:#9B8B7A;font-size:0.8rem;">·</span>  '
+                f'<span style="color:#9B8B7A;">{unchanged} unchanged</span>'
+                f'  <span style="color:#9B8B7A;font-size:0.75rem;">of {total} stocks</span>'
+                f'</div>',
                 unsafe_allow_html=True
             )
 
-        st.markdown("""
-        <div class="info-box" style="margin-top:0.8rem">
-            <strong>Key BOJ/macro themes:</strong> Rate normalisation · YCC exit · Yen carry trade ·
-            Shunto wage growth · Core CPI · TSE capital efficiency reforms (PBR &lt; 1x pressure)
-        </div>
-        """, unsafe_allow_html=True)
+        # Top movers table
+        col_g, col_l = st.columns(2)
+        def _mover_row(m):
+            pct = m.get("pct_change", 0)
+            col  = "#2E7D32" if pct >= 0 else "#C62828"
+            sign = "+" if pct >= 0 else ""
+            return (
+                f'<div style="padding:0.25rem 0;border-bottom:1px solid #EDE8E0;">'
+                f'<span style="font-size:0.78rem;font-weight:600;">{m.get("name","")}</span> '
+                f'<span style="font-size:0.65rem;color:#9B8B7A;">{m.get("code","")}</span><br>'
+                f'<span style="font-size:0.75rem;color:#9B8B7A;">{m.get("sector","")[:28]}</span>'
+                f'<span style="float:right;font-weight:700;color:{col};">{sign}{pct:.2f}%</span>'
+                f'</div>'
+            )
+
+        with col_g:
+            st.markdown('<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#2E7D32;margin-bottom:0.3rem;">Top Gainers</div>', unsafe_allow_html=True)
+            gainer_html = "".join(_mover_row(m) for m in jpx.get("gainers", [])[:8])
+            st.markdown(gainer_html or "<div style='color:#9B8B7A;font-size:0.8rem;'>No data</div>", unsafe_allow_html=True)
+
+        with col_l:
+            st.markdown('<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#C62828;margin-bottom:0.3rem;">Top Losers</div>', unsafe_allow_html=True)
+            loser_html = "".join(_mover_row(m) for m in jpx.get("losers", [])[:8])
+            st.markdown(loser_html or "<div style='color:#9B8B7A;font-size:0.8rem;'>No data</div>", unsafe_allow_html=True)
+
+        # AI Market Wrap narrative
+        st.markdown("<div style='margin-top:0.8rem;'></div>", unsafe_allow_html=True)
+        st.markdown('<div class="section-title" style="font-size:0.78rem;margin-top:0.2rem;">✨ AI Market Wrap</div>', unsafe_allow_html=True)
+
+        if "ai_market_wrap" not in st.session_state:
+            st.session_state.ai_market_wrap = None
+
+        col_w1, col_w2 = st.columns([4, 1])
+        with col_w2:
+            gen_wrap = st.button("✨ Generate", key="btn_market_wrap", use_container_width=True)
+        with col_w1:
+            if st.session_state.ai_market_wrap:
+                _wrap_ts = st.session_state.get("ai_market_wrap_ts")
+            _wrap_ts_str = (" · generated " + format_local_dt(_wrap_ts)) if _wrap_ts else ""
+            st.markdown(
+                f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'
+                f'✨ Market wrap{_wrap_ts_str} · click Generate to refresh</div>',
+                unsafe_allow_html=True
+            )
+
+        if gen_wrap:
+            api_key = get_secret("ANTHROPIC_API_KEY")
+            if not api_key:
+                st.warning("ANTHROPIC_API_KEY not set in Streamlit Secrets.")
+            else:
+                import anthropic as _ant
+                # Build context: market breadth + movers + recent filings + news
+                gainers_txt = "\n".join(f"  +{m['pct_change']:.2f}% {m['name']} ({m.get('sector','')})" for m in jpx.get("gainers",[])[:8])
+                losers_txt  = "\n".join(f"  {m['pct_change']:.2f}% {m['name']} ({m.get('sector','')})" for m in jpx.get("losers",[])[:8])
+                topix_txt   = ""
+                if topix_ret:
+                    topix_txt = f"TOPIX benchmark: 3M {topix_ret.get('3M','N/A')}, 6M {topix_ret.get('6M','N/A')}, 12M {topix_ret.get('12M','N/A')}"
+                # Recent news
+                _news_arts = []
+                for _sec_arts in st.session_state.get("articles", {}).values():
+                    _news_arts.extend(_sec_arts)
+                _news_arts.sort(key=lambda a: a.get("pub_dt") or __import__("datetime").datetime.min, reverse=True)
+                _wrap_art_index = {}
+                _news_lines_list = []
+                for _wi, _wa in enumerate(_news_arts[:30], 1):
+                    _wrap_art_index[_wi] = {"source": _wa.get("source",""), "url": _wa.get("url","")}
+                    _news_lines_list.append(f"{_wi}. [{_wa.get('source','')}] {_wa.get('translated_title') or _wa.get('title','')}")
+                news_lines = "\n".join(_news_lines_list)
+                # Recent filings
+                filings = st.session_state.get("filings", [])
+                filing_lines = "\n".join(
+                    f"- [{f.get('code','')} {f.get('name_en') or f.get('name','')}] {f.get('title_en') or f.get('title','')}"
+                    for f in filings[:15]
+                )
+
+                prompt = f"""You are a Japan equity analyst writing a concise daily market wrap for an investor.
+
+Date: {jpx_date}
+Market breadth: {advancing} advancing / {declining} declining / {unchanged} unchanged ({total} total TSE stocks)
+{topix_txt}
+
+TOP GAINERS today:
+{gainers_txt}
+
+TOP LOSERS today:
+{losers_txt}
+
+RECENT NEWS HEADLINES:
+{news_lines}
+
+RECENT TDnet FILINGS:
+{filing_lines}
+
+Write a COMPLETE investment-focused daily market wrap:
+1. Opening paragraph: market tone, breadth context, and top investment implication (3-4 sentences)
+2. ## Sector Moves — biggest movers with sector context; note if part of a trend or one-off
+3. ## Corporate Catalysts — filings or news driving movers; include prior guidance/earnings for context
+4. ## Macro & FX — yen levels, rates, key macro developments with historical context
+5. ## What to Watch — 3-5 forward-looking catalysts with specific triggers to monitor
+
+Format rules:
+- ## headers for each section
+- Each bullet 2-3 sentences: key fact → context/comparison → investment implication
+- Write clean prose only — do NOT include any links, URLs, brackets, or citation markers
+- Be direct and analytical — no padding
+- COMPLETE the entire wrap, never truncate
+
+Respond only with the market wrap."""
+
+                with st.spinner("Generating market wrap..."):
+                    try:
+                        _client = _ant.Anthropic(api_key=api_key)
+                        _resp   = _client.messages.create(
+                            model="claude-haiku-4-5-20251001",
+                            max_tokens=2000,
+                            messages=[{"role": "user", "content": prompt}]
+                        )
+                        st.session_state.ai_market_wrap = _resp.content[0].text
+                        st.session_state.ai_market_wrap_ts = now_local()
+                        st.session_state.ai_market_wrap_idx = _wrap_art_index
+                    except Exception as e:
+                        st.error(f"AI wrap error: {e}")
+
+        if st.session_state.ai_market_wrap:
+            _wi = st.session_state.get("ai_market_wrap_idx", {})
+            st.markdown(
+                _summary_to_html(st.session_state.ai_market_wrap, _wi),
+                unsafe_allow_html=True
+            )
 
 # ════════════════════════════════════════════════════════════
 # TAB 3 — WATCHLIST
@@ -1281,13 +1710,130 @@ with tab_watchlist:
                 source = a.get("source","")
                 date   = a.get("pub_date","")
                 date_p = '<div class="article-meta">' + date + '</div>' if date else ""
+                _ca      = a.get("corp_action", "none")
+                _ca_meta = CORP_ACTION_META.get(_ca, CORP_ACTION_META["none"])
+                _ca_dirn = a.get("action_direction", "neutral")
+                _sig_cls = f"signal-{_ca_dirn}" if _ca_dirn in ("positive","negative","mixed","neutral") else "signal-neutral"
+                _ca_badge = (
+                    f'<span class="{_sig_cls}" style="font-size:0.52rem;padding:0.05rem 0.25rem;">'
+                    f'{_ca_meta.get("emoji","")} {_ca_meta.get("label","")}</span> '
+                ) if _ca_meta.get("label") else ""
+                _co_code = a.get("company_code","")
+                _co_badge = f'<span class="signal-company" style="font-size:0.55rem;">{_co_code}</span> ' if _co_code else ""
                 html += (
                     '<div class="watchlist-hit">'
                     '<div style="font-size:0.62rem;font-weight:700;color:#F9A825;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.15rem;">' + source + '</div>'
-                    '<div><a href="' + url + '" target="_blank" style="font-size:0.88rem;font-weight:600;color:#1A1A1A;text-decoration:none;">' + title + '</a></div>'
+                    '<div>' + _ca_badge + _co_badge + '<a href="' + url + '" target="_blank" style="font-size:0.88rem;font-weight:600;color:#1A1A1A;text-decoration:none;">' + title + '</a></div>'
                     + date_p + '</div>'
                 )
             st.markdown(html, unsafe_allow_html=True)
+
+    # ── Underperformance vs TOPIX ─────────────────────────────────────────────
+    st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title" style="font-size:0.95rem;">📉 Underperformance vs TOPIX</div>', unsafe_allow_html=True)
+
+    topix_ret = st.session_state.get("topix_returns", {})
+    screen_data = st.session_state.get("screen_data", [])
+
+    # Build a lookup: company name → screen row (from TSE_STOCKS codes)
+    # Map KNOWN_COMPANIES names to TSE codes
+    _name_to_code = {}
+    for cname, aliases in KNOWN_COMPANIES.items():
+        for a in aliases:
+            if a.isdigit() and len(a) == 4:
+                _name_to_code[cname] = a
+                break
+
+    wl_threshold = st.slider("Flag if underperforms TOPIX by more than (%):", 0, 30, 10, 1, key="wl_under_threshold")
+
+    col_wl_fetch, _ = st.columns([2, 3])
+    with col_wl_fetch:
+        if st.button("📊 Load Performance Data", key="btn_wl_perf", use_container_width=True):
+            with st.spinner("Fetching performance data for watchlist..."):
+                if not topix_ret:
+                    topix_ret = fetch_topix_returns()
+                    st.session_state.topix_returns = topix_ret
+                # Fetch only the watchlist companies
+                _wl_codes = [(c, n) for n in watchlist
+                             for c in [_name_to_code.get(n)] if c]
+                from market_data import fetch_stock_performance
+                _wl_results = {}
+                for code, name in _wl_codes:
+                    d = fetch_stock_performance(code, name)
+                    if d.get("price", 0) > 0:
+                        t3  = topix_ret.get("3M")
+                        t6  = topix_ret.get("6M")
+                        t12 = topix_ret.get("12M")
+                        d["under_3m"]  = (d.get("ret_3m")  - t3)  if d.get("ret_3m")  is not None and t3  is not None else None
+                        d["under_6m"]  = (d.get("ret_6m")  - t6)  if d.get("ret_6m")  is not None and t6  is not None else None
+                        d["under_12m"] = (d.get("ret_12m") - t12) if d.get("ret_12m") is not None and t12 is not None else None
+                        _wl_results[name] = d
+                st.session_state["wl_perf"] = _wl_results
+            st.rerun()
+
+    wl_perf = st.session_state.get("wl_perf", {})
+    topix_3m  = topix_ret.get("3M")
+    topix_6m  = topix_ret.get("6M")
+    topix_12m = topix_ret.get("12M")
+
+    if not wl_perf:
+        st.markdown('<div class="info-box">Click <strong>📊 Load Performance Data</strong> to check underperformance for your watchlist.</div>', unsafe_allow_html=True)
+    else:
+        def _under_badge(val, threshold):
+            if val is None: return '<span style="color:#9B8B7A;font-size:0.72rem;">N/A</span>'
+            color = "#C62828" if val < -threshold else ("#2E7D32" if val >= 0 else "#6B6B6B")
+            flag  = " ⚠️" if val < -threshold else ""
+            return f'<span style="color:{color};font-weight:700;font-size:0.78rem;">{val:+.1f}%{flag}</span>'
+
+        # TOPIX reference row
+        bench_html = (
+            f'<div style="margin-bottom:0.5rem;padding:0.4rem 0.6rem;background:#F0EDE8;border-radius:3px;">'
+            f'<span style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B6B6B;">TOPIX Benchmark</span>'
+            f'&nbsp;&nbsp;'
+            f'<span style="font-size:0.75rem;color:#1A1A1A;">3M: <strong>{f"{topix_3m:+.1f}%" if topix_3m else "N/A"}</strong></span>'
+            f'&nbsp;·&nbsp;'
+            f'<span style="font-size:0.75rem;color:#1A1A1A;">6M: <strong>{f"{topix_6m:+.1f}%" if topix_6m else "N/A"}</strong></span>'
+            f'&nbsp;·&nbsp;'
+            f'<span style="font-size:0.75rem;color:#1A1A1A;">12M: <strong>{f"{topix_12m:+.1f}%" if topix_12m else "N/A"}</strong></span>'
+            f'</div>'
+        )
+        st.markdown(bench_html, unsafe_allow_html=True)
+
+        for name in watchlist:
+            d = wl_perf.get(name)
+            if not d:
+                st.markdown(
+                    f'<div style="padding:0.35rem 0;border-bottom:1px solid #EDE8E0;">'
+                    f'<span style="font-size:0.86rem;font-weight:600;">{name}</span>'
+                    f'&nbsp;<span style="color:#9B8B7A;font-size:0.75rem;">— no price data found</span>'
+                    f'</div>', unsafe_allow_html=True)
+                continue
+            flags = []
+            if d.get("under_3m")  is not None and d["under_3m"]  < -wl_threshold: flags.append("3M")
+            if d.get("under_6m")  is not None and d["under_6m"]  < -wl_threshold: flags.append("6M")
+            if d.get("under_12m") is not None and d["under_12m"] < -wl_threshold: flags.append("12M")
+            flag_html = (
+                f'&nbsp;<span style="background:#C62828;color:white;font-size:0.55rem;font-weight:700;'
+                f'padding:0.05rem 0.3rem;border-radius:2px;letter-spacing:0.06em;">⚠ UNDERPERFORM '
+                f'{" ".join(flags)}</span>'
+            ) if flags else ""
+            pct_today = d.get("pct_change", 0)
+            today_col = "#2E7D32" if pct_today >= 0 else "#C62828"
+            row_html = (
+                f'<div style="padding:0.4rem 0;border-bottom:1px solid #EDE8E0;">'
+                f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+                f'<span style="font-size:0.86rem;font-weight:600;">{name}</span>{flag_html}'
+                f'<span style="font-size:0.8rem;color:{today_col};font-weight:700;">¥{d["price"]:,.0f} ({pct_today:+.2f}% today)</span>'
+                f'</div>'
+                f'<div style="margin-top:0.2rem;">'
+                f'<span style="font-size:0.7rem;color:#6B6B6B;">vs TOPIX → </span>'
+                f'<span style="font-size:0.72rem;margin-right:0.6rem;">3M: {_under_badge(d.get("under_3m"), wl_threshold)}</span>'
+                f'<span style="font-size:0.72rem;margin-right:0.6rem;">6M: {_under_badge(d.get("under_6m"), wl_threshold)}</span>'
+                f'<span style="font-size:0.72rem;">12M: {_under_badge(d.get("under_12m"), wl_threshold)}</span>'
+                f'</div>'
+                f'</div>'
+            )
+            st.markdown(row_html, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════
 
@@ -1558,38 +2104,44 @@ with tab_bysource:
         unsafe_allow_html=True
     )
 
-    # Group selector
+    # Group selector — use on_change to reset source selection cleanly
     group_names = list(SOURCE_GROUPS.keys())
+
+    def _on_group_change():
+        st.session_state.source_group    = st.session_state._group_sel
+        st.session_state.source_selected = None
+        st.session_state.source_cache    = st.session_state.get("source_cache", {})
+
+    if st.session_state.source_group not in group_names:
+        st.session_state.source_group = group_names[0]
+
     selected_group = st.selectbox(
         "Publication group:", group_names,
-        index=group_names.index(st.session_state.source_group) if st.session_state.source_group in group_names else 0,
-        label_visibility="collapsed", key="group_selector"
+        index=group_names.index(st.session_state.source_group),
+        label_visibility="collapsed", key="_group_sel",
+        on_change=_on_group_change,
     )
-    if selected_group != st.session_state.source_group:
-        st.session_state.source_group = selected_group
-        st.session_state.source_selected = None
-        st.rerun()
 
     # Source selector within group
     sources_in_group = SOURCE_GROUPS.get(selected_group, [])
-    # Only show sources that are in SOURCE_DIRECTORY
     available = [s for s in sources_in_group if s in SOURCE_DIRECTORY]
 
     if not available:
         st.markdown('<div class="info-box">No sources available in this group.</div>', unsafe_allow_html=True)
     else:
-        # Default to first source in group if none selected or selection changed group
         if st.session_state.source_selected not in available:
             st.session_state.source_selected = available[0]
+
+        def _on_source_change():
+            st.session_state.source_selected = st.session_state._source_sel
 
         selected_source = st.selectbox(
             "Publication:", available,
             index=available.index(st.session_state.source_selected),
-            label_visibility="collapsed", key="source_selector"
+            label_visibility="collapsed", key="_source_sel",
+            on_change=_on_source_change,
         )
-        if selected_source != st.session_state.source_selected:
-            st.session_state.source_selected = selected_source
-            st.rerun()
+        selected_source = st.session_state.source_selected
 
         # Fetch / cache button
         col_src_info, col_src_btn = st.columns([3, 1])
@@ -1643,20 +2195,23 @@ with tab_bysource:
             def render_source_articles(arts):
                 cards = []
                 for a in arts:
-                    trans  = a.get("translated_title", a.get("title", ""))
-                    orig   = a.get("original_title", "")
-                    url    = a.get("url", "#")
-                    date   = a.get("pub_date", "")
-                    hv     = a.get("high_value", False)
-                    hv_tag = '<span class="high-value-tag">★ Corp Action</span>' if hv else ""
-                    orig_p = '<div class="article-title-jp">' + orig + '</div>' if orig and orig != trans else ""
-                    time_p = ""
+                    trans     = a.get("translated_title", a.get("title", ""))
+                    orig      = a.get("original_title", "")
+                    url       = a.get("url", "#")
+                    date      = a.get("pub_date", "")
+                    hv        = a.get("high_value", False)
+                    news_type = a.get("news_type", "macro")
+                    hv_tag    = '<span class="high-value-tag">★ Corp Action</span>' if hv else ""
+                    nt_badge  = ('<span class="badge-micro">🏢 Co</span>' if news_type == "micro"
+                                 else '<span class="badge-macro">🌐 Macro</span>')
+                    orig_p    = '<div class="article-title-jp">' + orig + '</div>' if orig and orig != trans else ""
+                    time_p    = ""
                     if "·" in date:
                         time_p = '<div class="article-meta">' + date.split("·")[1].strip() + '</div>'
                     cards.append(
                         '<div class="article-card">'
                         '<div class="article-title"><a href="' + url + '" target="_blank">'
-                        + trans + '</a>' + hv_tag + '</div>'
+                        + trans + '</a>' + nt_badge + hv_tag + '</div>'
                         + orig_p + time_p +
                         '</div>'
                     )
@@ -1713,6 +2268,330 @@ with tab_sources:
     st.markdown(grid2, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════
+# TAB — SCREENER (Underperformance vs TOPIX)
+# ════════════════════════════════════════════════════════════
+with tab_screener:
+    st.markdown('<div class="section-title">🔬 Performance Screener — TOPIX Top 200</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="info-box">Screen ~200 major TSE stocks for underperformance vs TOPIX over 3, 6 and 12 months. '
+        'Data via Yahoo Finance. Batch fetch takes ~15–20 seconds.</div>',
+        unsafe_allow_html=True
+    )
+
+    topix_ret   = st.session_state.get("topix_returns", {})
+    screen_data = st.session_state.get("screen_data", [])
+    screen_ts   = st.session_state.get("screen_last_fetch")
+
+    # Controls row
+    scr_col1, scr_col2, scr_col3 = st.columns([2, 2, 1])
+    with scr_col1:
+        scr_threshold = st.slider(
+            "Underperform threshold (%):", 0, 30, 10, 1, key="scr_threshold"
+        )
+    with scr_col2:
+        scr_period = st.radio(
+            "Flag period:", ["3M", "6M", "12M", "Any"],
+            horizontal=True, key="scr_period", label_visibility="collapsed"
+        )
+    with scr_col3:
+        st.markdown("<div style='margin-top:1.4rem'>", unsafe_allow_html=True)
+        fetch_screen = st.button("🔄 Run Screen", use_container_width=True, key="btn_run_screen")
+
+    if fetch_screen:
+        with st.spinner("Fetching performance data for ~200 stocks (~15–20s)..."):
+            if not topix_ret:
+                topix_ret = fetch_topix_returns()
+                st.session_state.topix_returns = topix_ret
+            screen_data = fetch_underperformance_screen(topix_returns=topix_ret, max_workers=25)
+            st.session_state.screen_data = screen_data
+            st.session_state.screen_last_fetch = now_local()
+        st.rerun()
+
+    if screen_ts:
+        st.markdown(
+            f'<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.4rem;">Last run: {screen_ts}</div>',
+            unsafe_allow_html=True
+        )
+
+    if not screen_data:
+        st.markdown(
+            '<div class="empty-state">Click <strong>🔄 Run Screen</strong> to fetch performance data.</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        topix_3m  = topix_ret.get("3M")
+        topix_6m  = topix_ret.get("6M")
+        topix_12m = topix_ret.get("12M")
+
+        # Filter by underperformance
+        def _is_flagged(d):
+            t = -scr_threshold
+            if scr_period == "3M":
+                return d.get("under_3m") is not None and d["under_3m"] < t
+            elif scr_period == "6M":
+                return d.get("under_6m") is not None and d["under_6m"] < t
+            elif scr_period == "12M":
+                return d.get("under_12m") is not None and d["under_12m"] < t
+            else:  # Any
+                return (
+                    (d.get("under_3m")  is not None and d["under_3m"]  < t) or
+                    (d.get("under_6m")  is not None and d["under_6m"]  < t) or
+                    (d.get("under_12m") is not None and d["under_12m"] < t)
+                )
+
+        flagged   = [d for d in screen_data if _is_flagged(d)]
+        unflagged = [d for d in screen_data if not _is_flagged(d)]
+
+        # Summary stats
+        total_ok  = len([d for d in screen_data if d.get("price", 0) > 0])
+        st.markdown(
+            f'<div class="info-box">'
+            f'<strong>{len(flagged)}</strong> of {total_ok} stocks underperform TOPIX by >{scr_threshold}% '
+            f'over {scr_period} &nbsp;·&nbsp; '
+            f'TOPIX: 3M <strong>{f"{topix_3m:+.1f}%" if topix_3m else "N/A"}</strong> · '
+            f'6M <strong>{f"{topix_6m:+.1f}%" if topix_6m else "N/A"}</strong> · '
+            f'12M <strong>{f"{topix_12m:+.1f}%" if topix_12m else "N/A"}</strong>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        # Show toggle
+        show_all = st.checkbox("Show all stocks (not just flagged)", key="scr_show_all")
+        rows_to_show = screen_data if show_all else flagged
+
+        if not rows_to_show:
+            st.markdown(
+                '<div class="info-box">No stocks match the current filter. Try lowering the threshold or changing the period.</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            # Sort selector
+            sort_by = st.radio(
+                "Sort by:", ["12M underperformance", "6M underperformance", "3M underperformance", "Today % change"],
+                horizontal=True, key="scr_sort", label_visibility="collapsed"
+            )
+            sort_key_map = {
+                "12M underperformance": lambda d: d.get("under_12m") or 0,
+                "6M underperformance":  lambda d: d.get("under_6m")  or 0,
+                "3M underperformance":  lambda d: d.get("under_3m")  or 0,
+                "Today % change":       lambda d: d.get("pct_change") or 0,
+            }
+            rows_to_show = sorted(rows_to_show, key=sort_key_map[sort_by])
+
+            # Table header
+            header = (
+                '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;'
+                'gap:0.3rem;padding:0.3rem 0.4rem;background:#1A1A1A;color:#F7F4EF;'
+                'font-size:0.62rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
+                'border-radius:3px 3px 0 0;margin-top:0.5rem;">'
+                '<div>Company</div><div style="text-align:right;">Price</div>'
+                '<div style="text-align:right;">Today</div>'
+                '<div style="text-align:right;">3M vs TOPIX</div>'
+                '<div style="text-align:right;">6M vs TOPIX</div>'
+                '<div style="text-align:right;">12M vs TOPIX</div>'
+                '</div>'
+            )
+            st.markdown(header, unsafe_allow_html=True)
+
+            def _cell(val, threshold):
+                if val is None:
+                    return '<div style="text-align:right;color:#9B8B7A;font-size:0.75rem;">N/A</div>'
+                color = "#C62828" if val < -threshold else ("#2E7D32" if val >= 0 else "#6B6B6B")
+                flag  = " ⚠" if val < -threshold else ""
+                return f'<div style="text-align:right;color:{color};font-weight:700;font-size:0.75rem;">{val:+.1f}%{flag}</div>'
+
+            rows_html = ""
+            for i, d in enumerate(rows_to_show):
+                bg = "#FAFAF8" if i % 2 == 0 else "#F7F4EF"
+                pct = d.get("pct_change", 0)
+                today_col = "#2E7D32" if pct >= 0 else "#C62828"
+                flagged_row = _is_flagged(d)
+                left_border = "border-left:3px solid #C62828;" if flagged_row else "border-left:3px solid transparent;"
+                rows_html += (
+                    f'<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;'
+                    f'gap:0.3rem;padding:0.35rem 0.4rem;background:{bg};{left_border}'
+                    f'border-bottom:1px solid #EDE8E0;">'
+                    f'<div><span style="font-size:0.8rem;font-weight:600;">{d["name"]}</span>'
+                    f'&nbsp;<span style="font-size:0.62rem;color:#9B8B7A;">{d["code"]}</span></div>'
+                    f'<div style="text-align:right;font-size:0.78rem;">¥{d["price"]:,.0f}</div>'
+                    f'<div style="text-align:right;color:{today_col};font-weight:700;font-size:0.78rem;">{pct:+.2f}%</div>'
+                    + _cell(d.get("under_3m"), scr_threshold)
+                    + _cell(d.get("under_6m"), scr_threshold)
+                    + _cell(d.get("under_12m"), scr_threshold)
+                    + '</div>'
+                )
+            st.markdown(rows_html, unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="font-size:0.65rem;color:#9B8B7A;margin-top:0.4rem;">'
+                f'Showing {len(rows_to_show)} stocks · ⚠ = underperforms TOPIX by >{scr_threshold}% · Data via Yahoo Finance</div>',
+                unsafe_allow_html=True
+            )
+
+
+# ════════════════════════════════════════════════════════════
+# TAB — SIGNAL FEED (Corporate Action Signals)
+# ════════════════════════════════════════════════════════════
+with tab_signals:
+    st.markdown('<div class="section-title">🚦 Corporate Action Signal Feed</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="info-box">AI-classified corporate action signals from the latest news fetch. '
+        'Positive signals first. Only articles where Claude identified a specific corporate action '
+        'with medium or high confidence are shown. Fetch news first to populate.</div>',
+        unsafe_allow_html=True
+    )
+
+    # Collect all classified articles
+    _all_sig = []
+    _seen_sig = set()
+    for _sec_arts in st.session_state.get("articles", {}).values():
+        for _a in _sec_arts:
+            _url = _a.get("url", "")
+            if _url and _url not in _seen_sig and _a.get("corp_action", "none") != "none":
+                _seen_sig.add(_url)
+                _all_sig.append(_a)
+    # Also check source_map
+    for _src_arts in st.session_state.get("source_map", {}).values():
+        for _a in _src_arts:
+            _url = _a.get("url", "")
+            if _url and _url not in _seen_sig and _a.get("corp_action", "none") != "none":
+                _seen_sig.add(_url)
+                _all_sig.append(_a)
+
+    if not _all_sig:
+        st.markdown(
+            '<div class="empty-state">No signals yet — click <strong>🔄 News</strong> to fetch '
+            'and classify articles. Signals appear after the first fetch with ANTHROPIC_API_KEY set.</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        # ── Filters ──────────────────────────────────────────────────────────
+        _sig_col1, _sig_col2, _sig_col3 = st.columns([2, 2, 2])
+        with _sig_col1:
+            _dir_filter = st.multiselect(
+                "Direction:", ["positive", "negative", "mixed", "neutral"],
+                default=["positive", "negative", "mixed"],
+                key="sig_dir_filter", label_visibility="collapsed",
+                placeholder="Filter by direction..."
+            )
+        with _sig_col2:
+            _action_opts = sorted({
+                a.get("corp_action", "none")
+                for a in _all_sig
+                if a.get("corp_action", "none") != "none"
+            })
+            _action_labels = {
+                k: f"{CORP_ACTION_META.get(k, {}).get('emoji', '')} {CORP_ACTION_META.get(k, {}).get('label', k)}"
+                for k in _action_opts
+            }
+            _act_filter = st.multiselect(
+                "Action type:", options=_action_opts,
+                format_func=lambda k: _action_labels.get(k, k),
+                key="sig_act_filter", label_visibility="collapsed",
+                placeholder="Filter by action type..."
+            )
+        with _sig_col3:
+            _conf_filter = st.radio(
+                "Confidence:", ["All", "High + Medium", "High only"],
+                horizontal=True, key="sig_conf_filter", label_visibility="collapsed"
+            )
+
+        # ── Apply filters ─────────────────────────────────────────────────────
+        _filtered = _all_sig
+        if _dir_filter:
+            _filtered = [a for a in _filtered if a.get("action_direction", "neutral") in _dir_filter]
+        if _act_filter:
+            _filtered = [a for a in _filtered if a.get("corp_action") in _act_filter]
+        if _conf_filter == "High + Medium":
+            _filtered = [a for a in _filtered if a.get("signal_confidence") in ("high", "medium")]
+        elif _conf_filter == "High only":
+            _filtered = [a for a in _filtered if a.get("signal_confidence") == "high"]
+
+        # ── Sort: positive first, then mixed, then negative, then neutral;
+        #         within each group newest first ────────────────────────────
+        _dir_order = {"positive": 0, "mixed": 1, "negative": 2, "neutral": 3}
+        _priority_first = sorted(
+            _filtered,
+            key=lambda a: (
+                0 if a.get("is_priority_signal") else 1,
+                _dir_order.get(a.get("action_direction", "neutral"), 3),
+                -(a.get("pub_dt") or datetime.min).timestamp() if a.get("pub_dt") else 0
+            )
+        )
+
+        # Summary line
+        _pos = sum(1 for a in _filtered if a.get("action_direction") == "positive")
+        _neg = sum(1 for a in _filtered if a.get("action_direction") == "negative")
+        _mix = sum(1 for a in _filtered if a.get("action_direction") == "mixed")
+        st.markdown(
+            f'<div style="font-size:0.72rem;color:#6B6B6B;margin:0.3rem 0 0.6rem;">'
+            f'<strong>{len(_filtered)}</strong> signals · '
+            f'<span style="color:#2E7D32;font-weight:700;">{_pos} positive</span> · '
+            f'<span style="color:#C62828;font-weight:700;">{_neg} negative</span> · '
+            f'<span style="color:#E65100;font-weight:700;">{_mix} mixed</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        if not _priority_first:
+            st.markdown(
+                '<div class="info-box">No signals match the current filters.</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            def _signal_card(a):
+                action   = a.get("corp_action", "none")
+                meta     = CORP_ACTION_META.get(action, CORP_ACTION_META["none"])
+                dirn     = a.get("action_direction", "neutral")
+                conf     = a.get("signal_confidence", "low")
+                title    = a.get("translated_title") or a.get("title") or a.get("original_title", "")
+                url      = a.get("url", "#")
+                source   = a.get("source", "")
+                pub      = a.get("pub_date", "")
+                co_code  = a.get("company_code", "")
+                co_name  = a.get("company_name_clean", "")
+                is_prio  = a.get("is_priority_signal", False)
+                is_jp    = a.get("language", "en") == "ja"
+                orig     = a.get("original_title", "")
+
+                # Direction class for border
+                dir_class = {"positive": "pos", "negative": "neg", "mixed": "mix"}.get(dirn, "")
+                # Signal badge class
+                sig_class = f"signal-{dirn}" if dirn in ("positive","negative","mixed","neutral") else "signal-neutral"
+
+                prio_badge = '<span class="signal-priority">★ Priority</span>' if is_prio else ""
+                action_badge = (
+                    f'<span class="{sig_class}">'
+                    f'{meta.get("emoji","")} {meta.get("label","")}'
+                    f'</span>'
+                ) if meta.get("label") else ""
+                co_badge = (
+                    f'<span class="signal-company">{co_code} {co_name}</span>'
+                ) if co_code or co_name else ""
+                conf_dot = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(conf, "")
+                orig_part = (
+                    f'<div style="font-size:0.68rem;color:#9B8B7A;margin-top:0.1rem;">{orig}</div>'
+                ) if is_jp and orig and orig != title else ""
+
+                return (
+                    f'<div class="signal-card {dir_class}">'
+                    f'<div style="margin-bottom:0.18rem;">'
+                    f'{prio_badge}{action_badge}{co_badge}'
+                    f'<span style="font-size:0.6rem;color:#9B8B7A;">{conf_dot} {conf} confidence</span>'
+                    f'</div>'
+                    f'<div style="font-size:0.87rem;font-weight:600;line-height:1.35;">'
+                    f'<a href="{url}" target="_blank" style="color:#1A1A1A;text-decoration:none;">{title}</a>'
+                    f'</div>'
+                    f'{orig_part}'
+                    f'<div style="font-size:0.63rem;color:#9B8B7A;margin-top:0.18rem;">'
+                    f'{source}{(" · " + pub) if pub else ""}'
+                    f'</div>'
+                    f'</div>'
+                )
+
+            html_out = "".join(_signal_card(a) for a in _priority_first)
+            st.markdown(html_out, unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════════
 # TAB 6 — SUBSCRIBE
 # ════════════════════════════════════════════════════════════
 with tab_subscribe:
@@ -1729,6 +2608,39 @@ with tab_subscribe:
 
     st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
+    # ── Scheduler setup instructions ──────────────────────────────────────────
+    with st.expander("⚙️ Set up automatic digest delivery", expanded=False):
+        app_url = st.text_input(
+            "Your Streamlit app URL:",
+            placeholder="https://your-app.streamlit.app",
+            key="app_url_input",
+        )
+        token = get_secret("DIGEST_WEBHOOK_TOKEN") or "(not set)"
+        tok_display = token if token == "(not set)" else token[:6] + "…"
+        st.markdown(f"""
+**How it works:** The app has a built-in webhook that sends the digest when pinged with a URL parameter.
+Add `DIGEST_WEBHOOK_TOKEN = "your-secret"` to Streamlit Secrets to protect it.
+
+**Step 1 — Add to Streamlit Secrets:**
+```
+DIGEST_WEBHOOK_TOKEN = "choose-a-secret-token"
+SENDGRID_API_KEY = "your-sendgrid-key"
+DIGEST_FROM_EMAIL = "digest@yourdomain.com"
+```
+
+**Step 2 — Set up cron-job.org (free):**
+
+Go to [cron-job.org](https://cron-job.org) → New cronjob:
+
+| Edition | URL | Schedule |
+|---|---|---|
+| Pre-market (07:00 JST) | `{app_url or 'https://your-app.streamlit.app'}/?digest=premarket&token=your-secret` | `0 22 * * 0-4` (UTC Sun–Thu) |
+| Close-of-day (19:00 JST) | `{app_url or 'https://your-app.streamlit.app'}/?digest=close&token=your-secret` | `0 10 * * 1-5` (UTC Mon–Fri) |
+
+Current webhook token: `{tok_display}`
+""", unsafe_allow_html=False)
+
+    st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
     col_tab1, col_tab2 = st.columns(2)
     with col_tab1:
         st.markdown('<div class="section-subtitle">Subscribe</div>', unsafe_allow_html=True)

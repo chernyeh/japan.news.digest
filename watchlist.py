@@ -93,20 +93,44 @@ def get_company_aliases(company_name: str) -> list:
 
 
 def scan_articles_for_company(company_name: str, all_articles: list) -> list:
-    """Find all articles mentioning a specific company."""
+    """
+    Find all articles mentioning a specific company.
+    Matches on: keyword aliases in title, AI-extracted company_code,
+    and AI-extracted company_name_clean.
+    """
     aliases = get_company_aliases(company_name)
+
+    # Extract TSE code from aliases (4-digit numeric)
+    tse_code = next((a for a in aliases if a.isdigit() and len(a) == 4), None)
+
     matches = []
-
     for article in all_articles:
-        text = (
-            (article.get("translated_title") or article.get("title", "")) + " " +
-            article.get("original_title", "")
-        ).lower()
+        matched = False
 
-        for alias in aliases:
-            if alias and alias in text:
-                matches.append(article)
-                break
+        # 1. Match on AI-extracted company_code (fastest, most precise)
+        if tse_code and article.get("company_code") == tse_code:
+            matched = True
+
+        # 2. Match on AI-extracted company_name_clean
+        if not matched:
+            ai_name = (article.get("company_name_clean") or "").lower()
+            if ai_name and any(alias in ai_name or ai_name in alias
+                               for alias in aliases if len(alias) > 3):
+                matched = True
+
+        # 3. Fallback: keyword search in title
+        if not matched:
+            text = (
+                (article.get("translated_title") or article.get("title", "")) + " " +
+                article.get("original_title", "")
+            ).lower()
+            for alias in aliases:
+                if alias and len(alias) > 2 and alias in text:
+                    matched = True
+                    break
+
+        if matched:
+            matches.append(article)
 
     return matches
 
