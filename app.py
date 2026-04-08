@@ -317,14 +317,30 @@ html, body, [class*="css"] {
     line-height: 1.2; word-break: break-word;
 }
 
-/* Tabs */
+/* Tabs — scrollable, compact, no wrap */
 .stTabs [data-baseweb="tab-list"] {
-    background: transparent; gap: 0.25rem; border-bottom: 2px solid #1A1A1A;
+    background: transparent;
+    gap: 0.2rem;
+    border-bottom: 2px solid #1A1A1A;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: thin;
+    scrollbar-color: #8B4513 #EDE8E0;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+}
+.stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+    height: 3px;
+}
+.stTabs [data-baseweb="tab-list"]::-webkit-scrollbar-thumb {
+    background: #8B4513; border-radius: 2px;
 }
 .stTabs [data-baseweb="tab"] {
     background: #EDE8E0; border-radius: 3px 3px 0 0;
     font-size: 0.62rem; font-weight: 600; padding: 0.28rem 0.45rem;
     color: #6B6B6B; border: none;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
 }
 .stTabs [aria-selected="true"] {
     background: #1A1A1A !important; color: #F7F4EF !important;
@@ -984,14 +1000,39 @@ if _digest_trigger in ("premarket", "close"):
         st.error(f"Digest webhook error: {_e}")
     st.stop()
 
+# ── Quick-jump navigation above tabs ─────────────────────────────────────────
+_ALL_TABS = [
+    "📊 Markets", "🕐 By Time", "⚡ Breaking News", "📁 By Source", "📰 By Industry",
+    "🚦 Signals", "📋 Reg Filings", "📅 Earnings", "⭐ Watchlist", "🔬 Screener",
+    "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
+]
+_jump_col, _spacer = st.columns([2, 5])
+with _jump_col:
+    _jump_sel = st.selectbox(
+        "↗ Jump to tab",
+        options=_ALL_TABS,
+        key="tab_quick_jump",
+        label_visibility="collapsed",
+        placeholder="↗ Jump to tab…",
+    )
+# JS: click the matching tab and scroll it into view when dropdown changes
+_safe_label = _jump_sel.replace("'", "\'")
+st.markdown(
+    "<script>(function(){var l='" + _safe_label + "';"
+    "var ts=window.parent.document.querySelectorAll('[data-baseweb=\'tab\']');"
+    "ts.forEach(function(t){if(t.innerText.trim()===l){"
+    "t.click();t.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});"
+    "}});})()</script>",
+    unsafe_allow_html=True,
+)
+
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-(tab_market, tab_bytime, tab_breaking, tab_news, tab_bysource,
- tab_sources, tab_filings, tab_sentiment, tab_watchlist, tab_screener,
- tab_signals, tab_earnings, tab_subscribe) = st.tabs([
-    "📊 Markets", "🕐 By Time", "⚡ Breaking News", "📰 By Industry",
-    "📁 By Source", "🔗 Sources", "📋 Co Filings",
-    "🌡️ Sentiment", "⭐ Watchlist", "🔬 Screener",
-    "🚦 Signals", "📅 Earnings", "📬 Subscribe",
+(tab_market, tab_bytime, tab_breaking, tab_bysource, tab_news,
+ tab_signals, tab_filings, tab_earnings, tab_watchlist, tab_screener,
+ tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
+    "📊 Markets", "🕐 By Time", "⚡ Breaking News", "📁 By Source", "📰 By Industry",
+    "🚦 Signals", "📋 Reg Filings", "📅 Earnings", "⭐ Watchlist", "🔬 Screener",
+    "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
 
 # ════════════════════════════════════════════════════════════
