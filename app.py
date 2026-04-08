@@ -2681,11 +2681,13 @@ with tab_earnings:
 """)
 
     # ── Repo config ──────────────────────────────────────────────────────────
-    # Repo can be set in Streamlit Secrets as GITHUB_REPO, or entered below
-    _ec_repo_default = "chernyeh/japan-news-digest"
+    # Repo + token can be set in Streamlit Secrets
+    _ec_repo_default = "chernyeh/japan.news.digest"
+    _gh_token = None
     try:
         import streamlit as _st2
         _ec_repo = _st2.secrets.get("GITHUB_REPO", _ec_repo_default)
+        _gh_token = _st2.secrets.get("GITHUB_TOKEN", None)
     except Exception:
         _ec_repo = _ec_repo_default
 
@@ -2708,8 +2710,9 @@ with tab_earnings:
         import requests as _tr
         _api = f"https://api.github.com/repos/{_ec_repo}/contents/data/jpx_earnings"
         try:
-            _tr_resp = _tr.get(_api, timeout=8,
-                headers={"Accept": "application/vnd.github.v3+json"})
+            _tr_hdrs = {"Accept": "application/vnd.github.v3+json"}
+            if _gh_token: _tr_hdrs["Authorization"] = f"token {_gh_token}"
+            _tr_resp = _tr.get(_api, timeout=8, headers=_tr_hdrs)
             if _tr_resp.status_code == 200:
                 _files = [f["name"] for f in _tr_resp.json() if f.get("name","").endswith(".xlsx")]
                 if _files:
@@ -2717,7 +2720,18 @@ with tab_earnings:
                 else:
                     st.warning("⚠️ Folder found but no .xlsx files inside — upload the JPX Excel files.")
             elif _tr_resp.status_code == 404:
-                st.error(f"❌ Not found. Check the repo name. Got: {_ec_repo}/data/jpx_earnings")
+                st.error(
+                    f"❌ Not found: {_ec_repo}/data/jpx_earnings — "
+                    "If your repo is **private**, add `GITHUB_TOKEN` to Streamlit Secrets "
+                    "(Settings → Secrets). See instructions below."
+                )
+                st.info(
+                    "**To create a GitHub token:** github.com → Profile → Settings → "
+                    "Developer settings → Personal access tokens → Tokens (classic) → "
+                    "Generate new token → tick `repo` scope → copy the token → "
+                    "add to Streamlit Secrets as: `GITHUB_TOKEN = \"ghp_xxxx\"` "
+                    "(or make the repo public in repo Settings → Danger Zone)"
+                )
             else:
                 st.error(f"❌ GitHub API error: HTTP {_tr_resp.status_code}")
         except Exception as _te:
@@ -2739,7 +2753,7 @@ with tab_earnings:
 
     if ec_fetch or (not st.session_state.earnings_cal and ec_fetch):
         with st.spinner("Loading JPX Excel files from GitHub…"):
-            _raw = fetch_jpx_excel_from_github(_ec_repo)
+            _raw = fetch_jpx_excel_from_github(_ec_repo, token=_gh_token)
             if _raw:
                 st.session_state.earnings_cal = _raw
                 st.session_state.earnings_last_fetch = now_local()

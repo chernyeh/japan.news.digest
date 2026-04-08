@@ -574,25 +574,34 @@ def parse_jpx_earnings_excel(file_bytes: bytes, source_label: str = "") -> list:
     return results
 
 
-def fetch_jpx_excel_from_github(repo: str, branch: str = "main") -> list:
+def fetch_jpx_excel_from_github(repo: str, branch: str = "main", token: str = None) -> list:
     """
     Download and parse all JPX Excel files committed to a GitHub repo
     under the path data/jpx_earnings/*.xlsx.
 
-    repo: e.g. "chernyeh/japan-news-digest"
+    repo:   e.g. "chernyeh/japan.news.digest"
+    token:  GitHub personal access token (required for private repos)
     Returns combined list of earnings entries.
     """
     import requests as _req
 
-    base_url = f"https://raw.githubusercontent.com/{repo}/{branch}/data/jpx_earnings"
+    # Build request headers — include token if provided
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
 
-    # First get the directory listing via GitHub API
+    # Get the directory listing via GitHub API
     api_url = f"https://api.github.com/repos/{repo}/contents/data/jpx_earnings"
     try:
-        resp = _req.get(api_url, timeout=10,
-                        headers={"Accept": "application/vnd.github.v3+json"})
+        resp = _req.get(api_url, timeout=10, headers=headers)
+        if resp.status_code == 404:
+            if not token:
+                print("GitHub API 404 — repo may be private. Add GITHUB_TOKEN to Streamlit Secrets.")
+            else:
+                print(f"GitHub API 404 — check repo name and that token has repo access: {repo}")
+            return []
         if resp.status_code != 200:
-            print(f"GitHub API error: {resp.status_code}")
+            print(f"GitHub API error: {resp.status_code} — {resp.text[:100]}")
             return []
 
         files = [f for f in resp.json() if f.get("name", "").endswith(".xlsx")]
@@ -605,7 +614,9 @@ def fetch_jpx_excel_from_github(repo: str, branch: str = "main") -> list:
     for f in files:
         fname = f["name"]
         try:
-            file_resp = _req.get(f["download_url"], timeout=20)
+            # Use authenticated request for private repos
+            dl_url = f["download_url"]
+            file_resp = _req.get(dl_url, timeout=20, headers=headers)
             if file_resp.status_code == 200:
                 entries = parse_jpx_earnings_excel(file_resp.content, source_label=fname)
                 print(f"  {fname}: {len(entries)} entries")
