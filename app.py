@@ -2800,14 +2800,26 @@ with tab_earnings:
                             try:
                                 _dl = _ecr.get(_xf["download_url"], headers=_ec_headers, timeout=30)
                                 if _dl.status_code == 200:
-                                    from jquants import parse_jpx_earnings_excel
-                                    _parsed = parse_jpx_earnings_excel(_dl.content, source_label=_xf["name"])
+                                    import importlib, jquants as _jq_mod
+                                    importlib.reload(_jq_mod)
+                                    _parsed = _jq_mod.parse_jpx_earnings_excel(_dl.content, source_label=_xf["name"])
                                     st.info(f"{_xf['name']}: parsed {len(_parsed)} entries")
+                                    if len(_parsed) == 0:
+                                        # Debug: show first few rows
+                                        import openpyxl, io as _io2
+                                        _wb2 = openpyxl.load_workbook(_io2.BytesIO(_dl.content), data_only=True)
+                                        _ws2 = _wb2["List"] if "List" in _wb2.sheetnames else _wb2.active
+                                        _rows2 = list(_ws2.iter_rows(values_only=True))
+                                        st.warning(f"Sheet: {_ws2.title}, Rows: {len(_rows2)}, Cols: {_ws2.max_column}")
+                                        for _ri, _rw in enumerate(_rows2[:8]):
+                                            st.text(f"Row {_ri+1}: {[str(c)[:20] if c else None for c in _rw[:8]]}")
                                     _all_entries.extend(_parsed)
                                 else:
                                     st.error(f"Download failed for {_xf['name']}: HTTP {_dl.status_code}")
                             except Exception as _xe:
+                                import traceback
                                 st.error(f"Parse error for {_xf['name']}: {_xe}")
+                                st.code(traceback.format_exc())
                         if _all_entries:
                             _all_entries.sort(key=lambda x: x.get("announcement_date") or "9999")
                             st.session_state.earnings_cal = _all_entries
