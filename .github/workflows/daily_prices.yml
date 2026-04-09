@@ -1,20 +1,16 @@
 # .github/workflows/daily_prices.yml
-# Runs daily at 16:30 JST (07:30 UTC) after Tokyo market close
-# Fetches ALL daily stock prices from J-Quants in a single API call
-# and saves to data/jquants_prices_latest.csv in the repo
-
 name: J-Quants Daily Prices
 
 on:
   schedule:
-    - cron: '30 7 * * 1-5'   # 07:30 UTC = 16:30 JST, weekdays only
-  workflow_dispatch:           # allow manual trigger
+    - cron: '30 7 * * 1-5'
+  workflow_dispatch:
 
 jobs:
   fetch-prices:
     runs-on: ubuntu-latest
     permissions:
-      contents: write           # needed to push CSV back to repo
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -28,39 +24,29 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Fetch J-Quants daily prices
-        env:
-          JQUANTS_REFRESH_TOKEN: ${{ secrets.JQUANTS_REFRESH_TOKEN }}
+      - name: Write fetch script
         run: |
-          python3 - << 'EOF'
-          import requests, json, os, sys
+          cat > fetch_prices.py << 'PYEOF'
+          import requests
+          import csv
+          import os
+          import sys
           from datetime import datetime, timedelta
 
-          REFRESH_TOKEN = os.environ["JQUANTS_REFRESH_TOKEN"]
-          BASE = "https://api.jquants.com/v1"
+          API_KEY = os.environ["JQUANTS_API_KEY"]
+          BASE    = "https://api.jquants.com/v1"
+          HEADERS = {"x-api-key": API_KEY}
 
-          # Step 1: Get ID token (valid 24h)
-          r = requests.post(f"{BASE}/token/auth_refresh",
-                            params={"refreshtoken": REFRESH_TOKEN})
-          if r.status_code != 200:
-              print(f"Auth failed: {r.status_code} {r.text}")
-              sys.exit(1)
-          id_token = r.json()["idToken"]
-          headers = {"Authorization": f"Bearer {id_token}"}
-          print(f"Authenticated OK")
-
-          # Step 2: Find latest trading date (today or most recent weekday)
+          # Find latest trading date
           today = datetime.utcnow()
-          # If before 07:30 UTC (market not closed yet), use yesterday
           if today.hour < 8:
               today -= timedelta(days=1)
-          # Step back to Friday if weekend
           while today.weekday() >= 5:
               today -= timedelta(days=1)
           date_str = today.strftime("%Y%m%d")
-          print(f"Fetching prices for {date_str}")
+          print("Fetching prices for " + date_str)
 
-          # Step 3: Fetch ALL daily quotes for the date - single call
+          # Fetch all quotes for the date (paginated)
           all_quotes = []
           pagination_key = None
           page = 0
@@ -68,61 +54,54 @@ jobs:
               params = {"date": date_str}
               if pagination_key:
                   params["pagination_key"] = pagination_key
-              r = requests.get(f"{BASE}/prices/daily_quotes",
-                               headers=headers, params=params, timeout=60)
+              r = requests.get(BASE + "/prices/daily_quotes",
+                               headers=HEADERS, params=params, timeout=60)
               if r.status_code != 200:
-                  print(f"Price fetch failed: {r.status_code} {r.text[:200]}")
+                  print("Price fetch failed: " + str(r.status_code) + " " + r.text[:200])
                   sys.exit(1)
               data = r.json()
               quotes = data.get("daily_quotes", [])
               all_quotes.extend(quotes)
               pagination_key = data.get("pagination_key")
               page += 1
-              print(f"  Page {page}: {len(quotes)} quotes (total so far: {len(all_quotes)})")
+              print("Page " + str(page) + ": " + str(len(quotes)) + " quotes (total: " + str(len(all_quotes)) + ")")
               if not pagination_key:
                   break
 
           if not all_quotes:
-              print(f"No quotes returned for {date_str} — may be a holiday")
+              print("No quotes for " + date_str + " — likely a holiday, keeping existing file")
               sys.exit(0)
 
-          print(f"Total quotes: {len(all_quotes)}")
+          print("Total: " + str(len(all_quotes)) + " quotes")
 
-          # Step 4: Write CSV
-          import csv, io
           os.makedirs("data", exist_ok=True)
-          fieldnames = ["Code", "Date", "Open", "High", "Low", "Close",
-                        "Volume", "TurnoverValue", "AdjustmentFactor",
-                        "AdjustmentOpen", "AdjustmentHigh", "AdjustmentLow",
-                        "AdjustmentClose", "AdjustmentVolume"]
-
-          # Filter to only the fields we need to keep file small
-          keep = {"Code", "Date", "AdjustmentClose", "Close", "Volume", "TurnoverValue"}
-
-          outpath = "data/jquants_prices_latest.csv"
-          with open(outpath, "w", newline="", encoding="utf-8") as f:
-              writer = csv.DictWriter(f, fieldnames=["Code","Date","Close","AdjustmentClose",
-                                                      "Volume","TurnoverValue"])
+          with open("data/jquants_prices_latest.csv", "w", newline="", encoding="utf-8") as f:
+              writer = csv.DictWriter(f, fieldnames=["Code","Date","Close","AdjustmentClose","Volume","TurnoverValue"])
               writer.writeheader()
               for q in all_quotes:
                   writer.writerow({
-                      "Code": q.get("Code",""),
-                      "Date": q.get("Date",""),
-                      "Close": q.get("Close",""),
-                      "AdjustmentClose": q.get("AdjustmentClose",""),
-                      "Volume": q.get("Volume",""),
-                      "TurnoverValue": q.get("TurnoverValue",""),
+                      "Code":            q.get("Code", ""),
+                      "Date":            q.get("Date", ""),
+                      "Close":           q.get("Close", ""),
+                      "AdjustmentClose": q.get("AdjustmentClose", ""),
+                      "Volume":          q.get("Volume", ""),
+                      "TurnoverValue":   q.get("TurnoverValue", ""),
                   })
-          print(f"Written: {outpath}")
-          EOF
+          print("Written: data/jquants_prices_latest.csv")
+          PYEOF
 
-      - name: Commit and push CSV
+      - name: Run fetch script
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+        run: python fetch_prices.py
+
+      - name: Commit and push
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/jquants_prices_latest.csv
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
           else
             git commit -m "chore: update daily prices [skip ci]"
             git push
