@@ -715,7 +715,7 @@ def _safe_text(text: str) -> str:
     return _h.escape(str(text)) if text else ""
 
 
-def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn: bool = False):
+def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn = None):
     """
     Renders an AI-powered summary panel with a Generate button.
     Uses the Anthropic API (ANTHROPIC_API_KEY in Streamlit Secrets).
@@ -727,7 +727,7 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
     if session_key not in st.session_state:
         st.session_state[session_key] = None
 
-    if _override_btn:
+    if _override_btn is not None:
         # Button already rendered by caller — do NOT create another one
         gen_btn = _override_btn
         if st.session_state.get(session_key):
