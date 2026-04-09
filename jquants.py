@@ -569,89 +569,42 @@ def fetch_3m_performance_batch(codes: list) -> dict:
 
 def load_mktcap_from_github(repo: str, token: str = None) -> dict:
     """
-    Load market cap for all TSE companies from the J-Quants daily CSV files
-    stored in the GitHub repo by the cron workflows.
+    Load market cap for all TSE companies from the daily cron CSV.
+    The CSV contains: Code, Date, Close, MarketCapB
+    MarketCapB is fetched directly from Yahoo Finance v7 API by the cron job.
 
     Returns dict: {code_4digit: market_cap_b_float}
-    e.g. {"7203": 35420.5, "6758": 18900.2, ...}
-
-    Falls back gracefully if files not yet present.
     """
-    import requests
-    import csv
-    import io
+    import requests, csv, io, base64
 
-    headers = {"Accept": "application/vnd.github.v3.raw"}
+    headers = {"Accept": "application/vnd.github.v3+json"}
     if token:
         headers["Authorization"] = f"token {token}"
 
-    base = f"https://api.github.com/repos/{repo}/contents"
-
-    def fetch_csv(path):
-        url = f"{base}/{path}"
-        r = requests.get(url, headers=headers, timeout=15)
-        if r.status_code == 200:
-            # GitHub returns base64-encoded content for contents API
-            import base64, json
-            data = r.json()
-            raw = base64.b64decode(data["content"]).decode("utf-8")
-            reader = csv.DictReader(io.StringIO(raw))
-            return list(reader)
-        elif r.status_code == 404:
-            return None  # file not yet created by cron
-        else:
-            print(f"GitHub fetch error {r.status_code} for {path}")
-            return None
-
-    # Load prices
-    prices = fetch_csv("data/jquants_prices_latest.csv")
-    if not prices:
+    url = f"https://api.github.com/repos/{repo}/contents/data/jquants_prices_latest.csv"
+    r = requests.get(url, headers=headers, timeout=15)
+    if r.status_code == 404:
+        return {}
+    if r.status_code != 200:
+        print(f"Prices CSV fetch error: {r.status_code}")
         return {}
 
-    # Build price map: code -> AdjustmentClose (preferred) or Close
-    price_map = {}
-    price_date = None
-    for row in prices:
-        code = str(row.get("Code", "")).strip().zfill(4)[:4]
-        if not code or not code.isdigit():
-            continue
-        try:
-            close = float(row.get("AdjustmentClose") or row.get("Close") or 0)
-            if close > 0:
-                price_map[code] = close
-                if not price_date:
-                    price_date = row.get("Date", "")
-        except (ValueError, TypeError):
-            pass
-
-    # Load shares
-    shares = fetch_csv("data/jquants_shares.csv")
-    if not shares:
-        # No shares file yet — can only return empty
-        return {}
-
-    shares_map = {}
-    for row in shares:
-        code = str(row.get("Code", "")).strip().zfill(4)[:4]
-        if not code or not code.isdigit():
-            continue
-        try:
-            sh = int(float(row.get("SharesOutstanding", 0)))
-            if sh > 0:
-                shares_map[code] = sh
-        except (ValueError, TypeError):
-            pass
-
-    # Compute market cap
+    raw = base64.b64decode(r.json()["content"]).decode("utf-8")
+    reader = csv.DictReader(io.StringIO(raw))
     mktcap = {}
-    for code, price in price_map.items():
-        shares_count = shares_map.get(code)
-        if shares_count and shares_count > 0:
-            mktcap[code] = round((price * shares_count) / 1e9, 1)
+    for row in reader:
+        code = str(row.get("Code", "")).strip().zfill(4)[:4]
+        if not code or not code.isdigit():
+            continue
+        try:
+            mc = row.get("MarketCapB", "")
+            if mc and mc not in ("", "None", "null"):
+                mktcap[code] = float(mc)
+        except (ValueError, TypeError):
+            pass
 
-    print(f"Market cap loaded: {len(mktcap)} companies (prices date: {price_date})")
+    print(f"Market cap loaded: {len(mktcap)} companies")
     return mktcap
-
 
 
 def load_3m_perf_from_github(repo: str, token: str = None) -> dict:
