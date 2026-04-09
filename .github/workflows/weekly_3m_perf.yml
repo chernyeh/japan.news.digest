@@ -34,42 +34,62 @@ jobs:
           import sys
           from datetime import datetime
 
+          def fetch_closes(ticker):
+              """Download closes for a single ticker, handling MultiIndex safely."""
+              try:
+                  data = yf.download(ticker, period="4mo", auto_adjust=True,
+                                     progress=False)
+                  if data.empty:
+                      return None
+                  # yfinance sometimes returns MultiIndex columns for a single ticker
+                  if isinstance(data.columns, pd.MultiIndex):
+                      data.columns = data.columns.get_level_values(0)
+                  closes = data["Close"].dropna()
+                  # Flatten any remaining Series-of-Series issues
+                  if hasattr(closes.iloc[0], '__iter__'):
+                      closes = closes.apply(lambda x: float(x.iloc[0]) if hasattr(x, 'iloc') else float(x))
+                  return closes
+              except Exception as e:
+                  print(ticker + ": fetch error - " + str(e))
+                  return None
+
           def get_3m_return(closes):
+              """Compute 3-month return from a closes Series."""
               if closes is None or len(closes) < 2:
                   return None
-              cutoff = closes.index[-1] - pd.Timedelta(days=91)
-              old = closes[closes.index <= cutoff]
-              if len(old) == 0:
+              try:
+                  cutoff = closes.index[-1] - pd.Timedelta(days=91)
+                  old = closes[closes.index <= cutoff]
+                  if len(old) == 0:
+                      return None
+                  last  = float(closes.iloc[-1])
+                  first = float(old.iloc[-1])
+                  if first == 0:
+                      return None
+                  return (last / first - 1) * 100
+              except Exception as e:
+                  print("get_3m_return error: " + str(e))
                   return None
-              return float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
 
-          # ── Step 1: Get TOPIX 3M return — try multiple tickers ───────────────
+          # ── Step 1: TOPIX benchmark ───────────────────────────────────────────
           print("Fetching TOPIX benchmark...")
           topix_3m = None
-          topix_tickers = ["1306.T", "^TOPX", "^N300", "0168.T"]
-          # 1306.T = TOPIX ETF (NEXT FUNDS TOPIX), very liquid and reliable
-          # 0168.T = iShares TOPIX ETF
-          for ticker in topix_tickers:
-              try:
-                  data = yf.download(ticker, period="4mo", auto_adjust=True, progress=False)
-                  if not data.empty:
-                      closes = data["Close"].dropna()
-                      topix_3m = get_3m_return(closes)
-                      if topix_3m is not None:
-                          print("TOPIX benchmark via " + ticker + ": " + str(round(topix_3m, 2)) + "%")
-                          break
-                      else:
-                          print(ticker + ": data found but insufficient history")
-                  else:
-                      print(ticker + ": no data")
-              except Exception as e:
-                  print(ticker + ": error - " + str(e))
+          # 1306.T = NEXT FUNDS TOPIX ETF (most liquid TOPIX proxy on TSE)
+          for ticker in ["1306.T", "^TOPX", "^N300", "1308.T", "0168.T"]:
+              closes = fetch_closes(ticker)
+              ret = get_3m_return(closes)
+              if ret is not None:
+                  topix_3m = ret
+                  print("TOPIX benchmark via " + ticker + ": " + str(round(topix_3m, 2)) + "%")
+                  break
+              else:
+                  print(ticker + ": no usable data")
 
           if topix_3m is None:
-              print("Could not get TOPIX benchmark from any ticker - aborting")
+              print("Could not get TOPIX benchmark — aborting")
               sys.exit(1)
 
-          # ── Step 2: Load codes from existing prices CSV ───────────────────────
+          # ── Step 2: Load codes ────────────────────────────────────────────────
           codes = []
           if os.path.exists("data/jquants_prices_latest.csv"):
               with open("data/jquants_prices_latest.csv") as f:
@@ -77,15 +97,15 @@ jobs:
                       code = str(row.get("Code", "")).strip().zfill(4)[:4]
                       if code and code.isdigit():
                           codes.append(code)
-              print("Loaded " + str(len(codes)) + " codes from prices CSV")
+              print("Loaded " + str(len(codes)) + " codes")
           else:
-              print("No prices CSV found — run Daily Prices workflow first")
+              print("No prices CSV — run Daily Prices workflow first")
               sys.exit(1)
 
           tickers = [c + ".T" for c in codes]
           print("Computing 3M return for " + str(len(tickers)) + " stocks...")
 
-          # ── Step 3: Batch download and compute ────────────────────────────────
+          # ── Step 3: Batch download ────────────────────────────────────────────
           results = {}
           BATCH = 500
 
@@ -93,37 +113,36 @@ jobs:
               batch = tickers[i:i+BATCH]
               n = i // BATCH + 1
               total = (len(tickers) + BATCH - 1) // BATCH
-              print("Batch " + str(n) + "/" + str(total) + " (" + str(len(batch)) + " tickers)...")
+              print("Batch " + str(n) + "/" + str(total) + "...")
               try:
-                  if len(batch) == 1:
-                      raw = yf.download(batch[0], period="4mo", auto_adjust=True, progress=False)
-                      price_map = {batch[0]: raw} if not raw.empty else {}
-                  else:
-                      raw = yf.download(batch, period="4mo", auto_adjust=True,
-                                        progress=False, group_by="ticker")
-                      price_map = {}
-                      if not raw.empty:
-                          for t in batch:
-                              try:
-                                  df = raw[t].dropna(subset=["Close"])
-                                  if not df.empty:
-                                      price_map[t] = df
-                              except Exception:
-                                  pass
+                  raw = yf.download(batch, period="4mo", auto_adjust=True,
+                                    progress=False, group_by="ticker")
+                  if raw.empty:
+                      continue
 
                   for t in batch:
                       code = t.replace(".T", "")
                       try:
-                          if t not in price_map:
-                              continue
-                          ret = get_3m_return(price_map[t]["Close"].dropna())
+                          # Handle MultiIndex safely
+                          if isinstance(raw.columns, pd.MultiIndex):
+                              if t not in raw.columns.get_level_values(0):
+                                  continue
+                              closes = raw[t]["Close"].dropna()
+                          else:
+                              closes = raw["Close"].dropna()
+
+                          # Flatten if needed
+                          if len(closes) > 0 and hasattr(closes.iloc[0], '__iter__'):
+                              closes = closes.apply(lambda x: float(x.iloc[0]) if hasattr(x, 'iloc') else float(x))
+
+                          ret = get_3m_return(closes)
                           if ret is not None:
                               results[code] = round(ret - topix_3m, 1)
                       except Exception:
                           pass
 
               except Exception as e:
-                  print("  Batch " + str(n) + " error: " + str(e))
+                  print("Batch " + str(n) + " error: " + str(e))
 
           print("Computed " + str(len(results)) + " stocks")
 
