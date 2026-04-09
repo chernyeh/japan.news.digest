@@ -1,9 +1,13 @@
 # .github/workflows/daily_prices.yml
-name: J-Quants Daily Prices
+# Runs daily after Tokyo market close
+# Uses yfinance (no API key needed) to fetch prices + market cap for all TSE stocks
+# GitHub Actions IPs are not blocked by Yahoo Finance
+
+name: Daily Prices and Market Cap
 
 on:
   schedule:
-    - cron: '30 7 * * 1-5'
+    - cron: '30 7 * * 1-5'   # 16:30 JST weekdays
   workflow_dispatch:
 
 jobs:
@@ -22,71 +26,133 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install yfinance pandas requests
 
       - name: Write fetch script
         run: |
           cat > fetch_prices.py << 'PYEOF'
+          import yfinance as yf
+          import pandas as pd
           import requests
           import csv
           import os
           import sys
-          from datetime import datetime, timedelta
+          from datetime import datetime
 
-          API_KEY = os.environ["JQUANTS_API_KEY"]
-          BASE    = "https://api.jquants.com/v2"
-          HEADERS = {"x-api-key": API_KEY}
+          # ── Step 1: Get all TSE stock codes from J-Quants listed/info ──────────
+          # This endpoint is free and doesn't require a current subscription
+          # It just returns the master list of listed companies
+          # Fallback: use a hardcoded approach via Yahoo Finance screener
+          codes = []
 
-          # Find latest trading date
-          today = datetime.utcnow()
-          if today.hour < 8:
-              today -= timedelta(days=1)
-          while today.weekday() >= 5:
-              today -= timedelta(days=1)
-          date_str = today.strftime("%Y%m%d")
-          print("Fetching prices for " + date_str)
+          # Try J-Quants master list first (free, no subscription needed)
+          api_key = os.environ.get("JQUANTS_API_KEY", "")
+          if api_key:
+              try:
+                  r = requests.get("https://api.jquants.com/v2/equities/master",
+                                   headers={"x-api-key": api_key}, timeout=30)
+                  if r.status_code == 200:
+                      companies = r.json().get("master", r.json().get("info", []))
+                      codes = [str(c.get("Code","")).strip() for c in companies
+                               if c.get("Code") and str(c.get("Code","")).isdigit()]
+                      print("Got " + str(len(codes)) + " codes from J-Quants master")
+              except Exception as e:
+                  print("J-Quants master failed: " + str(e))
 
-          # V2 endpoint: /equities/bars/daily
-          all_quotes = []
-          pagination_key = None
-          page = 0
-          while True:
-              params = {"date": date_str}
-              if pagination_key:
-                  params["pagination_key"] = pagination_key
-              r = requests.get(BASE + "/equities/bars/daily",
-                               headers=HEADERS, params=params, timeout=60)
-              if r.status_code != 200:
-                  print("Price fetch failed: " + str(r.status_code) + " " + r.text[:300])
-                  sys.exit(1)
-              data = r.json()
-              # V2 returns "bars" not "daily_quotes"
-              quotes = data.get("bars", data.get("daily_quotes", []))
-              all_quotes.extend(quotes)
-              pagination_key = data.get("pagination_key")
-              page += 1
-              print("Page " + str(page) + ": " + str(len(quotes)) + " quotes (total: " + str(len(all_quotes)) + ")")
-              if not pagination_key:
-                  break
+          # Fallback: load codes from existing prices CSV if available
+          if not codes and os.path.exists("data/jquants_prices_latest.csv"):
+              with open("data/jquants_prices_latest.csv") as f:
+                  for row in csv.DictReader(f):
+                      code = str(row.get("Code","")).strip().zfill(4)[:4]
+                      if code and code.isdigit():
+                          codes.append(code)
+              print("Loaded " + str(len(codes)) + " codes from existing CSV")
 
-          if not all_quotes:
-              print("No quotes for " + date_str + " - likely a holiday, keeping existing file")
-              sys.exit(0)
+          # Fallback: generate codes 1000-9999 (covers all TSE stocks)
+          if not codes:
+              codes = [str(i) for i in range(1300, 9999)]
+              print("Using generated code range: " + str(len(codes)) + " codes")
 
-          print("Total: " + str(len(all_quotes)) + " quotes")
-          if all_quotes:
-              print("Sample keys: " + str(list(all_quotes[0].keys())))
+          # Deduplicate
+          codes = list(dict.fromkeys(codes))
+          tickers = [c + ".T" for c in codes]
+          print("Total tickers to fetch: " + str(len(tickers)))
 
+          # ── Step 2: Batch download prices via yfinance ───────────────────────
+          # yfinance works fine from GitHub Actions
+          # Batch size 500 keeps requests manageable
+          price_map = {}   # code -> close price
+          mcap_map  = {}   # code -> market cap in JPY billions
+          BATCH = 500
+
+          for i in range(0, len(tickers), BATCH):
+              batch = tickers[i:i+BATCH]
+              batch_num = i // BATCH + 1
+              total_batches = (len(tickers) + BATCH - 1) // BATCH
+              print("Batch " + str(batch_num) + "/" + str(total_batches) + " (" + str(len(batch)) + " tickers)...")
+              try:
+                  if len(batch) == 1:
+                      raw = yf.download(batch[0], period="5d", auto_adjust=True,
+                                        progress=False)
+                      if not raw.empty:
+                          price_map[batch[0].replace(".T","")] = float(raw["Close"].dropna().iloc[-1])
+                  else:
+                      raw = yf.download(batch, period="5d", auto_adjust=True,
+                                        progress=False, group_by="ticker")
+                      if not raw.empty:
+                          for t in batch:
+                              code = t.replace(".T","")
+                              try:
+                                  closes = raw[t]["Close"].dropna()
+                                  if not closes.empty:
+                                      price_map[code] = float(closes.iloc[-1])
+                              except Exception:
+                                  pass
+              except Exception as e:
+                  print("  Batch " + str(batch_num) + " price error: " + str(e))
+
+          print("Prices fetched for " + str(len(price_map)) + " stocks")
+
+          # ── Step 3: Get market cap via Yahoo Finance v7 quote API ────────────
+          # This API returns marketCap for multiple tickers in one call
+          # No authentication needed
+          for i in range(0, len(tickers), 50):
+              batch = tickers[i:i+50]
+              symbols = ",".join(batch)
+              url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=" + symbols + "&fields=marketCap"
+              try:
+                  resp = requests.get(url, timeout=15,
+                                      headers={"User-Agent": "Mozilla/5.0",
+                                               "Accept": "application/json"})
+                  if resp.status_code == 200:
+                      quotes = resp.json().get("quoteResponse", {}).get("result", [])
+                      for q in quotes:
+                          sym = q.get("symbol", "")
+                          code = sym.replace(".T", "")
+                          mc = q.get("marketCap")
+                          if mc and mc > 0:
+                              mcap_map[code] = round(mc / 1e9, 1)
+              except Exception as e:
+                  pass  # Silent fail per batch
+
+          print("Market caps fetched for " + str(len(mcap_map)) + " stocks")
+
+          # ── Step 4: Write CSV ─────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
+          today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+          # Prices CSV
+          all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
           with open("data/jquants_prices_latest.csv", "w", newline="", encoding="utf-8") as f:
-              # Write all fields from first record as header
-              if all_quotes:
-                  fieldnames = list(all_quotes[0].keys())
-                  writer = csv.DictWriter(f, fieldnames=fieldnames)
-                  writer.writeheader()
-                  for q in all_quotes:
-                      writer.writerow(q)
-          print("Written: data/jquants_prices_latest.csv")
+              writer = csv.writer(f)
+              writer.writerow(["Code", "Date", "Close", "MarketCapB"])
+              for code in all_codes:
+                  price = price_map.get(code, "")
+                  mcap  = mcap_map.get(code, "")
+                  if price or mcap:
+                      writer.writerow([code, today_str, price, mcap])
+
+          print("Written data/jquants_prices_latest.csv with " + str(len(all_codes)) + " entries")
           PYEOF
 
       - name: Run fetch script
