@@ -222,20 +222,48 @@ html, body, [class*="css"] {
 
 /* Article cards */
 .article-card { border-bottom: 1px solid #D9D3C8; padding: 0.7rem 0; }
-.article-source {
-    font-size: 0.63rem; font-weight: 700; letter-spacing: 0.13em;
-    text-transform: uppercase; color: #8B4513; margin-bottom: 0.15rem;
-}
+
+/* Unified article headline styles — used across all tabs */
 .article-title a {
-    font-size: 0.91rem; font-weight: 600; color: #1A1A1A;
-    text-decoration: none; line-height: 1.4;
+    font-size: 1.05rem; font-weight: 700; color: #1A1A1A;
+    text-decoration: none; line-height: 1.45;
 }
 .article-title a:hover { color: #8B4513; text-decoration: underline; }
-.article-title-jp {
-    font-family: 'Noto Sans JP', sans-serif; font-size: 0.7rem;
-    color: #9B8B7A; margin-top: 0.1rem; font-weight: 300;
+/* article-link: By Time / Breaking News use this class — same style */
+.article-link {
+    display: block; font-size: 1.05rem; font-weight: 700; color: #1A1A1A;
+    text-decoration: none; line-height: 1.45; margin-bottom: 0.1rem;
 }
-.article-meta { font-size: 0.65rem; color: #9B8B7A; margin-top: 0.12rem; }
+.article-link:hover { color: #8B4513; text-decoration: underline; }
+/* Japanese original title — shown below English translation */
+.article-title-jp {
+    font-family: 'Noto Sans JP', sans-serif; font-size: 0.88rem;
+    color: #9B8B7A; margin-top: 0.12rem; font-weight: 400;
+}
+/* original-title: By Time / Breaking News use this class — same style */
+.original-title {
+    font-family: 'Noto Sans JP', sans-serif; font-size: 0.88rem;
+    color: #9B8B7A; margin-top: 0.12rem; font-weight: 400;
+}
+.article-source {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.13em;
+    text-transform: uppercase; color: #8B4513; margin-bottom: 0.15rem;
+}
+.article-meta { font-size: 0.72rem; color: #9B8B7A; margin-top: 0.12rem; }
+/* Date headers in By Time tab */
+.date-group { margin-bottom: 0.5rem; }
+.date-header {
+    font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700;
+    color: #1A1A1A; border-bottom: 2px solid #1A1A1A;
+    padding-bottom: 0.3rem; margin: 1rem 0 0.5rem 0;
+}
+/* hv-badge: corp action tag in By Time */
+.hv-badge {
+    display: inline-block; background: #8B4513; color: white;
+    font-size: 0.64rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 0.08rem 0.35rem;
+    border-radius: 2px; margin-left: 0.35rem; vertical-align: middle;
+}
 .high-value-tag {
     display: inline-block; background: #8B4513; color: white;
     font-size: 0.57rem; font-weight: 700; letter-spacing: 0.07em;
@@ -300,12 +328,12 @@ html, body, [class*="css"] {
 .signal-card.neg { border-left-color: #C62828; }
 .signal-card.mix { border-left-color: #E65100; }
 .sector-header {
-    font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700;
+    font-family: 'Playfair Display', serif; font-size: 1.45rem; font-weight: 700;
     color: #1A1A1A; border-bottom: 2px solid #1A1A1A;
     padding-bottom: 0.3rem; margin-bottom: 0.15rem;
 }
 .sector-count {
-    font-size: 0.66rem; font-weight: 600; letter-spacing: 0.11em;
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.11em;
     text-transform: uppercase; color: #9B8B7A; margin-bottom: 0.75rem;
 }
 
