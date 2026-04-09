@@ -1,0 +1,151 @@
+# .github/workflows/weekly_shares.yml
+# Runs every Sunday at 02:00 UTC
+# Fetches shares outstanding for all listed companies from J-Quants
+# Shares outstanding changes slowly (quarterly), so weekly refresh is sufficient
+
+name: J-Quants Weekly Shares
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'     # 02:00 UTC Sunday
+  workflow_dispatch:          # allow manual trigger
+
+jobs:
+  fetch-shares:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch shares outstanding
+        env:
+          JQUANTS_REFRESH_TOKEN: ${{ secrets.JQUANTS_REFRESH_TOKEN }}
+        run: |
+          python3 - << 'EOF'
+          import requests, os, sys, csv
+          from datetime import datetime, timedelta
+
+          REFRESH_TOKEN = os.environ["JQUANTS_REFRESH_TOKEN"]
+          BASE = "https://api.jquants.com/v1"
+
+          # Auth
+          r = requests.post(f"{BASE}/token/auth_refresh",
+                            params={"refreshtoken": REFRESH_TOKEN})
+          if r.status_code != 200:
+              print(f"Auth failed: {r.status_code}")
+              sys.exit(1)
+          id_token = r.json()["idToken"]
+          headers = {"Authorization": f"Bearer {id_token}"}
+          print("Authenticated OK")
+
+          # Fetch all listed company info — includes market segment, sector
+          # On some plans also includes shares outstanding directly
+          r = requests.get(f"{BASE}/listed/info", headers=headers, timeout=30)
+          if r.status_code != 200:
+              print(f"Listed info failed: {r.status_code} {r.text[:200]}")
+              sys.exit(1)
+
+          companies = r.json().get("info", [])
+          print(f"Got {len(companies)} listed companies")
+
+          # Fetch latest financial statements to get shares outstanding
+          # /fins/statements returns per-company fundamental data
+          # We query recent statements to get the latest NumberOfSharesIssued
+          # Strategy: fetch statements for last 90 days (covers all companies
+          # that reported in last quarter) + fill gaps from listed/info
+          shares_map = {}  # code -> shares
+
+          # First pass: extract from listed/info if available
+          for c in companies:
+              code = str(c.get("Code","")).strip()
+              shares = c.get("NumberOfShares") or c.get("TotalNumberOfIssuedShares")
+              if shares and code:
+                  try:
+                      shares_map[code] = int(float(shares))
+                  except (ValueError, TypeError):
+                      pass
+
+          print(f"Shares from listed/info: {len(shares_map)}")
+
+          # Second pass: fetch from fins/statements for all companies
+          # This gets more up-to-date shares outstanding per fiscal report
+          # Query by date range to get all recent filings
+          today = datetime.utcnow()
+          shares_from_fins = {}
+
+          # Paginate through fins/statements for all codes
+          # Use /fins/statements without code param + date range
+          # Fetch last 6 months of statements to cover all companies
+          for days_back in range(0, 180, 30):
+              date_from = (today - timedelta(days=days_back+30)).strftime("%Y-%m-%d")
+              date_to   = (today - timedelta(days=days_back)).strftime("%Y-%m-%d")
+              pagination_key = None
+              page = 0
+              while True:
+                  params = {"date_from": date_from, "date_to": date_to}
+                  if pagination_key:
+                      params["pagination_key"] = pagination_key
+                  r = requests.get(f"{BASE}/fins/statements",
+                                   headers=headers, params=params, timeout=60)
+                  if r.status_code != 200:
+                      break
+                  data = r.json()
+                  stmts = data.get("statements", [])
+                  for s in stmts:
+                      code = str(s.get("LocalCode","") or s.get("Code","")).strip()
+                      if not code:
+                          continue
+                      # Take the most recently filed share count
+                      raw = (s.get("NumberOfIssuedAndOutstandingSharesAtTheEndOfFiscalYearIncludingTreasuryStock")
+                             or s.get("NumberOfSharesIssued")
+                             or s.get("IssuedSharesTotalNumber"))
+                      if raw and code:
+                          try:
+                              shares_from_fins[code] = int(float(raw))
+                          except (ValueError, TypeError):
+                              pass
+                  pagination_key = data.get("pagination_key")
+                  page += 1
+                  if not pagination_key or page > 10:
+                      break
+              print(f"  Period {date_from} to {date_to}: {len(shares_from_fins)} companies so far")
+
+          # Merge: fins/statements takes priority (more up to date)
+          shares_map.update(shares_from_fins)
+          print(f"Total shares data: {len(shares_map)} companies")
+
+          # Write CSV
+          os.makedirs("data", exist_ok=True)
+          outpath = "data/jquants_shares.csv"
+          with open(outpath, "w", newline="", encoding="utf-8") as f:
+              writer = csv.writer(f)
+              writer.writerow(["Code", "SharesOutstanding", "UpdatedDate"])
+              today_str = today.strftime("%Y-%m-%d")
+              for code, shares in sorted(shares_map.items()):
+                  writer.writerow([code, shares, today_str])
+
+          print(f"Written {outpath} with {len(shares_map)} entries")
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/jquants_shares.csv
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: update shares outstanding [skip ci]"
+            git push
+          fi
