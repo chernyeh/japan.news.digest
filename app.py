@@ -1000,31 +1000,6 @@ if _digest_trigger in ("premarket", "close"):
         st.error(f"Digest webhook error: {_e}")
     st.stop()
 
-# ── Quick-jump navigation above tabs ─────────────────────────────────────────
-_ALL_TABS = [
-    "📊 Markets", "🕐 By Time", "⚡ Breaking News", "📁 By Source", "📰 By Industry",
-    "🚦 Signals", "📋 Reg Filings", "📅 Earnings", "⭐ Watchlist", "🔬 Screener",
-    "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
-]
-_jump_col, _spacer = st.columns([2, 5])
-with _jump_col:
-    _jump_sel = st.selectbox(
-        "↗ Jump to tab",
-        options=_ALL_TABS,
-        key="tab_quick_jump",
-        label_visibility="collapsed",
-        placeholder="↗ Jump to tab…",
-    )
-# JS: click the matching tab and scroll it into view when dropdown changes
-_safe_label = _jump_sel.replace("'", "\'")
-st.markdown(
-    "<script>(function(){var l='" + _safe_label + "';"
-    "var ts=window.parent.document.querySelectorAll('[data-baseweb=\'tab\']');"
-    "ts.forEach(function(t){if(t.innerText.trim()===l){"
-    "t.click();t.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});"
-    "}});})()</script>",
-    unsafe_allow_html=True,
-)
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 (tab_market, tab_bytime, tab_breaking, tab_bysource, tab_news,
@@ -2792,17 +2767,46 @@ with tab_earnings:
     with ec_col3:
         ec_fetch = st.button("🔄 Load from GitHub", use_container_width=True, key="btn_ec_fetch")
 
-    if ec_fetch or (not st.session_state.earnings_cal and ec_fetch):
+    if ec_fetch:
         with st.spinner("Loading JPX Excel files from GitHub…"):
-            _raw = fetch_jpx_excel_from_github(_ec_repo, token=_gh_token)
-            if _raw:
-                st.session_state.earnings_cal = _raw
-                st.session_state.earnings_last_fetch = now_local()
-            else:
-                st.warning(
-                    "No Excel files found in `data/jpx_earnings/` folder of your GitHub repo. "
-                    "Follow the setup guide above to upload JPX Excel files."
-                )
+            import requests as _ecr
+            _ec_headers = {"Accept": "application/vnd.github.v3+json"}
+            if _gh_token:
+                _ec_headers["Authorization"] = f"token {_gh_token}"
+            _api_url = f"https://api.github.com/repos/{_ec_repo}/contents/data/jpx_earnings"
+            try:
+                _dir_resp = _ecr.get(_api_url, headers=_ec_headers, timeout=10)
+                if _dir_resp.status_code != 200:
+                    st.error(f"GitHub API error {_dir_resp.status_code}: {_dir_resp.text[:200]}")
+                else:
+                    _dir_items = _dir_resp.json()
+                    _xlsx_files = [f for f in _dir_items if isinstance(f, dict) and f.get("name","").lower().endswith(".xlsx")]
+                    if not _xlsx_files:
+                        st.warning(f"Folder found but no .xlsx files inside. Files found: {[f.get('name') for f in _dir_items]}")
+                    else:
+                        st.info(f"Found files: {[f['name'] for f in _xlsx_files]} — parsing…")
+                        _all_entries = []
+                        for _xf in _xlsx_files:
+                            try:
+                                _dl = _ecr.get(_xf["download_url"], headers=_ec_headers, timeout=30)
+                                if _dl.status_code == 200:
+                                    from jquants import parse_jpx_earnings_excel
+                                    _parsed = parse_jpx_earnings_excel(_dl.content, source_label=_xf["name"])
+                                    st.info(f"{_xf['name']}: parsed {len(_parsed)} entries")
+                                    _all_entries.extend(_parsed)
+                                else:
+                                    st.error(f"Download failed for {_xf['name']}: HTTP {_dl.status_code}")
+                            except Exception as _xe:
+                                st.error(f"Parse error for {_xf['name']}: {_xe}")
+                        if _all_entries:
+                            _all_entries.sort(key=lambda x: x.get("announcement_date") or "9999")
+                            st.session_state.earnings_cal = _all_entries
+                            st.session_state.earnings_last_fetch = now_local()
+                            st.success(f"✅ Loaded {len(_all_entries)} entries from {len(_xlsx_files)} file(s)")
+                        else:
+                            st.warning("Files downloaded but no entries parsed — check the Streamlit logs for details.")
+            except Exception as _ece:
+                st.error(f"Fetch error: {_ece}")
 
         if st.session_state.earnings_cal:
             _codes = list({e["code"] for e in st.session_state.earnings_cal if e.get("code")})
