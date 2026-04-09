@@ -728,23 +728,29 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
         st.session_state[session_key] = None
 
     if _override_btn:
+        # Button already rendered by caller — do NOT create another one
         gen_btn = _override_btn
-        col_s1 = st  # use full width for status
+        if st.session_state.get(session_key):
+            _sum_ts = st.session_state.get(session_key + "_ts")
+            _sum_ts_str = (" · " + format_local_dt(_sum_ts)) if _sum_ts else ""
+            st.markdown(
+                f'<div style="font-size:0.65rem;color:#9B8B7A;">✨ briefing generated{_sum_ts_str}</div>',
+                unsafe_allow_html=True
+            )
     else:
         col_s1, col_s2 = st.columns([4, 1])
         with col_s2:
             gen_btn = st.button("✨ Summarise", key=f"btn_{session_key}", use_container_width=True)
-    if not _override_btn:
-        col_s1 = col_s1
-    with col_s1:
-        if st.session_state[session_key]:
-            _sum_ts = st.session_state.get(session_key + "_ts")
-            _sum_ts_str = (" · generated " + format_local_dt(_sum_ts)) if _sum_ts else ""
-            st.markdown(
-                f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'  
-                f'✨ AI briefing{_sum_ts_str} · click Summarise to refresh</div>',
-                unsafe_allow_html=True
-            )
+        with col_s1:
+            if st.session_state.get(session_key):
+                _sum_ts = st.session_state.get(session_key + "_ts")
+                _sum_ts_str = (" · generated " + format_local_dt(_sum_ts)) if _sum_ts else ""
+                st.markdown(
+                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'
+                    f'✨ AI briefing{_sum_ts_str} · click Summarise to refresh</div>',
+                    unsafe_allow_html=True
+                )
+
 
     if gen_btn:
         if not articles:
