@@ -308,132 +308,6 @@ def get_performance_band(vs_topix_pct: float) -> dict:
         return {"color": "#B71C1C", "bg": "#FFCDD2", "label": f"{vs_topix_pct:.1f}%", "emoji": "🔴"}
 
 
-def fetch_3m_performance_batch(codes: list) -> dict:
-    """
-    Fetch 3-month price performance for a list of TSE codes vs TOPIX.
-    Uses yfinance. Returns dict: {code: vs_topix_pct or None}
-
-    codes: list of 4-digit strings e.g. ["7203", "6758"]
-    """
-    try:
-        import yfinance as yf
-        import pandas as pd
-        from datetime import date as _date, timedelta as _td
-    except ImportError:
-        return {}
-
-    if not codes:
-        return {}
-
-    # Build ticker list
-    tickers = [f"{c}.T" for c in codes] + ["^TOPX"]
-
-    try:
-        raw = yf.download(
-            tickers,
-            period="4mo",   # 4 months to ensure we have 3 full months
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-            group_by="ticker",
-        )
-    except Exception as e:
-        print(f"yfinance batch error: {e}")
-        return {}
-
-    results = {}
-
-    # Get TOPIX 3M return
-    topix_3m = None
-    try:
-        if len(tickers) > 1:
-            topix_closes = raw["^TOPX"]["Close"].dropna() if "^TOPX" in raw.columns.get_level_values(0) else None
-        else:
-            topix_closes = raw["Close"].dropna()
-
-        if topix_closes is not None and len(topix_closes) >= 2:
-            cutoff = topix_closes.index[-1] - pd.Timedelta(days=91)
-            old_prices = topix_closes[topix_closes.index <= cutoff]
-            if len(old_prices) > 0:
-                topix_3m = (topix_closes.iloc[-1] / old_prices.iloc[-1] - 1) * 100
-    except Exception as e:
-        print(f"TOPIX 3M error: {e}")
-
-    # Get each stock's 3M return
-    for code in codes:
-        ticker = f"{code}.T"
-        try:
-            if len(tickers) > 1:
-                closes = raw[ticker]["Close"].dropna() if ticker in raw.columns.get_level_values(0) else None
-            else:
-                closes = raw["Close"].dropna()
-
-            if closes is None or len(closes) < 2:
-                results[code] = None
-                continue
-
-            import pandas as _pd
-            cutoff = closes.index[-1] - _pd.Timedelta(days=91)
-            old_prices = closes[closes.index <= cutoff]
-            if len(old_prices) == 0:
-                results[code] = None
-                continue
-
-            stock_3m = (closes.iloc[-1] / old_prices.iloc[-1] - 1) * 100
-            if topix_3m is not None:
-                results[code] = round(float(stock_3m) - float(topix_3m), 1)
-            else:
-                results[code] = round(float(stock_3m), 1)
-        except Exception:
-            results[code] = None
-
-    return results
-
-
-# ── JPX Excel Earnings Calendar ───────────────────────────────────────────────
-
-# Column name mappings from Japanese Excel headers to English
-# Based on known JPX Excel format for earnings announcement schedules
-JPX_COL_MAP = {
-    # Announcement date column (first data column)
-    "発表予定日":         "announcement_date",
-    "決算発表予定日":      "announcement_date",
-    # Company code
-    "コード":             "code",
-    "証券コード":         "code",
-    # Company name
-    "会社名":             "name",
-    "社名":               "name",
-    # Market segment
-    "市場区分":           "market",
-    "市場・商品区分":     "market",
-    # Period type (FY, Q1, Q2, Q3)
-    "決算期区分":         "period_type",
-    "期区分":             "period_type",
-    # Fiscal year end
-    "決算期":             "fiscal_year_end",
-    "期末":               "fiscal_year_end",
-    # Sector
-    "業種":               "sector",
-    "33業種":             "sector",
-}
-
-# Period type translation from Japanese
-PERIOD_TYPE_MAP = {
-    "本決算":    "Full Year",
-    "第１四半期": "Q1",
-    "第2四半期":  "Q2",
-    "第３四半期": "Q3",
-    "第1四半期":  "Q1",
-    "第２四半期": "Q2",
-    "第3四半期":  "Q3",
-    "第４四半期": "Q4",
-    "第4四半期":  "Q4",
-    "半期":       "Half Year",
-    "中間":       "Half Year",
-}
-
-
 def parse_jpx_earnings_excel(file_bytes: bytes, source_label: str = "") -> list:
     """
     Parse a JPX earnings announcement Excel file.
@@ -577,6 +451,106 @@ def fetch_jpx_excel_from_github(repo: str, branch: str = "main", token: str = No
     # Sort by announcement date
     all_entries.sort(key=lambda x: x.get("announcement_date") or "9999")
     return all_entries
+
+
+def fetch_market_data_batch(codes: list) -> dict:
+    """
+    Fetch market cap and 3M vs TOPIX performance for a list of TSE codes.
+    Designed for small batches (20-200 stocks) from the filtered earnings view.
+    
+    Returns dict: {code: {market_cap_b: float|None, vs_topix_3m: float|None}}
+    market_cap_b = market cap in JPY billions
+    vs_topix_3m  = 3M return minus TOPIX 3M return, in percentage points
+    """
+    try:
+        import yfinance as yf
+        import pandas as pd
+    except ImportError:
+        return {}
+
+    if not codes:
+        return {}
+
+    results = {c: {"market_cap_b": None, "vs_topix_3m": None} for c in codes}
+
+    # Step 1: Get TOPIX 3M return as benchmark
+    topix_3m = None
+    try:
+        topix_data = yf.download("^TOPX", period="4mo", auto_adjust=True,
+                                  progress=False)
+        if not topix_data.empty and len(topix_data) >= 2:
+            closes = topix_data["Close"].dropna()
+            cutoff = closes.index[-1] - pd.Timedelta(days=91)
+            old = closes[closes.index <= cutoff]
+            if len(old) > 0:
+                topix_3m = float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
+    except Exception as e:
+        print(f"TOPIX fetch error: {e}")
+
+    # Step 2: Batch download all stock prices
+    tickers = [f"{c}.T" for c in codes]
+    try:
+        if len(tickers) == 1:
+            raw = yf.download(tickers[0], period="4mo", auto_adjust=True,
+                              progress=False)
+            price_map = {tickers[0]: raw} if not raw.empty else {}
+        else:
+            raw = yf.download(tickers, period="4mo", auto_adjust=True,
+                              progress=False, group_by="ticker")
+            price_map = {}
+            if not raw.empty:
+                for t in tickers:
+                    try:
+                        df = raw[t].dropna(subset=["Close"])
+                        if not df.empty:
+                            price_map[t] = df
+                    except Exception:
+                        pass
+    except Exception as e:
+        print(f"Price batch error: {e}")
+        price_map = {}
+
+    # Step 3: Compute 3M return per stock
+    for code in codes:
+        ticker = f"{code}.T"
+        try:
+            if ticker not in price_map:
+                continue
+            closes = price_map[ticker]["Close"].dropna()
+            if len(closes) < 2:
+                continue
+            cutoff = closes.index[-1] - pd.Timedelta(days=91)
+            old = closes[closes.index <= cutoff]
+            if len(old) == 0:
+                continue
+            stock_3m = float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
+            if topix_3m is not None:
+                results[code]["vs_topix_3m"] = round(stock_3m - topix_3m, 1)
+            else:
+                results[code]["vs_topix_3m"] = round(stock_3m, 1)
+        except Exception:
+            pass
+
+    # Step 4: Get market caps via fast_info (faster than .info)
+    for code in codes:
+        ticker = f"{code}.T"
+        try:
+            t = yf.Ticker(ticker)
+            mc = t.fast_info.market_cap
+            if mc and mc > 0:
+                results[code]["market_cap_b"] = round(mc / 1e9, 1)
+        except Exception:
+            pass
+
+    return results
+
+
+# Keep old name as alias for backwards compatibility
+def fetch_3m_performance_batch(codes: list) -> dict:
+    """Legacy wrapper — returns {code: vs_topix_pct}"""
+    data = fetch_market_data_batch(codes)
+    return {c: v.get("vs_topix_3m") for c, v in data.items()}
+
 
 
 def filter_upcoming(entries: list, days_ahead: int = 60) -> list:

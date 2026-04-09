@@ -16,6 +16,7 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      fetch_financial_summary, format_summary_for_display,
                      safe_num, guidance_direction,
                      get_performance_band, fetch_3m_performance_batch,
+                     fetch_market_data_batch,
                      fetch_jpx_excel_from_github, filter_upcoming)
 
 # ── Shared in-memory cache (survives browser close, lives as long as app is awake) ──
@@ -2706,8 +2707,7 @@ with tab_earnings:
 **Tip:** The March FY file is the most important — it covers ~70% of TOPIX companies.
 """)
 
-    # ── Repo config ──────────────────────────────────────────────────────────
-    # Repo + token can be set in Streamlit Secrets
+    # ── Repo config (silent — set via Streamlit Secrets) ────────────────────
     _ec_repo_default = "chernyeh/japan.news.digest"
     _gh_token = None
     try:
@@ -2717,51 +2717,6 @@ with tab_earnings:
     except Exception:
         _ec_repo = _ec_repo_default
 
-    # Allow manual override in the UI
-    _repo_col, _ = st.columns([3, 2])
-    with _repo_col:
-        _ec_repo = st.text_input(
-            "GitHub repo (owner/name):",
-            value=_ec_repo,
-            key="ec_repo_input",
-            help="Your GitHub repo in the format: username/repo-name",
-        )
-
-    # ── Controls ─────────────────────────────────────────────────────────────
-    # Test button to verify repo path before loading
-    _test_col1, _test_col2, _test_col3 = st.columns([2, 1, 2])
-    with _test_col2:
-        _test_btn = st.button("🔗 Test repo", use_container_width=True, key="btn_ec_test")
-    if _test_btn:
-        import requests as _tr
-        _api = f"https://api.github.com/repos/{_ec_repo}/contents/data/jpx_earnings"
-        try:
-            _tr_hdrs = {"Accept": "application/vnd.github.v3+json"}
-            if _gh_token: _tr_hdrs["Authorization"] = f"token {_gh_token}"
-            _tr_resp = _tr.get(_api, timeout=8, headers=_tr_hdrs)
-            if _tr_resp.status_code == 200:
-                _files = [f["name"] for f in _tr_resp.json() if f.get("name","").endswith(".xlsx")]
-                if _files:
-                    st.success(f"✅ Found {len(_files)} Excel file(s): {", ".join(_files)}")
-                else:
-                    st.warning("⚠️ Folder found but no .xlsx files inside — upload the JPX Excel files.")
-            elif _tr_resp.status_code == 404:
-                st.error(
-                    f"❌ Not found: {_ec_repo}/data/jpx_earnings — "
-                    "If your repo is **private**, add `GITHUB_TOKEN` to Streamlit Secrets "
-                    "(Settings → Secrets). See instructions below."
-                )
-                st.info(
-                    "**To create a GitHub token:** github.com → Profile → Settings → "
-                    "Developer settings → Personal access tokens → Tokens (classic) → "
-                    "Generate new token → tick `repo` scope → copy the token → "
-                    "add to Streamlit Secrets as: `GITHUB_TOKEN = \"ghp_xxxx\"` "
-                    "(or make the repo public in repo Settings → Danger Zone)"
-                )
-            else:
-                st.error(f"❌ GitHub API error: HTTP {_tr_resp.status_code}")
-        except Exception as _te:
-            st.error(f"❌ Connection error: {_te}")
 
     ec_col1, ec_col2, ec_col3 = st.columns([2, 2, 1])
     with ec_col1:
@@ -2830,11 +2785,9 @@ with tab_earnings:
             except Exception as _ece:
                 st.error(f"Fetch error: {_ece}")
 
-        if st.session_state.earnings_cal:
-            _codes = list({e["code"] for e in st.session_state.earnings_cal if e.get("code")})
-            if _codes:
-                with st.spinner(f"Fetching 3M price performance for {len(_codes)} companies (~20s)…"):
-                    st.session_state.earnings_perf = fetch_3m_performance_batch(_codes)
+        # Do NOT auto-fetch market data for all 3000 companies — too slow.
+        # Market data is fetched lazily per filtered view via the button below.
+        st.session_state.earnings_perf = {}  # reset; will populate per-view
 
     cal_all  = st.session_state.earnings_cal
     perf_map = st.session_state.earnings_perf
@@ -2913,13 +2866,28 @@ with tab_earnings:
         else:
             # Summary
             _wl_hits = sum(1 for e in cal_filtered if e.get("code") in _wl_codes)
-            st.markdown(
-                f'<div style="font-size:0.72rem;color:#6B6B6B;margin-bottom:0.6rem;">'
-                f'<strong>{len(cal_filtered):,}</strong> companies · '
-                f'<span style="color:#F9A825;font-weight:700;">★ {_wl_hits} on your watchlist</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+            _mkt_col1, _mkt_col2 = st.columns([5, 2])
+            with _mkt_col1:
+                st.markdown(
+                    f'<div style="font-size:0.72rem;color:#6B6B6B;margin-bottom:0.3rem;">'
+                    f'<strong>{len(cal_filtered):,}</strong> companies · '
+                    f'<span style="color:#F9A825;font-weight:700;">★ {_wl_hits} on your watchlist</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            with _mkt_col2:
+                _load_mkt = st.button("📊 Load mkt cap + perf", key="btn_ec_mkt",
+                                      use_container_width=True,
+                                      help="Fetches market cap and 3M vs TOPIX for the companies currently visible")
+            if _load_mkt:
+                _vis_codes = list({e.get("code","") for e in cal_filtered if e.get("code")})
+                if _vis_codes:
+                    with st.spinner(f"Fetching market data for {len(_vis_codes)} companies… (~30s)"):
+                        _new_perf = fetch_market_data_batch(_vis_codes)
+                        # Merge into existing cache
+                        for _mc, _mv in _new_perf.items():
+                            st.session_state.earnings_perf[_mc] = _mv
+                    st.success(f"✅ Market data loaded for {len(_vis_codes)} companies")
 
             # Group by announcement date
             from collections import defaultdict as _dd
@@ -2960,18 +2928,21 @@ with tab_earnings:
                     unsafe_allow_html=True,
                 )
 
+
                 # Table header
                 st.markdown(
-                    '<div style="display:grid;grid-template-columns:1.5rem 0.8fr 0.5fr 0.7fr 1fr 1fr;"'
+                    '<div style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;"'
                     ' gap:0.25rem;padding:0.2rem 0.35rem;background:#1A1A1A;color:#F7F4EF;'
                     'font-size:0.57rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
                     'border-radius:3px 3px 0 0;">'
                     '<div></div><div>Company</div><div>Code</div>'
                     '<div>Period</div><div>Sector</div>'
+                    '<div style="text-align:right;">Mkt Cap ¥B</div>'
                     '<div style="text-align:right;">3M vs TOPIX</div>'
                     '</div>',
                     unsafe_allow_html=True,
                 )
+
 
                 # Sort: watchlist first, then alphabetical
                 _sorted_entries = sorted(
@@ -2991,8 +2962,16 @@ with tab_earnings:
                     _star   = "★ " if _is_wl else ""
                     _weight = "700" if _is_wl else "500"
 
-                    _perf = perf_map.get(_code)
+                    _mkt_data = perf_map.get(_code, {})
+                    if isinstance(_mkt_data, dict):
+                        _perf = _mkt_data.get("vs_topix_3m")
+                        _mcap = _mkt_data.get("market_cap_b")
+                    else:
+                        # Legacy format: just a number
+                        _perf = _mkt_data if isinstance(_mkt_data, (int, float)) else None
+                        _mcap = None
                     _band = get_performance_band(_perf)
+                    _mcap_str = f"¥{_mcap:,.0f}B" if _mcap else "—"
 
                     _perf_cell = (
                         f'<div style="text-align:right;">'
@@ -3001,8 +2980,11 @@ with tab_earnings:
                         f'{_band["emoji"]} {_band["label"]}</span></div>'
                     )
 
+                    _mcap_cell = (
+                        f'<div style="text-align:right;font-size:0.68rem;color:#1A1A1A;font-family:monospace;">{_mcap_str}</div>'
+                    )
                     rows_html += (
-                        f'<div style="display:grid;grid-template-columns:1.5rem 0.8fr 0.5fr 0.7fr 1fr 1fr;'
+                        f'<div style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;'
                         f'gap:0.25rem;padding:0.28rem 0.35rem;background:{_bg};{_border}'
                         f'border-bottom:1px solid #EDE8E0;align-items:center;">'
                         f'<div style="color:#F9A825;font-size:0.72rem;">{_star}</div>'
@@ -3010,6 +2992,7 @@ with tab_earnings:
                         f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;">{_code}</div>'
                         f'<div style="font-size:0.68rem;">{_period}</div>'
                         f'<div style="font-size:0.62rem;color:#6B6B6B;">{_sector}</div>'
+                        f'{_mcap_cell}'
                         f'{_perf_cell}'
                         f'</div>'
                     )
