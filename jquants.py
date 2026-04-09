@@ -456,8 +456,8 @@ def fetch_jpx_excel_from_github(repo: str, branch: str = "main", token: str = No
 def fetch_market_data_batch(codes: list) -> dict:
     """
     Fetch market cap and 3M vs TOPIX performance for a list of TSE codes.
-    Designed for small batches (20-200 stocks) from the filtered earnings view.
-    
+    Designed for batches of 20-500 stocks from the filtered earnings view.
+
     Returns dict: {code: {market_cap_b: float|None, vs_topix_3m: float|None}}
     market_cap_b = market cap in JPY billions
     vs_topix_3m  = 3M return minus TOPIX 3M return, in percentage points
@@ -465,6 +465,7 @@ def fetch_market_data_batch(codes: list) -> dict:
     try:
         import yfinance as yf
         import pandas as pd
+        import requests as _req
     except ImportError:
         return {}
 
@@ -473,26 +474,49 @@ def fetch_market_data_batch(codes: list) -> dict:
 
     results = {c: {"market_cap_b": None, "vs_topix_3m": None} for c in codes}
 
-    # Step 1: Get TOPIX 3M return as benchmark
+    # ── Step 1: Market cap via Yahoo Finance v7 quote API (batch, no auth) ──
+    # Chunk into batches of 50 to avoid URL length limits
+    tickers_str_list = [f"{c}.T" for c in codes]
+    for i in range(0, len(tickers_str_list), 50):
+        batch = tickers_str_list[i:i+50]
+        symbols = ",".join(batch)
+        url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbols}&fields=marketCap,regularMarketPrice"
+        try:
+            resp = _req.get(url, timeout=15,
+                           headers={"User-Agent": "Mozilla/5.0",
+                                    "Accept": "application/json"})
+            if resp.status_code == 200:
+                data = resp.json()
+                quotes = data.get("quoteResponse", {}).get("result", [])
+                for q in quotes:
+                    sym = q.get("symbol", "")
+                    code = sym.replace(".T", "")
+                    mc = q.get("marketCap")
+                    if mc and mc > 0 and code in results:
+                        results[code]["market_cap_b"] = round(mc / 1e9, 1)
+        except Exception as e:
+            print(f"Market cap batch error (chunk {i//50}): {e}")
+
+    # ── Step 2: 3M vs TOPIX via yfinance price download ─────────────────────
+    # First get TOPIX benchmark
     topix_3m = None
     try:
-        topix_data = yf.download("^TOPX", period="4mo", auto_adjust=True,
-                                  progress=False)
-        if not topix_data.empty and len(topix_data) >= 2:
+        topix_data = yf.download("^TOPX", period="4mo", auto_adjust=True, progress=False)
+        if not topix_data.empty:
             closes = topix_data["Close"].dropna()
-            cutoff = closes.index[-1] - pd.Timedelta(days=91)
-            old = closes[closes.index <= cutoff]
-            if len(old) > 0:
-                topix_3m = float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
+            if len(closes) >= 2:
+                cutoff = closes.index[-1] - pd.Timedelta(days=91)
+                old = closes[closes.index <= cutoff]
+                if len(old) > 0:
+                    topix_3m = float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
     except Exception as e:
-        print(f"TOPIX fetch error: {e}")
+        print(f"TOPIX 3M error: {e}")
 
-    # Step 2: Batch download all stock prices
+    # Batch download stock prices
     tickers = [f"{c}.T" for c in codes]
     try:
         if len(tickers) == 1:
-            raw = yf.download(tickers[0], period="4mo", auto_adjust=True,
-                              progress=False)
+            raw = yf.download(tickers[0], period="4mo", auto_adjust=True, progress=False)
             price_map = {tickers[0]: raw} if not raw.empty else {}
         else:
             raw = yf.download(tickers, period="4mo", auto_adjust=True,
@@ -510,7 +534,7 @@ def fetch_market_data_batch(codes: list) -> dict:
         print(f"Price batch error: {e}")
         price_map = {}
 
-    # Step 3: Compute 3M return per stock
+    # Compute 3M returns
     for code in codes:
         ticker = f"{code}.T"
         try:
@@ -528,17 +552,6 @@ def fetch_market_data_batch(codes: list) -> dict:
                 results[code]["vs_topix_3m"] = round(stock_3m - topix_3m, 1)
             else:
                 results[code]["vs_topix_3m"] = round(stock_3m, 1)
-        except Exception:
-            pass
-
-    # Step 4: Get market caps via fast_info (faster than .info)
-    for code in codes:
-        ticker = f"{code}.T"
-        try:
-            t = yf.Ticker(ticker)
-            mc = t.fast_info.market_cap
-            if mc and mc > 0:
-                results[code]["market_cap_b"] = round(mc / 1e9, 1)
         except Exception:
             pass
 

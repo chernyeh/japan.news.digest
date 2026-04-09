@@ -506,7 +506,7 @@ for key, default in [
     # AI summaries
     ("ai_market_wrap", None), ("ai_market_wrap_ts", None), ("ai_market_wrap_idx", {}),
     # Earnings / J-Quants
-    ("earnings_cal", []), ("earnings_last_fetch", None),
+    ("earnings_cal", []), ("earnings_last_fetch", None), ("earnings_mkt_ts", None),
     ("earnings_perf", {}), ("fin_summary_cache", {}),
 ]:
     if key not in st.session_state:
@@ -787,8 +787,14 @@ Respond only with the briefing."""
 
     if st.session_state[session_key]:
         _art_idx_stored = st.session_state.get(session_key + "_idx", {})
+        _ts_val = st.session_state.get(session_key + "_ts")
+        _ts_bar = (
+            f'<div style="font-size:0.65rem;color:#9B8B7A;margin-bottom:0.5rem;'
+            f'padding:0.3rem 0.5rem;background:#F0EDE8;border-radius:3px;'
+            f'border-left:3px solid #8B4513;">✨ Briefing generated: {format_local_dt(_ts_val)}</div>'
+        ) if _ts_val else ""
         st.markdown(
-            '<div class="ai-summary">' + _summary_to_html(st.session_state[session_key], _art_idx_stored) + '</div>',
+            '<div class="ai-summary">' + _ts_bar + _summary_to_html(st.session_state[session_key], _art_idx_stored) + '</div>',
             unsafe_allow_html=True
         )
 
@@ -799,7 +805,7 @@ st.markdown(f"""
     <div class="masthead-sub">Japan equities · macro · corporate news · TDnet filings · JPY rates</div>
     <div class="masthead-date">{now_local().strftime('%A, %d %B %Y · %H:%M MYT')}</div>
 </div>
-<div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 33 News Sources</div>
+<div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 42 News Sources</div>
 """, unsafe_allow_html=True)
 
 # ── Market ticker strip ───────────────────────────────────────────────────────
@@ -1415,30 +1421,57 @@ with tab_market:
         # ── Indices ──────────────────────────────────────────
         st.markdown('<div class="section-title">📈 Japanese Indices</div>', unsafe_allow_html=True)
         indices = md.get("indices", {})
-        index_order = ["nikkei", "topix"]
         idx_html = '<div class="instrument-grid">'
-        for key in index_order:
+        for key in ["nikkei", "topix"]:
             data = indices.get(key)
             if data:
                 idx_html += instrument_card(data, is_forex=False)
         idx_html += '</div>'
         st.markdown(idx_html, unsafe_allow_html=True)
+        # TOPIX sub-indices compact row
+        _sub_items = [(k, indices.get(k)) for k in ["topix_large","topix_mid","topix_small"]
+                      if indices.get(k) and indices[k].get("price",0)]
+        if _sub_items:
+            sub_html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.4rem;margin-top:0.35rem;">'
+            for _sk, _sd in _sub_items:
+                _sp = _sd.get("price",0); _spct = _sd.get("pct_change",0) or 0
+                _slab = _sd.get("label", _sk.replace("_"," ").title())
+                _scol = "#2E7D32" if _spct >= 0 else "#C62828"
+                _sarr = "▲" if _spct >= 0 else "▼"
+                sub_html += (
+                    '<div style="background:white;border:1px solid #E8E3DC;border-radius:4px;padding:0.4rem 0.6rem;">'
+                    f'<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B6B6B;">{_slab}</div>'
+                    f'<div style="font-size:0.9rem;font-weight:700;">{_sp:,.2f}</div>'
+                    f'<div style="font-size:0.7rem;color:{_scol};font-weight:600;">{_sarr} {abs(_spct):.2f}%</div>'
+                    '</div>')
+            sub_html += '</div>'
+            st.markdown(sub_html, unsafe_allow_html=True)
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
 
-        # ── Forex ────────────────────────────────────────────
+        # ── Forex — compact 4-column row ─────────────────────
         st.markdown('<div class="section-title">💱 Currency Pairs vs JPY</div>', unsafe_allow_html=True)
         forex = md.get("forex", {})
-        forex_order = ["usdjpy", "eurjpy", "cnyjpy", "sgdjpy"]
-        fx_html = '<div class="instrument-grid">'
-        for key in forex_order:
-            data = forex.get(key)
-            if data:
-                fx_html += instrument_card(data, is_forex=True)
-        fx_html += '</div>'
-        st.markdown(fx_html, unsafe_allow_html=True)
+        _fx_pairs = [(k, forex.get(k)) for k in ["usdjpy","eurjpy","cnyjpy","sgdjpy"]
+                     if forex.get(k) and forex[k].get("price")]
+        if _fx_pairs:
+            fx_html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.4rem;">'
+            for _fk, _fd in _fx_pairs:
+                _fp = _fd["price"]; _fchg = _fd.get("pct_change",0) or 0
+                _flab = _fd.get("label", _fk.upper())
+                _fcol = "#2E7D32" if _fchg >= 0 else "#C62828"
+                _farr = "▲" if _fchg >= 0 else "▼"
+                fx_html += (
+                    '<div style="background:white;border:1px solid #E8E3DC;border-radius:4px;padding:0.4rem 0.6rem;">'
+                    f'<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B6B6B;">{_flab}</div>'
+                    f'<div style="font-size:1.0rem;font-weight:700;">{_fp:,.2f}</div>'
+                    f'<div style="font-size:0.72rem;color:{_fcol};font-weight:600;">{_farr} {abs(_fchg):.2f}%</div>'
+                    '</div>')
+            fx_html += '</div>'
+            st.markdown(fx_html, unsafe_allow_html=True)
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
+
 
     # ── TSE Movers ───────────────────────────────────────
     movers    = st.session_state.movers or {}
@@ -1467,6 +1500,46 @@ with tab_market:
             f'padding:0.04rem 0.28rem;border-radius:2px;letter-spacing:0.05em;vertical-align:middle;">'
             f'⚠ {" ".join(flags)}</span>'
         )
+
+    # ── Sector Gainers / Losers ──────────────────────────
+    # Computed from the jpx_movers data by grouping stocks by sector
+    _jpx_for_sector = st.session_state.get("jpx_movers", {})
+    _all_stocks = _jpx_for_sector.get("gainers", []) + _jpx_for_sector.get("losers", [])
+    if _all_stocks:
+        # Group by sector and average pct_change
+        from collections import defaultdict as _dd2
+        _sect_totals = _dd2(list)
+        for _s in _all_stocks:
+            _sec = _s.get("sector", "") or "Other"
+            if _sec:
+                _sect_totals[_sec].append(_s.get("pct_change", 0) or 0)
+        _sect_avgs = {s: sum(v)/len(v) for s, v in _sect_totals.items() if len(v) >= 2}
+        if _sect_avgs:
+            _sect_sorted = sorted(_sect_avgs.items(), key=lambda x: x[1], reverse=True)
+            _sec_g = [x for x in _sect_sorted if x[1] > 0][:5]
+            _sec_l = list(reversed([x for x in _sect_sorted if x[1] < 0]))[:5]
+            if _sec_g or _sec_l:
+                st.markdown('<div class="section-title">🏭 Sector Movers</div>', unsafe_allow_html=True)
+                _sg_col, _sl_col = st.columns(2)
+                with _sg_col:
+                    st.markdown('<div style="font-size:0.65rem;font-weight:700;color:#2E7D32;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.3rem;">Top Sectors</div>', unsafe_allow_html=True)
+                    for _sn, _sv in _sec_g:
+                        st.markdown(
+                            f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                            f'padding:0.2rem 0.4rem;margin-bottom:0.15rem;background:#F0FAF0;border-radius:3px;">'
+                            f'<span style="font-size:0.72rem;">{_sn}</span>'
+                            f'<span style="font-size:0.72rem;font-weight:700;color:#2E7D32;">▲ {_sv:.2f}%</span>'
+                            f'</div>', unsafe_allow_html=True)
+                with _sl_col:
+                    st.markdown('<div style="font-size:0.65rem;font-weight:700;color:#C62828;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.3rem;">Weakest Sectors</div>', unsafe_allow_html=True)
+                    for _sn, _sv in _sec_l:
+                        st.markdown(
+                            f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                            f'padding:0.2rem 0.4rem;margin-bottom:0.15rem;background:#FFF0F0;border-radius:3px;">'
+                            f'<span style="font-size:0.72rem;">{_sn}</span>'
+                            f'<span style="font-size:0.72rem;font-weight:700;color:#C62828;">▼ {abs(_sv):.2f}%</span>'
+                            f'</div>', unsafe_allow_html=True)
+                st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
 
     col3, col4 = st.columns(2)
     with col3:
@@ -2687,25 +2760,14 @@ with tab_earnings:
     st.markdown('<div class="section-title">📅 Earnings Calendar — TSE Listed Companies</div>', unsafe_allow_html=True)
 
     # ── How this works info box ──────────────────────────────────────────────
-    with st.expander("ℹ️ How this calendar works — and how to keep it updated", expanded=False):
-        st.markdown("""
-**Data source:** JPX (Tokyo Stock Exchange) publishes official Excel files listing every company's scheduled earnings announcement date, grouped by the month their fiscal quarter ends.
-
-**To populate the calendar:**
-1. Go to **[JPX Earnings Schedule page](https://www.jpx.co.jp/listing/event-schedules/financial-announcement/index.html)** (Japanese page — use Google Translate if needed)
-2. Download the Excel file(s) for recent fiscal quarter-end months (e.g. the March 2026 file covers all March FY companies reporting in May/June 2026)
-3. In your GitHub repo, create a folder called **`data/jpx_earnings/`**
-4. Upload the Excel file(s) into that folder and commit
-5. Come back here and click **🔄 Load from GitHub**
-
-**When to refresh:** JPX updates the files as companies confirm their dates. Re-download and re-upload around the start of each reporting season:
-- **February**: Q3 results season (Jan-Feb quarter-end files)
-- **May**: Full-year results season (March FY — the biggest season)
-- **August**: Q1 results season
-- **November**: Half-year results season
-
-**Tip:** The March FY file is the most important — it covers ~70% of TOPIX companies.
-""")
+    st.markdown(
+        '<div style="font-size:0.65rem;color:#9B8B7A;margin-bottom:0.5rem;">'
+        'Data from JPX Excel files in your GitHub repo (<code>data/jpx_earnings/</code>). '
+        '<a href="https://www.jpx.co.jp/listing/event-schedules/financial-announcement/index.html" '
+        'target="_blank" style="color:#8B4513;">Download from JPX ↗</a>'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
     # ── Repo config (silent — set via Streamlit Secrets) ────────────────────
     _ec_repo_default = "chernyeh/japan.news.digest"
@@ -2732,8 +2794,20 @@ with tab_earnings:
     with ec_col3:
         ec_fetch = st.button("🔄 Load from GitHub", use_container_width=True, key="btn_ec_fetch")
 
+    # Market cap filter + sort row
+    _mf_col1, _mf_col2, _mf_col3 = st.columns([2, 2, 2])
+    with _mf_col1:
+        ec_mcap_min = st.number_input("Mkt Cap min (¥B)", min_value=0, value=0,
+                                      step=50, key="ec_mcap_min", label_visibility="visible")
+    with _mf_col2:
+        ec_mcap_max = st.number_input("Mkt Cap max (¥B, 0=no limit)", min_value=0, value=0,
+                                      step=500, key="ec_mcap_max", label_visibility="visible")
+    with _mf_col3:
+        ec_sort = st.selectbox("Sort by", ["Date", "Mkt Cap ↓", "Mkt Cap ↑", "3M vs TOPIX ↓", "3M vs TOPIX ↑"],
+                              key="ec_sort", label_visibility="visible")
+
     if ec_fetch:
-        with st.spinner("Loading JPX Excel files from GitHub…"):
+        with st.spinner("Updating earnings calendar from GitHub…"):
             import requests as _ecr
             _ec_headers = {"Accept": "application/vnd.github.v3+json"}
             if _gh_token:
@@ -2742,14 +2816,13 @@ with tab_earnings:
             try:
                 _dir_resp = _ecr.get(_api_url, headers=_ec_headers, timeout=10)
                 if _dir_resp.status_code != 200:
-                    st.error(f"GitHub API error {_dir_resp.status_code}: {_dir_resp.text[:200]}")
+                    st.error(f"GitHub error {_dir_resp.status_code} — check repo settings.")
                 else:
-                    _dir_items = _dir_resp.json()
-                    _xlsx_files = [f for f in _dir_items if isinstance(f, dict) and f.get("name","").lower().endswith(".xlsx")]
+                    _xlsx_files = [f for f in _dir_resp.json()
+                                   if isinstance(f, dict) and f.get("name","").lower().endswith(".xlsx")]
                     if not _xlsx_files:
-                        st.warning(f"Folder found but no .xlsx files inside. Files found: {[f.get('name') for f in _dir_items]}")
+                        st.warning("No .xlsx files found in data/jpx_earnings/ — upload JPX Excel files first.")
                     else:
-                        st.info(f"Found files: {[f['name'] for f in _xlsx_files]} — parsing…")
                         _all_entries = []
                         for _xf in _xlsx_files:
                             try:
@@ -2757,37 +2830,21 @@ with tab_earnings:
                                 if _dl.status_code == 200:
                                     import importlib, jquants as _jq_mod
                                     importlib.reload(_jq_mod)
-                                    _parsed = _jq_mod.parse_jpx_earnings_excel(_dl.content, source_label=_xf["name"])
-                                    st.info(f"{_xf['name']}: parsed {len(_parsed)} entries")
-                                    if len(_parsed) == 0:
-                                        # Debug: show first few rows
-                                        import openpyxl, io as _io2
-                                        _wb2 = openpyxl.load_workbook(_io2.BytesIO(_dl.content), data_only=True)
-                                        _ws2 = _wb2["List"] if "List" in _wb2.sheetnames else _wb2.active
-                                        _rows2 = list(_ws2.iter_rows(values_only=True))
-                                        st.warning(f"Sheet: {_ws2.title}, Rows: {len(_rows2)}, Cols: {_ws2.max_column}")
-                                        for _ri, _rw in enumerate(_rows2[:8]):
-                                            st.text(f"Row {_ri+1}: {[str(c)[:20] if c else None for c in _rw[:8]]}")
-                                    _all_entries.extend(_parsed)
-                                else:
-                                    st.error(f"Download failed for {_xf['name']}: HTTP {_dl.status_code}")
+                                    _all_entries.extend(
+                                        _jq_mod.parse_jpx_earnings_excel(_dl.content, source_label=_xf["name"])
+                                    )
                             except Exception as _xe:
-                                import traceback
-                                st.error(f"Parse error for {_xf['name']}: {_xe}")
-                                st.code(traceback.format_exc())
+                                st.error(f"Error loading {_xf['name']}: {_xe}")
                         if _all_entries:
                             _all_entries.sort(key=lambda x: x.get("announcement_date") or "9999")
                             st.session_state.earnings_cal = _all_entries
                             st.session_state.earnings_last_fetch = now_local()
-                            st.success(f"✅ Loaded {len(_all_entries)} entries from {len(_xlsx_files)} file(s)")
                         else:
-                            st.warning("Files downloaded but no entries parsed — check the Streamlit logs for details.")
+                            st.warning("Files found but no entries parsed — check Streamlit logs.")
             except Exception as _ece:
-                st.error(f"Fetch error: {_ece}")
+                st.error(f"Connection error: {_ece}")
 
-        # Do NOT auto-fetch market data for all 3000 companies — too slow.
-        # Market data is fetched lazily per filtered view via the button below.
-        st.session_state.earnings_perf = {}  # reset; will populate per-view
+        st.session_state.earnings_perf = {}  # reset market data cache on reload
 
     cal_all  = st.session_state.earnings_cal
     perf_map = st.session_state.earnings_perf
@@ -2809,12 +2866,16 @@ with tab_earnings:
             _jq_cal = fetch_earnings_calendar(_jq_key)
             _tomorrow_count = len([e for e in _jq_cal if e.get("Date")])
 
+        _mkt_ts = st.session_state.get("earnings_mkt_ts")
+        _ts_parts = [f"Calendar updated: {format_local_dt(st.session_state.earnings_last_fetch)}"]
+        if _mkt_ts:
+            _ts_parts.append(f"Market data: {format_local_dt(_mkt_ts)}")
+        if _tomorrow_count:
+            _ts_parts.append(f"{_tomorrow_count} filing tomorrow")
         st.markdown(
-            f'<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.3rem;">'
-            f'Last loaded: {format_local_dt(st.session_state.earnings_last_fetch)} · '
-            f'<strong>{len(cal_all):,}</strong> total entries across all uploaded files'
-            f'{f" · <strong>{_tomorrow_count}</strong> filing tomorrow (J-Quants)" if _tomorrow_count else ""}'
-            f'</div>',
+            f'<div style="font-size:0.65rem;color:#9B8B7A;margin-bottom:0.3rem;">'
+            + " &nbsp;·&nbsp; ".join(f"<span>{p}</span>" for p in _ts_parts)
+            + '</div>',
             unsafe_allow_html=True,
         )
 
@@ -2853,6 +2914,21 @@ with tab_earnings:
                 or _search in (e.get("code") or "")
             ]
 
+
+        # Market cap filter (only applied when data is loaded)
+        _ec_mcap_min = st.session_state.get("ec_mcap_min", 0) or 0
+        _ec_mcap_max = st.session_state.get("ec_mcap_max", 0) or 0
+        if (_ec_mcap_min > 0 or _ec_mcap_max > 0) and perf_map:
+            def _mcap_val(e):
+                d = perf_map.get(e.get("code", ""), {})
+                return d.get("market_cap_b") if isinstance(d, dict) else None
+            if _ec_mcap_min > 0:
+                cal_filtered = [e for e in cal_filtered
+                                if (_mcap_val(e) or 0) >= _ec_mcap_min]
+            if _ec_mcap_max > 0:
+                cal_filtered = [e for e in cal_filtered
+                                if 0 < (_mcap_val(e) or 0) <= _ec_mcap_max]
+
         # Watchlist lookup
         _wl_codes = set()
         for _wn in wl:
@@ -2887,7 +2963,8 @@ with tab_earnings:
                         # Merge into existing cache
                         for _mc, _mv in _new_perf.items():
                             st.session_state.earnings_perf[_mc] = _mv
-                    st.success(f"✅ Market data loaded for {len(_vis_codes)} companies")
+                    st.session_state.earnings_mkt_ts = now_local()
+                    st.rerun()
 
             # Group by announcement date
             from collections import defaultdict as _dd
@@ -2944,7 +3021,24 @@ with tab_earnings:
                 )
 
 
-                # Sort: watchlist first, then alphabetical
+                # Sort: watchlist first, then by selected sort key
+                _ec_sort_key = st.session_state.get("ec_sort", "Date")
+                def _sort_key_fn(e):
+                    _wl_flag = 0 if e.get("code","") in wl else 1
+                    _d = perf_map.get(e.get("code",""), {})
+                    _mc = (_d.get("market_cap_b") if isinstance(_d, dict) else None) or 0
+                    _pf = (_d.get("vs_topix_3m") if isinstance(_d, dict) else None)
+                    _pf_sort = _pf if _pf is not None else -9999
+                    if _ec_sort_key == "Mkt Cap ↓":
+                        return (_wl_flag, -_mc)
+                    elif _ec_sort_key == "Mkt Cap ↑":
+                        return (_wl_flag, _mc if _mc > 0 else 9999)
+                    elif _ec_sort_key == "3M vs TOPIX ↓":
+                        return (_wl_flag, _pf_sort)
+                    elif _ec_sort_key == "3M vs TOPIX ↑":
+                        return (_wl_flag, -_pf_sort)
+                    else:  # Date (default)
+                        return (_wl_flag, e.get("name",""))
                 _sorted_entries = sorted(
                     _entries,
                     key=lambda e: (0 if e.get("code") in _wl_codes else 1, e.get("name", ""))

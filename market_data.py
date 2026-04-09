@@ -200,8 +200,11 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
 
 # Yahoo Finance ticker symbols
 YF_INDEX_INSTRUMENTS = {
-    "nikkei": ("^N225",   "Nikkei 225"),
-    "topix":  ("^TOPX",   "TOPIX"),
+    "nikkei":       ("^N225",  "Nikkei 225"),
+    "topix":        ("^TOPX",  "TOPIX"),
+    "topix_large":  ("^TPXL",  "TOPIX Large Cap"),
+    "topix_mid":    ("^TPXM",  "TOPIX Mid Cap"),
+    "topix_small":  ("^TPXS",  "TOPIX Small Cap"),
 }
 
 YF_FOREX_INSTRUMENTS = {
