@@ -34,7 +34,7 @@ jobs:
           from datetime import datetime, timedelta
 
           API_KEY = os.environ["JQUANTS_API_KEY"]
-          BASE    = "https://api.jquants.com/v1"
+          BASE    = "https://api.jquants.com/v2"
           HEADERS = {"x-api-key": API_KEY}
 
           # Find latest trading date
@@ -57,7 +57,7 @@ jobs:
               r = requests.get(BASE + "/prices/daily_quotes",
                                headers=HEADERS, params=params, timeout=60)
               if r.status_code != 200:
-                  print("Price fetch failed: " + str(r.status_code) + " " + r.text[:200])
+                  print("Price fetch failed: " + str(r.status_code) + " " + r.text[:300])
                   sys.exit(1)
               data = r.json()
               quotes = data.get("daily_quotes", [])
@@ -69,7 +69,7 @@ jobs:
                   break
 
           if not all_quotes:
-              print("No quotes for " + date_str + " — likely a holiday, keeping existing file")
+              print("No quotes for " + date_str + " - likely a holiday, keeping existing file")
               sys.exit(0)
 
           print("Total: " + str(len(all_quotes)) + " quotes")
