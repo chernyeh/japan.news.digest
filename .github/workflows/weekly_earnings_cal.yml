@@ -1,0 +1,149 @@
+# .github/workflows/weekly_earnings_cal.yml
+# Runs every Tuesday at 01:00 UTC
+# Scrapes JPX financial announcement page for current kessan Excel files
+# Downloads them and stores in data/jpx_earnings/
+# Only commits if files have actually changed (checksum comparison)
+#
+# Why Tuesday: JPX typically refreshes these files Monday/Tuesday as companies
+# submit their IR schedules at the start of each week.
+
+name: Weekly Earnings Calendar Update
+
+on:
+  schedule:
+    - cron: '0 1 * * 2'    # 01:00 UTC Tuesday
+  workflow_dispatch:
+
+jobs:
+  update-earnings-calendar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 lxml openpyxl
+
+      - name: Download JPX earnings calendar files
+        run: |
+          python3 - << 'EOF'
+          import requests
+          from bs4 import BeautifulSoup
+          import os, hashlib, re
+          from datetime import datetime
+
+          JPX_BASE = "https://www.jpx.co.jp"
+          JPX_PAGE = f"{JPX_BASE}/listing/event-schedules/financial-announcement/index.html"
+
+          headers = {
+              "User-Agent": "Mozilla/5.0 (compatible; research-bot/1.0)",
+              "Accept-Language": "ja,en;q=0.9",
+          }
+
+          print(f"Fetching JPX page: {JPX_PAGE}")
+          r = requests.get(JPX_PAGE, headers=headers, timeout=30)
+          if r.status_code != 200:
+              print(f"Failed to fetch JPX page: HTTP {r.status_code}")
+              # Don't exit — just keep existing files
+              exit(0)
+
+          soup = BeautifulSoup(r.content, "lxml")
+
+          # Find all Excel download links on the page
+          # JPX uses patterns like: href="/.../.../nlsgeu000XXXXX.xlsx"
+          # or href="/listing/event-schedules/financial-announcement/nlsgeu000XXXXX.xlsx"
+          xlsx_links = []
+          for a in soup.find_all("a", href=True):
+              href = a["href"]
+              if href.lower().endswith(".xlsx") and ("kessan" in href.lower() or
+                                                      "financial" in href.lower() or
+                                                      "nlsgeu" in href.lower()):
+                  full_url = href if href.startswith("http") else JPX_BASE + href
+                  link_text = a.get_text(strip=True)
+                  xlsx_links.append((full_url, link_text))
+                  print(f"  Found: {link_text} -> {full_url}")
+
+          # Also look for any .xlsx links regardless of name pattern
+          if not xlsx_links:
+              print("No kessan-specific links found, looking for all .xlsx...")
+              for a in soup.find_all("a", href=True):
+                  href = a["href"]
+                  if href.lower().endswith(".xlsx"):
+                      full_url = href if href.startswith("http") else JPX_BASE + href
+                      link_text = a.get_text(strip=True)
+                      xlsx_links.append((full_url, link_text))
+                      print(f"  Found xlsx: {link_text} -> {full_url}")
+
+          if not xlsx_links:
+              print("No Excel files found on JPX page — page structure may have changed")
+              print("Keeping existing files unchanged")
+              exit(0)
+
+          # Download and store files
+          os.makedirs("data/jpx_earnings", exist_ok=True)
+          today_str = datetime.utcnow().strftime("%m%d")
+          changed = 0
+
+          for url, label in xlsx_links:
+              print(f"\nDownloading: {url}")
+              try:
+                  dl = requests.get(url, headers=headers, timeout=60)
+                  if dl.status_code != 200:
+                      print(f"  Download failed: HTTP {dl.status_code}")
+                      continue
+
+                  content = dl.content
+
+                  # Derive a clean filename
+                  # Extract from URL: e.g. kessan03_0403.xlsx
+                  fname_match = re.search(r'(kessan\w+\.xlsx)', url, re.IGNORECASE)
+                  if fname_match:
+                      fname = fname_match.group(1)
+                  else:
+                      # Use URL basename with today's date
+                      url_base = url.split("/")[-1]
+                      fname_stem = re.sub(r'[^a-zA-Z0-9_]', '_', url_base.replace(".xlsx",""))
+                      fname = f"{fname_stem}_{today_str}.xlsx"
+
+                  outpath = f"data/jpx_earnings/{fname}"
+
+                  # Compare checksum with existing file
+                  new_hash = hashlib.md5(content).hexdigest()
+                  if os.path.exists(outpath):
+                      with open(outpath, "rb") as f:
+                          old_hash = hashlib.md5(f.read()).hexdigest()
+                      if old_hash == new_hash:
+                          print(f"  Unchanged: {fname}")
+                          continue
+
+                  with open(outpath, "wb") as f:
+                      f.write(content)
+                  print(f"  Saved: {outpath} ({len(content):,} bytes)")
+                  changed += 1
+
+              except Exception as e:
+                  print(f"  Error: {e}")
+                  continue
+
+          print(f"\nDone: {changed} file(s) updated")
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/jpx_earnings/
+          if git diff --staged --quiet; then
+            echo "No changes to earnings calendar files"
+          else
+            git commit -m "chore: update JPX earnings calendar [skip ci]"
+            git push
+          fi
