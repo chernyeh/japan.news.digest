@@ -46,7 +46,7 @@ jobs:
           date_str = today.strftime("%Y%m%d")
           print("Fetching prices for " + date_str)
 
-          # Fetch all quotes for the date (paginated)
+          # V2 endpoint: /equities/bars/daily
           all_quotes = []
           pagination_key = None
           page = 0
@@ -54,13 +54,14 @@ jobs:
               params = {"date": date_str}
               if pagination_key:
                   params["pagination_key"] = pagination_key
-              r = requests.get(BASE + "/prices/daily_quotes",
+              r = requests.get(BASE + "/equities/bars/daily",
                                headers=HEADERS, params=params, timeout=60)
               if r.status_code != 200:
                   print("Price fetch failed: " + str(r.status_code) + " " + r.text[:300])
                   sys.exit(1)
               data = r.json()
-              quotes = data.get("daily_quotes", [])
+              # V2 returns "bars" not "daily_quotes"
+              quotes = data.get("bars", data.get("daily_quotes", []))
               all_quotes.extend(quotes)
               pagination_key = data.get("pagination_key")
               page += 1
@@ -73,20 +74,18 @@ jobs:
               sys.exit(0)
 
           print("Total: " + str(len(all_quotes)) + " quotes")
+          if all_quotes:
+              print("Sample keys: " + str(list(all_quotes[0].keys())))
 
           os.makedirs("data", exist_ok=True)
           with open("data/jquants_prices_latest.csv", "w", newline="", encoding="utf-8") as f:
-              writer = csv.DictWriter(f, fieldnames=["Code","Date","Close","AdjustmentClose","Volume","TurnoverValue"])
-              writer.writeheader()
-              for q in all_quotes:
-                  writer.writerow({
-                      "Code":            q.get("Code", ""),
-                      "Date":            q.get("Date", ""),
-                      "Close":           q.get("Close", ""),
-                      "AdjustmentClose": q.get("AdjustmentClose", ""),
-                      "Volume":          q.get("Volume", ""),
-                      "TurnoverValue":   q.get("TurnoverValue", ""),
-                  })
+              # Write all fields from first record as header
+              if all_quotes:
+                  fieldnames = list(all_quotes[0].keys())
+                  writer = csv.DictWriter(f, fieldnames=fieldnames)
+                  writer.writeheader()
+                  for q in all_quotes:
+                      writer.writerow(q)
           print("Written: data/jquants_prices_latest.csv")
           PYEOF
 
