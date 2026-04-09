@@ -1,14 +1,9 @@
 # .github/workflows/weekly_3m_perf.yml
-# Runs every Sunday at 03:00 UTC (after weekly_shares.yml)
-# Computes 3M price return vs TOPIX for all TSE-listed stocks
-# using yfinance batch downloads — GitHub Actions IPs work fine with Yahoo Finance
-# Stores result as data/jquants_3m_perf.csv
-
 name: Weekly 3M vs TOPIX Performance
 
 on:
   schedule:
-    - cron: '0 3 * * 0'    # 03:00 UTC Sunday (after weekly_shares at 02:00)
+    - cron: '0 3 * * 0'
   workflow_dispatch:
 
 jobs:
@@ -29,63 +24,79 @@ jobs:
       - name: Install dependencies
         run: pip install yfinance pandas requests
 
-      - name: Compute 3M vs TOPIX for all TSE stocks
+      - name: Write compute script
         run: |
-          python3 - << 'EOF'
+          cat > compute_3m_perf.py << 'PYEOF'
           import yfinance as yf
           import pandas as pd
-          import csv, os, sys
-          from datetime import datetime, timedelta
+          import csv
+          import os
+          import sys
+          from datetime import datetime
 
+          def get_3m_return(closes):
+              if closes is None or len(closes) < 2:
+                  return None
+              cutoff = closes.index[-1] - pd.Timedelta(days=91)
+              old = closes[closes.index <= cutoff]
+              if len(old) == 0:
+                  return None
+              return float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
+
+          # ── Step 1: Get TOPIX 3M return — try multiple tickers ───────────────
           print("Fetching TOPIX benchmark...")
-          # Get TOPIX 3M return first
-          topix = yf.download("^TOPX", period="4mo", auto_adjust=True, progress=False)
           topix_3m = None
-          if not topix.empty:
-              closes = topix["Close"].dropna()
-              if len(closes) >= 2:
-                  cutoff = closes.index[-1] - pd.Timedelta(days=91)
-                  old = closes[closes.index <= cutoff]
-                  if len(old) > 0:
-                      topix_3m = float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
-                      print(f"TOPIX 3M return: {topix_3m:.2f}%")
+          topix_tickers = ["1306.T", "^TOPX", "^N300", "0168.T"]
+          # 1306.T = TOPIX ETF (NEXT FUNDS TOPIX), very liquid and reliable
+          # 0168.T = iShares TOPIX ETF
+          for ticker in topix_tickers:
+              try:
+                  data = yf.download(ticker, period="4mo", auto_adjust=True, progress=False)
+                  if not data.empty:
+                      closes = data["Close"].dropna()
+                      topix_3m = get_3m_return(closes)
+                      if topix_3m is not None:
+                          print("TOPIX benchmark via " + ticker + ": " + str(round(topix_3m, 2)) + "%")
+                          break
+                      else:
+                          print(ticker + ": data found but insufficient history")
+                  else:
+                      print(ticker + ": no data")
+              except Exception as e:
+                  print(ticker + ": error - " + str(e))
 
           if topix_3m is None:
-              print("Could not get TOPIX data — aborting")
+              print("Could not get TOPIX benchmark from any ticker - aborting")
               sys.exit(1)
 
-          # Load company codes from existing shares CSV (or prices CSV)
+          # ── Step 2: Load codes from existing prices CSV ───────────────────────
           codes = []
-          for fname in ["data/jquants_prices_latest.csv", "data/jquants_shares.csv"]:
-              if os.path.exists(fname):
-                  with open(fname) as f:
-                      reader = csv.DictReader(f)
-                      for row in reader:
-                          code = str(row.get("Code","")).strip().zfill(4)[:4]
-                          if code and code.isdigit() and code not in codes:
-                              codes.append(code)
-                  print(f"Loaded {len(codes)} codes from {fname}")
-                  break
-
-          if not codes:
-              print("No codes found — run daily_prices or weekly_shares first")
+          if os.path.exists("data/jquants_prices_latest.csv"):
+              with open("data/jquants_prices_latest.csv") as f:
+                  for row in csv.DictReader(f):
+                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
+                      if code and code.isdigit():
+                          codes.append(code)
+              print("Loaded " + str(len(codes)) + " codes from prices CSV")
+          else:
+              print("No prices CSV found — run Daily Prices workflow first")
               sys.exit(1)
 
-          tickers = [f"{c}.T" for c in codes]
-          print(f"Computing 3M return for {len(tickers)} stocks...")
+          tickers = [c + ".T" for c in codes]
+          print("Computing 3M return for " + str(len(tickers)) + " stocks...")
 
+          # ── Step 3: Batch download and compute ────────────────────────────────
           results = {}
           BATCH = 500
 
           for i in range(0, len(tickers), BATCH):
               batch = tickers[i:i+BATCH]
-              batch_num = i // BATCH + 1
-              total_batches = (len(tickers) + BATCH - 1) // BATCH
-              print(f"  Batch {batch_num}/{total_batches} ({len(batch)} tickers)...")
+              n = i // BATCH + 1
+              total = (len(tickers) + BATCH - 1) // BATCH
+              print("Batch " + str(n) + "/" + str(total) + " (" + str(len(batch)) + " tickers)...")
               try:
                   if len(batch) == 1:
-                      raw = yf.download(batch[0], period="4mo", auto_adjust=True,
-                                        progress=False)
+                      raw = yf.download(batch[0], period="4mo", auto_adjust=True, progress=False)
                       price_map = {batch[0]: raw} if not raw.empty else {}
                   else:
                       raw = yf.download(batch, period="4mo", auto_adjust=True,
@@ -105,44 +116,39 @@ jobs:
                       try:
                           if t not in price_map:
                               continue
-                          closes = price_map[t]["Close"].dropna()
-                          if len(closes) < 2:
-                              continue
-                          cutoff = closes.index[-1] - pd.Timedelta(days=91)
-                          old = closes[closes.index <= cutoff]
-                          if len(old) == 0:
-                              continue
-                          stock_3m = float((closes.iloc[-1] / old.iloc[-1] - 1) * 100)
-                          results[code] = round(stock_3m - topix_3m, 1)
+                          ret = get_3m_return(price_map[t]["Close"].dropna())
+                          if ret is not None:
+                              results[code] = round(ret - topix_3m, 1)
                       except Exception:
                           pass
 
               except Exception as e:
-                  print(f"  Batch {batch_num} error: {e}")
-                  continue
+                  print("  Batch " + str(n) + " error: " + str(e))
 
-          print(f"Computed performance for {len(results)} stocks")
+          print("Computed " + str(len(results)) + " stocks")
 
-          # Write CSV
+          # ── Step 4: Write CSV ─────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
           today_str = datetime.utcnow().strftime("%Y-%m-%d")
-          outpath = "data/jquants_3m_perf.csv"
-          with open(outpath, "w", newline="", encoding="utf-8") as f:
+          with open("data/jquants_3m_perf.csv", "w", newline="", encoding="utf-8") as f:
               writer = csv.writer(f)
               writer.writerow(["Code", "VsTopix3M", "TopixReturn3M", "ComputedDate"])
               for code, perf in sorted(results.items()):
                   writer.writerow([code, perf, round(topix_3m, 2), today_str])
-          print(f"Written {outpath}")
-          EOF
+          print("Written data/jquants_3m_perf.csv")
+          PYEOF
+
+      - name: Run compute script
+        run: python3 compute_3m_perf.py
 
       - name: Commit and push
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/jquants_3m_perf.csv
           if git diff --staged --quiet; then
             echo "No changes"
           else
-            git commit -m "chore: update 3M performance data [skip ci]"
+            git commit -m "chore: update 3M performance [skip ci]"
             git push
           fi
