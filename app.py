@@ -96,6 +96,16 @@ MEDIA_SOURCES = [
     ("Bloomberg Japan",     "https://www.bloomberg.com/asia",               "📰"),
     ("Japan Industry News", "https://japanindustrynews.com/",             "🏭"),
     ("FACTA",               "https://facta.co.jp/",                        "🔍"),
+    # New sources added
+    ("Kabutan",             "https://kabutan.jp/news/marketnews/",          "📈"),
+    ("Fisco",               "https://web.fisco.jp/",                        "📊"),
+    ("Jiji Press",          "https://www.jiji.com/jc/list?g=eco",           "📡"),
+    ("JBpress",             "https://jbpress.ismedia.jp/",                  "📝"),
+    ("TSE Manebu",          "https://tokyoipo.com/tsemanebu/",              "🏛️"),
+    ("President Online",    "https://president.jp/",                        "💼"),
+    ("Rakumachi",           "https://www.rakumachi.jp/news/",               "🏘️"),
+    ("Zaikai Online",       "https://www.zaikai.jp/",                       "🏢"),
+    ("QUICK Money World",   "https://moneyworld.jp/",                       "💰"),
 ]
 
 # ── CSS ───────────────────────────────────────────────────────────────────────

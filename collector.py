@@ -61,6 +61,34 @@ RSS_SOURCES = [
     # Bloomberg Japan company news via Google News proxy
     ("Bloomberg Japan",      "https://news.google.com/rss/search?q=bloomberg+japan+economy+OR+markets+OR+business&hl=en&gl=JP&ceid=JP:en", "en"),
     ("Bloomberg Japan Co",    "https://news.google.com/rss/search?q=bloomberg+japan+(earnings+OR+results+OR+forecast+OR+buyback+OR+dividend+OR+acquisition)&hl=en&gl=JP&ceid=JP:en", "en"),
+
+    # ── New sources ──────────────────────────────────────────────────────────────
+    # Kabutan Market News — morning/evening stock movers, "話題株" pre-open highlights
+    ("Kabutan Market News",   "https://kabutan.jp/rss/news_marketnews.xml",            "ja"),
+
+    # Fisco — stock analyst commentary, individual stock analysis, morning market notes
+    ("Fisco",                 "https://news.google.com/rss/search?q=site:fisco.jp+OR+site:web.fisco.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+
+    # Jiji Press — Japan wire service, fast on BOJ/government/corporate events
+    ("Jiji Press",            "https://www.jiji.com/rss/ranking.rdf",                  "ja"),
+
+    # JBpress — English/Japanese business analysis, strategy, international economy
+    ("JBpress",               "https://jbpress.ismedia.jp/rss/latest",                 "ja"),
+
+    # TSE Manebu (東証マネ部) — TSE investor education and disclosure guidance
+    ("TSE Manebu",            "https://news.google.com/rss/search?q=site:jpx.co.jp+%E6%9D%B1%E8%A8%BC%E3%83%9E%E3%83%8D%E9%83%A8&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+
+    # President Online — CEO/business leadership, corporate strategy
+    ("President Online",      "https://president.jp/list/feed/rss",                   "ja"),
+
+    # Rakumachi — real estate investment news, J-REIT, property market
+    ("Rakumachi",             "https://news.google.com/rss/search?q=site:rakumachi.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+
+    # Zaikai Online — business leadership, major corporate news
+    ("Zaikai Online",         "https://news.google.com/rss/search?q=site:zaikai.net&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+
+    # QUICK Money World — institutional-grade Japan market commentary
+    ("QUICK Money World",     "https://news.google.com/rss/search?q=site:moneyworld.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 ]
 
 # ── Trade paper scrape targets ────────────────────────────────────────────────
@@ -245,9 +273,11 @@ def classify_sector(title: str, original: str = "") -> str:
 
 # Sources that are inherently company/micro-focused
 MICRO_SOURCES = {
-    "Kabutan Corporate", "Kabutan Earnings", "Minkabu", "Traders Web",
+    "Kabutan Corporate", "Kabutan Earnings", "Kabutan Market News",
+    "Minkabu", "Traders Web", "Fisco",
     "Nikkei IR / Earnings", "Reuters Japan Companies", "Bloomberg Japan Co",
     "Nikkei Xtech IT", "Nikkei Xtech Auto",
+    "QUICK Money World",
 }
 
 # Keyword signals for micro (company-level) news
@@ -789,6 +819,16 @@ SOURCE_DIRECTORY = {
     "Reuters Japan Companies": ("https://news.google.com/rss/search?q=reuters+japan+(earnings+OR+profit+OR+forecast+OR+acquisition+OR+merger+OR+dividend)&hl=en&gl=JP&ceid=JP:en", "en"),
     "Bloomberg Japan":      ("https://news.google.com/rss/search?q=bloomberg+japan+economy+OR+markets+OR+business&hl=en&gl=JP&ceid=JP:en", "en"),
     "Bloomberg Japan Co":    ("https://news.google.com/rss/search?q=bloomberg+japan+(earnings+OR+results+OR+forecast+OR+buyback+OR+dividend+OR+acquisition)&hl=en&gl=JP&ceid=JP:en", "en"),
+    # New sources
+    "Kabutan Market News":   ("https://kabutan.jp/rss/news_marketnews.xml",            "ja"),
+    "Fisco":                 ("https://news.google.com/rss/search?q=site:fisco.jp+OR+site:web.fisco.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    "Jiji Press":            ("https://www.jiji.com/rss/ranking.rdf",                  "ja"),
+    "JBpress":               ("https://jbpress.ismedia.jp/rss/latest",                 "ja"),
+    "TSE Manebu":            ("https://news.google.com/rss/search?q=site:jpx.co.jp+%E6%9D%B1%E8%A8%BC%E3%83%9E%E3%83%8D%E9%83%A8&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    "President Online":      ("https://president.jp/list/feed/rss",                   "ja"),
+    "Rakumachi":             ("https://news.google.com/rss/search?q=site:rakumachi.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    "Zaikai Online":         ("https://news.google.com/rss/search?q=site:zaikai.net&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    "QUICK Money World":     ("https://news.google.com/rss/search?q=site:moneyworld.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 }
 
 # Group labels for the UI
@@ -806,7 +846,8 @@ SOURCE_GROUPS = {
         "Nikkei IR / Earnings",
     ],
     "🏢 Corporate / Earnings / IR": [
-        "Kabutan Corporate", "Kabutan Earnings", "Minkabu", "Traders Web",
+        "Kabutan Corporate", "Kabutan Earnings", "Kabutan Market News",
+        "Minkabu", "Traders Web", "Fisco", "QUICK Money World",
     ],
     "🇯🇵 Japanese — General": [
         "Asahi Shimbun", "Mainichi Shimbun", "Sankei Shimbun",
@@ -821,6 +862,15 @@ SOURCE_GROUPS = {
     ],
     "🔍 Japanese — Investigative": [
         "FACTA",
+    ],
+    "📡 Wire & Institutional": [
+        "Jiji Press", "QUICK Money World",
+    ],
+    "📝 Business Analysis": [
+        "JBpress", "President Online", "Zaikai Online", "TSE Manebu",
+    ],
+    "🏘️ Real Estate & REITs": [
+        "Rakumachi",
     ],
 }
 

@@ -436,174 +436,89 @@ PERIOD_TYPE_MAP = {
 
 def parse_jpx_earnings_excel(file_bytes: bytes, source_label: str = "") -> list:
     """
-    Parse a JPX earnings announcement Excel file robustly.
+    Parse a JPX earnings announcement Excel file.
 
-    JPX Excel format:
-      Row 1:  Title (e.g. "決算発表予定日一覧")
-      Row 2:  Subtitle or blank
-      Row 3:  Column headers in Japanese
-      Row 4+: Data rows
+    Actual structure (confirmed from real files):
+      Sheet name: 'List'
+      Rows 1-4:  Title rows (skip)
+      Row 5:     Headers
+      Row 6+:    Data
 
-    Columns (fixed positional order):
-      0: 発表予定日  (announcement date)
-      1: コード      (TSE 4-digit code)
-      2: 会社名      (company name)
-      3: 市場区分    (market segment)
-      4: 決算期区分  (period type: 本決算 / 第1四半期 / etc)
-      5: 決算期      (fiscal year end)
-
-    Falls back to header-based detection if positional approach yields no results.
+    Columns (0-indexed):
+      0: announcement date  (text: "2026-04-03 00:00:00")
+      1: TSE code           (text: "2796")
+      2: Company name JP
+      3: Company name EN
+      4: Fiscal year end    (text: "2026-03-31 00:00:00")
+      5: Sector JP
+      6: Sector EN
+      7: Period type JP     ("本決算", "第１四半期", etc.)
     """
     try:
         import openpyxl
         import io
-        from datetime import datetime as _dt
     except ImportError:
         print("openpyxl not installed")
         return []
 
+    PERIOD_MAP = {
+        "本決算": "Full Year",
+        "第１四半期": "Q1", "第1四半期": "Q1",
+        "第２四半期": "Q2", "第2四半期": "Q2",
+        "第３四半期": "Q3", "第3四半期": "Q3",
+        "第４四半期": "Q4", "第4四半期": "Q4",
+        "中間": "Half Year", "半期": "Half Year",
+    }
+
     try:
-        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
-        ws = wb.active
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
     except Exception as e:
-        print(f"Excel open error: {e}")
+        print(f"Excel open error ({source_label}): {e}")
         return []
 
-    all_rows = list(ws.iter_rows(values_only=True))
-    if not all_rows:
-        return []
+    # Use sheet named 'List', or fall back to active sheet
+    ws = wb["List"] if "List" in wb.sheetnames else wb.active
+    rows = list(ws.iter_rows(values_only=True))
 
-    print(f"  {source_label}: {len(all_rows)} total rows, {len(all_rows[0]) if all_rows else 0} cols")
-
-    # ── Find first data row ───────────────────────────────────────────────────
-    # Data rows have a code (4-digit number) in one of the first 3 columns
-    # Skip title/header rows
-    data_start = None
-    for i, row in enumerate(all_rows):
-        for cell in row[:4]:
-            if cell is None:
-                continue
-            val = str(cell).strip().replace(".0", "")
-            if val.isdigit() and len(val) == 4:
-                data_start = i
-                break
-        if data_start is not None:
-            break
-
-    if data_start is None:
-        print(f"  {source_label}: Could not find data rows (no 4-digit codes found)")
-        # Print first 5 rows for debugging
-        for i, row in enumerate(all_rows[:5]):
-            print(f"    Row {i+1}: {[str(c)[:20] if c else None for c in row[:8]]}")
-        return []
-
-    print(f"  {source_label}: Data starts at row {data_start + 1}")
-
-    # ── Detect column positions from header row just above data ───────────────
-    # Look at the row just before data_start for headers
-    header_row = all_rows[data_start - 1] if data_start > 0 else []
-    header_strs = [str(c).strip() if c is not None else "" for c in header_row]
-    print(f"  {source_label}: Header row: {header_strs[:8]}")
-
-    # Map columns: try header matching first, fall back to position
-    col_date = col_code = col_name = col_market = col_period = col_fy = None
-
-    for idx, h in enumerate(header_strs):
-        if "発表" in h and "日" in h:
-            col_date = idx
-        elif "コード" in h or "code" in h.lower():
-            col_code = idx
-        elif "会社" in h or "社名" in h:
-            col_name = idx
-        elif "市場" in h:
-            col_market = idx
-        elif "期区分" in h or "決算期区分" in h:
-            col_period = idx
-        elif "決算期" in h and col_period is not None:
-            col_fy = idx
-        elif "決算期" in h and col_period is None:
-            # Could be either; check if next col is also 決算期
-            col_fy = idx
-
-    # Positional fallback for any still-None columns
-    # Standard JPX column order: date, code, name, market, period_type, fy_end
-    if col_date   is None: col_date   = 0
-    if col_code   is None: col_code   = 1
-    if col_name   is None: col_name   = 2
-    if col_market is None: col_market = 3
-    if col_period is None: col_period = 4
-    if col_fy     is None: col_fy     = 5
-
-    print(f"  {source_label}: Using cols — date:{col_date} code:{col_code} name:{col_name} market:{col_market} period:{col_period} fy:{col_fy}")
-
-    # ── Parse data rows ───────────────────────────────────────────────────────
     results = []
-    for row in all_rows[data_start:]:
-        if not any(c is not None for c in row):
-            continue  # skip blank rows
-
-        def _cell(idx):
-            if idx is None or idx >= len(row):
-                return ""
-            v = row[idx]
-            return str(v).strip() if v is not None else ""
-
-        # Parse announcement date
-        ann_raw = _cell(col_date)
-        ann_date = ""
-        if ann_raw and ann_raw not in ("None", "発表予定日", ""):
-            # Try string formats
-            for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%Y年%m月%d日", "%m/%d/%Y", "%Y%m%d"):
-                try:
-                    ann_date = _dt.strptime(ann_raw.replace(".0",""), fmt).strftime("%Y-%m-%d")
-                    break
-                except ValueError:
-                    pass
-            # Try Excel serial number
-            if not ann_date:
-                try:
-                    serial = float(ann_raw)
-                    if 40000 < serial < 60000:  # plausible Excel date range
-                        from openpyxl.utils.datetime import from_excel
-                        ann_date = from_excel(serial).strftime("%Y-%m-%d")
-                except Exception:
-                    pass
-            # Handle openpyxl datetime objects returned as strings like "2026-05-14 00:00:00"
-            if not ann_date and " 00:00:00" in ann_raw:
-                try:
-                    ann_date = ann_raw.split(" ")[0]
-                except Exception:
-                    pass
-
-        # Parse code
-        code_raw = _cell(col_code).replace(".0", "")
-        digits = "".join(c for c in code_raw if c.isdigit())
-        code = digits[:4] if len(digits) >= 4 else digits
-
-        name        = _cell(col_name)
-        market      = _cell(col_market)
-        period_raw  = _cell(col_period)
-        period_type = PERIOD_TYPE_MAP.get(period_raw, period_raw)
-        fy_end      = _cell(col_fy)
-
-        # Skip header repeat rows and empty rows
-        if not code and not name:
+    # Data starts at row index 5 (row 6 in Excel, after 4 title rows + 1 header row)
+    for row in rows[5:]:
+        if not row or (not row[0] and not row[1]):
             continue
-        if name in ("会社名", "社名") or code in ("コード", "code"):
-            continue
+
+        # Date: text like "2026-04-03 00:00:00" — take first 10 chars
+        raw = str(row[0]).strip() if row[0] is not None else ""
+        ann_date = raw[:10] if len(raw) >= 10 and "-" in raw[:10] else ""
+
+        # Code: 4-digit string
+        code_raw = str(row[1]).strip().replace(".0", "") if row[1] is not None else ""
+        if not (code_raw.isdigit() and len(code_raw) == 4):
+            continue  # skip header repeats and non-data rows
+
+        # Company name: prefer English (col 3), fall back to Japanese (col 2)
+        name = (str(row[3]).strip() if row[3] else "") or (str(row[2]).strip() if row[2] else "")
+
+        # FY end date
+        fy_raw = str(row[4]).strip() if row[4] is not None else ""
+        fy_end = fy_raw[:10] if len(fy_raw) >= 10 and "-" in fy_raw[:10] else fy_raw
+
+        # Sector (English, col 6)
+        sector = str(row[6]).strip() if len(row) > 6 and row[6] is not None else ""
+
+        # Period type (Japanese col 7 → English)
+        period_raw = str(row[7]).strip() if len(row) > 7 and row[7] is not None else ""
+        period = PERIOD_MAP.get(period_raw, period_raw)
 
         results.append({
             "announcement_date": ann_date,
-            "code":              code,
+            "code":              code_raw,
             "name":              name,
-            "market":            market,
-            "sector":            "",
-            "period_type":       period_type,
+            "sector":            sector,
+            "period_type":       period,
             "fiscal_year_end":   fy_end,
             "source":            source_label,
         })
 
-    print(f"  {source_label}: Parsed {len(results)} entries")
     return results
 
 
