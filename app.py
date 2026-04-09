@@ -16,7 +16,8 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      fetch_financial_summary, format_summary_for_display,
                      safe_num, guidance_direction,
                      get_performance_band, fetch_3m_performance_batch,
-                     fetch_market_data_batch,
+                     fetch_market_data_batch, load_mktcap_from_github,
+                     load_3m_perf_from_github, load_earnings_cal_from_github,
                      fetch_jpx_excel_from_github, filter_upcoming)
 
 # ── Shared in-memory cache (survives browser close, lives as long as app is awake) ──
@@ -506,7 +507,11 @@ for key, default in [
     # AI summaries
     ("ai_market_wrap", None), ("ai_market_wrap_ts", None), ("ai_market_wrap_idx", {}),
     # Earnings / J-Quants
-    ("earnings_cal", []), ("earnings_last_fetch", None), ("earnings_mkt_ts", None),
+    ("earnings_cal", []), ("earnings_last_fetch", None),
+    ("earnings_mkt_ts", None),
+    ("mktcap_map", {}), ("mktcap_loaded_ts", None),
+    ("perf_3m_map", {}), ("perf_3m_loaded_ts", None),
+    ("earnings_auto_loaded", False),
     ("earnings_perf", {}), ("fin_summary_cache", {}),
 ]:
     if key not in st.session_state:
@@ -1019,11 +1024,12 @@ if _digest_trigger in ("premarket", "close"):
 
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-(tab_market, tab_bytime, tab_breaking, tab_bysource, tab_news,
- tab_signals, tab_filings, tab_earnings, tab_watchlist, tab_screener,
+(tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings,
+ tab_earnings, tab_bysource, tab_news, tab_watchlist, tab_screener,
  tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
-    "📊 Markets", "🕐 By Time", "⚡ Breaking News", "📁 By Source", "📰 By Industry",
-    "🚦 Signals", "📋 Reg Filings", "📅 Earnings", "⭐ Watchlist", "🔬 Screener",
+    "📊 Markets", "🕐 By Time", "⚡ Breaking News",
+    "🚦 Signals", "📋 Reg Filings", "📅 Earnings",
+    "📁 By Source", "📰 By Industry", "⭐ Watchlist", "🔬 Screener",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
 
@@ -2779,6 +2785,41 @@ with tab_earnings:
     except Exception:
         _ec_repo = _ec_repo_default
 
+    # ── Auto-load all cron-generated data once per session ─────────────────
+    # All three datasets load silently from GitHub CSVs at session start.
+    # No button press needed. Data is a few days old at most (cron cadence).
+
+    # 1. Market cap (daily cron)
+    if not st.session_state.get("mktcap_map"):
+        try:
+            _mc_map = load_mktcap_from_github(_ec_repo, _gh_token)
+            if _mc_map:
+                st.session_state.mktcap_map = _mc_map
+                st.session_state.mktcap_loaded_ts = now_local()
+        except Exception:
+            pass
+
+    # 2. 3M vs TOPIX performance (weekly cron)
+    if not st.session_state.get("perf_3m_map"):
+        try:
+            _p3m_map = load_3m_perf_from_github(_ec_repo, _gh_token)
+            if _p3m_map:
+                st.session_state.perf_3m_map = _p3m_map
+                st.session_state.perf_3m_loaded_ts = now_local()
+        except Exception:
+            pass
+
+    # 3. Earnings calendar (weekly cron auto-downloads from JPX)
+    if not st.session_state.get("earnings_auto_loaded") and not st.session_state.earnings_cal:
+        try:
+            _auto_cal = load_earnings_cal_from_github(_ec_repo, _gh_token)
+            if _auto_cal:
+                st.session_state.earnings_cal = _auto_cal
+                st.session_state.earnings_last_fetch = now_local()
+        except Exception:
+            pass
+        st.session_state.earnings_auto_loaded = True
+
 
     ec_col1, ec_col2, ec_col3 = st.columns([2, 2, 1])
     with ec_col1:
@@ -2867,9 +2908,19 @@ with tab_earnings:
             _tomorrow_count = len([e for e in _jq_cal if e.get("Date")])
 
         _mkt_ts = st.session_state.get("earnings_mkt_ts")
-        _ts_parts = [f"Calendar updated: {format_local_dt(st.session_state.earnings_last_fetch)}"]
-        if _mkt_ts:
-            _ts_parts.append(f"Market data: {format_local_dt(_mkt_ts)}")
+        _mktcap_ts = st.session_state.get("mktcap_loaded_ts")
+        _p3m_ts = st.session_state.get("perf_3m_loaded_ts")
+        _ts_parts = []
+        if st.session_state.earnings_last_fetch:
+            _ts_parts.append(f"Calendar: {format_local_dt(st.session_state.earnings_last_fetch)}")
+        if _mktcap_ts:
+            _mktcap_count = len(st.session_state.get("mktcap_map", {}))
+            _ts_parts.append(f"Mkt cap: {_mktcap_count:,} cos · {format_local_dt(_mktcap_ts)}")
+        if _p3m_ts:
+            _p3m_count = len(st.session_state.get("perf_3m_map", {}))
+            _ts_parts.append(f"3M perf: {_p3m_count:,} cos · {format_local_dt(_p3m_ts)}")
+        elif _mkt_ts:
+            _ts_parts.append(f"3M perf (partial): {format_local_dt(_mkt_ts)}")
         if _tomorrow_count:
             _ts_parts.append(f"{_tomorrow_count} filing tomorrow")
         st.markdown(
@@ -2918,10 +2969,10 @@ with tab_earnings:
         # Market cap filter (only applied when data is loaded)
         _ec_mcap_min = st.session_state.get("ec_mcap_min", 0) or 0
         _ec_mcap_max = st.session_state.get("ec_mcap_max", 0) or 0
-        if (_ec_mcap_min > 0 or _ec_mcap_max > 0) and perf_map:
+        _mktcap_map_ec = st.session_state.get("mktcap_map", {})
+        if (_ec_mcap_min > 0 or _ec_mcap_max > 0) and _mktcap_map_ec:
             def _mcap_val(e):
-                d = perf_map.get(e.get("code", ""), {})
-                return d.get("market_cap_b") if isinstance(d, dict) else None
+                return _mktcap_map_ec.get(e.get("code", ""))
             if _ec_mcap_min > 0:
                 cal_filtered = [e for e in cal_filtered
                                 if (_mcap_val(e) or 0) >= _ec_mcap_min]
@@ -2929,6 +2980,7 @@ with tab_earnings:
                 cal_filtered = [e for e in cal_filtered
                                 if 0 < (_mcap_val(e) or 0) <= _ec_mcap_max]
 
+        _perf_3m_map_ec = st.session_state.get("perf_3m_map", {})
         # Watchlist lookup
         _wl_codes = set()
         for _wn in wl:
@@ -3025,9 +3077,14 @@ with tab_earnings:
                 _ec_sort_key = st.session_state.get("ec_sort", "Date")
                 def _sort_key_fn(e):
                     _wl_flag = 0 if e.get("code","") in wl else 1
+                    _mc = st.session_state.get("mktcap_map", {}).get(e.get("code","")) or 0
                     _d = perf_map.get(e.get("code",""), {})
-                    _mc = (_d.get("market_cap_b") if isinstance(_d, dict) else None) or 0
-                    _pf = (_d.get("vs_topix_3m") if isinstance(_d, dict) else None)
+                    # Use cron CSV perf as default, button-loaded as override
+                    _pf = st.session_state.get("perf_3m_map", {}).get(e.get("code",""))
+                    if isinstance(_d, dict) and _d.get("vs_topix_3m") is not None:
+                        _pf = _d["vs_topix_3m"]
+                    elif isinstance(_d, (int, float)):
+                        _pf = _d
                     _pf_sort = _pf if _pf is not None else -9999
                     if _ec_sort_key == "Mkt Cap ↓":
                         return (_wl_flag, -_mc)
@@ -3056,16 +3113,17 @@ with tab_earnings:
                     _star   = "★ " if _is_wl else ""
                     _weight = "700" if _is_wl else "500"
 
-                    _mkt_data = perf_map.get(_code, {})
-                    if isinstance(_mkt_data, dict):
-                        _perf = _mkt_data.get("vs_topix_3m")
-                        _mcap = _mkt_data.get("market_cap_b")
-                    else:
-                        # Legacy format: just a number
-                        _perf = _mkt_data if isinstance(_mkt_data, (int, float)) else None
-                        _mcap = None
-                    _band = get_performance_band(_perf)
+                    # Market cap from J-Quants cron CSVs (fast, no API call)
+                    _mcap = st.session_state.get("mktcap_map", {}).get(_code)
                     _mcap_str = f"¥{_mcap:,.0f}B" if _mcap else "—"
+                    # 3M vs TOPIX: cron CSV first, button-loaded perf_map as override
+                    _perf = st.session_state.get("perf_3m_map", {}).get(_code)
+                    _mkt_data = perf_map.get(_code, {})
+                    if isinstance(_mkt_data, dict) and _mkt_data.get("vs_topix_3m") is not None:
+                        _perf = _mkt_data["vs_topix_3m"]  # button-loaded takes priority
+                    elif isinstance(_mkt_data, (int, float)):
+                        _perf = _mkt_data
+                    _band = get_performance_band(_perf)
 
                     _perf_cell = (
                         f'<div style="text-align:right;">'
