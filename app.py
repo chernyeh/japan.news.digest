@@ -270,42 +270,32 @@ html, body, [class*="css"] {
     text-transform: uppercase; padding: 0.08rem 0.35rem;
     border-radius: 2px; margin-left: 0.35rem; vertical-align: middle;
 }
+/* micro/macro badges — inline after headline */
 .badge-micro {
-    display: inline-block; background: #1B4F72; color: #D6EAF8;
-    font-size: 0.54rem; font-weight: 700; letter-spacing: 0.07em;
-    text-transform: uppercase; padding: 0.07rem 0.32rem;
-    border-radius: 2px; margin-left: 0.32rem; vertical-align: middle;
+    display: inline; background: #EBF5FB; color: #1B4F72;
+    font-size: 0.5rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 0.04rem 0.28rem;
+    border-radius: 8px; margin-left: 0.3rem; vertical-align: middle;
+    border: 1px solid #AED6F1; white-space: nowrap;
 }
 .badge-macro {
-    display: inline-block; background: #4A4A4A; color: #E8E8E8;
-    font-size: 0.54rem; font-weight: 700; letter-spacing: 0.07em;
-    text-transform: uppercase; padding: 0.07rem 0.32rem;
-    border-radius: 2px; margin-left: 0.32rem; vertical-align: middle;
+    display: inline; background: #F2F3F4; color: #5D6D7E;
+    font-size: 0.5rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 0.04rem 0.28rem;
+    border-radius: 8px; margin-left: 0.3rem; vertical-align: middle;
+    border: 1px solid #D5D8DC; white-space: nowrap;
 }
-.signal-positive {
-    display: inline-block; background: #1B5E20; color: #C8E6C9;
-    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
-    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
-    letter-spacing: 0.04em;
+/* Signal direction badges — compact pill style */
+.signal-positive, .signal-negative, .signal-mixed, .signal-neutral {
+    display: inline; font-size: 0.52rem; font-weight: 700;
+    padding: 0.05rem 0.28rem; border-radius: 10px;
+    margin-right: 0.25rem; vertical-align: middle;
+    letter-spacing: 0.03em; white-space: nowrap;
 }
-.signal-negative {
-    display: inline-block; background: #B71C1C; color: #FFCDD2;
-    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
-    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
-    letter-spacing: 0.04em;
-}
-.signal-mixed {
-    display: inline-block; background: #E65100; color: #FFE0B2;
-    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
-    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
-    letter-spacing: 0.04em;
-}
-.signal-neutral {
-    display: inline-block; background: #37474F; color: #CFD8DC;
-    font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.4rem;
-    border-radius: 3px; margin-right: 0.3rem; vertical-align: middle;
-    letter-spacing: 0.04em;
-}
+.signal-positive  { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+.signal-negative  { background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; }
+.signal-mixed     { background: #FFF3E0; color: #E65100; border: 1px solid #FFCC80; }
+.signal-neutral   { background: #F5F5F5; color: #6B6B6B; border: 1px solid #E0E0E0; }
 .signal-priority {
     display: inline-block; background: #F9A825; color: #1A1A1A;
     font-size: 0.55rem; font-weight: 900; padding: 0.08rem 0.3rem;
@@ -358,6 +348,13 @@ html, body, [class*="css"] {
 }
 
 /* Tabs — scrollable, compact, no wrap */
+/* Buttons — slightly compact */
+.stButton > button {
+    font-size: 0.72rem !important;
+    padding: 0.28rem 0.7rem !important;
+    font-weight: 600 !important;
+}
+
 .stTabs [data-baseweb="tab-list"] {
     background: transparent;
     gap: 0.2rem;
@@ -442,6 +439,12 @@ html, body, [class*="css"] {
     text-transform: uppercase; color: #AAAAAA; margin-bottom: 0.05rem;
 }
 .ret-value { font-size: 0.62rem; font-weight: 600; }
+
+/* Countdown timer for long loads */
+.countdown-bar {
+    font-size: 0.65rem; color: #9B8B7A; text-align: right;
+    padding: 0.1rem 0; letter-spacing: 0.03em;
+}
 
 /* AI Summary panel */
 .ai-summary {
@@ -537,7 +540,7 @@ for key, default in [
     # Earnings / J-Quants
     ("earnings_cal", []), ("earnings_last_fetch", None),
     ("earnings_mkt_ts", None),
-    ("mktcap_map", {}), ("mktcap_loaded_ts", None),
+    ("mktcap_map", {}), ("mktcap_loaded_ts", None), ("mktcap_load_attempted", False),
     ("perf_3m_map", {}), ("perf_3m_loaded_ts", None),
     ("earnings_auto_loaded", False),
     ("earnings_perf", {}), ("fin_summary_cache", {}),
@@ -712,7 +715,7 @@ def _safe_text(text: str) -> str:
     return _h.escape(str(text)) if text else ""
 
 
-def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60):
+def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn: bool = False):
     """
     Renders an AI-powered summary panel with a Generate button.
     Uses the Anthropic API (ANTHROPIC_API_KEY in Streamlit Secrets).
@@ -724,9 +727,15 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
     if session_key not in st.session_state:
         st.session_state[session_key] = None
 
-    col_s1, col_s2 = st.columns([4, 1])
-    with col_s2:
-        gen_btn = st.button("✨ Summarise", key=f"btn_{session_key}", use_container_width=True)
+    if _override_btn:
+        gen_btn = _override_btn
+        col_s1 = st  # use full width for status
+    else:
+        col_s1, col_s2 = st.columns([4, 1])
+        with col_s2:
+            gen_btn = st.button("✨ Summarise", key=f"btn_{session_key}", use_container_width=True)
+    if not _override_btn:
+        col_s1 = col_s1
     with col_s1:
         if st.session_state[session_key]:
             _sum_ts = st.session_state.get(session_key + "_ts")
@@ -893,7 +902,7 @@ if st.session_state.market_data and st.session_state.market_data.get("_source") 
     st.markdown(ticker_html, unsafe_allow_html=True)
 
 # ── Toolbar ───────────────────────────────────────────────────────────────────
-col_info, col_spacer, col_mkt, col_news, col_clear = st.columns([3, 0.6, 1, 1, 1])
+col_info, col_spacer, col_refresh, col_clear = st.columns([3, 0.5, 0.9, 0.7])
 with col_info:
     if st.session_state.last_fetch:
         total = sum(len(v) for v in st.session_state.articles.values())
@@ -903,61 +912,44 @@ with col_info:
             + ' · ' + str(total) + ' articles</div>',
             unsafe_allow_html=True
         )
-with col_mkt:
-    if st.button("📈 Markets", use_container_width=True):
-        with st.spinner("Fetching..."):
-            st.session_state.market_data = fetch_market_overview()
-            st.session_state.movers = fetch_tse_movers()
-            st.session_state.foreign_flow = fetch_foreign_flow()
-            st.session_state.jpx_movers = fetch_jpx_daily_movers()
-            st.session_state.topix_returns = fetch_topix_returns()
-            st.session_state.last_market_fetch = now_local()
-            _c = _get_app_cache()
-            _c["market_data"]       = st.session_state.market_data
-            _c["movers"]            = st.session_state.movers
-            _c["foreign_flow"]      = st.session_state.foreign_flow
-            _c["jpx_movers"]        = st.session_state.jpx_movers
-            _c["topix_returns"]     = st.session_state.topix_returns
-            _c["last_market_fetch"] = st.session_state.last_market_fetch
-        st.rerun()
-with col_news:
-    if st.button("🔄 News", use_container_width=True):
-        with st.spinner("Fetching & translating..."):
+with col_refresh:
+    if st.button("🔄 Refresh", use_container_width=True):
+        with st.spinner("Fetching news & markets..."):
+            _cd_ph = st.empty()
+            _cd_ph.markdown('<div class="countdown-bar">⏱ Fetching — typically 30–60s</div>', unsafe_allow_html=True)
+            # News
             try:
                 sector_map, source_map = fetch_all_news()
-                st.session_state.articles = sector_map if isinstance(sector_map, dict) else {}
+                st.session_state.articles   = sector_map if isinstance(sector_map, dict) else {}
                 st.session_state.source_map = source_map if isinstance(source_map, dict) else {}
             except Exception as e:
                 st.error("News fetch failed: " + str(e))
                 st.session_state.articles = {}
                 st.session_state.source_map = {}
             st.session_state.last_fetch = now_local()
-            # Only score if we actually have articles
             if st.session_state.articles:
                 try:
                     st.session_state.sentiment_scores = score_all_sectors(st.session_state.articles)
                 except Exception as e:
-                    print(f"Sentiment scoring failed: {e}")
                     st.session_state.sentiment_scores = {}
                 try:
                     wl = load_watchlist()
                     st.session_state.watchlist_hits = scan_all_watchlist(wl, st.session_state.articles)
                 except Exception as e:
-                    print(f"Watchlist scan failed: {e}")
                     st.session_state.watchlist_hits = {}
                 if not st.session_state.selected_sector:
                     for name, _ in MSCI_SECTORS:
                         if st.session_state.articles.get(name):
                             st.session_state.selected_sector = name
                             break
-            if not st.session_state.market_data:
-                st.session_state.market_data = fetch_market_overview()
-                st.session_state.movers = fetch_tse_movers()
-                st.session_state.foreign_flow = fetch_foreign_flow()
-                st.session_state.jpx_movers = fetch_jpx_daily_movers()
-                st.session_state.topix_returns = fetch_topix_returns()
-                st.session_state.last_market_fetch = now_local()
-            # Save to shared cache so next session restores this data
+            # Markets
+            st.session_state.market_data    = fetch_market_overview()
+            st.session_state.movers         = fetch_tse_movers()
+            st.session_state.foreign_flow   = fetch_foreign_flow()
+            st.session_state.jpx_movers     = fetch_jpx_daily_movers()
+            st.session_state.topix_returns  = fetch_topix_returns()
+            st.session_state.last_market_fetch = now_local()
+            # Save to shared cache
             _c = _get_app_cache()
             _c["articles"]          = st.session_state.articles
             _c["source_map"]        = st.session_state.source_map
@@ -968,6 +960,7 @@ with col_news:
             _c["movers"]            = st.session_state.movers
             _c["foreign_flow"]      = st.session_state.foreign_flow
             _c["last_market_fetch"] = st.session_state.last_market_fetch
+        _cd_ph.empty()
         st.rerun()
 
 with col_clear:
@@ -1093,11 +1086,16 @@ with tab_bytime:
     if not all_articles:
         st.markdown('<div class="empty-state">Fetch news first — click <strong>🔄 Fetch All News</strong>.</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="section-title" style="font-size:0.78rem;margin-top:0.2rem;">✨ AI Briefing — Last 24 Hours</div>', unsafe_allow_html=True)
+        _bt_col1, _bt_col2 = st.columns([4, 1])
+        with _bt_col1:
+            st.markdown('<div style="font-size:0.78rem;font-weight:700;letter-spacing:0.04em;color:#1A1A1A;padding-top:0.3rem;">✨ AI Briefing — Last 24 Hours</div>', unsafe_allow_html=True)
+        with _bt_col2:
+            _bytime_gen_btn = st.button("✨ Summarise", key="btn_summary_bytime", use_container_width=True)
         render_ai_summary(
             articles_24h or all_articles[:60],
             "the last 24 hours of Japan business news across all sources",
-            "summary_bytime"
+            "summary_bytime",
+            _override_btn=_bytime_gen_btn
         )
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
@@ -1172,9 +1170,10 @@ with tab_bytime:
                 + source
                 + (' · ' + time_str if time_str else '')
                 + '</div>'
+                '<div style="line-height:1.5;">'
                 '<a class="article-link" href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a>'
-                + nt_badge
-                + (badge_html if badge_html else '')
+                + nt_badge + (badge_html if badge_html else '')
+                + '</div>'
                 + ('<div class="original-title">' + orig + '</div>' if is_jp and orig and orig != title else '')
                 + '</div>'
             )
@@ -2030,13 +2029,17 @@ with tab_filings:
         st.session_state.filings_last_fetch = None
 
     # ── Controls: keyword filter + refresh only ──
-    col_f1, col_f2 = st.columns([3, 1])
+    col_f1, col_f2, col_f3 = st.columns([3, 0.8, 0.8])
     with col_f1:
         keyword_filter = st.text_input("Filter by keyword or company:", key="filings_keyword",
                                        placeholder="e.g. Toyota, 決算, dividend")
     with col_f2:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         fetch_filings_btn = st.button("🔄 Refresh", key="btn_filings", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    with col_f3:
+        st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
+        _filings_sum_btn = st.button("✨ Summarise", key="btn_filings_sum", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Auto-load on first visit OR on button click
@@ -2188,7 +2191,8 @@ with tab_filings:
             filing_articles,
             "TDnet corporate filings — last 3 days",
             "summary_filings",
-            max_articles=80
+            max_articles=80,
+            _override_btn=_filings_sum_btn
         )
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
@@ -2271,64 +2275,68 @@ with tab_sentiment:
 # ════════════════════════════════════════════════════════════
 with tab_bysource:
     st.markdown('<div class="section-title">📁 Headlines by Source</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="info-box">Select a publication to browse its headlines from the last 14 days. '
-        'Japanese sources are auto-translated. Older articles may not appear if the feed does not carry them.</div>',
-        unsafe_allow_html=True
-    )
 
-    # Group selector — use on_change to reset source selection cleanly
+    # ── Source picker: group tabs then source buttons ─────────────────────
     group_names = list(SOURCE_GROUPS.keys())
-
-    def _on_group_change():
-        st.session_state.source_group    = st.session_state._group_sel
-        st.session_state.source_selected = None
-        st.session_state.source_cache    = st.session_state.get("source_cache", {})
-
     if st.session_state.source_group not in group_names:
         st.session_state.source_group = group_names[0]
 
-    selected_group = st.selectbox(
-        "Publication group:", group_names,
-        index=group_names.index(st.session_state.source_group),
-        label_visibility="collapsed", key="_group_sel",
-        on_change=_on_group_change,
-    )
+    # Group selector as compact radio
+    _sel_grp = st.radio("Group:", group_names,
+                        index=group_names.index(st.session_state.source_group),
+                        horizontal=True, key="_src_group_radio",
+                        label_visibility="collapsed")
+    if _sel_grp != st.session_state.source_group:
+        st.session_state.source_group = _sel_grp
+        st.session_state.source_selected = None
 
-    # Source selector within group
-    sources_in_group = SOURCE_GROUPS.get(selected_group, [])
+    sources_in_group = SOURCE_GROUPS.get(st.session_state.source_group, [])
     available = [s for s in sources_in_group if s in SOURCE_DIRECTORY]
 
     if not available:
-        st.markdown('<div class="info-box">No sources available in this group.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="info-box">No sources in this group.</div>', unsafe_allow_html=True)
     else:
         if st.session_state.source_selected not in available:
             st.session_state.source_selected = available[0]
 
-        def _on_source_change():
-            st.session_state.source_selected = st.session_state._source_sel
+        # Source pills — compact button grid
+        _src_cols = st.columns(min(len(available), 4))
+        for _si, _sn in enumerate(available):
+            _is_sel = (_sn == st.session_state.source_selected)
+            _btn_style = (
+                "background:#1A1A1A;color:#F7F4EF;font-size:0.62rem;font-weight:700;"
+                "padding:0.2rem 0.5rem;border-radius:3px;border:none;width:100%;cursor:pointer;"
+                if _is_sel else
+                "background:#EDE8E0;color:#1A1A1A;font-size:0.62rem;font-weight:600;"
+                "padding:0.2rem 0.5rem;border-radius:3px;border:1px solid #D9D3C8;width:100%;cursor:pointer;"
+            )
+            with _src_cols[_si % 4]:
+                if st.button(_sn, key=f"src_pill_{_sn}",
+                             use_container_width=True,
+                             type="primary" if _is_sel else "secondary"):
+                    if st.session_state.source_selected != _sn:
+                        st.session_state.source_selected = _sn
+                        st.rerun()
 
-        selected_source = st.selectbox(
-            "Publication:", available,
-            index=available.index(st.session_state.source_selected),
-            label_visibility="collapsed", key="_source_sel",
-            on_change=_on_source_change,
-        )
         selected_source = st.session_state.source_selected
 
-        # Fetch / cache button
-        col_src_info, col_src_btn = st.columns([3, 1])
+        # Load / status row
         cached = st.session_state.source_cache.get(selected_source)
-        with col_src_info:
+        _src_l1, _src_l2 = st.columns([4, 1])
+        with _src_l1:
             if cached is not None:
                 st.markdown(
-                    '<div style="font-size:0.72rem;color:#9B8B7A;padding-top:0.35rem;">'
-                    + str(len(cached)) + ' headlines loaded for ' + selected_source + '</div>',
-                    unsafe_allow_html=True
-                )
-        with col_src_btn:
-            if st.button("🔄 Load Headlines", use_container_width=True, key="load_source"):
-                with st.spinner("Fetching " + selected_source + "..."):
+                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.3rem;">'
+                    f'{len(cached)} headlines · {selected_source}</div>',
+                    unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.3rem;">'
+                    f'{selected_source} — not yet loaded</div>',
+                    unsafe_allow_html=True)
+        with _src_l2:
+            if st.button("🔄 Load", use_container_width=True, key="load_source"):
+                with st.spinner(f"Fetching {selected_source}..."):
                     results = fetch_source_headlines(selected_source, days=14)
                     st.session_state.source_cache[selected_source] = results
                 st.rerun()
@@ -2817,15 +2825,18 @@ with tab_earnings:
     # All three datasets load silently from GitHub CSVs at session start.
     # No button press needed. Data is a few days old at most (cron cadence).
 
-    # 1. Market cap (daily cron)
-    if not st.session_state.get("mktcap_map"):
+    # 1. Market cap (daily cron CSV)
+    # Reload if empty or not yet attempted
+    if not st.session_state.get("mktcap_map") and not st.session_state.get("mktcap_load_attempted"):
+        st.session_state.mktcap_load_attempted = True
         try:
             _mc_map = load_mktcap_from_github(_ec_repo, _gh_token)
             if _mc_map:
                 st.session_state.mktcap_map = _mc_map
                 st.session_state.mktcap_loaded_ts = now_local()
-        except Exception:
-            pass
+                st.session_state.mktcap_load_attempted = False  # allow refresh
+        except Exception as _mce:
+            print(f"Mktcap load error: {_mce}")
 
     # 2. 3M vs TOPIX performance (weekly cron)
     if not st.session_state.get("perf_3m_map"):
@@ -2852,7 +2863,7 @@ with tab_earnings:
     ec_col1, ec_col2, ec_col3 = st.columns([2, 2, 1])
     with ec_col1:
         ec_bucket = st.radio(
-            "Show:", ["Next 60 days", "Today", "Tomorrow", "This Week", "Next Week", "Next 30 Days", "All"],
+            "Show:", ["Next 2 Days", "This Week", "Next Week", "Next 14 Days", "Next 30 Days", "All"],
             horizontal=True, key="ec_bucket", label_visibility="collapsed",
         )
     with ec_col2:
@@ -2861,7 +2872,7 @@ with tab_earnings:
             key="ec_search", label_visibility="collapsed",
         )
     with ec_col3:
-        ec_fetch = st.button("🔄 Load from GitHub", use_container_width=True, key="btn_ec_fetch")
+        ec_fetch = st.button("📥 Load Earnings", use_container_width=True, key="btn_ec_fetch")
 
     # Market cap filter + sort row
     _mf_col1, _mf_col2, _mf_col3 = st.columns([2, 2, 2])
@@ -2974,11 +2985,15 @@ with tab_earnings:
 
         # ── Apply filters ─────────────────────────────────────────────────
         # Bucket filter
-        if ec_bucket == "Next 60 days":
-            cal_filtered = filter_upcoming(cal_all, 60)
+        if ec_bucket == "Next 2 Days":
+            cal_filtered = filter_upcoming(cal_all, 2)
+        elif ec_bucket == "Next 14 Days":
+            cal_filtered = filter_upcoming(cal_all, 14)
+        elif ec_bucket == "Next 30 Days":
+            cal_filtered = filter_upcoming(cal_all, 30)
         elif ec_bucket == "All":
             cal_filtered = cal_all
-        else:
+        else:  # This Week, Next Week
             cal_filtered = [
                 e for e in cal_all
                 if label_date_bucket(e.get("announcement_date", "")) == ec_bucket
@@ -3032,7 +3047,7 @@ with tab_earnings:
                     unsafe_allow_html=True,
                 )
             with _mkt_col2:
-                _load_mkt = st.button("📊 Load mkt cap + perf", key="btn_ec_mkt",
+                _load_mkt = st.button("📊 Load Mkt Cap & Perf", key="btn_ec_mkt",
                                       use_container_width=True,
                                       help="Fetches market cap and 3M vs TOPIX for the companies currently visible")
             if _load_mkt:
@@ -3117,17 +3132,17 @@ with tab_earnings:
                     if _ec_sort_key == "Mkt Cap ↓":
                         return (_wl_flag, -_mc)
                     elif _ec_sort_key == "Mkt Cap ↑":
-                        return (_wl_flag, _mc if _mc > 0 else 9999)
+                        return (_wl_flag, _mc if _mc > 0 else 999999)
                     elif _ec_sort_key == "3M vs TOPIX ↓":
                         return (_wl_flag, _pf_sort)
                     elif _ec_sort_key == "3M vs TOPIX ↑":
-                        return (_wl_flag, -_pf_sort)
+                        return (_wl_flag, -(_pf_sort if _pf_sort != -9999 else 9999))
                     else:  # Date (default)
-                        return (_wl_flag, e.get("name",""))
-                _sorted_entries = sorted(
-                    _entries,
-                    key=lambda e: (0 if e.get("code") in _wl_codes else 1, e.get("name", ""))
-                )
+                        return (_wl_flag, e.get("announcement_date",""), e.get("name",""))
+                _sorted_entries = sorted(_entries, key=_sort_key_fn)
+
+
+
 
                 rows_html = ""
                 for _idx, _e in enumerate(_sorted_entries):
