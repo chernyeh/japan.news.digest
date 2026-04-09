@@ -600,8 +600,8 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
         # Convert **bold** → <strong>
         line = _re2.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
 
-        # [N] resolver disabled — source pills now appended via keyword matching
-        if False and art_index:
+        # Resolve [N] citation markers → source pills
+        if art_index:
             def _resolve_idx(m):
                 try:
                     idx = int(m.group(1))
@@ -609,15 +609,31 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
                     _src = info.get("source", "")
                     _u   = info.get("url", "")
                     if _src and _u and _u.startswith("http") and len(_u) > 12:
-                        _display = _src if len(_src) <= 40 else _src[:38] + "…"
+                        _display = _src if len(_src) <= 30 else _src[:28] + "…"
                         return f'<a class="summary-link" href="{_safe_url(_u)}" target="_blank">{_display}</a>'
                     elif _src:
                         return f'<span class="summary-source-text">{_src}</span>'
                 except (ValueError, AttributeError):
                     pass
-                return m.group(0)  # leave unchanged if can't resolve
-            # Match [N] or [N][M] patterns — only pure integers inside brackets
+                return ''  # remove unresolvable [N] markers cleanly
+            # Resolve [N] citations
             line = _re2.sub(r"\[(\d+)\]", _resolve_idx, line)
+            # Also handle legacy (Headline N) format
+            def _resolve_headline(m):
+                try:
+                    idx = int(m.group(1))
+                    info = art_index.get(idx, {})
+                    _src = info.get("source", "")
+                    _u   = info.get("url", "")
+                    if _src and _u and _u.startswith("http"):
+                        _display = _src if len(_src) <= 30 else _src[:28] + "…"
+                        return f'<a class="summary-link" href="{_safe_url(_u)}" target="_blank">{_display}</a>'
+                    elif _src:
+                        return f'<span class="summary-source-text">{_src}</span>'
+                except (ValueError, AttributeError):
+                    pass
+                return ''  # remove (Headline N) cleanly
+            line = _re2.sub(r"\(Headline\s+(\d+)\)", _resolve_headline, line)
 
         # Convert [Source Name](url) → source-labelled button (legacy format)
         def _make_link(m):
@@ -807,7 +823,8 @@ Structure:
 Format rules:
 - ## headers for each cluster
 - Each bullet: 2-4 sentences. Lead with the key fact, then add context/comparison (e.g. "vs prior quarter", "first time since...", "X-year high/low"), then state the investment implication or risk
-- Write clean prose only — do NOT include any links, URLs, brackets, or citation markers of any kind
+- Cite sources using [N] at the end of each bullet where N is the headline number from the list above (e.g. [12] or [12][15]). Use only numbers, no other brackets or URLs.
+- Do NOT write (Headline N) — use [N] only
 - Cover every meaningful story — do not skip or truncate
 - No preamble, no filler, no generic observations
 
@@ -1801,7 +1818,7 @@ Write a COMPLETE investment-focused daily market wrap:
 Format rules:
 - ## headers for each section
 - Each bullet 2-3 sentences: key fact → context/comparison → investment implication
-- Write clean prose only — do NOT include any links, URLs, brackets, or citation markers
+- Cite sources inline using [N] at the end of relevant sentences, where N is the article number from the list. Use [N] format only, not (Headline N) or URLs.
 - Be direct and analytical — no padding
 - COMPLETE the entire wrap, never truncate
 
