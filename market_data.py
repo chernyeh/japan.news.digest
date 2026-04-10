@@ -201,7 +201,7 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
 # Yahoo Finance ticker symbols
 YF_INDEX_INSTRUMENTS = {
     "nikkei":       ("^N225",  "Nikkei 225"),
-    "topix":        ("^TOPX",  "TOPIX"),
+    "topix":        ("1306.T", "TOPIX"),  # NEXT FUNDS TOPIX ETF — reliable from cloud IPs
     "topix_large":  ("^TPXL",  "TOPIX Large Cap"),
     "topix_mid":    ("^TPXM",  "TOPIX Mid Cap"),
     "topix_small":  ("^TPXS",  "TOPIX Small Cap"),
@@ -274,7 +274,7 @@ AV_EQUITY_INSTRUMENTS = {
 # Stooq symbols — attempt to get real index data (overrides AV proxies if successful)
 STOOQ_INDEX_INSTRUMENTS = {
     "nikkei":     ("^NKX",    "Nikkei 225"),
-    "topix":      ("^TPX",    "TOPIX"),
+    "topix":      ("1306.T",  "TOPIX"),  # NEXT FUNDS TOPIX ETF
     # Sub-indices removed — not reliably available from any free source without JS
 }
 
@@ -621,7 +621,7 @@ def fetch_topix_returns() -> dict:
     if not _YF_AVAILABLE:
         return {}
     try:
-        t = yf.Ticker("^TOPX")
+        t = yf.Ticker("1306.T")  # NEXT FUNDS TOPIX ETF
         hist = t.history(period="13mo", auto_adjust=True)
         if hist.empty:
             return {}

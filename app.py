@@ -225,14 +225,14 @@ html, body, [class*="css"] {
 
 /* Unified article headline styles — used across all tabs */
 .article-title a {
-    font-size: 1.05rem; font-weight: 700; color: #1A1A1A;
-    text-decoration: none; line-height: 1.45;
+    font-size: 1.0rem; font-weight: 500; color: #1A1A1A;
+    text-decoration: none; line-height: 1.5;
 }
 .article-title a:hover { color: #8B4513; text-decoration: underline; }
 /* article-link: By Time / Breaking News use this class — same style */
 .article-link {
-    display: block; font-size: 1.05rem; font-weight: 700; color: #1A1A1A;
-    text-decoration: none; line-height: 1.45; margin-bottom: 0.1rem;
+    display: inline; font-size: 1.0rem; font-weight: 400; color: #1A1A1A;
+    text-decoration: none; line-height: 1.5;
 }
 .article-link:hover { color: #8B4513; text-decoration: underline; }
 /* Japanese original title — shown below English translation */
@@ -271,20 +271,15 @@ html, body, [class*="css"] {
     border-radius: 2px; margin-left: 0.35rem; vertical-align: middle;
 }
 /* micro/macro badges — inline after headline */
-.badge-micro {
-    display: inline; background: #EBF5FB; color: #1B4F72;
-    font-size: 0.5rem; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; padding: 0.04rem 0.28rem;
-    border-radius: 8px; margin-left: 0.3rem; vertical-align: middle;
-    border: 1px solid #AED6F1; white-space: nowrap;
+.badge-micro, .badge-macro {
+    display: inline !important; font-size: 0.5rem !important;
+    font-weight: 700 !important; letter-spacing: 0.06em !important;
+    text-transform: uppercase !important; padding: 0.04rem 0.28rem !important;
+    border-radius: 8px !important; margin-left: 0.3rem !important;
+    vertical-align: middle !important; white-space: nowrap !important;
 }
-.badge-macro {
-    display: inline; background: #F2F3F4; color: #5D6D7E;
-    font-size: 0.5rem; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; padding: 0.04rem 0.28rem;
-    border-radius: 8px; margin-left: 0.3rem; vertical-align: middle;
-    border: 1px solid #D5D8DC; white-space: nowrap;
-}
+.badge-micro { background: #EBF5FB !important; color: #1B4F72 !important; border: 1px solid #AED6F1 !important; }
+.badge-macro { background: #F2F3F4 !important; color: #5D6D7E !important; border: 1px solid #D5D8DC !important; }
 /* Signal direction badges — compact pill style */
 .signal-positive, .signal-negative, .signal-mixed, .signal-neutral {
     display: inline; font-size: 0.52rem; font-weight: 700;
