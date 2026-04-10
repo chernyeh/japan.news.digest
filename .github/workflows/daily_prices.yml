@@ -22,7 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install yfinance pandas requests xlrd openpyxl beautifulsoup4
+        run: pip install yfinance pandas requests
 
       - name: Write fetch script
         run: |
@@ -31,154 +31,31 @@ jobs:
           import pandas as pd
           import requests
           import csv
-          import io
           import os
-          import re
           from datetime import datetime, date, timedelta
-          from bs4 import BeautifulSoup
 
-          price_map  = {}
-          mcap_map   = {}
+          price_map = {}
+          mcap_map  = {}
+          HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
+          # ── Step 1: Load shares from weekly CSV ───────────────────────────────
           shares_map = {}
-          HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
-          # ── Step 1: Scrape JPX pages to find real shares file URLs ────────────
-          # Scrape multiple JPX statistics pages looking for XLS files
-          # that contain shares outstanding (上場株式数 / 発行済株式数)
-          pages_to_scrape = [
-              "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html",
-              "https://www.jpx.co.jp/english/markets/statistics-equities/misc/01.html",
-              "https://www.jpx.co.jp/listing/stocks/list/index.html",
-              "https://www.jpx.co.jp/english/listing/stocks/list/index.html",
-          ]
-
-          found_urls = []
-          for page in pages_to_scrape:
-              try:
-                  r = requests.get(page, headers=HDR, timeout=15)
-                  print(f"Page {r.status_code}: {page}")
-                  if r.status_code != 200:
-                      continue
-                  try:
-                      html = r.content.decode("shift_jis", errors="replace")
-                  except Exception:
-                      html = r.text
-                  soup = BeautifulSoup(html, "html.parser")
-                  for a in soup.find_all("a", href=True):
-                      href = a["href"]
-                      text = a.get_text(strip=True)
-                      if any(ext in href.lower() for ext in [".xls", ".xlsx", ".csv"]):
-                          full = href if href.startswith("http") else "https://www.jpx.co.jp" + href
-                          print(f"  Found: [{text}] -> {full}")
-                          found_urls.append(full)
-              except Exception as e:
-                  print(f"  Scrape error: {e}")
-
-          # ── Step 2: Try all found URLs + known patterns ───────────────────────
-          today = date.today()
-          candidate_urls = list(dict.fromkeys(found_urls))  # dedupe, preserve order
-
-          # Add hardcoded candidates as fallback
-          for months_back in range(0, 4):
-              m = today.month - months_back
-              y = today.year
-              while m <= 0:
-                  m += 12
-                  y -= 1
-              ym = f"{y}{m:02d}"
-              candidate_urls += [
-                  f"https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j_{ym}.xls",
-                  f"https://www.jpx.co.jp/markets/statistics-equities/misc/nlsgeu000000{ym}-att/data_j.xls",
-              ]
-
-          print(f"\nTrying {len(candidate_urls)} candidate URLs for shares data...")
-          for url in candidate_urls:
-              try:
-                  r = requests.get(url, headers=HDR, timeout=20)
-                  if r.status_code != 200:
-                      print(f"  {r.status_code}: {url.split('/')[-1]}")
-                      continue
-                  print(f"  200 OK ({len(r.content)} bytes): {url}")
-
-                  # Try reading as Excel
-                  try:
-                      df = pd.read_excel(io.BytesIO(r.content), dtype=str)
-                  except Exception:
-                      try:
-                          df = pd.read_excel(io.BytesIO(r.content), engine="xlrd", dtype=str)
-                      except Exception as e:
-                          print(f"    Cannot read as Excel: {e}")
-                          continue
-
-                  print(f"    Shape: {df.shape}, Columns: {df.columns.tolist()}")
-                  if len(df) > 0:
-                      print(f"    Row 0: {df.iloc[0].to_dict()}")
-
-                  # Search for shares column
-                  code_col = shares_col = None
-                  for col in df.columns:
-                      col_s = str(col)
-                      if any(k in col_s for k in ["コード","Code","code","ticker","Ticker"]):
-                          if code_col is None:
-                              code_col = col
-                      if any(k in col_s for k in ["上場株式数","発行済","株式数",
-                                                    "Shares","shares","Issued","issued",
-                                                    "Outstanding","outstanding"]):
-                          if shares_col is None:
-                              shares_col = col
-
-                  if shares_col:
-                      print(f"    ✓ Shares col: '{shares_col}', Code col: '{code_col}'")
-                      for _, row in df.iterrows():
-                          try:
-                              raw = str(row[code_col]).strip()
-                              digits = ''.join(c for c in raw if c.isdigit())
-                              code = digits[:4] if len(digits) >= 4 else None
-                              if not code:
-                                  continue
-                              sh_str = str(row[shares_col]).replace(",","").strip()
-                              if sh_str not in ("nan","","-","None"):
-                                  sh = float(sh_str)
-                                  if sh > 0:
-                                      shares_map[code] = int(sh)
-                          except Exception:
-                              continue
-                      print(f"    Shares loaded: {len(shares_map)}")
-                      if len(shares_map) > 500:
-                          print("    ✓ Good coverage achieved!")
-                          break
-                  else:
-                      print(f"    No shares column. All cols: {df.columns.tolist()}")
-
-              except Exception as e:
-                  print(f"  Error on {url.split('/')[-1]}: {e}")
-
-          # ── Step 3: Last resort — cached shares ───────────────────────────────
-          if len(shares_map) < 100 and os.path.exists("data/jquants_shares.csv"):
-              print("Using cached jquants_shares.csv...")
+          if os.path.exists("data/jquants_shares.csv"):
               with open("data/jquants_shares.csv") as f:
                   for row in csv.DictReader(f):
                       code = str(row.get("Code","")).strip().zfill(4)[:4]
                       try:
-                          sh = int(float(row.get("SharesOutstanding",0) or 0))
+                          sh = int(float(row.get("SharesOutstanding", 0) or 0))
                           if sh > 0:
                               shares_map[code] = sh
                       except Exception:
                           pass
-              print(f"Cached: {len(shares_map)} shares")
+              print(f"Shares loaded: {len(shares_map)} companies")
+          else:
+              print("WARNING: jquants_shares.csv not found — run weekly_shares first")
 
-          # Save shares
-          if shares_map:
-              os.makedirs("data", exist_ok=True)
-              ts = datetime.utcnow().strftime("%Y-%m-%d")
-              with open("data/jquants_shares.csv","w",newline="",encoding="utf-8") as f:
-                  w = csv.writer(f)
-                  w.writerow(["Code","SharesOutstanding","UpdatedDate"])
-                  for code, sh in sorted(shares_map.items()):
-                      w.writerow([code, sh, ts])
-              print(f"Saved shares: {len(shares_map)}")
-
-          # ── Step 4: JPX daily CSV — prices ────────────────────────────────────
+          # ── Step 2: JPX daily CSV — closing prices ────────────────────────────
+          today = date.today()
           for delta in range(5):
               d = today - timedelta(days=delta)
               if d.weekday() >= 5:
@@ -206,14 +83,14 @@ jobs:
                       except Exception:
                           continue
                   if len(price_map) > 100:
-                      print(f"JPX prices: {len(price_map)} ({ds})")
+                      print(f"JPX prices: {len(price_map)} stocks ({ds})")
                       break
               except Exception as e:
-                  print(f"JPX daily error: {e}")
+                  print(f"JPX error: {e}")
 
           # yfinance fallback
           if len(price_map) < 100:
-              print("yfinance fallback for prices...")
+              print("JPX unavailable — yfinance fallback")
               codes_fb = list(shares_map.keys()) or [str(i) for i in range(1300,9999)]
               for i in range(0, len(codes_fb), 500):
                   batch = [c+".T" for c in codes_fb[i:i+500]]
@@ -234,23 +111,25 @@ jobs:
                       pass
               print(f"yfinance: {len(price_map)} prices")
 
-          # ── Step 5: Compute + write ────────────────────────────────────────────
+          # ── Step 3: Compute market cap = Close × Shares / 1B ─────────────────
           for code, price in price_map.items():
               sh = shares_map.get(code)
               if sh and sh > 0 and price > 0:
                   mcap_map[code] = round((price * sh) / 1e9, 1)
           print(f"Market caps: {len(mcap_map)}")
 
+          # ── Step 4: Write CSV ──────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
-          ts2 = datetime.utcnow().strftime("%Y-%m-%d")
+          ts = datetime.utcnow().strftime("%Y-%m-%d")
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
           with open("data/jquants_prices_latest.csv","w",newline="",encoding="utf-8") as f:
               w = csv.writer(f)
               w.writerow(["Code","Date","Close","MarketCapB"])
               for code in all_codes:
-                  w.writerow([code, ts2, price_map.get(code,""), mcap_map.get(code,"")])
+                  w.writerow([code, ts, price_map.get(code,""), mcap_map.get(code,"")])
           mc = sum(1 for c in all_codes if mcap_map.get(c))
-          print(f"Written: {len(all_codes)}, MarketCapB: {mc} ({round(mc/max(len(all_codes),1)*100,1)}%)")
+          print(f"Written: {len(all_codes)} stocks")
+          print(f"MarketCapB: {mc} of {len(all_codes)} ({round(mc/max(len(all_codes),1)*100,1)}%)")
           PYEOF
 
       - name: Run fetch script
@@ -260,7 +139,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/jquants_prices_latest.csv data/jquants_shares.csv
+          git add data/jquants_prices_latest.csv
           if git diff --staged --quiet; then
             echo "No changes"
           else
