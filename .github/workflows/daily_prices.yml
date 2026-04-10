@@ -65,7 +65,9 @@ jobs:
                           codes.append(c)
           if not codes:
               codes = [str(i) for i in range(1300, 9999)]
+          import random
           codes = list(dict.fromkeys(codes))
+          random.shuffle(codes)  # shuffle so sample covers full market cap range
           tickers = [c + ".T" for c in codes]
           print(f"Fetching prices for {len(tickers)} tickers...")
 
