@@ -1,6 +1,4 @@
 # .github/workflows/weekly_shares.yml
-# Gets per-stock market cap directly from JPX daily CSV
-# The daily CSV has a market cap column - we just need to find the right column index
 name: J-Quants Weekly Shares
 
 on:
@@ -26,78 +24,39 @@ jobs:
       - name: Install dependencies
         run: pip install pandas requests
 
-      - name: Write fetch script
+      - name: Run diagnostic
         run: |
-          cat > fetch_shares.py << 'PYEOF'
-          import pandas as pd
+          python3 - << 'PYEOF'
           import requests
-          import csv
-          import io
-          import os
-          import sys
-          from datetime import datetime, date, timedelta
+          from datetime import date, timedelta
 
           HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-
-          # ── Fetch JPX daily CSV and print ALL columns with sample values ───────
-          # The daily CSV has proven to work. We need to find which column
-          # contains per-stock market cap or shares outstanding.
-          # Print every column so we can identify the right one.
-
           today = date.today()
-          for delta in range(5):
+          print(f"Today: {today}, weekday: {today.weekday()} (0=Mon, 6=Sun)")
+
+          # Try last 7 days regardless of weekend
+          for delta in range(7):
               d = today - timedelta(days=delta)
-              if d.weekday() >= 5:
-                  continue
               ds = d.strftime("%Y%m%d")
               url = (f"https://www.jpx.co.jp/markets/statistics-equities/daily/"
                      f"nlsgeu000000{ds}-att/data_{ds}.csv")
               try:
                   resp = requests.get(url, headers=HDR, timeout=20)
-                  if resp.status_code != 200:
-                      continue
-                  lines = resp.content.decode("shift_jis", errors="replace").splitlines()
-                  if len(lines) < 3:
-                      continue
-
-                  print(f"JPX daily CSV date: {ds}")
-                  print(f"Total rows: {len(lines)}")
-                  print(f"Header raw: {lines[0]}")
-                  print(f"Row 1 raw:  {lines[1]}")
-                  print(f"Row 2 raw:  {lines[2]}")
-                  print()
-
-                  # Parse header
-                  header = [c.strip().strip('"') for c in lines[0].split(",")]
-                  row1   = [c.strip().strip('"') for c in lines[1].split(",")]
-                  row2   = [c.strip().strip('"') for c in lines[2].split(",")]
-
-                  print(f"Columns ({len(header)}):")
-                  for i, col in enumerate(header):
-                      v1 = row1[i] if i < len(row1) else "?"
-                      v2 = row2[i] if i < len(row2) else "?"
-                      print(f"  [{i:2d}] '{col}' => '{v1}', '{v2}'")
-
-                  # Now try to identify market cap column
-                  # Look for large numeric values that could be market cap (in millions yen)
-                  # Toyota (7203) market cap is ~35 trillion yen = 35,000,000 million yen
-                  # A typical small cap might be 10,000 million yen
-                  print()
-                  print("Looking for market cap column (large numbers ~millions yen):")
-                  for i, col in enumerate(header):
-                      try:
-                          v = float(row1[i].replace(",","")) if i < len(row1) else 0
-                          if v > 1000:  # likely market cap in millions
-                              print(f"  [{i}] '{col}' = {v:,.0f} (could be market cap)")
-                      except Exception:
-                          pass
-                  break
-
+                  print(f"  {ds} (weekday {d.weekday()}): HTTP {resp.status_code}, {len(resp.content)} bytes")
+                  if resp.status_code == 200 and len(resp.content) > 1000:
+                      lines = resp.content.decode("shift_jis", errors="replace").splitlines()
+                      print(f"  Rows: {len(lines)}")
+                      print(f"  Header: {lines[0]}")
+                      print(f"  Row 1:  {lines[1]}")
+                      header = [c.strip().strip('"') for c in lines[0].split(",")]
+                      row1   = [c.strip().strip('"') for c in lines[1].split(",")]
+                      print(f"\nAll columns ({len(header)}):")
+                      for i, col in enumerate(header):
+                          val = row1[i] if i < len(row1) else "?"
+                          print(f"  [{i:2d}] '{col}' = '{val}'")
+                      break
               except Exception as e:
-                  print(f"Error: {e}")
+                  print(f"  {ds}: ERROR {e}")
+
+          print("Done.")
           PYEOF
-
-      - name: Run fetch script
-        run: python fetch_shares.py
-
-      # Note: no commit step - this is diagnostic only
