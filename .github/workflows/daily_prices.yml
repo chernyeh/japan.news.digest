@@ -56,6 +56,7 @@ jobs:
 
           # ── Step 2: JPX daily CSV — closing prices ────────────────────────────
           today = date.today()
+          today_str = today.strftime("%Y-%m-%d")
           for delta in range(5):
               d = today - timedelta(days=delta)
               if d.weekday() >= 5:
@@ -84,6 +85,7 @@ jobs:
                           continue
                   if len(price_map) > 100:
                       print(f"JPX prices: {len(price_map)} stocks ({ds})")
+                      today_str = d.strftime("%Y-%m-%d")  # use actual data date
                       break
               except Exception as e:
                   print(f"JPX error: {e}")
@@ -118,18 +120,45 @@ jobs:
                   mcap_map[code] = round((price * sh) / 1e9, 1)
           print(f"Market caps: {len(mcap_map)}")
 
-          # ── Step 4: Write CSV ──────────────────────────────────────────────────
+          # ── Step 4: Write latest prices CSV ───────────────────────────────────
           os.makedirs("data", exist_ok=True)
-          ts = datetime.utcnow().strftime("%Y-%m-%d")
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
           with open("data/jquants_prices_latest.csv","w",newline="",encoding="utf-8") as f:
               w = csv.writer(f)
               w.writerow(["Code","Date","Close","MarketCapB"])
               for code in all_codes:
-                  w.writerow([code, ts, price_map.get(code,""), mcap_map.get(code,"")])
+                  w.writerow([code, today_str, price_map.get(code,""), mcap_map.get(code,"")])
           mc = sum(1 for c in all_codes if mcap_map.get(c))
           print(f"Written: {len(all_codes)} stocks")
           print(f"MarketCapB: {mc} of {len(all_codes)} ({round(mc/max(len(all_codes),1)*100,1)}%)")
+
+          # ── Step 5: Archive daily snapshot for 3M performance calculation ─────
+          # Keep 120 days of archives (enough for 3M lookback + buffer)
+          # weekly_3m_perf.yml reads these instead of calling any API
+          os.makedirs("data/archive", exist_ok=True)
+          archive_path = f"data/archive/prices_{today_str}.csv"
+          with open(archive_path,"w",newline="",encoding="utf-8") as f:
+              w = csv.writer(f)
+              w.writerow(["Code","Date","Close","MarketCapB"])
+              for code in all_codes:
+                  w.writerow([code, today_str, price_map.get(code,""), mcap_map.get(code,"")])
+          print(f"Archived: {archive_path}")
+
+          # Clean up archives older than 130 days to keep repo size manageable
+          cutoff = date.today() - timedelta(days=130)
+          removed = 0
+          for fname in os.listdir("data/archive"):
+              if fname.startswith("prices_") and fname.endswith(".csv"):
+                  try:
+                      fdate_str = fname.replace("prices_","").replace(".csv","")
+                      fdate = date.fromisoformat(fdate_str)
+                      if fdate < cutoff:
+                          os.remove(f"data/archive/{fname}")
+                          removed += 1
+                  except Exception:
+                      pass
+          if removed:
+              print(f"Cleaned {removed} old archive files")
           PYEOF
 
       - name: Run fetch script
@@ -139,7 +168,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/jquants_prices_latest.csv
+          git add data/jquants_prices_latest.csv data/archive/
           if git diff --staged --quiet; then
             echo "No changes"
           else
