@@ -3,7 +3,7 @@ name: Daily Prices and Market Cap
 
 on:
   schedule:
-    - cron: '30 7 * * 1-5'
+    - cron: '30 7 * * 1-5'   # 16:30 JST weekdays
   workflow_dispatch:
 
 jobs:
@@ -35,17 +35,21 @@ jobs:
           import sys
           from datetime import datetime, date, timedelta
 
-          # ── Step 1: Fetch JPX daily CSV — has code + close + market cap ───────
-          # JPX publishes a full-market daily file with all columns including
-          # 時価総額 (market cap). This is the most reliable source.
-          price_map = {}   # code -> close price
-          mcap_map  = {}   # code -> market cap in ¥B
-          jpx_ok = False
+          price_map = {}   # code (4-digit str) -> close price (float)
+          mcap_map  = {}   # code (4-digit str) -> market cap in ¥B (float)
 
+          # ── Step 1: JPX daily CSV — single request, full market coverage ──────
+          # JPX publishes a daily equity stats file with prices + market cap
+          # for every TSE-listed stock. Accessible from GitHub Actions.
+          # URL pattern: data_{YYYYMMDD}.csv, Shift-JIS encoded
+          # Market cap column is in millions of yen (百万円)
+
+          jpx_ok = False
           today = date.today()
+
           for delta in range(5):
               d = today - timedelta(days=delta)
-              if d.weekday() >= 5:
+              if d.weekday() >= 5:   # skip weekends
                   continue
               date_str = d.strftime("%Y%m%d")
               url = (f"https://www.jpx.co.jp/markets/statistics-equities/daily/"
@@ -53,72 +57,98 @@ jobs:
               try:
                   resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
                   if resp.status_code != 200:
+                      print(f"JPX {date_str}: HTTP {resp.status_code}")
                       continue
+
                   lines = resp.content.decode("shift_jis", errors="replace").splitlines()
-                  if not lines:
+                  if len(lines) < 2:
                       continue
 
-                  # Print header to understand columns
-                  header = lines[0]
-                  print("JPX CSV header: " + header)
-                  cols = [c.strip().strip('"') for c in header.split(",")]
-                  print("Columns (" + str(len(cols)) + "): " + str(cols))
+                  # Print full header and first data row for debugging
+                  header_raw = lines[0]
+                  print(f"JPX CSV date: {date_str}")
+                  print(f"JPX CSV header: {header_raw}")
+                  cols = [c.strip().strip('"') for c in header_raw.split(",")]
+                  print(f"JPX CSV columns ({len(cols)}): {cols}")
+                  print(f"JPX first row: {lines[1]}")
 
+                  # Identify market cap column by scanning header for keywords
+                  mcap_col = None
+                  for idx, col in enumerate(cols):
+                      # JPX uses Japanese: 時価総額 (market cap) or similar
+                      if any(kw in col for kw in ["時価総額", "MarketCap", "市場", "資本", "cap"]):
+                          mcap_col = idx
+                          print(f"Market cap column found: index {idx} = '{col}'")
+                          break
+
+                  if mcap_col is None:
+                      # Print all columns with indices to identify manually
+                      print("Market cap column NOT auto-detected. All columns:")
+                      for idx, col in enumerate(cols):
+                          # Sample first data row value for this column
+                          first_vals = lines[1].split(",")
+                          val = first_vals[idx].strip() if idx < len(first_vals) else "?"
+                          print(f"  [{idx}] '{col}' = '{val}'")
+
+                  # Parse all rows
                   for line in lines[1:]:
                       parts = line.split(",")
                       if len(parts) < 5:
                           continue
                       try:
-                          code = parts[0].strip().strip('"').zfill(4)[:4]
-                          if not code.isdigit():
+                          # Column 0: code (may be 4 or 5 digits)
+                          raw_code = parts[0].strip().strip('"')
+                          # Extract first 4 digits
+                          code = ''.join(c for c in raw_code if c.isdigit())[:4]
+                          if len(code) != 4:
                               continue
-                          close_str = parts[4].replace(",", "").strip()
-                          if close_str:
-                              price_map[code] = float(close_str)
 
-                          # Try to find market cap column (時価総額 or MarketCap)
-                          # JPX CSV typically has it around column 10-12
-                          # Print first row values to identify
-                          if len(lines) > 1 and line == lines[1]:
-                              print("First data row values: " + str(parts[:15]))
+                          # Column 4: close price
+                          close_str = parts[4].replace(",", "").strip().strip('"')
+                          if close_str and close_str not in ("-", "－", ""):
+                              try:
+                                  price_map[code] = float(close_str)
+                              except ValueError:
+                                  pass
 
-                          # Try columns 9-14 for market cap (100M yen units usually)
-                          for mc_col in range(9, min(15, len(parts))):
-                              mc_str = parts[mc_col].replace(",", "").strip()
-                              if mc_str and mc_str.replace(".", "").isdigit():
-                                  mc_val = float(mc_str)
-                                  # JPX market cap is in 100M yen (億円) — convert to B yen
-                                  if mc_val > 1000:  # sanity: at least ¥100B
-                                      mcap_map[code] = round(mc_val / 10, 1)
-                                      break
-                      except (ValueError, IndexError):
+                          # Market cap column (millions of yen → divide by 1000 for ¥B)
+                          if mcap_col is not None and mcap_col < len(parts):
+                              mc_str = parts[mcap_col].replace(",", "").strip().strip('"')
+                              if mc_str and mc_str not in ("-", "－", ""):
+                                  try:
+                                      mc_millions = float(mc_str)
+                                      if mc_millions > 0:
+                                          mcap_map[code] = round(mc_millions / 1000, 1)
+                                  except ValueError:
+                                      pass
+
+                      except Exception:
                           continue
 
-                  if price_map:
-                      print("JPX CSV: " + str(len(price_map)) + " prices, "
-                            + str(len(mcap_map)) + " market caps from date " + date_str)
-                      jpx_ok = True
-                      break
-              except Exception as e:
-                  print("JPX CSV error: " + str(e))
+                  print(f"JPX CSV parsed: {len(price_map)} prices, {len(mcap_map)} market caps")
+                  jpx_ok = len(price_map) > 100
+                  break
 
-          # ── Step 2: Fallback — yfinance batch download for prices ─────────────
-          if not jpx_ok or not price_map:
-              print("JPX CSV unavailable, falling back to yfinance for prices...")
-              codes = []
+              except Exception as e:
+                  print(f"JPX CSV error ({date_str}): {e}")
+
+          # ── Step 2: yfinance fallback if JPX unavailable ──────────────────────
+          if not jpx_ok:
+              print("JPX CSV unavailable — falling back to yfinance for prices only")
+              codes_fb = []
               if os.path.exists("data/jquants_prices_latest.csv"):
                   with open("data/jquants_prices_latest.csv") as f:
                       for row in csv.DictReader(f):
-                          code = str(row.get("Code", "")).strip().zfill(4)[:4]
-                          if code and code.isdigit():
-                              codes.append(code)
-              if not codes:
-                  codes = [str(i) for i in range(1300, 9999)]
-              codes = list(dict.fromkeys(codes))
-              tickers = [c + ".T" for c in codes]
-              BATCH = 500
-              for i in range(0, len(tickers), BATCH):
-                  batch = tickers[i:i+BATCH]
+                          c = str(row.get("Code", "")).strip().zfill(4)[:4]
+                          if c and c.isdigit():
+                              codes_fb.append(c)
+              if not codes_fb:
+                  codes_fb = [str(i) for i in range(1300, 9999)]
+              codes_fb = list(dict.fromkeys(codes_fb))
+              tickers_fb = [c + ".T" for c in codes_fb]
+
+              for i in range(0, len(tickers_fb), 500):
+                  batch = tickers_fb[i:i+500]
                   try:
                       raw = yf.download(batch, period="5d", auto_adjust=True,
                                         progress=False, group_by="ticker")
@@ -126,35 +156,17 @@ jobs:
                           for t in batch:
                               code = t.replace(".T", "")
                               try:
-                                  if isinstance(raw.columns, pd.MultiIndex):
-                                      closes = raw[t]["Close"].dropna()
-                                  else:
-                                      closes = raw["Close"].dropna()
+                                  closes = (raw[t]["Close"] if isinstance(raw.columns, pd.MultiIndex)
+                                            else raw["Close"]).dropna()
                                   if not closes.empty:
                                       price_map[code] = float(closes.iloc[-1])
                               except Exception:
                                   pass
                   except Exception as e:
-                      print("yfinance batch error: " + str(e))
-              print("yfinance prices: " + str(len(price_map)) + " stocks")
+                      print(f"yfinance batch error: {e}")
+              print(f"yfinance fallback: {len(price_map)} prices")
 
-          # ── Step 3: If no market cap from JPX, compute from shares ───────────
-          if not mcap_map and os.path.exists("data/jquants_shares.csv"):
-              with open("data/jquants_shares.csv") as f:
-                  for row in csv.DictReader(f):
-                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
-                      try:
-                          sh = int(float(row.get("SharesOutstanding", 0) or 0))
-                          price = price_map.get(code)
-                          if sh > 0 and price and price > 0:
-                              mcap_map[code] = round((price * sh) / 1e9, 1)
-                      except (ValueError, TypeError):
-                          pass
-              print("Computed market caps from shares: " + str(len(mcap_map)) + " stocks")
-          elif not mcap_map:
-              print("No market cap source available (JPX CSV empty, no shares CSV)")
-
-          # ── Step 4: Write CSV ─────────────────────────────────────────────────
+          # ── Step 3: Write CSV ─────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
           today_str = datetime.utcnow().strftime("%Y-%m-%d")
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
@@ -169,8 +181,7 @@ jobs:
                       writer.writerow([code, today_str, price, mcap])
 
           mc_filled = sum(1 for c in all_codes if mcap_map.get(c))
-          print("Written jquants_prices_latest.csv: " + str(len(all_codes)) + " stocks")
-          print("MarketCapB filled: " + str(mc_filled) + " of " + str(len(all_codes)))
+          print(f"Written: {len(all_codes)} stocks, MarketCapB filled: {mc_filled}")
           PYEOF
 
       - name: Run fetch script
