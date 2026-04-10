@@ -1,4 +1,7 @@
 # .github/workflows/daily_prices.yml
+# Fetches prices via yfinance batch download (JPX CSV blocked on GitHub Actions)
+# Archives daily snapshot to data/archive/ for 3M performance calculation
+# Computes market cap from prices x shares (coverage ~228 larger stocks)
 name: Daily Prices and Market Cap
 
 on:
@@ -29,16 +32,14 @@ jobs:
           cat > fetch_prices.py << 'PYEOF'
           import yfinance as yf
           import pandas as pd
-          import requests
           import csv
           import os
           from datetime import datetime, date, timedelta
 
           price_map = {}
           mcap_map  = {}
-          HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
-          # ── Step 1: Load shares from weekly CSV ───────────────────────────────
+          # ── Load shares ───────────────────────────────────────────────────────
           shares_map = {}
           if os.path.exists("data/jquants_shares.csv"):
               with open("data/jquants_shares.csv") as f:
@@ -52,113 +53,86 @@ jobs:
                           pass
               print(f"Shares loaded: {len(shares_map)} companies")
           else:
-              print("WARNING: jquants_shares.csv not found — run weekly_shares first")
+              print("WARNING: jquants_shares.csv not found")
 
-          # ── Step 2: JPX daily CSV — closing prices ────────────────────────────
-          today = date.today()
-          today_str = today.strftime("%Y-%m-%d")
-          for delta in range(5):
-              d = today - timedelta(days=delta)
-              if d.weekday() >= 5:
-                  continue
-              ds = d.strftime("%Y%m%d")
-              url = (f"https://www.jpx.co.jp/markets/statistics-equities/daily/"
-                     f"nlsgeu000000{ds}-att/data_{ds}.csv")
+          # ── Load codes ────────────────────────────────────────────────────────
+          codes = list(shares_map.keys())
+          if not codes and os.path.exists("data/jquants_prices_latest.csv"):
+              with open("data/jquants_prices_latest.csv") as f:
+                  for row in csv.DictReader(f):
+                      c = str(row.get("Code","")).strip().zfill(4)[:4]
+                      if c and c.isdigit():
+                          codes.append(c)
+          if not codes:
+              codes = [str(i) for i in range(1300, 9999)]
+          codes = list(dict.fromkeys(codes))
+          tickers = [c + ".T" for c in codes]
+          print(f"Fetching prices for {len(tickers)} tickers...")
+
+          # ── yfinance batch download ───────────────────────────────────────────
+          BATCH = 500
+          total = (len(tickers) + BATCH - 1) // BATCH
+          for i in range(0, len(tickers), BATCH):
+              batch = tickers[i:i+BATCH]
+              n = i // BATCH + 1
               try:
-                  resp = requests.get(url, headers=HDR, timeout=20)
-                  if resp.status_code != 200:
-                      continue
-                  lines = resp.content.decode("shift_jis", errors="replace").splitlines()
-                  for line in lines[1:]:
-                      parts = line.split(",")
-                      if len(parts) < 5:
-                          continue
-                      try:
-                          digits = ''.join(c for c in parts[0].strip().strip('"') if c.isdigit())
-                          code = digits[:4] if len(digits) >= 4 else None
-                          if not code:
-                              continue
-                          cs = parts[4].replace(",","").strip().strip('"')
-                          if cs and cs not in ("-","－",""):
-                              price_map[code] = float(cs)
-                      except Exception:
-                          continue
-                  if len(price_map) > 100:
-                      print(f"JPX prices: {len(price_map)} stocks ({ds})")
-                      today_str = d.strftime("%Y-%m-%d")  # use actual data date
-                      break
+                  raw = yf.download(batch, period="5d", auto_adjust=True,
+                                    progress=False, group_by="ticker")
+                  if not raw.empty:
+                      for t in batch:
+                          code = t.replace(".T","")
+                          try:
+                              cl = (raw[t]["Close"] if isinstance(raw.columns, pd.MultiIndex)
+                                    else raw["Close"]).dropna()
+                              if not cl.empty:
+                                  price_map[code] = float(cl.iloc[-1])
+                          except Exception:
+                              pass
               except Exception as e:
-                  print(f"JPX error: {e}")
+                  print(f"Batch {n} error: {e}")
+          print(f"Prices fetched: {len(price_map)} stocks")
 
-          # yfinance fallback
-          if len(price_map) < 100:
-              print("JPX unavailable — yfinance fallback")
-              codes_fb = list(shares_map.keys()) or [str(i) for i in range(1300,9999)]
-              for i in range(0, len(codes_fb), 500):
-                  batch = [c+".T" for c in codes_fb[i:i+500]]
-                  try:
-                      raw = yf.download(batch, period="5d", auto_adjust=True,
-                                        progress=False, group_by="ticker")
-                      if not raw.empty:
-                          for t in batch:
-                              code = t.replace(".T","")
-                              try:
-                                  cl = (raw[t]["Close"] if isinstance(raw.columns, pd.MultiIndex)
-                                        else raw["Close"]).dropna()
-                                  if not cl.empty:
-                                      price_map[code] = float(cl.iloc[-1])
-                              except Exception:
-                                  pass
-                  except Exception:
-                      pass
-              print(f"yfinance: {len(price_map)} prices")
-
-          # ── Step 3: Compute market cap = Close × Shares / 1B ─────────────────
+          # ── Compute market cap ────────────────────────────────────────────────
           for code, price in price_map.items():
               sh = shares_map.get(code)
               if sh and sh > 0 and price > 0:
                   mcap_map[code] = round((price * sh) / 1e9, 1)
           print(f"Market caps: {len(mcap_map)}")
 
-          # ── Step 4: Write latest prices CSV ───────────────────────────────────
+          # ── Write CSV ─────────────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
+          today_str = datetime.utcnow().strftime("%Y-%m-%d")
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
+          rows = [[code, today_str, price_map.get(code,""), mcap_map.get(code,"")]
+                  for code in all_codes if price_map.get(code,"") or mcap_map.get(code,"")]
+
           with open("data/jquants_prices_latest.csv","w",newline="",encoding="utf-8") as f:
               w = csv.writer(f)
               w.writerow(["Code","Date","Close","MarketCapB"])
-              for code in all_codes:
-                  w.writerow([code, today_str, price_map.get(code,""), mcap_map.get(code,"")])
-          mc = sum(1 for c in all_codes if mcap_map.get(c))
-          print(f"Written: {len(all_codes)} stocks")
-          print(f"MarketCapB: {mc} of {len(all_codes)} ({round(mc/max(len(all_codes),1)*100,1)}%)")
+              w.writerows(rows)
 
-          # ── Step 5: Archive daily snapshot for 3M performance calculation ─────
-          # Keep 120 days of archives (enough for 3M lookback + buffer)
-          # weekly_3m_perf.yml reads these instead of calling any API
+          mc = sum(1 for c in all_codes if mcap_map.get(c))
+          print(f"Written: {len(rows)} stocks, MarketCapB: {mc} ({round(mc/max(len(rows),1)*100,1)}%)")
+
+          # ── Archive daily snapshot ────────────────────────────────────────────
           os.makedirs("data/archive", exist_ok=True)
           archive_path = f"data/archive/prices_{today_str}.csv"
           with open(archive_path,"w",newline="",encoding="utf-8") as f:
               w = csv.writer(f)
               w.writerow(["Code","Date","Close","MarketCapB"])
-              for code in all_codes:
-                  w.writerow([code, today_str, price_map.get(code,""), mcap_map.get(code,"")])
+              w.writerows(rows)
           print(f"Archived: {archive_path}")
 
-          # Clean up archives older than 130 days to keep repo size manageable
+          # Clean archives older than 130 days
           cutoff = date.today() - timedelta(days=130)
-          removed = 0
           for fname in os.listdir("data/archive"):
               if fname.startswith("prices_") and fname.endswith(".csv"):
                   try:
-                      fdate_str = fname.replace("prices_","").replace(".csv","")
-                      fdate = date.fromisoformat(fdate_str)
+                      fdate = date.fromisoformat(fname[7:-4])
                       if fdate < cutoff:
                           os.remove(f"data/archive/{fname}")
-                          removed += 1
                   except Exception:
                       pass
-          if removed:
-              print(f"Cleaned {removed} old archive files")
           PYEOF
 
       - name: Run fetch script
