@@ -22,85 +22,80 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install yfinance pandas requests
 
       - name: Write fetch script
         run: |
           cat > fetch_shares.py << 'PYEOF'
-          import requests
+          import yfinance as yf
+          import pandas as pd
           import csv
           import os
           import sys
-          from datetime import datetime, timedelta
+          from datetime import datetime
 
-          API_KEY = os.environ["JQUANTS_API_KEY"]
-          BASE    = "https://api.jquants.com/v2"
-          HEADERS = {"x-api-key": API_KEY}
+          # ── Step 1: Get stock codes from existing prices CSV ──────────────────
+          codes = []
+          if os.path.exists("data/jquants_prices_latest.csv"):
+              with open("data/jquants_prices_latest.csv") as f:
+                  for row in csv.DictReader(f):
+                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
+                      if code and code.isdigit():
+                          codes.append(code)
+              print("Loaded " + str(len(codes)) + " codes from prices CSV")
+          else:
+              # Fallback: generate TSE range
+              codes = [str(i) for i in range(1300, 9999)]
+              print("Using generated code range")
 
-          # V2 endpoint: /equities/master (replaces /listed/info)
-          r = requests.get(BASE + "/equities/master", headers=HEADERS, timeout=30)
-          if r.status_code != 200:
-              print("Master fetch failed: " + str(r.status_code) + " " + r.text[:300])
+          codes = list(dict.fromkeys(codes))
+          tickers = [c + ".T" for c in codes]
+          print("Fetching shares for " + str(len(tickers)) + " tickers...")
+
+          # ── Step 2: Fetch shares outstanding via yfinance in batches ──────────
+          # yfinance Ticker.fast_info.shares is most reliable
+          # For efficiency: batch download then extract sharesOutstanding from info
+          shares_map = {}
+          BATCH = 100  # smaller batch for info requests
+          failed = 0
+
+          for i in range(0, len(tickers), BATCH):
+              batch = tickers[i:i+BATCH]
+              n = i // BATCH + 1
+              total = (len(tickers) + BATCH - 1) // BATCH
+              if n % 10 == 0:
+                  print("Batch " + str(n) + "/" + str(total) + " — shares so far: " + str(len(shares_map)))
+              for t in batch:
+                  code = t.replace(".T", "")
+                  try:
+                      ticker = yf.Ticker(t)
+                      # fast_info is lightweight — no full info fetch needed
+                      fi = ticker.fast_info
+                      shares = getattr(fi, 'shares', None)
+                      if shares and shares > 0:
+                          shares_map[code] = int(shares)
+                      else:
+                          # fallback to full info
+                          info = ticker.info
+                          shares = (info.get("sharesOutstanding")
+                                    or info.get("impliedSharesOutstanding"))
+                          if shares and shares > 0:
+                              shares_map[code] = int(shares)
+                          else:
+                              failed += 1
+                  except Exception:
+                      failed += 1
+
+          print("Shares fetched: " + str(len(shares_map)) + " stocks")
+          print("No data:        " + str(failed) + " stocks")
+
+          if len(shares_map) == 0:
+              print("ERROR: No shares data obtained")
               sys.exit(1)
 
-          data = r.json()
-          # V2 may return "master" or "info" key
-          companies = data.get("master", data.get("info", []))
-          print("Got " + str(len(companies)) + " listed companies")
-          if companies:
-              print("Sample keys: " + str(list(companies[0].keys())))
-
-          shares_map = {}
-          for c in companies:
-              code = str(c.get("Code", "")).strip()
-              # Try various field names for shares outstanding
-              shares = (c.get("NumberOfShares")
-                        or c.get("TotalNumberOfIssuedShares")
-                        or c.get("IssuedShares")
-                        or c.get("SharesOutstanding"))
-              if shares and code:
-                  try:
-                      shares_map[code] = int(float(shares))
-                  except (ValueError, TypeError):
-                      pass
-          print("Shares found: " + str(len(shares_map)))
-
-          # Supplement from /fins/summary (V2 replaces /fins/statements)
-          today = datetime.utcnow()
-          for days_back in range(0, 90, 30):
-              date_from = (today - timedelta(days=days_back+30)).strftime("%Y-%m-%d")
-              date_to   = (today - timedelta(days=days_back)).strftime("%Y-%m-%d")
-              pagination_key = None
-              page = 0
-              while True:
-                  params = {"date_from": date_from, "date_to": date_to}
-                  if pagination_key:
-                      params["pagination_key"] = pagination_key
-                  r = requests.get(BASE + "/fins/summary",
-                                   headers=HEADERS, params=params, timeout=60)
-                  if r.status_code != 200:
-                      print("fins/summary failed: " + str(r.status_code))
-                      break
-                  data = r.json()
-                  stmts = data.get("summary", data.get("statements", []))
-                  for s in stmts:
-                      code = str(s.get("LocalCode") or s.get("Code") or "").strip()
-                      raw  = (s.get("NumberOfIssuedAndOutstandingSharesAtTheEndOfFiscalYearIncludingTreasuryStock")
-                              or s.get("NumberOfSharesIssued")
-                              or s.get("IssuedShares"))
-                      if raw and code:
-                          try:
-                              shares_map[code] = int(float(raw))
-                          except (ValueError, TypeError):
-                              pass
-                  pagination_key = data.get("pagination_key")
-                  page += 1
-                  if not pagination_key or page > 10:
-                      break
-              print("Period " + date_from + " to " + date_to + ": " + str(len(shares_map)) + " total")
-
+          # ── Step 3: Write CSV ─────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
-          today_str = today.strftime("%Y-%m-%d")
+          today_str = datetime.utcnow().strftime("%Y-%m-%d")
           with open("data/jquants_shares.csv", "w", newline="", encoding="utf-8") as f:
               writer = csv.writer(f)
               writer.writerow(["Code", "SharesOutstanding", "UpdatedDate"])
@@ -110,8 +105,6 @@ jobs:
           PYEOF
 
       - name: Run fetch script
-        env:
-          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
         run: python fetch_shares.py
 
       - name: Commit and push
