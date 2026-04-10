@@ -452,22 +452,27 @@ html, body, [class*="css"] {
     border-radius: 4px; padding: 1.2rem 1.4rem; margin: 0.6rem 0 1rem 0;
     font-size: 1.0rem; line-height: 1.8; color: #1A1A1A;
 }
-.ai-summary h2 {
-    font-size: 0.95rem; font-weight: 800; letter-spacing: 0.05em;
-    text-transform: uppercase; color: #8B4513; margin: 1.2rem 0 0.5rem 0;
-    border-bottom: 2px solid #EDE8E0; padding-bottom: 0.25rem;
+.ai-h2 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #8B4513; margin: 1.2rem 0 0.4rem 0;
+    border-bottom: 2px solid #EDE8E0; padding-bottom: 0.2rem;
 }
-.ai-summary h2:first-child { margin-top: 0; }
+.ai-h2:first-child { margin-top: 0; }
 .ai-summary ul { margin: 0.4rem 0 0.6rem 1.2rem; padding: 0; }
 .ai-summary li { margin-bottom: 0.55rem; font-size: 1.0rem; line-height: 1.75; }
 .ai-summary li strong, .ai-summary strong { font-weight: 700; color: #1A1A1A; }
-.ai-summary a.summary-link {
-    display: inline-block; margin-left: 0.4rem;
-    background: #8B4513; color: #FFF !important; font-size: 0.72rem;
-    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-    padding: 0.1rem 0.45rem; border-radius: 3px; text-decoration: none !important;
-    vertical-align: middle; line-height: 1.6;
+a.summary-link {
+    display: inline-block !important; margin-left: 0.3rem;
+    background: #8B4513 !important; color: #FFF !important;
+    font-size: 0.68rem !important; font-family: 'DM Sans', sans-serif !important;
+    font-weight: 700 !important; letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    padding: 0.08rem 0.4rem !important; border-radius: 3px !important;
+    text-decoration: none !important; vertical-align: middle !important;
+    line-height: 1.6 !important; white-space: nowrap !important;
 }
+a.summary-link:hover { background: #5C2E00 !important; }
 .ai-summary a.summary-link:hover { background: #5C2E00; }
 .summary-source-text {
     display: inline-block; background: #6B6B6B; color: white;
@@ -651,14 +656,14 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
             if in_intro:
                 if out: out.append("</div>")
                 in_intro = False
-            out.append(f'<h2>{line[3:]}</h2>')
+            out.append(f'<div class="ai-h2">{line[3:]}</div>')
 
         elif line.startswith("# "):
             if in_ul:
                 out.append("</ul>"); in_ul = False
             if in_intro and out:
                 out.append("</div>"); in_intro = False
-            out.append(f'<h2>{line[2:]}</h2>')
+            out.append(f'<div class="ai-h2">{line[2:]}</div>')
 
         elif line.startswith("- ") or line.startswith("* "):
             if in_intro and out:
@@ -689,7 +694,7 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
                         bullet_text += f' <span class="summary-source-text">{_disp}</span>'
             out.append(f"<li>{bullet_text}</li>")
 
-        elif line.strip() == "":
+        elif line.strip() == "" or line.strip() == "---" or line.strip() == "***":
             if in_ul:
                 out.append("</ul>"); in_ul = False
 
@@ -937,7 +942,7 @@ with col_info:
         )
 with col_refresh:
     if st.button("🔄 Refresh", use_container_width=True):
-        with st.spinner("Fetching news & markets..."):
+        with st.spinner(" "):
             _cd_ph = st.empty()
             _cd_ph.markdown('<div class="countdown-bar">⏱ Fetching — typically 30–60s</div>', unsafe_allow_html=True)
             # News
