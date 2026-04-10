@@ -113,10 +113,10 @@ MEDIA_SOURCES = [
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+3:wght@300;400;600&family=Noto+Sans+JP:wght@300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;0,800;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Noto+Serif+JP:wght@300;400;500;600&display=swap');
 
 html, body, [class*="css"] {
-    font-family: 'Source Sans 3', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     background-color: #F7F4EF;
     color: #1A1A1A;
 }
@@ -129,7 +129,7 @@ html, body, [class*="css"] {
     padding: 0.9rem 0 0.6rem 0; margin-bottom: 0.3rem; text-align: center;
 }
 .masthead-title {
-    font-family: 'Playfair Display', serif; font-size: 2.2rem;
+    font-family: 'Spectral', serif; font-size: 2.2rem;
     font-weight: 900; letter-spacing: -0.02em; line-height: 1; color: #1A1A1A;
 }
 .masthead-sub {
@@ -170,7 +170,7 @@ html, body, [class*="css"] {
 
 /* Section headers */
 .section-title {
-    font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700;
+    font-family: 'Spectral', serif; font-size: 1.1rem; font-weight: 700;
     color: #1A1A1A; border-bottom: 2px solid #1A1A1A;
     padding-bottom: 0.3rem; margin-bottom: 0.7rem;
 }
@@ -237,12 +237,12 @@ html, body, [class*="css"] {
 .article-link:hover { color: #8B4513; text-decoration: underline; }
 /* Japanese original title — shown below English translation */
 .article-title-jp {
-    font-family: 'Noto Sans JP', sans-serif; font-size: 0.88rem;
+    font-family: 'Noto Serif JP', serif; font-size: 0.88rem;
     color: #9B8B7A; margin-top: 0.12rem; font-weight: 400;
 }
 /* original-title: By Time / Breaking News use this class — same style */
 .original-title {
-    font-family: 'Noto Sans JP', sans-serif; font-size: 0.88rem;
+    font-family: 'Noto Serif JP', serif; font-size: 0.88rem;
     color: #9B8B7A; margin-top: 0.12rem; font-weight: 400;
 }
 .article-source {
@@ -253,7 +253,7 @@ html, body, [class*="css"] {
 /* Date headers in By Time tab */
 .date-group { margin-bottom: 0.5rem; }
 .date-header {
-    font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700;
+    font-family: 'Spectral', serif; font-size: 1.05rem; font-weight: 700;
     color: #1A1A1A; border-bottom: 2px solid #1A1A1A;
     padding-bottom: 0.3rem; margin: 1rem 0 0.5rem 0;
 }
@@ -318,7 +318,7 @@ html, body, [class*="css"] {
 .signal-card.neg { border-left-color: #C62828; }
 .signal-card.mix { border-left-color: #E65100; }
 .sector-header {
-    font-family: 'Playfair Display', serif; font-size: 1.45rem; font-weight: 700;
+    font-family: 'Spectral', serif; font-size: 1.45rem; font-weight: 700;
     color: #1A1A1A; border-bottom: 2px solid #1A1A1A;
     padding-bottom: 0.3rem; margin-bottom: 0.15rem;
 }
@@ -391,7 +391,7 @@ html, body, [class*="css"] {
 
 /* Empty state */
 .empty-state {
-    font-family: 'Playfair Display', serif; font-size: 0.95rem;
+    font-family: 'Spectral', serif; font-size: 0.95rem;
     color: #6B6B6B; text-align: center; padding: 2rem 1rem; line-height: 1.8;
 }
 
@@ -424,7 +424,7 @@ html, body, [class*="css"] {
 }
 .inst-price {
     font-size: 1.15rem; font-weight: 700; color: #1A1A1A;
-    font-family: 'Playfair Display', serif;
+    font-family: 'Spectral', serif;
 }
 .inst-change {
     font-size: 0.72rem; font-weight: 600;
