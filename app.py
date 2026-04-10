@@ -1313,9 +1313,13 @@ with tab_news:
             current_index = sector_names.index(st.session_state.selected_sector)
 
         def _on_sector_change():
-            st.session_state.selected_sector = sector_names[
-                sector_labels.index(st.session_state._sector_sel)
-            ]
+            try:
+                st.session_state.selected_sector = sector_names[
+                    sector_labels.index(st.session_state._sector_sel)
+                ]
+            except ValueError:
+                if sector_names:
+                    st.session_state.selected_sector = sector_names[0]
 
         selected_label = st.selectbox(
             "Sector:", options=sector_labels, index=current_index,
@@ -1323,7 +1327,10 @@ with tab_news:
             on_change=_on_sector_change,
         )
         # Sync in case on_change hasn't fired yet (first render)
-        _cur = sector_names[sector_labels.index(selected_label)]
+        try:
+            _cur = sector_names[sector_labels.index(selected_label)]
+        except ValueError:
+            _cur = st.session_state.selected_sector
         if _cur != st.session_state.selected_sector:
             st.session_state.selected_sector = _cur
 
@@ -2963,11 +2970,7 @@ with tab_earnings:
 </div>""", unsafe_allow_html=True)
     else:
         # ── Stats bar ─────────────────────────────────────────────────────
-        _jq_key = get_jquants_secret()
-        _tomorrow_count = 0
-        if _jq_key:
-            _jq_cal = fetch_earnings_calendar(_jq_key)
-            _tomorrow_count = len([e for e in _jq_cal if e.get("Date")])
+        _tomorrow_count = 0  # J-Quants live API removed (subscription required)
 
         _mkt_ts = st.session_state.get("earnings_mkt_ts")
         _mktcap_ts = st.session_state.get("mktcap_loaded_ts")
