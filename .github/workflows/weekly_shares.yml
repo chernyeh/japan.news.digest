@@ -1,4 +1,7 @@
 # .github/workflows/weekly_shares.yml
+# Fetches shares outstanding via yfinance batch download
+# Coverage: ~228 of 440 stocks (larger liquid stocks covered)
+# Runs weekly Sunday 02:00 UTC
 name: J-Quants Weekly Shares
 
 on:
@@ -22,41 +25,85 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas requests
+        run: pip install yfinance pandas requests
 
-      - name: Run diagnostic
+      - name: Write fetch script
         run: |
-          python3 - << 'PYEOF'
-          import requests
-          from datetime import date, timedelta
+          cat > fetch_shares.py << 'PYEOF'
+          import yfinance as yf
+          import pandas as pd
+          import csv
+          import os
+          import sys
+          from datetime import datetime
 
-          HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-          today = date.today()
-          print(f"Today: {today}, weekday: {today.weekday()} (0=Mon, 6=Sun)")
+          # Load codes from existing prices CSV
+          codes = []
+          if os.path.exists("data/jquants_prices_latest.csv"):
+              with open("data/jquants_prices_latest.csv") as f:
+                  for row in csv.DictReader(f):
+                      c = str(row.get("Code","")).strip().zfill(4)[:4]
+                      if c and c.isdigit():
+                          codes.append(c)
+          if not codes:
+              codes = [str(i) for i in range(1300, 9999)]
+          codes = list(dict.fromkeys(codes))
+          print(f"Fetching shares for {len(codes)} stocks via yfinance batch...")
 
-          # Try last 7 days regardless of weekend
-          for delta in range(7):
-              d = today - timedelta(days=delta)
-              ds = d.strftime("%Y%m%d")
-              url = (f"https://www.jpx.co.jp/markets/statistics-equities/daily/"
-                     f"nlsgeu000000{ds}-att/data_{ds}.csv")
+          # Use yf.Tickers() in batches — more reliable than individual Ticker()
+          shares_map = {}
+          BATCH = 50
+          total = (len(codes) + BATCH - 1) // BATCH
+
+          for i in range(0, len(codes), BATCH):
+              batch_codes = codes[i:i+BATCH]
+              batch_tickers = " ".join(c + ".T" for c in batch_codes)
+              n = i // BATCH + 1
+              if n % 10 == 0:
+                  print(f"  Batch {n}/{total} — shares so far: {len(shares_map)}")
               try:
-                  resp = requests.get(url, headers=HDR, timeout=20)
-                  print(f"  {ds} (weekday {d.weekday()}): HTTP {resp.status_code}, {len(resp.content)} bytes")
-                  if resp.status_code == 200 and len(resp.content) > 1000:
-                      lines = resp.content.decode("shift_jis", errors="replace").splitlines()
-                      print(f"  Rows: {len(lines)}")
-                      print(f"  Header: {lines[0]}")
-                      print(f"  Row 1:  {lines[1]}")
-                      header = [c.strip().strip('"') for c in lines[0].split(",")]
-                      row1   = [c.strip().strip('"') for c in lines[1].split(",")]
-                      print(f"\nAll columns ({len(header)}):")
-                      for i, col in enumerate(header):
-                          val = row1[i] if i < len(row1) else "?"
-                          print(f"  [{i:2d}] '{col}' = '{val}'")
-                      break
-              except Exception as e:
-                  print(f"  {ds}: ERROR {e}")
+                  tobj = yf.Tickers(batch_tickers)
+                  for c in batch_codes:
+                      t = c + ".T"
+                      try:
+                          fi = tobj.tickers[t].fast_info
+                          sh = getattr(fi, 'shares', None)
+                          if sh and isinstance(sh, (int, float)) and sh > 0:
+                              shares_map[c] = int(sh)
+                      except Exception:
+                          pass
+              except Exception:
+                  pass
 
-          print("Done.")
+          print(f"Shares fetched: {len(shares_map)} of {len(codes)} stocks")
+          coverage = round(len(shares_map) / max(len(codes), 1) * 100, 1)
+          print(f"Coverage: {coverage}%")
+
+          if len(shares_map) == 0:
+              print("ERROR: No shares data obtained")
+              sys.exit(1)
+
+          os.makedirs("data", exist_ok=True)
+          today_str = datetime.utcnow().strftime("%Y-%m-%d")
+          with open("data/jquants_shares.csv", "w", newline="", encoding="utf-8") as f:
+              writer = csv.writer(f)
+              writer.writerow(["Code", "SharesOutstanding", "UpdatedDate"])
+              for code, shares in sorted(shares_map.items()):
+                  writer.writerow([code, shares, today_str])
+          print(f"Written data/jquants_shares.csv: {len(shares_map)} entries")
           PYEOF
+
+      - name: Run fetch script
+        run: python fetch_shares.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/jquants_shares.csv
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: update shares outstanding [skip ci]"
+            git push
+          fi
