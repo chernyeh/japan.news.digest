@@ -1,4 +1,6 @@
 # .github/workflows/weekly_shares.yml
+# Gets per-stock market cap directly from JPX daily CSV
+# The daily CSV has a market cap column - we just need to find the right column index
 name: J-Quants Weekly Shares
 
 on:
@@ -22,178 +24,80 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas requests xlrd openpyxl beautifulsoup4
+        run: pip install pandas requests
 
       - name: Write fetch script
         run: |
           cat > fetch_shares.py << 'PYEOF'
           import pandas as pd
           import requests
-          import re
-          import io
           import csv
+          import io
           import os
           import sys
-          from datetime import datetime
-          from bs4 import BeautifulSoup
+          from datetime import datetime, date, timedelta
 
           HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-          BASE = "https://www.jpx.co.jp"
-          shares_map = {}
 
-          # ── Try JPX 02.html — Market Capitalization & Shares Outstanding ──────
-          pages = [
-              "/english/markets/statistics-equities/misc/02.html",
-              "/markets/statistics-equities/misc/02.html",
-          ]
+          # ── Fetch JPX daily CSV and print ALL columns with sample values ───────
+          # The daily CSV has proven to work. We need to find which column
+          # contains per-stock market cap or shares outstanding.
+          # Print every column so we can identify the right one.
 
-          for page_path in pages:
-              page_url = BASE + page_path
+          today = date.today()
+          for delta in range(5):
+              d = today - timedelta(days=delta)
+              if d.weekday() >= 5:
+                  continue
+              ds = d.strftime("%Y%m%d")
+              url = (f"https://www.jpx.co.jp/markets/statistics-equities/daily/"
+                     f"nlsgeu000000{ds}-att/data_{ds}.csv")
               try:
-                  print(f"Fetching: {page_url}")
-                  r = requests.get(page_url, headers=HDR, timeout=20)
-                  print(f"  Status: {r.status_code}")
-                  if r.status_code != 200:
+                  resp = requests.get(url, headers=HDR, timeout=20)
+                  if resp.status_code != 200:
+                      continue
+                  lines = resp.content.decode("shift_jis", errors="replace").splitlines()
+                  if len(lines) < 3:
                       continue
 
-                  # Parse page to find XLS/XLSX links
-                  try:
-                      html = r.content.decode("utf-8", errors="replace")
-                  except Exception:
-                      html = r.content.decode("shift_jis", errors="replace")
+                  print(f"JPX daily CSV date: {ds}")
+                  print(f"Total rows: {len(lines)}")
+                  print(f"Header raw: {lines[0]}")
+                  print(f"Row 1 raw:  {lines[1]}")
+                  print(f"Row 2 raw:  {lines[2]}")
+                  print()
 
-                  soup = BeautifulSoup(html, "html.parser")
-                  xls_links = []
-                  for a in soup.find_all("a", href=True):
-                      href = a["href"]
-                      text = a.get_text(strip=True)
-                      if any(ext in href.lower() for ext in [".xls", ".xlsx"]):
-                          full = href if href.startswith("http") else BASE + href
-                          xls_links.append((text, full))
-                          print(f"  Found: [{text}] -> {full}")
+                  # Parse header
+                  header = [c.strip().strip('"') for c in lines[0].split(",")]
+                  row1   = [c.strip().strip('"') for c in lines[1].split(",")]
+                  row2   = [c.strip().strip('"') for c in lines[2].split(",")]
 
-                  # Try each XLS link found
-                  for text, xls_url in xls_links:
+                  print(f"Columns ({len(header)}):")
+                  for i, col in enumerate(header):
+                      v1 = row1[i] if i < len(row1) else "?"
+                      v2 = row2[i] if i < len(row2) else "?"
+                      print(f"  [{i:2d}] '{col}' => '{v1}', '{v2}'")
+
+                  # Now try to identify market cap column
+                  # Look for large numeric values that could be market cap (in millions yen)
+                  # Toyota (7203) market cap is ~35 trillion yen = 35,000,000 million yen
+                  # A typical small cap might be 10,000 million yen
+                  print()
+                  print("Looking for market cap column (large numbers ~millions yen):")
+                  for i, col in enumerate(header):
                       try:
-                          print(f"  Downloading: {xls_url}")
-                          xr = requests.get(xls_url, headers=HDR, timeout=30)
-                          print(f"  Size: {len(xr.content)} bytes, Status: {xr.status_code}")
-                          if xr.status_code != 200:
-                              continue
-
-                          # Try reading as Excel
-                          try:
-                              df = pd.read_excel(io.BytesIO(xr.content), dtype=str)
-                          except Exception:
-                              df = pd.read_excel(io.BytesIO(xr.content), engine="xlrd", dtype=str)
-
-                          print(f"  Shape: {df.shape}")
-                          print(f"  Columns: {df.columns.tolist()}")
-                          if len(df) > 0:
-                              print(f"  Row 0: {df.iloc[0].to_dict()}")
-
-                          # Find code and shares columns
-                          code_col = shares_col = None
-                          for col in df.columns:
-                              col_s = str(col).lower()
-                              col_j = str(col)
-                              if code_col is None and any(k in col_s for k in
-                                      ["local code", "code", "コード", "ticker"]):
-                                  code_col = col
-                              if shares_col is None and any(k in col_j for k in
-                                      ["Shares", "shares", "上場株式数", "発行済",
-                                       "株式数", "Outstanding", "Issued"]):
-                                  shares_col = col
-
-                          print(f"  Code col: '{code_col}', Shares col: '{shares_col}'")
-
-                          if code_col and shares_col:
-                              for _, row in df.iterrows():
-                                  try:
-                                      raw = str(row[code_col]).strip()
-                                      digits = ''.join(c for c in raw if c.isdigit())
-                                      code = digits[:4] if len(digits) >= 4 else None
-                                      if not code:
-                                          continue
-                                      sh_str = str(row[shares_col]).replace(",","").strip()
-                                      if sh_str in ("nan","","-","None"):
-                                          continue
-                                      sh = float(sh_str)
-                                      if sh > 0:
-                                          shares_map[code] = int(sh)
-                                  except Exception:
-                                      continue
-                              print(f"  Shares loaded: {len(shares_map)}")
-                              if len(shares_map) > 500:
-                                  break
-                          else:
-                              # No shares column — try positional approach
-                              # Based on advice: code=col1, shares=col4
-                              print(f"  Trying positional parse (col1=code, col4=shares)...")
-                              loaded = 0
-                              for _, row in df.iterrows():
-                                  try:
-                                      if len(row) < 5:
-                                          continue
-                                      raw = str(row.iloc[1]).strip()
-                                      digits = ''.join(c for c in raw if c.isdigit())
-                                      code = digits[:4] if len(digits) >= 4 else None
-                                      if not code:
-                                          continue
-                                      sh_str = str(row.iloc[4]).replace(",","").strip()
-                                      if sh_str in ("nan","","-","None"):
-                                          continue
-                                      sh = float(sh_str)
-                                      if sh > 0:
-                                          shares_map[code] = int(sh)
-                                          loaded += 1
-                                  except Exception:
-                                      continue
-                              print(f"  Positional parse: {loaded} shares loaded")
-                              if len(shares_map) > 500:
-                                  break
-
-                      except Exception as e:
-                          print(f"  XLS error: {e}")
-
-                  if len(shares_map) > 500:
-                      print(f"Success! {len(shares_map)} companies from {page_url}")
-                      break
-
-              except Exception as e:
-                  print(f"  Page error: {e}")
-
-              if len(shares_map) > 500:
+                          v = float(row1[i].replace(",","")) if i < len(row1) else 0
+                          if v > 1000:  # likely market cap in millions
+                              print(f"  [{i}] '{col}' = {v:,.0f} (could be market cap)")
+                      except Exception:
+                          pass
                   break
 
-          # ── Results ───────────────────────────────────────────────────────────
-          if len(shares_map) < 100:
-              print(f"ERROR: Only {len(shares_map)} shares found. Check logs above.")
-              sys.exit(1)
-
-          os.makedirs("data", exist_ok=True)
-          today_str = datetime.utcnow().strftime("%Y-%m-%d")
-          with open("data/jquants_shares.csv", "w", newline="", encoding="utf-8") as f:
-              writer = csv.writer(f)
-              writer.writerow(["Code", "SharesOutstanding", "UpdatedDate"])
-              for code, shares in sorted(shares_map.items()):
-                  writer.writerow([code, shares, today_str])
-
-          print(f"Written data/jquants_shares.csv: {len(shares_map)} entries")
-          print(f"Coverage: {len(shares_map)} companies")
+              except Exception as e:
+                  print(f"Error: {e}")
           PYEOF
 
       - name: Run fetch script
         run: python fetch_shares.py
 
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/jquants_shares.csv
-          if git diff --staged --quiet; then
-            echo "No changes"
-          else
-            git commit -m "chore: update shares outstanding [skip ci]"
-            git push
-          fi
+      # Note: no commit step - this is diagnostic only
