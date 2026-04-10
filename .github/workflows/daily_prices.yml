@@ -1,8 +1,4 @@
 # .github/workflows/daily_prices.yml
-# Runs daily after Tokyo market close
-# Uses yfinance (no API key needed) to fetch prices + market cap for all TSE stocks
-# GitHub Actions IPs are not blocked by Yahoo Finance
-
 name: Daily Prices and Market Cap
 
 on:
@@ -33,56 +29,51 @@ jobs:
           cat > fetch_prices.py << 'PYEOF'
           import yfinance as yf
           import pandas as pd
-          import requests
           import csv
           import os
           import sys
           from datetime import datetime
 
-          # ── Step 1: Get all TSE stock codes from J-Quants listed/info ──────────
-          # This endpoint is free and doesn't require a current subscription
-          # It just returns the master list of listed companies
-          # Fallback: use a hardcoded approach via Yahoo Finance screener
+          # ── Step 1: Load company codes ────────────────────────────────────────
           codes = []
 
-          # Try J-Quants master list first (free, no subscription needed)
-          api_key = os.environ.get("JQUANTS_API_KEY", "")
-          if api_key:
-              try:
-                  r = requests.get("https://api.jquants.com/v2/equities/master",
-                                   headers={"x-api-key": api_key}, timeout=30)
-                  if r.status_code == 200:
-                      companies = r.json().get("master", r.json().get("info", []))
-                      codes = [str(c.get("Code","")).strip() for c in companies
-                               if c.get("Code") and str(c.get("Code","")).isdigit()]
-                      print("Got " + str(len(codes)) + " codes from J-Quants master")
-              except Exception as e:
-                  print("J-Quants master failed: " + str(e))
-
-          # Fallback: load codes from existing prices CSV if available
-          if not codes and os.path.exists("data/jquants_prices_latest.csv"):
+          # Try loading from existing prices CSV first
+          if os.path.exists("data/jquants_prices_latest.csv"):
               with open("data/jquants_prices_latest.csv") as f:
                   for row in csv.DictReader(f):
-                      code = str(row.get("Code","")).strip().zfill(4)[:4]
+                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
                       if code and code.isdigit():
                           codes.append(code)
               print("Loaded " + str(len(codes)) + " codes from existing CSV")
 
-          # Fallback: generate codes 1000-9999 (covers all TSE stocks)
+          # Fallback: generate TSE code range
           if not codes:
               codes = [str(i) for i in range(1300, 9999)]
               print("Using generated code range: " + str(len(codes)) + " codes")
 
-          # Deduplicate
           codes = list(dict.fromkeys(codes))
           tickers = [c + ".T" for c in codes]
-          print("Total tickers to fetch: " + str(len(tickers)))
+          print("Total tickers: " + str(len(tickers)))
 
-          # ── Step 2: Batch download prices via yfinance ───────────────────────
-          # yfinance works fine from GitHub Actions
-          # Batch size 500 keeps requests manageable
-          price_map = {}   # code -> close price
-          mcap_map  = {}   # code -> market cap in JPY billions
+          # ── Step 2: Load shares outstanding from weekly_shares.csv ───────────
+          shares_map = {}
+          if os.path.exists("data/jquants_shares.csv"):
+              with open("data/jquants_shares.csv") as f:
+                  for row in csv.DictReader(f):
+                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
+                      try:
+                          sh = int(float(row.get("SharesOutstanding", 0) or 0))
+                          if sh > 0:
+                              shares_map[code] = sh
+                      except (ValueError, TypeError):
+                          pass
+              print("Loaded shares for " + str(len(shares_map)) + " companies")
+          else:
+              print("WARNING: jquants_shares.csv not found - market cap will be empty")
+              print("Run the weekly_shares workflow first")
+
+          # ── Step 3: Batch download prices via yfinance ────────────────────────
+          price_map = {}
           BATCH = 500
 
           for i in range(0, len(tickers), BATCH):
@@ -92,57 +83,49 @@ jobs:
               print("Batch " + str(batch_num) + "/" + str(total_batches) + " (" + str(len(batch)) + " tickers)...")
               try:
                   if len(batch) == 1:
-                      raw = yf.download(batch[0], period="5d", auto_adjust=True,
-                                        progress=False)
+                      raw = yf.download(batch[0], period="5d", auto_adjust=True, progress=False)
                       if not raw.empty:
-                          price_map[batch[0].replace(".T","")] = float(raw["Close"].dropna().iloc[-1])
+                          if isinstance(raw.columns, pd.MultiIndex):
+                              raw.columns = raw.columns.get_level_values(0)
+                          closes = raw["Close"].dropna()
+                          if not closes.empty:
+                              price_map[batch[0].replace(".T", "")] = float(closes.iloc[-1])
                   else:
                       raw = yf.download(batch, period="5d", auto_adjust=True,
                                         progress=False, group_by="ticker")
                       if not raw.empty:
                           for t in batch:
-                              code = t.replace(".T","")
+                              code = t.replace(".T", "")
                               try:
-                                  closes = raw[t]["Close"].dropna()
+                                  if isinstance(raw.columns, pd.MultiIndex):
+                                      closes = raw[t]["Close"].dropna()
+                                  else:
+                                      closes = raw["Close"].dropna()
                                   if not closes.empty:
                                       price_map[code] = float(closes.iloc[-1])
                               except Exception:
                                   pass
               except Exception as e:
-                  print("  Batch " + str(batch_num) + " price error: " + str(e))
+                  print("  Batch " + str(batch_num) + " error: " + str(e))
 
           print("Prices fetched for " + str(len(price_map)) + " stocks")
 
-          # ── Step 3: Get market cap via Yahoo Finance v7 quote API ────────────
-          # This API returns marketCap for multiple tickers in one call
-          # No authentication needed
-          for i in range(0, len(tickers), 50):
-              batch = tickers[i:i+50]
-              symbols = ",".join(batch)
-              url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=" + symbols + "&fields=marketCap"
-              try:
-                  resp = requests.get(url, timeout=15,
-                                      headers={"User-Agent": "Mozilla/5.0",
-                                               "Accept": "application/json"})
-                  if resp.status_code == 200:
-                      quotes = resp.json().get("quoteResponse", {}).get("result", [])
-                      for q in quotes:
-                          sym = q.get("symbol", "")
-                          code = sym.replace(".T", "")
-                          mc = q.get("marketCap")
-                          if mc and mc > 0:
-                              mcap_map[code] = round(mc / 1e9, 1)
-              except Exception as e:
-                  pass  # Silent fail per batch
+          # ── Step 4: Compute market cap = Close x Shares / 1B ─────────────────
+          mcap_map = {}
+          for code, price in price_map.items():
+              shares = shares_map.get(code)
+              if shares and shares > 0 and price > 0:
+                  mcap_map[code] = round((price * shares) / 1e9, 1)
 
-          print("Market caps fetched for " + str(len(mcap_map)) + " stocks")
+          print("Market caps computed for " + str(len(mcap_map)) + " stocks")
+          if len(mcap_map) == 0 and len(shares_map) == 0:
+              print("No shares data available - run weekly_shares workflow first")
 
-          # ── Step 4: Write CSV ─────────────────────────────────────────────────
+          # ── Step 5: Write CSV ─────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
           today_str = datetime.utcnow().strftime("%Y-%m-%d")
-
-          # Prices CSV
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
+
           with open("data/jquants_prices_latest.csv", "w", newline="", encoding="utf-8") as f:
               writer = csv.writer(f)
               writer.writerow(["Code", "Date", "Close", "MarketCapB"])
@@ -153,6 +136,8 @@ jobs:
                       writer.writerow([code, today_str, price, mcap])
 
           print("Written data/jquants_prices_latest.csv with " + str(len(all_codes)) + " entries")
+          mc_filled = sum(1 for c in all_codes if mcap_map.get(c))
+          print("MarketCapB filled for " + str(mc_filled) + " of " + str(len(all_codes)) + " stocks")
           PYEOF
 
       - name: Run fetch script
@@ -168,6 +153,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes"
           else
-            git commit -m "chore: update daily prices [skip ci]"
+            git commit -m "chore: update daily prices and market cap [skip ci]"
             git push
           fi
