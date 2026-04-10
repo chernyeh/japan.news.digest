@@ -123,17 +123,22 @@ jobs:
               # TOPIX benchmark — 1306.T (NEXT FUNDS TOPIX ETF)
               for ticker in ["1306.T", "^TOPX", "^N300", "1308.T"]:
                   try:
-                      raw = yf.download(ticker, period="4mo", interval="1mo",
+                      raw = yf.download(ticker, period="4mo",
                                         auto_adjust=True, progress=False)
                       if raw.empty:
                           continue
                       if isinstance(raw.columns, pd.MultiIndex):
                           raw.columns = raw.columns.get_level_values(0)
                       closes = raw["Close"].dropna()
-                      if len(closes) >= 2:
-                          topix_3m = round(float((closes.iloc[-1] / closes.iloc[0] - 1) * 100), 2)
-                          print(f"TOPIX via {ticker}: {topix_3m}%")
-                          break
+                      if len(closes) >= 10:  # need enough daily bars
+                          # Use close from ~91 days ago vs latest
+                          cutoff_idx = max(0, len(closes) - 91)
+                          price_then = float(closes.iloc[cutoff_idx])
+                          price_now  = float(closes.iloc[-1])
+                          if price_then > 0:
+                              topix_3m = round((price_now / price_then - 1) * 100, 2)
+                              print(f"TOPIX via {ticker}: {topix_3m}%")
+                              break
                   except Exception as e:
                       print(f"{ticker}: {e}")
 
@@ -153,7 +158,7 @@ jobs:
                   if n % 5 == 0:
                       print(f"  Batch {n}/{total}, past prices so far: {len(past_prices)}")
                   try:
-                      raw = yf.download(batch, period="4mo", interval="1mo",
+                      raw = yf.download(batch, period="4mo",
                                         auto_adjust=True, progress=False,
                                         group_by="ticker")
                       if raw.empty:
@@ -165,9 +170,10 @@ jobs:
                                   closes = raw[t]["Close"].dropna()
                               else:
                                   closes = raw["Close"].dropna()
-                              if len(closes) >= 2:
-                                  # Use first monthly close as "3 months ago" price
-                                  past_prices[code] = float(closes.iloc[0])
+                              if len(closes) >= 10:
+                                  # Use close from ~91 trading days ago
+                                  cutoff_idx = max(0, len(closes) - 91)
+                                  past_prices[code] = float(closes.iloc[cutoff_idx])
                           except Exception:
                               pass
                   except Exception as e:
