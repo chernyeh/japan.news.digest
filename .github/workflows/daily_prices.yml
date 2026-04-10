@@ -36,76 +36,89 @@ jobs:
           import sys
           from datetime import datetime, date, timedelta
 
-          price_map = {}   # code -> close price
-          mcap_map  = {}   # code -> market cap in ¥B
-
-          # ── Step 1: JPX Master List — shares outstanding for all TSE stocks ───
-          # One HTTP request covers all 3,800+ listed companies.
-          # JPX publishes two versions: English (.xls) and Japanese (.xls)
-          # Updated monthly. Contains Code + Issued Shares (発行済株式数)
+          price_map = {}
+          mcap_map  = {}
           shares_map = {}
 
-          master_urls = [
-              # English version
-              "https://www.jpx.co.jp/english/listing/stocks/list01-att/data_e.xls",
-              # Japanese version (fallback)
+          # ── Step 1: JPX shares outstanding files ──────────────────────────────
+          # JPX publishes several files. The one with shares outstanding is the
+          # "List of Stocks" (上場銘柄一覧) which includes 上場株式数 (listed shares)
+          # Multiple URLs to try — JPX changes these periodically
+
+          share_urls = [
+              # Listed stocks with shares — main file (updated monthly)
               "https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls",
+              # English version attempt
+              "https://www.jpx.co.jp/english/listing/stocks/list01-att/data_e.xls",
+              # Alternative path
+              "https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_e.xls",
           ]
 
-          for master_url in master_urls:
+          for url in share_urls:
               try:
-                  print(f"Fetching master list: {master_url}")
-                  resp = requests.get(master_url,
-                                      headers={"User-Agent": "Mozilla/5.0"},
-                                      timeout=30)
+                  print(f"Trying: {url}")
+                  resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+                  print(f"  Status: {resp.status_code}, Size: {len(resp.content)} bytes")
                   if resp.status_code != 200:
-                      print(f"  HTTP {resp.status_code} — trying next URL")
                       continue
 
                   df = pd.read_excel(io.BytesIO(resp.content), dtype=str)
                   print(f"  Columns: {df.columns.tolist()}")
                   print(f"  Rows: {len(df)}")
-                  print(f"  First row: {df.iloc[0].to_dict()}")
+                  if len(df) > 0:
+                      print(f"  First row: {df.iloc[0].to_dict()}")
 
-                  # Find code column and shares column by scanning header names
-                  code_col   = None
+                  # Scan ALL columns for shares-like data
+                  # JPX Japanese: 上場株式数 (listed shares), 発行済株式数 (issued shares)
+                  code_col = None
                   shares_col = None
                   for col in df.columns:
-                      col_lower = str(col).lower()
-                      if any(k in col_lower for k in ["code", "コード"]):
+                      col_s = str(col).lower()
+                      col_j = str(col)
+                      if code_col is None and any(k in col_s for k in ["code", "コード", "ticker"]):
                           code_col = col
-                      if any(k in col_lower for k in ["issued shares", "shares", "発行済", "株式数", "issued"]):
+                      if shares_col is None and any(k in col_j for k in
+                              ["上場株式数", "発行済", "株式数", "Issued Shares",
+                               "issued", "shares", "Outstanding"]):
                           shares_col = col
 
-                  print(f"  Code column: '{code_col}', Shares column: '{shares_col}'")
+                  print(f"  Code col: '{code_col}', Shares col: '{shares_col}'")
 
-                  if code_col and shares_col:
-                      for _, row in df.iterrows():
-                          try:
-                              raw_code = str(row[code_col]).strip()
-                              # Extract 4-digit code
-                              digits = ''.join(c for c in raw_code if c.isdigit())
-                              code = digits[:4] if len(digits) >= 4 else None
-                              if not code:
-                                  continue
-                              shares_str = str(row[shares_col]).replace(",", "").strip()
-                              shares = float(shares_str)
-                              if shares > 0:
-                                  shares_map[code] = int(shares)
-                          except (ValueError, TypeError):
+                  # If no shares column found, print ALL columns with sample values
+                  if shares_col is None:
+                      print("  No shares column found. Full column scan:")
+                      for col in df.columns:
+                          sample = df[col].dropna().head(3).tolist()
+                          print(f"    '{col}': {sample}")
+                      continue
+
+                  # Parse shares
+                  for _, row in df.iterrows():
+                      try:
+                          raw_code = str(row[code_col]).strip()
+                          digits = ''.join(c for c in raw_code if c.isdigit())
+                          code = digits[:4] if len(digits) >= 4 else None
+                          if not code:
                               continue
-                      print(f"  Shares loaded: {len(shares_map)} companies")
-                      if len(shares_map) > 100:
-                          break  # success
-                  else:
-                      print(f"  Could not identify columns. Trying next URL.")
+                          shares_str = str(row[shares_col]).replace(",", "").strip()
+                          if shares_str in ("nan", "", "-"):
+                              continue
+                          shares = float(shares_str)
+                          if shares > 0:
+                              shares_map[code] = int(shares)
+                      except (ValueError, TypeError):
+                          continue
+
+                  print(f"  Shares loaded: {len(shares_map)} companies")
+                  if len(shares_map) > 500:
+                      break  # good coverage achieved
 
               except Exception as e:
-                  print(f"  Master list error: {e}")
+                  print(f"  Error: {e}")
 
-          if not shares_map:
-              print("WARNING: Could not load shares from JPX master list")
-              print("Falling back to cached shares CSV if available...")
+          # ── Step 2: Fallback — cached shares CSV ───────────────────────────────
+          if len(shares_map) < 100:
+              print("JPX shares file failed. Using cached CSV...")
               if os.path.exists("data/jquants_shares.csv"):
                   with open("data/jquants_shares.csv") as f:
                       for row in csv.DictReader(f):
@@ -116,23 +129,21 @@ jobs:
                                   shares_map[code] = sh
                           except (ValueError, TypeError):
                               pass
-                  print(f"Cached shares loaded: {len(shares_map)} companies")
+                  print(f"Cached shares: {len(shares_map)} companies")
 
-          # Save shares to CSV for future use
+          # Save updated shares
           if shares_map:
               os.makedirs("data", exist_ok=True)
-              today_str_s = datetime.utcnow().strftime("%Y-%m-%d")
+              ts = datetime.utcnow().strftime("%Y-%m-%d")
               with open("data/jquants_shares.csv", "w", newline="", encoding="utf-8") as f:
                   writer = csv.writer(f)
                   writer.writerow(["Code", "SharesOutstanding", "UpdatedDate"])
                   for code, shares in sorted(shares_map.items()):
-                      writer.writerow([code, shares, today_str_s])
-              print(f"Saved shares to jquants_shares.csv: {len(shares_map)} entries")
+                      writer.writerow([code, shares, ts])
+              print(f"Saved jquants_shares.csv: {len(shares_map)} entries")
 
-          # ── Step 2: JPX daily CSV — prices for all TSE stocks ─────────────────
+          # ── Step 3: JPX daily CSV — closing prices ─────────────────────────────
           today = date.today()
-          jpx_prices_ok = False
-
           for delta in range(5):
               d = today - timedelta(days=delta)
               if d.weekday() >= 5:
@@ -145,16 +156,12 @@ jobs:
                   if resp.status_code != 200:
                       continue
                   lines = resp.content.decode("shift_jis", errors="replace").splitlines()
-                  if len(lines) < 2:
-                      continue
-
                   for line in lines[1:]:
                       parts = line.split(",")
                       if len(parts) < 5:
                           continue
                       try:
-                          raw_code = parts[0].strip().strip('"')
-                          digits = ''.join(c for c in raw_code if c.isdigit())
+                          digits = ''.join(c for c in parts[0].strip().strip('"') if c.isdigit())
                           code = digits[:4] if len(digits) >= 4 else None
                           if not code:
                               continue
@@ -163,22 +170,18 @@ jobs:
                               price_map[code] = float(close_str)
                       except (ValueError, IndexError):
                           continue
-
                   if len(price_map) > 100:
-                      print(f"JPX daily prices: {len(price_map)} stocks from {date_str}")
-                      jpx_prices_ok = True
+                      print(f"JPX daily prices: {len(price_map)} stocks ({date_str})")
                       break
-
               except Exception as e:
-                  print(f"JPX daily CSV error: {e}")
+                  print(f"JPX daily error: {e}")
 
-          # ── Step 3: yfinance fallback for prices if JPX unavailable ───────────
-          if not jpx_prices_ok:
-              print("JPX daily CSV unavailable — using yfinance for prices")
-              codes_fb = list(shares_map.keys()) if shares_map else [str(i) for i in range(1300, 9999)]
-              tickers_fb = [c + ".T" for c in codes_fb]
-              for i in range(0, len(tickers_fb), 500):
-                  batch = tickers_fb[i:i+500]
+          # ── Step 4: yfinance fallback for prices ───────────────────────────────
+          if len(price_map) < 100:
+              print("JPX daily unavailable — yfinance fallback")
+              codes_fb = list(shares_map.keys()) if shares_map else [str(i) for i in range(1300,9999)]
+              for i in range(0, len(codes_fb), 500):
+                  batch = [c + ".T" for c in codes_fb[i:i+500]]
                   try:
                       raw = yf.download(batch, period="5d", auto_adjust=True,
                                         progress=False, group_by="ticker")
@@ -194,33 +197,29 @@ jobs:
                                   pass
                   except Exception:
                       pass
-              print(f"yfinance fallback: {len(price_map)} prices")
+              print(f"yfinance: {len(price_map)} prices")
 
-          # ── Step 4: Compute market cap = Close × Shares / 1B ──────────────────
+          # ── Step 5: Compute market cap = Close × Shares / 1B ──────────────────
           for code, price in price_map.items():
               shares = shares_map.get(code)
               if shares and shares > 0 and price > 0:
                   mcap_map[code] = round((price * shares) / 1e9, 1)
+          print(f"Market caps: {len(mcap_map)} stocks")
 
-          print(f"Market caps computed: {len(mcap_map)} stocks")
-
-          # ── Step 5: Write prices CSV ───────────────────────────────────────────
+          # ── Step 6: Write CSV ──────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
           today_str = datetime.utcnow().strftime("%Y-%m-%d")
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
-
           with open("data/jquants_prices_latest.csv", "w", newline="", encoding="utf-8") as f:
               writer = csv.writer(f)
               writer.writerow(["Code", "Date", "Close", "MarketCapB"])
               for code in all_codes:
-                  price = price_map.get(code, "")
-                  mcap  = mcap_map.get(code, "")
-                  if price or mcap:
-                      writer.writerow([code, today_str, price, mcap])
-
+                  writer.writerow([code, today_str,
+                                   price_map.get(code, ""),
+                                   mcap_map.get(code, "")])
           mc_filled = sum(1 for c in all_codes if mcap_map.get(c))
           print(f"Written: {len(all_codes)} stocks")
-          print(f"MarketCapB filled: {mc_filled} of {len(all_codes)} ({round(mc_filled/max(len(all_codes),1)*100,1)}%)")
+          print(f"MarketCapB: {mc_filled} of {len(all_codes)} ({round(mc_filled/max(len(all_codes),1)*100,1)}%)")
           PYEOF
 
       - name: Run fetch script
