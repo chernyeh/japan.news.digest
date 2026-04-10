@@ -3,7 +3,7 @@ name: Weekly 3M vs TOPIX Performance
 
 on:
   schedule:
-    - cron: '0 3 * * 0'
+    - cron: '0 3 * * 0'   # Sunday 03:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -29,132 +29,193 @@ jobs:
           cat > compute_3m_perf.py << 'PYEOF'
           import yfinance as yf
           import pandas as pd
+          import requests
           import csv
           import os
           import sys
-          from datetime import datetime
+          from datetime import datetime, date, timedelta
 
-          def fetch_closes(ticker):
-              """Download closes for a single ticker, handling MultiIndex safely."""
-              try:
-                  data = yf.download(ticker, period="4mo", auto_adjust=True,
-                                     progress=False)
-                  if data.empty:
-                      return None
-                  # yfinance sometimes returns MultiIndex columns for a single ticker
-                  if isinstance(data.columns, pd.MultiIndex):
-                      data.columns = data.columns.get_level_values(0)
-                  closes = data["Close"].dropna()
-                  # Flatten any remaining Series-of-Series issues
-                  if hasattr(closes.iloc[0], '__iter__'):
-                      closes = closes.apply(lambda x: float(x.iloc[0]) if hasattr(x, 'iloc') else float(x))
-                  return closes
-              except Exception as e:
-                  print(ticker + ": fetch error - " + str(e))
+          # ── Helper: geometric relative return ────────────────────────────────
+          # Geometric return is more accurate than arithmetic (r_stock - r_bench)
+          # Formula: ((1 + r_stock) / (1 + r_bench) - 1) * 100
+          def geo_relative(r_stock, r_bench):
+              if r_stock is None or r_bench is None:
                   return None
+              return round(((1 + r_stock/100) / (1 + r_bench/100) - 1) * 100, 1)
 
-          def get_3m_return(closes):
-              """Compute 3-month return from a closes Series."""
-              if closes is None or len(closes) < 2:
-                  return None
-              try:
-                  cutoff = closes.index[-1] - pd.Timedelta(days=91)
-                  old = closes[closes.index <= cutoff]
-                  if len(old) == 0:
-                      return None
-                  last  = float(closes.iloc[-1])
-                  first = float(old.iloc[-1])
-                  if first == 0:
-                      return None
-                  return (last / first - 1) * 100
-              except Exception as e:
-                  print("get_3m_return error: " + str(e))
-                  return None
+          # ── Strategy: use archived price files (zero API calls) ───────────────
+          # daily_prices.yml saves data/archive/prices_YYYY-MM-DD.csv every day.
+          # After 90+ days of archives we read two files and compare.
+          # Until then, fall back to yfinance monthly data.
 
-          # ── Step 1: TOPIX benchmark ───────────────────────────────────────────
-          print("Fetching TOPIX benchmark...")
-          topix_3m = None
-          # 1306.T = NEXT FUNDS TOPIX ETF (most liquid TOPIX proxy on TSE)
-          for ticker in ["1306.T", "^TOPX", "^N300", "1308.T", "0168.T"]:
-              closes = fetch_closes(ticker)
-              ret = get_3m_return(closes)
-              if ret is not None:
-                  topix_3m = ret
-                  print("TOPIX benchmark via " + ticker + ": " + str(round(topix_3m, 2)) + "%")
-                  break
-              else:
-                  print(ticker + ": no usable data")
+          today = date.today()
+          target_past = today - timedelta(days=91)
 
-          if topix_3m is None:
-              print("Could not get TOPIX benchmark — aborting")
-              sys.exit(1)
-
-          # ── Step 2: Load codes ────────────────────────────────────────────────
-          codes = []
+          # Load today's prices
+          today_prices = {}
           if os.path.exists("data/jquants_prices_latest.csv"):
               with open("data/jquants_prices_latest.csv") as f:
                   for row in csv.DictReader(f):
-                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
-                      if code and code.isdigit():
-                          codes.append(code)
-              print("Loaded " + str(len(codes)) + " codes")
-          else:
-              print("No prices CSV — run Daily Prices workflow first")
-              sys.exit(1)
-
-          tickers = [c + ".T" for c in codes]
-          print("Computing 3M return for " + str(len(tickers)) + " stocks...")
-
-          # ── Step 3: Batch download ────────────────────────────────────────────
-          results = {}
-          BATCH = 500
-
-          for i in range(0, len(tickers), BATCH):
-              batch = tickers[i:i+BATCH]
-              n = i // BATCH + 1
-              total = (len(tickers) + BATCH - 1) // BATCH
-              print("Batch " + str(n) + "/" + str(total) + "...")
-              try:
-                  raw = yf.download(batch, period="4mo", auto_adjust=True,
-                                    progress=False, group_by="ticker")
-                  if raw.empty:
-                      continue
-
-                  for t in batch:
-                      code = t.replace(".T", "")
+                      code = str(row.get("Code","")).strip().zfill(4)[:4]
                       try:
-                          # Handle MultiIndex safely
-                          if isinstance(raw.columns, pd.MultiIndex):
-                              if t not in raw.columns.get_level_values(0):
-                                  continue
-                              closes = raw[t]["Close"].dropna()
-                          else:
-                              closes = raw["Close"].dropna()
-
-                          # Flatten if needed
-                          if len(closes) > 0 and hasattr(closes.iloc[0], '__iter__'):
-                              closes = closes.apply(lambda x: float(x.iloc[0]) if hasattr(x, 'iloc') else float(x))
-
-                          ret = get_3m_return(closes)
-                          if ret is not None:
-                              results[code] = round(ret - topix_3m, 1)
+                          p = float(row.get("Close","") or 0)
+                          if p > 0:
+                              today_prices[code] = p
                       except Exception:
                           pass
+              print(f"Today prices: {len(today_prices)} stocks")
+          else:
+              print("ERROR: jquants_prices_latest.csv not found")
+              sys.exit(1)
 
-              except Exception as e:
-                  print("Batch " + str(n) + " error: " + str(e))
+          # Find best available archive file closest to 91 days ago
+          past_prices = {}
+          archive_dir = "data/archive"
+          archive_used = None
 
-          print("Computed " + str(len(results)) + " stocks")
+          if os.path.exists(archive_dir):
+              archive_files = sorted([
+                  f for f in os.listdir(archive_dir)
+                  if f.startswith("prices_") and f.endswith(".csv")
+              ])
+              print(f"Archive files available: {len(archive_files)}")
 
-          # ── Step 4: Write CSV ─────────────────────────────────────────────────
+              # Find the file closest to target_past date
+              best_file = None
+              best_delta = timedelta(days=999)
+              for fname in archive_files:
+                  try:
+                      fdate = date.fromisoformat(fname.replace("prices_","").replace(".csv",""))
+                      delta = abs((fdate - target_past).days)
+                      if delta < best_delta:
+                          best_delta = delta
+                          best_file = fname
+                  except Exception:
+                      pass
+
+              if best_file and best_delta.days <= 14:  # within 2 weeks of target
+                  fpath = os.path.join(archive_dir, best_file)
+                  with open(fpath) as f:
+                      for row in csv.DictReader(f):
+                          code = str(row.get("Code","")).strip().zfill(4)[:4]
+                          try:
+                              p = float(row.get("Close","") or 0)
+                              if p > 0:
+                                  past_prices[code] = p
+                          except Exception:
+                              pass
+                  archive_used = best_file
+                  print(f"Past prices from archive: {len(past_prices)} stocks ({best_file}, {best_delta.days} days ago)")
+              else:
+                  if best_file:
+                      print(f"Best archive is {best_delta.days} days from target — too far, using yfinance")
+                  else:
+                      print("No suitable archive found — using yfinance fallback")
+
+          # ── yfinance fallback (monthly intervals = much lighter request) ──────
+          # Uses interval="1mo" which fetches only ~4 data points per stock
+          # instead of ~88 daily points — 20x less data, far less likely to block
+          topix_3m = None
+
+          if not past_prices:
+              print("Fetching via yfinance (monthly intervals)...")
+
+              # TOPIX benchmark — 1306.T (NEXT FUNDS TOPIX ETF)
+              for ticker in ["1306.T", "^TOPX", "^N300", "1308.T"]:
+                  try:
+                      raw = yf.download(ticker, period="4mo", interval="1mo",
+                                        auto_adjust=True, progress=False)
+                      if raw.empty:
+                          continue
+                      if isinstance(raw.columns, pd.MultiIndex):
+                          raw.columns = raw.columns.get_level_values(0)
+                      closes = raw["Close"].dropna()
+                      if len(closes) >= 2:
+                          topix_3m = round(float((closes.iloc[-1] / closes.iloc[0] - 1) * 100), 2)
+                          print(f"TOPIX via {ticker}: {topix_3m}%")
+                          break
+                  except Exception as e:
+                      print(f"{ticker}: {e}")
+
+              if topix_3m is None:
+                  print("ERROR: Cannot get TOPIX benchmark")
+                  sys.exit(1)
+
+              # Fetch stocks via monthly intervals — much lighter
+              codes = list(today_prices.keys())
+              tickers = [c + ".T" for c in codes]
+              BATCH = 500
+              total = (len(tickers) + BATCH - 1) // BATCH
+
+              for i in range(0, len(tickers), BATCH):
+                  batch = tickers[i:i+BATCH]
+                  n = i // BATCH + 1
+                  if n % 5 == 0:
+                      print(f"  Batch {n}/{total}, past prices so far: {len(past_prices)}")
+                  try:
+                      raw = yf.download(batch, period="4mo", interval="1mo",
+                                        auto_adjust=True, progress=False,
+                                        group_by="ticker")
+                      if raw.empty:
+                          continue
+                      for t in batch:
+                          code = t.replace(".T","")
+                          try:
+                              if isinstance(raw.columns, pd.MultiIndex):
+                                  closes = raw[t]["Close"].dropna()
+                              else:
+                                  closes = raw["Close"].dropna()
+                              if len(closes) >= 2:
+                                  # Use first monthly close as "3 months ago" price
+                                  past_prices[code] = float(closes.iloc[0])
+                          except Exception:
+                              pass
+                  except Exception as e:
+                      print(f"  Batch {n} error: {e}")
+
+              print(f"yfinance monthly: {len(past_prices)} past prices")
+
+          # ── Compute 3M return vs TOPIX for each stock ─────────────────────────
+          results = {}
+
+          # Get TOPIX return from archives if available
+          if archive_used and topix_3m is None:
+              # Read TOPIX proxy (1306) from archives
+              topix_today = today_prices.get("1306")
+              topix_past  = past_prices.get("1306")
+              if topix_today and topix_past and topix_past > 0:
+                  topix_3m = round((topix_today / topix_past - 1) * 100, 2)
+                  print(f"TOPIX (1306.T) from archives: {topix_3m}%")
+
+          if topix_3m is None:
+              print("ERROR: No TOPIX benchmark available")
+              sys.exit(1)
+
+          print(f"TOPIX 3M return: {topix_3m}%")
+
+          for code, price_now in today_prices.items():
+              price_then = past_prices.get(code)
+              if price_then and price_then > 0 and price_now > 0:
+                  r_stock = (price_now / price_then - 1) * 100
+                  rel = geo_relative(r_stock, topix_3m)
+                  if rel is not None:
+                      results[code] = rel
+
+          print(f"Computed: {len(results)} stocks")
+
+          # ── Write CSV ──────────────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
-          today_str = datetime.utcnow().strftime("%Y-%m-%d")
-          with open("data/jquants_3m_perf.csv", "w", newline="", encoding="utf-8") as f:
-              writer = csv.writer(f)
-              writer.writerow(["Code", "VsTopix3M", "TopixReturn3M", "ComputedDate"])
+          today_str = today.strftime("%Y-%m-%d")
+          with open("data/jquants_3m_perf.csv","w",newline="",encoding="utf-8") as f:
+              w = csv.writer(f)
+              w.writerow(["Code","VsTopix3M","TopixReturn3M","ComputedDate"])
               for code, perf in sorted(results.items()):
-                  writer.writerow([code, perf, round(topix_3m, 2), today_str])
-          print("Written data/jquants_3m_perf.csv")
+                  w.writerow([code, perf, round(topix_3m, 2), today_str])
+          print(f"Written data/jquants_3m_perf.csv: {len(results)} entries")
+          if archive_used:
+              print(f"Source: archive comparison ({archive_used} vs today)")
+          else:
+              print(f"Source: yfinance monthly intervals")
           PYEOF
 
       - name: Run compute script
