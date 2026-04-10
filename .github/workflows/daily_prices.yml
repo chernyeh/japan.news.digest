@@ -3,7 +3,7 @@ name: Daily Prices and Market Cap
 
 on:
   schedule:
-    - cron: '30 7 * * 1-5'   # 16:30 JST weekdays
+    - cron: '30 7 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -29,68 +29,97 @@ jobs:
           cat > fetch_prices.py << 'PYEOF'
           import yfinance as yf
           import pandas as pd
+          import requests
           import csv
           import os
           import sys
-          from datetime import datetime
+          from datetime import datetime, date, timedelta
 
-          # ── Step 1: Load company codes ────────────────────────────────────────
-          codes = []
+          # ── Step 1: Fetch JPX daily CSV — has code + close + market cap ───────
+          # JPX publishes a full-market daily file with all columns including
+          # 時価総額 (market cap). This is the most reliable source.
+          price_map = {}   # code -> close price
+          mcap_map  = {}   # code -> market cap in ¥B
+          jpx_ok = False
 
-          # Try loading from existing prices CSV first
-          if os.path.exists("data/jquants_prices_latest.csv"):
-              with open("data/jquants_prices_latest.csv") as f:
-                  for row in csv.DictReader(f):
-                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
-                      if code and code.isdigit():
-                          codes.append(code)
-              print("Loaded " + str(len(codes)) + " codes from existing CSV")
-
-          # Fallback: generate TSE code range
-          if not codes:
-              codes = [str(i) for i in range(1300, 9999)]
-              print("Using generated code range: " + str(len(codes)) + " codes")
-
-          codes = list(dict.fromkeys(codes))
-          tickers = [c + ".T" for c in codes]
-          print("Total tickers: " + str(len(tickers)))
-
-          # ── Step 2: Load shares outstanding from weekly_shares.csv ───────────
-          shares_map = {}
-          if os.path.exists("data/jquants_shares.csv"):
-              with open("data/jquants_shares.csv") as f:
-                  for row in csv.DictReader(f):
-                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
-                      try:
-                          sh = int(float(row.get("SharesOutstanding", 0) or 0))
-                          if sh > 0:
-                              shares_map[code] = sh
-                      except (ValueError, TypeError):
-                          pass
-              print("Loaded shares for " + str(len(shares_map)) + " companies")
-          else:
-              print("WARNING: jquants_shares.csv not found - market cap will be empty")
-              print("Run the weekly_shares workflow first")
-
-          # ── Step 3: Batch download prices via yfinance ────────────────────────
-          price_map = {}
-          BATCH = 500
-
-          for i in range(0, len(tickers), BATCH):
-              batch = tickers[i:i+BATCH]
-              batch_num = i // BATCH + 1
-              total_batches = (len(tickers) + BATCH - 1) // BATCH
-              print("Batch " + str(batch_num) + "/" + str(total_batches) + " (" + str(len(batch)) + " tickers)...")
+          today = date.today()
+          for delta in range(5):
+              d = today - timedelta(days=delta)
+              if d.weekday() >= 5:
+                  continue
+              date_str = d.strftime("%Y%m%d")
+              url = (f"https://www.jpx.co.jp/markets/statistics-equities/daily/"
+                     f"nlsgeu000000{date_str}-att/data_{date_str}.csv")
               try:
-                  if len(batch) == 1:
-                      raw = yf.download(batch[0], period="5d", auto_adjust=True, progress=False)
-                      if not raw.empty:
-                          if isinstance(raw.columns, pd.MultiIndex):
-                              raw.columns = raw.columns.get_level_values(0)
-                          closes = raw["Close"].dropna()
-                          if not closes.empty:
-                              price_map[batch[0].replace(".T", "")] = float(closes.iloc[-1])
-                  else:
+                  resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
+                  if resp.status_code != 200:
+                      continue
+                  lines = resp.content.decode("shift_jis", errors="replace").splitlines()
+                  if not lines:
+                      continue
+
+                  # Print header to understand columns
+                  header = lines[0]
+                  print("JPX CSV header: " + header)
+                  cols = [c.strip().strip('"') for c in header.split(",")]
+                  print("Columns (" + str(len(cols)) + "): " + str(cols))
+
+                  for line in lines[1:]:
+                      parts = line.split(",")
+                      if len(parts) < 5:
+                          continue
+                      try:
+                          code = parts[0].strip().strip('"').zfill(4)[:4]
+                          if not code.isdigit():
+                              continue
+                          close_str = parts[4].replace(",", "").strip()
+                          if close_str:
+                              price_map[code] = float(close_str)
+
+                          # Try to find market cap column (時価総額 or MarketCap)
+                          # JPX CSV typically has it around column 10-12
+                          # Print first row values to identify
+                          if len(lines) > 1 and line == lines[1]:
+                              print("First data row values: " + str(parts[:15]))
+
+                          # Try columns 9-14 for market cap (100M yen units usually)
+                          for mc_col in range(9, min(15, len(parts))):
+                              mc_str = parts[mc_col].replace(",", "").strip()
+                              if mc_str and mc_str.replace(".", "").isdigit():
+                                  mc_val = float(mc_str)
+                                  # JPX market cap is in 100M yen (億円) — convert to B yen
+                                  if mc_val > 1000:  # sanity: at least ¥100B
+                                      mcap_map[code] = round(mc_val / 10, 1)
+                                      break
+                      except (ValueError, IndexError):
+                          continue
+
+                  if price_map:
+                      print("JPX CSV: " + str(len(price_map)) + " prices, "
+                            + str(len(mcap_map)) + " market caps from date " + date_str)
+                      jpx_ok = True
+                      break
+              except Exception as e:
+                  print("JPX CSV error: " + str(e))
+
+          # ── Step 2: Fallback — yfinance batch download for prices ─────────────
+          if not jpx_ok or not price_map:
+              print("JPX CSV unavailable, falling back to yfinance for prices...")
+              codes = []
+              if os.path.exists("data/jquants_prices_latest.csv"):
+                  with open("data/jquants_prices_latest.csv") as f:
+                      for row in csv.DictReader(f):
+                          code = str(row.get("Code", "")).strip().zfill(4)[:4]
+                          if code and code.isdigit():
+                              codes.append(code)
+              if not codes:
+                  codes = [str(i) for i in range(1300, 9999)]
+              codes = list(dict.fromkeys(codes))
+              tickers = [c + ".T" for c in codes]
+              BATCH = 500
+              for i in range(0, len(tickers), BATCH):
+                  batch = tickers[i:i+BATCH]
+                  try:
                       raw = yf.download(batch, period="5d", auto_adjust=True,
                                         progress=False, group_by="ticker")
                       if not raw.empty:
@@ -105,23 +134,27 @@ jobs:
                                       price_map[code] = float(closes.iloc[-1])
                               except Exception:
                                   pass
-              except Exception as e:
-                  print("  Batch " + str(batch_num) + " error: " + str(e))
+                  except Exception as e:
+                      print("yfinance batch error: " + str(e))
+              print("yfinance prices: " + str(len(price_map)) + " stocks")
 
-          print("Prices fetched for " + str(len(price_map)) + " stocks")
+          # ── Step 3: If no market cap from JPX, compute from shares ───────────
+          if not mcap_map and os.path.exists("data/jquants_shares.csv"):
+              with open("data/jquants_shares.csv") as f:
+                  for row in csv.DictReader(f):
+                      code = str(row.get("Code", "")).strip().zfill(4)[:4]
+                      try:
+                          sh = int(float(row.get("SharesOutstanding", 0) or 0))
+                          price = price_map.get(code)
+                          if sh > 0 and price and price > 0:
+                              mcap_map[code] = round((price * sh) / 1e9, 1)
+                      except (ValueError, TypeError):
+                          pass
+              print("Computed market caps from shares: " + str(len(mcap_map)) + " stocks")
+          elif not mcap_map:
+              print("No market cap source available (JPX CSV empty, no shares CSV)")
 
-          # ── Step 4: Compute market cap = Close x Shares / 1B ─────────────────
-          mcap_map = {}
-          for code, price in price_map.items():
-              shares = shares_map.get(code)
-              if shares and shares > 0 and price > 0:
-                  mcap_map[code] = round((price * shares) / 1e9, 1)
-
-          print("Market caps computed for " + str(len(mcap_map)) + " stocks")
-          if len(mcap_map) == 0 and len(shares_map) == 0:
-              print("No shares data available - run weekly_shares workflow first")
-
-          # ── Step 5: Write CSV ─────────────────────────────────────────────────
+          # ── Step 4: Write CSV ─────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
           today_str = datetime.utcnow().strftime("%Y-%m-%d")
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
@@ -135,14 +168,12 @@ jobs:
                   if price or mcap:
                       writer.writerow([code, today_str, price, mcap])
 
-          print("Written data/jquants_prices_latest.csv with " + str(len(all_codes)) + " entries")
           mc_filled = sum(1 for c in all_codes if mcap_map.get(c))
-          print("MarketCapB filled for " + str(mc_filled) + " of " + str(len(all_codes)) + " stocks")
+          print("Written jquants_prices_latest.csv: " + str(len(all_codes)) + " stocks")
+          print("MarketCapB filled: " + str(mc_filled) + " of " + str(len(all_codes)))
           PYEOF
 
       - name: Run fetch script
-        env:
-          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
         run: python fetch_prices.py
 
       - name: Commit and push
