@@ -179,7 +179,41 @@ jobs:
           PYEOF
 
       - name: Run fetch script
-        run: python fetch_shares.py
+      run: |
+        # We are writing the stable Yahoo Finance logic directly into the workflow
+        cat <<EOF > fetch_shares.py
+        import yfinance as yf
+        import pandas as pd
+        import glob
+        import os
+
+        def update_market_caps():
+            files = glob.glob('data/archive/prices_*.csv')
+            if not files:
+                print("No price files found.")
+                return
+            latest_file = max(files, key=os.path.getctime)
+            print(f"Targeting: {latest_file}")
+            df = pd.read_csv(latest_file)
+            mask = df['MarketCapB'].isna() | (df['MarketCapB'] == 0)
+            to_update = df[mask]['Code'].tolist()
+            print(f"Updating {len(to_update)} stocks via Yahoo Finance...")
+            for code in to_update:
+                try:
+                    ticker = yf.Ticker(f"{code}.T")
+                    cap = ticker.info.get('marketCap', 0) / 1_000_000_000
+                    if cap > 0:
+                        df.loc[df['Code'] == code, 'MarketCapB'] = round(cap, 2)
+                        print(f"Success: {code} -> {round(cap, 2)}B")
+                except:
+                    continue
+            df.to_csv(latest_file, index=False)
+            print("Market caps updated successfully.")
+
+        if __name__ == "__main__":
+            update_market_caps()
+        EOF
+        python fetch_shares.py
 
       - name: Commit and push
         run: |
