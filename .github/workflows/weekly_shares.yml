@@ -1,6 +1,3 @@
-# .github/workflows/weekly_shares.yml
-# Scrapes JPX 02.html to find and download the shares outstanding Excel file
-# One HTTP request covers all ~3,800 listed companies
 name: J-Quants Weekly Shares
 
 on:
@@ -24,205 +21,57 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas requests xlrd openpyxl beautifulsoup4
-
-      - name: Write fetch script
-        run: |
-          cat > fetch_shares.py << 'PYEOF'
-          import pandas as pd
-          import requests
-          import re
-          import io
-          import csv
-          import os
-          import sys
-          from datetime import datetime
-          from bs4 import BeautifulSoup
-
-          HDR = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-          BASE = "https://www.jpx.co.jp"
-          shares_map = {}
-
-          # ── Scrape JPX 02.html for shares/market cap Excel link ───────────────
-          # 02.html = "Market Capitalization" page (not 01.html which is sector data)
-          for page_path in [
-              "/english/markets/statistics-equities/misc/02.html",
-              "/markets/statistics-equities/misc/02.html",
-          ]:
-              try:
-                  page_url = BASE + page_path
-                  print(f"Fetching: {page_url}")
-                  r = requests.get(page_url, headers=HDR, timeout=20)
-                  print(f"  Status: {r.status_code}")
-                  if r.status_code != 200:
-                      continue
-
-                  soup = BeautifulSoup(r.text, "html.parser")
-                  xls_links = []
-                  for a in soup.find_all("a", href=True):
-                      href = a["href"]
-                      text = a.get_text(strip=True)
-                      if any(ext in href.lower() for ext in [".xls", ".xlsx"]):
-                          full = href if href.startswith("http") else BASE + href
-                          xls_links.append((text, full))
-                          print(f"  Found: [{text}] -> {full}")
-
-                  for label, xls_url in xls_links:
-                      try:
-                          print(f"  Downloading: {xls_url}")
-                          xr = requests.get(xls_url, headers=HDR, timeout=30)
-                          print(f"  Size: {len(xr.content)} bytes, Status: {xr.status_code}")
-                          if xr.status_code != 200:
-                              continue
-
-                          try:
-                              df = pd.read_excel(io.BytesIO(xr.content), dtype=str)
-                          except Exception:
-                              df = pd.read_excel(io.BytesIO(xr.content), engine="xlrd", dtype=str)
-
-                          print(f"  Shape: {df.shape}, Columns: {df.columns.tolist()}")
-                          if len(df) > 0:
-                              print(f"  Row 0: {df.iloc[0].to_dict()}")
-
-                          # Search for code + shares columns by name
-                          code_col = shares_col = None
-                          for col in df.columns:
-                              cs = str(col).lower()
-                              cj = str(col)
-                              if code_col is None and any(k in cs for k in
-                                      ["local code","code","コード"]):
-                                  code_col = col
-                              if shares_col is None and any(k in cj for k in
-                                      ["Shares","shares","上場株式数","発行済",
-                                       "株式数","Outstanding","Issued"]):
-                                  shares_col = col
-
-                          # Positional fallback: try each column as shares
-                          # Print all columns with sample values for debugging
-                          if not shares_col:
-                              print("  No shares col by name. Scanning all columns:")
-                              for i, col in enumerate(df.columns):
-                                  sample = df[col].dropna().head(3).tolist()
-                                  print(f"    [{i}] '{col}': {sample}")
-
-                              # Try positional: col index 1 = code, try each other col for shares
-                              for shares_idx in range(2, min(len(df.columns), 10)):
-                                  test_map = {}
-                                  for _, row in df.iterrows():
-                                      try:
-                                          raw = str(row.iloc[1]).strip()
-                                          digits = ''.join(c for c in raw if c.isdigit())
-                                          code = digits[:4] if len(digits) >= 4 else None
-                                          if not code:
-                                              continue
-                                          sh_str = str(row.iloc[shares_idx]).replace(",","").strip()
-                                          if sh_str in ("nan","","-","None"):
-                                              continue
-                                          sh = float(sh_str)
-                                          # Sanity: shares should be > 1M and < 100B
-                                          if 1_000_000 < sh < 100_000_000_000:
-                                              test_map[code] = int(sh)
-                                      except Exception:
-                                          continue
-                                  if len(test_map) > 100:
-                                      print(f"  Positional col [{shares_idx}] '{df.columns[shares_idx]}': {len(test_map)} valid shares")
-                                      shares_map.update(test_map)
-                                      break
-                          else:
-                              print(f"  Code col: '{code_col}', Shares col: '{shares_col}'")
-                              for _, row in df.iterrows():
-                                  try:
-                                      raw = str(row[code_col]).strip()
-                                      digits = ''.join(c for c in raw if c.isdigit())
-                                      code = digits[:4] if len(digits) >= 4 else None
-                                      if not code:
-                                          continue
-                                      sh_str = str(row[shares_col]).replace(",","").strip()
-                                      if sh_str in ("nan","","-","None"):
-                                          continue
-                                      sh = float(sh_str)
-                                      if sh > 0:
-                                          shares_map[code] = int(sh)
-                                  except Exception:
-                                      continue
-
-                          print(f"  Shares loaded: {len(shares_map)}")
-                          if len(shares_map) > 500:
-                              print(f"  SUCCESS: {len(shares_map)} companies!")
-                              break
-
-                      except Exception as e:
-                          print(f"  XLS error: {e}")
-
-                  if len(shares_map) > 500:
-                      break
-
-              except Exception as e:
-                  print(f"Page error: {e}")
-
-              if len(shares_map) > 500:
-                  break
-
-          # ── Result ────────────────────────────────────────────────────────────
-          if len(shares_map) < 100:
-              print(f"ERROR: Only {len(shares_map)} shares found. Exiting.")
-              sys.exit(1)
-
-          os.makedirs("data", exist_ok=True)
-          today_str = datetime.utcnow().strftime("%Y-%m-%d")
-          with open("data/jquants_shares.csv", "w", newline="", encoding="utf-8") as f:
-              writer = csv.writer(f)
-              writer.writerow(["Code", "SharesOutstanding", "UpdatedDate"])
-              for code, shares in sorted(shares_map.items()):
-                  writer.writerow([code, shares, today_str])
-          print(f"Written data/jquants_shares.csv: {len(shares_map)} companies")
-          PYEOF
+        run: pip install pandas yfinance
 
       - name: Run fetch script
-      run: |
-        # We are writing the stable Yahoo Finance logic directly into the workflow
-        cat <<EOF > fetch_shares.py
-        import yfinance as yf
-        import pandas as pd
-        import glob
-        import os
+        run: |
+          # Writing the stable Yahoo Finance logic directly
+          cat <<EOF > fetch_shares.py
+          import yfinance as yf
+          import pandas as pd
+          import glob
+          import os
 
-        def update_market_caps():
-            files = glob.glob('data/archive/prices_*.csv')
-            if not files:
-                print("No price files found.")
-                return
-            latest_file = max(files, key=os.path.getctime)
-            print(f"Targeting: {latest_file}")
-            df = pd.read_csv(latest_file)
-            mask = df['MarketCapB'].isna() | (df['MarketCapB'] == 0)
-            to_update = df[mask]['Code'].tolist()
-            print(f"Updating {len(to_update)} stocks via Yahoo Finance...")
-            for code in to_update:
-                try:
-                    ticker = yf.Ticker(f"{code}.T")
-                    cap = ticker.info.get('marketCap', 0) / 1_000_000_000
-                    if cap > 0:
-                        df.loc[df['Code'] == code, 'MarketCapB'] = round(cap, 2)
-                        print(f"Success: {code} -> {round(cap, 2)}B")
-                except:
-                    continue
-            df.to_csv(latest_file, index=False)
-            print("Market caps updated successfully.")
+          def update_market_caps():
+              files = glob.glob('data/archive/prices_*.csv')
+              if not files:
+                  print("No price files found.")
+                  return
+              latest_file = max(files, key=os.path.getctime)
+              print(f"Targeting: {latest_file}")
+              df = pd.read_csv(latest_file)
+              
+              # Find rows needing update
+              mask = df['MarketCapB'].isna() | (df['MarketCapB'] == 0)
+              to_update = df[mask]['Code'].tolist()
+              
+              print(f"Updating {len(to_update)} stocks via Yahoo Finance...")
+              for code in to_update:
+                  try:
+                      ticker = yf.Ticker(f"{code}.T")
+                      cap = ticker.info.get('marketCap', 0) / 1_000_000_000
+                      if cap > 0:
+                          df.loc[df['Code'] == code, 'MarketCapB'] = round(cap, 2)
+                          print(f"Success: {code} -> {round(cap, 2)}B")
+                  except:
+                      continue
+                      
+              df.to_csv(latest_file, index=False)
+              print("Market caps updated successfully.")
 
-        if __name__ == "__main__":
-            update_market_caps()
-        EOF
-        python fetch_shares.py
+          if __name__ == "__main__":
+              update_market_caps()
+          EOF
+          python fetch_shares.py
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/jquants_shares.csv
+          git add data/archive/*.csv
           if git diff --staged --quiet; then
             echo "No changes"
           else
-            git commit -m "chore: update shares outstanding [skip ci]"
+            git commit -m "chore: update market caps via yfinance [skip ci]"
             git push
           fi
