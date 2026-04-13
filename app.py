@@ -30,8 +30,7 @@ def load_metadata_brain():
     path = os.path.join("data", "metadata.csv")
     if os.path.exists(path):
         try:
-           df = pd.read_csv(path)
-            # Create dictionaries for fast lookup
+            df = pd.read_csv(path)
             shares = df.set_index('Code')['Shares'].to_dict()
             names = df.set_index('Code')['Name'].to_dict()
             return shares, names
