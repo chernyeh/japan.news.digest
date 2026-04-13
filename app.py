@@ -1,4 +1,7 @@
+
 import streamlit as st
+import pandas as pd
+import os
 from datetime import datetime
 import pytz
 from collector import (fetch_all_news, fetch_source_headlines,
@@ -19,6 +22,34 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      fetch_market_data_batch, load_mktcap_from_github,
                      load_3m_perf_from_github, load_earnings_cal_from_github,
                      fetch_jpx_excel_from_github, filter_upcoming)
+
+# ── HELPER: LOAD METADATA BRAIN ───────────────────────────────────────────────
+@st.cache_data
+def load_metadata_brain():
+    """Loads shares and long names from the local metadata.csv file."""
+    path = os.path.join("data", "metadata.csv")
+    if os.path.exists(path):
+        try:
+           df = pd.read_csv(path)
+            # Create dictionaries for fast lookup
+            shares = df.set_index('Code')['Shares'].to_dict()
+            names = df.set_index('Code')['Name'].to_dict()
+            return shares, names
+        except Exception as e:
+            print(f"Error reading metadata.csv: {e}")
+    return {}, {}
+
+SHARES_LOOKUP, NAMES_LOOKUP = load_metadata_brain()
+
+def calculate_mkt_cap(code, price):
+    """Calculates Market Cap in Billions of Yen."""
+    try:
+        shares = SHARES_LOOKUP.get(int(code), 0)
+        if shares > 0 and price and price > 0:
+            return round((price * shares) / 1_000_000_000, 2)
+    except:
+        pass
+    return None
 
 # ── Shared in-memory cache (survives browser close, lives as long as app is awake) ──
 # Uses st.cache_resource so it's shared across ALL sessions on the same server instance.
@@ -786,9 +817,7 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
 2. Navigate to **API Keys** and create a new key
 3. In Streamlit Cloud, open your app → **⋮ menu → Settings → Secrets**
 4. Add this line (paste your actual key):
-```
 ANTHROPIC_API_KEY = "sk-ant-..."
-```
 5. Click **Save** — the app restarts in ~30 seconds and summaries will work
 """)
             else:
@@ -3038,10 +3067,17 @@ with tab_earnings:
         # Market cap filter (only applied when data is loaded)
         _ec_mcap_min = st.session_state.get("ec_mcap_min", 0) or 0
         _ec_mcap_max = st.session_state.get("ec_mcap_max", 0) or 0
-        _mktcap_map_ec = st.session_state.get("mktcap_map", {})
-        if (_ec_mcap_min > 0 or _ec_mcap_max > 0) and _mktcap_map_ec:
+        
+        if (_ec_mcap_min > 0 or _ec_mcap_max > 0):
             def _mcap_val(e):
-                return _mktcap_map_ec.get(e.get("code", ""))
+                _code = e.get("code", "")
+                _mkt_data = st.session_state.earnings_perf.get(_code, {})
+                _price = _mkt_data.get("price", 0) if isinstance(_mkt_data, dict) else 0
+                _calc = calculate_mkt_cap(_code, _price)
+                if _calc: 
+                    return _calc
+                return st.session_state.get("mktcap_map", {}).get(_code) or 0
+
             if _ec_mcap_min > 0:
                 cal_filtered = [e for e in cal_filtered
                                 if (_mcap_val(e) or 0) >= _ec_mcap_min]
@@ -3146,8 +3182,16 @@ with tab_earnings:
                 _ec_sort_key = st.session_state.get("ec_sort", "Date")
                 def _sort_key_fn(e):
                     _wl_flag = 0 if e.get("code","") in wl else 1
-                    _mc = st.session_state.get("mktcap_map", {}).get(e.get("code","")) or 0
-                    _d = perf_map.get(e.get("code",""), {})
+                    _code = e.get("code", "")
+                    
+                    # Try calculated first
+                    _mkt_data = perf_map.get(_code, {})
+                    _price = _mkt_data.get("price", 0) if isinstance(_mkt_data, dict) else 0
+                    _mc = calculate_mkt_cap(_code, _price)
+                    if not _mc:
+                        _mc = st.session_state.get("mktcap_map", {}).get(_code) or 0
+
+                    _d = perf_map.get(_code, {})
                     # Use cron CSV perf as default, button-loaded as override
                     _pf = st.session_state.get("perf_3m_map", {}).get(e.get("code",""))
                     if isinstance(_d, dict) and _d.get("vs_topix_3m") is not None:
@@ -3155,6 +3199,7 @@ with tab_earnings:
                     elif isinstance(_d, (int, float)):
                         _pf = _d
                     _pf_sort = _pf if _pf is not None else -9999
+                    
                     if _ec_sort_key == "Mkt Cap ↓":
                         return (_wl_flag, -_mc)
                     elif _ec_sort_key == "Mkt Cap ↑":
@@ -3167,13 +3212,15 @@ with tab_earnings:
                         return (_wl_flag, e.get("announcement_date",""), e.get("name",""))
                 _sorted_entries = sorted(_entries, key=_sort_key_fn)
 
-
-
-
                 rows_html = ""
                 for _idx, _e in enumerate(_sorted_entries):
                     _code   = _e.get("code", "")
-                    _name   = _e.get("name", "")
+                    _name_raw = _e.get("name", "")
+                    try:
+                        _name = NAMES_LOOKUP.get(int(_code), _name_raw)
+                    except:
+                        _name = _name_raw
+                        
                     _period = _e.get("period_type", "")
                     _sector = (_e.get("sector") or "")[:22]
                     _is_wl  = _code in _wl_codes
@@ -3182,12 +3229,24 @@ with tab_earnings:
                     _star   = "★ " if _is_wl else ""
                     _weight = "700" if _is_wl else "500"
 
+                    # Get Price from perf_map if available
+                    _mkt_data = perf_map.get(_code, {})
+                    _price = _mkt_data.get("price", 0) if isinstance(_mkt_data, dict) else 0
+
+                    _mcap_calculated = calculate_mkt_cap(_code, _price)
+
                     # Market cap from J-Quants cron CSVs (fast, no API call)
-                    _mcap = st.session_state.get("mktcap_map", {}).get(_code)
-                    _mcap_str = f"¥{_mcap:,.0f}B" if _mcap else "—"
+                    _mcap_static = st.session_state.get("mktcap_map", {}).get(_code)
+
+                    if _mcap_calculated:
+                        _mcap_str = f"¥{_mcap_calculated:,.1f}B"
+                    elif _mcap_static:
+                        _mcap_str = f"¥{_mcap_static:,.0f}B"
+                    else:
+                        _mcap_str = "—"
+
                     # 3M vs TOPIX: cron CSV first, button-loaded perf_map as override
                     _perf = st.session_state.get("perf_3m_map", {}).get(_code)
-                    _mkt_data = perf_map.get(_code, {})
                     if isinstance(_mkt_data, dict) and _mkt_data.get("vs_topix_3m") is not None:
                         _perf = _mkt_data["vs_topix_3m"]  # button-loaded takes priority
                     elif isinstance(_mkt_data, (int, float)):
@@ -3306,12 +3365,9 @@ with tab_subscribe:
 Add `DIGEST_WEBHOOK_TOKEN = "your-secret"` to Streamlit Secrets to protect it.
 
 **Step 1 — Add to Streamlit Secrets:**
-```
-DIGEST_WEBHOOK_TOKEN = "choose-a-secret-token"
-SENDGRID_API_KEY = "your-sendgrid-key"
+DIGEST_WEBHOOK_TOKEN = "choose-a-secret-token" 
+SENDGRID_API_KEY = "your-sendgrid-key" 
 DIGEST_FROM_EMAIL = "digest@yourdomain.com"
-```
-
 **Step 2 — Set up cron-job.org (free):**
 
 Go to [cron-job.org](https://cron-job.org) → New cronjob:
