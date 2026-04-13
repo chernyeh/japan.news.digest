@@ -1193,11 +1193,10 @@ with tab_bytime:
                 + source
                 + (' · ' + time_str if time_str else '')
                 + '</div>'
-                '<div style="line-height:1.5;">'
-                '<a class="article-link" href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a>'
+                '<div class="article-title"><a href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a>'
                 + nt_badge + (badge_html if badge_html else '')
                 + '</div>'
-                + ('<div class="original-title">' + orig + '</div>' if is_jp and orig and orig != title else '')
+                + ('<div class="article-title-jp">' + orig + '</div>' if is_jp and orig and orig != title else '')
                 + '</div>'
             )
         if last_date:
@@ -1287,8 +1286,8 @@ with tab_breaking:
                 '<div class="article-card">'
                 '<div class="article-meta">Nikkei Shimbun'
                 + (' · ' + time_str if time_str else '') + '</div>'
-                '<a class="article-link" href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a>'
-                + ('<div class="original-title">' + orig + '</div>' if orig and orig != title else '')
+                '<div class="article-title"><a href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a></div>'
+                + ('<div class="article-title-jp">' + orig + '</div>' if orig and orig != title else '')
                 + '</div>'
             )
         st.markdown(html, unsafe_allow_html=True)

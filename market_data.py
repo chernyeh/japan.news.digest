@@ -201,7 +201,7 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
 # Yahoo Finance ticker symbols
 YF_INDEX_INSTRUMENTS = {
     "nikkei":       ("^N225",  "Nikkei 225"),
-    "topix":        ("1306.T", "TOPIX"),  # NEXT FUNDS TOPIX ETF — reliable from cloud IPs
+    "topix":        ("^TOPX",  "TOPIX"),  # Real TOPIX index — consistent with ^N225 for Nikkei
     "topix_large":  ("^TPXL",  "TOPIX Large Cap"),
     "topix_mid":    ("^TPXM",  "TOPIX Mid Cap"),
     "topix_small":  ("^TPXS",  "TOPIX Small Cap"),
@@ -274,7 +274,7 @@ AV_EQUITY_INSTRUMENTS = {
 # Stooq symbols — attempt to get real index data (overrides AV proxies if successful)
 STOOQ_INDEX_INSTRUMENTS = {
     "nikkei":     ("^NKX",    "Nikkei 225"),
-    "topix":      ("1306.T",  "TOPIX"),  # NEXT FUNDS TOPIX ETF
+    "topix":      ("^TPX",    "TOPIX"),  # TOPIX index on Stooq
     # Sub-indices removed — not reliably available from any free source without JS
 }
 
@@ -620,22 +620,23 @@ def fetch_topix_returns() -> dict:
     """
     if not _YF_AVAILABLE:
         return {}
-    try:
-        t = yf.Ticker("1306.T")  # NEXT FUNDS TOPIX ETF
-        hist = t.history(period="13mo", auto_adjust=True)
-        if hist.empty:
-            return {}
-        rows = [(d.strftime("%Y-%m-%d"), float(c))
-                for d, c in zip(hist.index, hist["Close"]) if c == c]
-        rows.sort(key=lambda x: x[0])
-        if not rows:
-            return {}
-        current = rows[-1][1]
-        rets = compute_returns(rows)
-        return {"price": current, "3M": rets.get("3M"), "6M": rets.get("6M"), "12M": rets.get("1Y")}
-    except Exception as e:
-        print(f"TOPIX benchmark error: {e}")
-        return {}
+    for ticker in ["^TOPX", "1306.T"]:
+        try:
+            t = yf.Ticker(ticker)
+            hist = t.history(period="13mo", auto_adjust=True)
+            if hist.empty:
+                continue
+            rows = [(d.strftime("%Y-%m-%d"), float(c))
+                    for d, c in zip(hist.index, hist["Close"]) if c == c]
+            rows.sort(key=lambda x: x[0])
+            if not rows:
+                continue
+            current = rows[-1][1]
+            rets = compute_returns(rows)
+            return {"price": current, "3M": rets.get("3M"), "6M": rets.get("6M"), "12M": rets.get("1Y")}
+        except Exception as e:
+            print(f"TOPIX benchmark error ({ticker}): {e}")
+    return {}
 
 
 def fetch_stock_performance(code: str, name: str) -> dict:
