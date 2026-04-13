@@ -140,14 +140,186 @@ jobs:
       - name: Run fetch script
         run: python fetch_prices.py
 
+      - name: Write 3M perf script
+        run: |
+          cat > compute_3m_perf.py << 'PYEOF'
+          import yfinance as yf
+          import pandas as pd
+          import csv
+          import os
+          import sys
+          from datetime import datetime, date, timedelta
+
+          def geo_relative(r_stock, r_bench):
+              if r_stock is None or r_bench is None:
+                  return None
+              return round(((1 + r_stock/100) / (1 + r_bench/100) - 1) * 100, 1)
+
+          today = date.today()
+          target_past = today - timedelta(days=91)
+
+          # Load today's prices
+          today_prices = {}
+          if os.path.exists("data/jquants_prices_latest.csv"):
+              with open("data/jquants_prices_latest.csv") as f:
+                  for row in csv.DictReader(f):
+                      code = str(row.get("Code","")).strip().zfill(4)[:4]
+                      try:
+                          p = float(row.get("Close","") or 0)
+                          if p > 0:
+                              today_prices[code] = p
+                      except Exception:
+                          pass
+              print(f"Today prices: {len(today_prices)} stocks")
+          else:
+              print("ERROR: jquants_prices_latest.csv not found")
+              sys.exit(1)
+
+          # Find best archive file closest to 91 days ago
+          past_prices = {}
+          archive_dir = "data/archive"
+          archive_used = None
+          topix_3m = None
+
+          if os.path.exists(archive_dir):
+              archive_files = sorted([
+                  f for f in os.listdir(archive_dir)
+                  if f.startswith("prices_") and f.endswith(".csv")
+              ])
+              print(f"Archive files available: {len(archive_files)}")
+
+              best_file = None
+              best_delta = timedelta(days=999)
+              for fname in archive_files:
+                  try:
+                      fdate = date.fromisoformat(fname.replace("prices_","").replace(".csv",""))
+                      delta = abs((fdate - target_past).days)
+                      if delta < best_delta:
+                          best_delta = delta
+                          best_file = fname
+                  except Exception:
+                      pass
+
+              if best_file and best_delta.days <= 14:
+                  fpath = os.path.join(archive_dir, best_file)
+                  with open(fpath) as f:
+                      for row in csv.DictReader(f):
+                          code = str(row.get("Code","")).strip().zfill(4)[:4]
+                          try:
+                              p = float(row.get("Close","") or 0)
+                              if p > 0:
+                                  past_prices[code] = p
+                          except Exception:
+                              pass
+                  archive_used = best_file
+                  print(f"Past prices from archive: {len(past_prices)} stocks ({best_file}, {best_delta.days} days from target)")
+              else:
+                  if best_file:
+                      print(f"Best archive is {best_delta.days} days from target — using yfinance fallback")
+                  else:
+                      print("No suitable archive found — using yfinance fallback")
+
+          # yfinance fallback (monthly intervals) when archive not yet deep enough
+          if not past_prices:
+              print("Fetching via yfinance (monthly intervals)...")
+              for ticker in ["1306.T", "^TOPX", "^N300", "1308.T"]:
+                  try:
+                      raw = yf.download(ticker, period="4mo", auto_adjust=True, progress=False)
+                      if raw.empty:
+                          continue
+                      if isinstance(raw.columns, pd.MultiIndex):
+                          raw.columns = raw.columns.get_level_values(0)
+                      closes = raw["Close"].dropna()
+                      if len(closes) >= 10:
+                          cutoff_idx = max(0, len(closes) - 91)
+                          price_then = float(closes.iloc[cutoff_idx])
+                          price_now  = float(closes.iloc[-1])
+                          if price_then > 0:
+                              topix_3m = round((price_now / price_then - 1) * 100, 2)
+                              print(f"TOPIX via {ticker}: {topix_3m}%")
+                              break
+                  except Exception as e:
+                      print(f"{ticker}: {e}")
+
+              if topix_3m is None:
+                  print("ERROR: Cannot get TOPIX benchmark")
+                  sys.exit(1)
+
+              codes = list(today_prices.keys())
+              tickers = [c + ".T" for c in codes]
+              BATCH = 500
+              for i in range(0, len(tickers), BATCH):
+                  batch = tickers[i:i+BATCH]
+                  try:
+                      raw = yf.download(batch, period="4mo", auto_adjust=True,
+                                        progress=False, group_by="ticker")
+                      if raw.empty:
+                          continue
+                      for t in batch:
+                          code = t.replace(".T","")
+                          try:
+                              if isinstance(raw.columns, pd.MultiIndex):
+                                  closes = raw[t]["Close"].dropna()
+                              else:
+                                  closes = raw["Close"].dropna()
+                              if len(closes) >= 10:
+                                  cutoff_idx = max(0, len(closes) - 91)
+                                  past_prices[code] = float(closes.iloc[cutoff_idx])
+                          except Exception:
+                              pass
+                  except Exception as e:
+                      print(f"Batch error: {e}")
+              print(f"yfinance monthly: {len(past_prices)} past prices")
+
+          # TOPIX from archive
+          if archive_used and topix_3m is None:
+              topix_today = today_prices.get("1306")
+              topix_past  = past_prices.get("1306")
+              if topix_today and topix_past and topix_past > 0:
+                  topix_3m = round((topix_today / topix_past - 1) * 100, 2)
+                  print(f"TOPIX (1306.T) from archives: {topix_3m}%")
+
+          if topix_3m is None:
+              print("ERROR: No TOPIX benchmark available")
+              sys.exit(1)
+
+          print(f"TOPIX 3M return: {topix_3m}%")
+
+          results = {}
+          for code, price_now in today_prices.items():
+              price_then = past_prices.get(code)
+              if price_then and price_then > 0 and price_now > 0:
+                  r_stock = (price_now / price_then - 1) * 100
+                  rel = geo_relative(r_stock, topix_3m)
+                  if rel is not None:
+                      results[code] = rel
+
+          print(f"Computed: {len(results)} stocks")
+
+          today_str = today.strftime("%Y-%m-%d")
+          with open("data/jquants_3m_perf.csv","w",newline="",encoding="utf-8") as f:
+              w = csv.writer(f)
+              w.writerow(["Code","VsTopix3M","TopixReturn3M","ComputedDate"])
+              for code, perf in sorted(results.items()):
+                  w.writerow([code, perf, round(topix_3m, 2), today_str])
+          print(f"Written data/jquants_3m_perf.csv: {len(results)} entries")
+          if archive_used:
+              print(f"Source: archive comparison ({archive_used} vs today)")
+          else:
+              print(f"Source: yfinance monthly intervals (archive not yet 91 days deep)")
+          PYEOF
+
+      - name: Run 3M perf script
+        run: python compute_3m_perf.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/jquants_prices_latest.csv data/archive/
+          git add data/jquants_prices_latest.csv data/archive/ data/jquants_3m_perf.csv
           if git diff --staged --quiet; then
             echo "No changes"
           else
-            git commit -m "chore: update daily prices and market cap [skip ci]"
+            git commit -m "chore: update daily prices, market cap, and 3M perf [skip ci]"
             git push
           fi
