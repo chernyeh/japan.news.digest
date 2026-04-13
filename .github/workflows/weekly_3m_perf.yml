@@ -186,15 +186,41 @@ jobs:
 
           # Get TOPIX return from archives if available
           if archive_used and topix_3m is None:
-              # Read TOPIX proxy (1306) from archives
               topix_today = today_prices.get("1306")
               topix_past  = past_prices.get("1306")
               if topix_today and topix_past and topix_past > 0:
-                  topix_3m = round((topix_today / topix_past - 1) * 100, 2)
-                  print(f"TOPIX (1306.T) from archives: {topix_3m}%")
+                  _candidate = round((topix_today / topix_past - 1) * 100, 2)
+                  if abs(_candidate) <= 40:
+                      topix_3m = _candidate
+                      print(f"TOPIX (1306.T) from archives: {topix_3m}%")
+                  else:
+                      print(f"TOPIX archive value {_candidate}% is out of range — using yfinance fallback")
+
+          # Fallback: fetch TOPIX directly if archive value was missing or implausible
+          if topix_3m is None:
+              for ticker in ["^TOPX", "1306.T", "^N300", "1308.T"]:
+                  try:
+                      raw = yf.download(ticker, period="4mo", auto_adjust=True, progress=False)
+                      if raw.empty:
+                          continue
+                      if isinstance(raw.columns, pd.MultiIndex):
+                          raw.columns = raw.columns.get_level_values(0)
+                      closes = raw["Close"].dropna()
+                      if len(closes) >= 10:
+                          cutoff_idx = max(0, len(closes) - 91)
+                          price_then = float(closes.iloc[cutoff_idx])
+                          price_now  = float(closes.iloc[-1])
+                          if price_then > 0:
+                              _candidate = round((price_now / price_then - 1) * 100, 2)
+                              if abs(_candidate) <= 40:
+                                  topix_3m = _candidate
+                                  print(f"TOPIX via {ticker}: {topix_3m}%")
+                                  break
+                  except Exception as e:
+                      print(f"{ticker}: {e}")
 
           if topix_3m is None:
-              print("ERROR: No TOPIX benchmark available")
+              print("ERROR: No valid TOPIX benchmark available")
               sys.exit(1)
 
           print(f"TOPIX 3M return: {topix_3m}%")
