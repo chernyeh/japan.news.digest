@@ -569,42 +569,42 @@ def fetch_3m_performance_batch(codes: list) -> dict:
 
 def load_mktcap_from_github(repo: str, token: str = None) -> dict:
     """
-    Load market cap for all TSE companies from the daily cron CSV.
-    The CSV contains: Code, Date, Close, MarketCapB
-    MarketCapB is fetched directly from Yahoo Finance v7 API by the cron job.
-
+    Load market cap from mktcap_full.csv (primary) or jquants_prices_latest.csv (fallback).
+    mktcap_full.csv is generated locally from archive prices × metadata shares.
     Returns dict: {code_4digit: market_cap_b_float}
     """
-    import requests, csv, io, base64
+    import requests, csv, io
 
-    # Use raw.githubusercontent.com — no auth needed for public repos, no rate limits
-    url = f"https://raw.githubusercontent.com/{repo}/main/data/jquants_prices_latest.csv"
+    BASE = f"https://raw.githubusercontent.com/{repo}/main/data"
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
-    r = requests.get(url, headers=headers, timeout=15)
-    if r.status_code == 404:
-        return {}
-    if r.status_code != 200:
-        print(f"Prices CSV fetch error: {r.status_code}")
-        return {}
 
-    raw = r.text
-    reader = csv.DictReader(io.StringIO(raw))
-    mktcap = {}
-    for row in reader:
-        code = str(row.get("Code", "")).strip().zfill(4)[:4]
-        if not code or not code.isdigit():
+    # Try mktcap_full.csv first (generated locally, full coverage)
+    for filename in ["mktcap_full.csv", "jquants_prices_latest.csv"]:
+        url = f"{BASE}/{filename}"
+        r = requests.get(url, headers=headers, timeout=15)
+        if r.status_code != 200:
             continue
-        try:
-            mc = row.get("MarketCapB", "")
-            if mc and mc not in ("", "None", "null"):
-                mktcap[code] = float(mc)
-        except (ValueError, TypeError):
-            pass
 
-    print(f"Market cap loaded: {len(mktcap)} companies")
-    return mktcap
+        mktcap = {}
+        for row in csv.DictReader(io.StringIO(r.text)):
+            code = str(row.get("Code", "")).strip().zfill(4)[:4]
+            if not code or not code.isdigit():
+                continue
+            try:
+                mc = row.get("MarketCapB", "")
+                if mc and mc not in ("", "None", "null"):
+                    mktcap[code] = float(mc)
+            except (ValueError, TypeError):
+                pass
+
+        if mktcap:
+            print(f"Market cap loaded: {len(mktcap)} companies (from {filename})")
+            return mktcap
+
+    print("Market cap: no data found")
+    return {}
 
 
 def load_3m_perf_from_github(repo: str, token: str = None) -> dict:

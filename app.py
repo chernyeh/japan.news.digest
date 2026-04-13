@@ -26,16 +26,16 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
 # ── HELPER: LOAD METADATA BRAIN ───────────────────────────────────────────────
 @st.cache_data
 def load_metadata_brain():
-    """Loads shares and long names from the local metadata.csv file."""
+    import pandas as _pd
     path = os.path.join("data", "metadata.csv")
     if os.path.exists(path):
         try:
-            df = pd.read_csv(path)
-            shares = df.set_index('Code')['Shares'].to_dict()
-            names = df.set_index('Code')['Name'].to_dict()
+            df = _pd.read_csv(path, dtype={"Code": str})
+            shares = df.set_index("Code")["Shares"].to_dict()
+            names  = df.set_index("Code")["Name"].to_dict()
             return shares, names
         except Exception as e:
-            print(f"Error reading metadata.csv: {e}")
+            print(f"Error loading metadata.csv: {e}")
     return {}, {}
 
 SHARES_LOOKUP, NAMES_LOOKUP = load_metadata_brain()
@@ -43,9 +43,10 @@ SHARES_LOOKUP, NAMES_LOOKUP = load_metadata_brain()
 def calculate_mkt_cap(code, price):
     """Calculates Market Cap in Billions of Yen."""
     try:
-        shares = SHARES_LOOKUP.get(int(code), 0)
+        str_code = str(code).strip()
+        shares = SHARES_LOOKUP.get(str_code, 0)
         if shares > 0 and price and price > 0:
-            return round((price * shares) / 1_000_000_000, 2)
+            return round((float(price) * float(shares)) / 1_000_000_000, 2)
     except:
         pass
     return None
