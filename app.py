@@ -2883,52 +2883,20 @@ with tab_earnings:
     # All three datasets load silently from GitHub CSVs at session start.
     # No button press needed. Data is a few days old at most (cron cadence).
 
-    # 1. Market cap — compute from metadata.csv (shares) × prices CSV
-    # Both files are committed to the repo; no API calls needed
+    # 1. Market cap — read MarketCapB directly from jquants_prices_latest.csv
     if not st.session_state.get("mktcap_map") and not st.session_state.get("mktcap_load_attempted"):
         st.session_state.mktcap_load_attempted = True
         try:
-            import csv as _csv
-            import requests as _req
-            import base64 as _b64
-            # Load prices from GitHub raw URL
-            _prices_url = f"https://raw.githubusercontent.com/{_ec_repo}/main/data/jquants_prices_latest.csv"
-            _pr = _req.get(_prices_url, timeout=15)
-            _price_map = {}
-            if _pr.status_code == 200:
-                for _row in _csv.DictReader(_pr.text.splitlines()):
-                    _c = str(_row.get("Code","")).strip().zfill(4)[:4]
-                    try:
-                        _p = float(_row.get("Close","") or 0)
-                        if _p > 0:
-                            _price_map[_c] = _p
-                    except Exception:
-                        pass
-            # Compute mktcap = price × shares from SHARES_LOOKUP (metadata.csv)
-            _mc_map = {}
-            for _c, _p in _price_map.items():
-                try:
-                    _sh = SHARES_LOOKUP.get(int(_c), 0)
-                    if _sh and _sh > 0:
-                        _mc_map[_c] = round((_p * _sh) / 1e9, 1)
-                except Exception:
-                    pass
+            _mc_map = load_mktcap_from_github(_ec_repo, _gh_token)
             if _mc_map:
                 st.session_state.mktcap_map = _mc_map
                 st.session_state.mktcap_loaded_ts = now_local()
                 st.session_state.mktcap_load_attempted = False
-                print(f"Mktcap loaded: {len(_mc_map)} companies from metadata.csv")
-            else:
-                # Fallback to MarketCapB column in prices CSV
-                _mc_map2 = load_mktcap_from_github(_ec_repo, _gh_token)
-                if _mc_map2:
-                    st.session_state.mktcap_map = _mc_map2
-                    st.session_state.mktcap_loaded_ts = now_local()
-                    st.session_state.mktcap_load_attempted = False
+                print(f"Mktcap loaded: {len(_mc_map)} companies")
         except Exception as _mce:
             print(f"Mktcap load error: {_mce}")
 
-    # 2. 3M vs TOPIX performance (weekly cron)
+        # 2. 3M vs TOPIX performance (weekly cron)
     if not st.session_state.get("perf_3m_map"):
         try:
             _p3m_map = load_3m_perf_from_github(_ec_repo, _gh_token)
