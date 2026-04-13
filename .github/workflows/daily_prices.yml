@@ -56,18 +56,13 @@ jobs:
               print("WARNING: jquants_shares.csv not found")
 
           # ── Load codes ────────────────────────────────────────────────────────
-          codes = list(shares_map.keys())
-          if not codes and os.path.exists("data/jquants_prices_latest.csv"):
-              with open("data/jquants_prices_latest.csv") as f:
-                  for row in csv.DictReader(f):
-                      c = str(row.get("Code","")).strip().zfill(4)[:4]
-                      if c and c.isdigit():
-                          codes.append(c)
-          if not codes:
-              codes = [str(i) for i in range(1300, 9999)]
+          # Always fetch all TSE codes so 3M perf covers the full earnings calendar
+          # (3172 unique companies vs only 228 in shares_map).
+          # Market cap is still computed only for companies in shares_map.
           import random
+          codes = [str(i).zfill(4) for i in range(1300, 9999)]
           codes = list(dict.fromkeys(codes))
-          random.shuffle(codes)  # shuffle so sample covers full market cap range
+          random.shuffle(codes)  # shuffle so partial runs still get broad coverage
           tickers = [c + ".T" for c in codes]
           print(f"Fetching prices for {len(tickers)} tickers...")
 

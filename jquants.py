@@ -160,9 +160,14 @@ def label_date_bucket(date_str: str) -> str:
             return "Today"
         elif delta == 1:
             return "Tomorrow"
-        elif delta <= 7:
+        # Use actual Mon–Fri calendar week boundaries
+        monday_this_week = today - timedelta(days=today.weekday())
+        friday_this_week = monday_this_week + timedelta(days=4)
+        monday_next_week = monday_this_week + timedelta(days=7)
+        friday_next_week = monday_next_week + timedelta(days=4)
+        if d <= friday_this_week:
             return "This Week"
-        elif delta <= 14:
+        elif d <= friday_next_week:
             return "Next Week"
         elif delta <= 30:
             return "Next 30 Days"
