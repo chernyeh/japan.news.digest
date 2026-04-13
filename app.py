@@ -3049,10 +3049,17 @@ with tab_earnings:
         elif ec_bucket == "All":
             cal_filtered = cal_all
         else:  # This Week, Next Week
-            cal_filtered = [
-                e for e in cal_all
-                if label_date_bucket(e.get("announcement_date", "")) == ec_bucket
-            ]
+            if ec_bucket == "This Week":
+                _this_week_labels = {"Today", "Tomorrow", "This Week"}
+                cal_filtered = [
+                    e for e in cal_all
+                    if label_date_bucket(e.get("announcement_date", "")) in _this_week_labels
+                ]
+            else:  # Next Week
+                cal_filtered = [
+                    e for e in cal_all
+                    if label_date_bucket(e.get("announcement_date", "")) == "Next Week"
+                ]
 
         # Search filter
         _search = ec_search.strip().lower()
