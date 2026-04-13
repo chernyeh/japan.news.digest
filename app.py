@@ -1346,7 +1346,7 @@ with tab_news:
                 st.session_state.selected_sector = sector_names[
                     sector_labels.index(st.session_state._sector_sel)
                 ]
-            except ValueError:
+            except (ValueError, AttributeError, KeyError):
                 if sector_names:
                     st.session_state.selected_sector = sector_names[0]
 
