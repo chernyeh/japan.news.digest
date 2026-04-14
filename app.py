@@ -174,13 +174,38 @@ html, body, [class*="css"] {
     text-transform: uppercase; font-weight: 600; margin-bottom: 0.8rem;
 }
 
-/* Toolbar buttons — smaller */
-.stButton button {
+/* ── Buttons — Spectral font, 20% smaller, all variants ─────────────────── */
+/* Covers old Streamlit class names, data-testid (stable), and emotion cache */
+.stButton button,
+.stButton > button,
+div[data-testid="stButton"] button,
+div[data-testid="stButton"] > button,
+button[data-testid="baseButton-secondary"],
+button[data-testid="baseButton-primary"] {
     font-family: 'Spectral', serif !important;
     font-size: 0.60rem !important;
-    padding: 0.24rem 0.56rem !important;
+    padding: 0.22rem 0.56rem !important;
+    font-weight: 600 !important;
     height: auto !important;
     min-height: 0 !important;
+    line-height: 1.5 !important;
+}
+
+/* ── Form elements — Spectral font for consistency ───────────────────────── */
+/* Radio button labels (e.g. Next 2 Days / This Week in Earnings tab) */
+div[data-testid="stRadio"] label p,
+div[data-testid="stRadio"] label span,
+div[data-testid="stRadio"] div[role="radiogroup"] label {
+    font-family: 'Spectral', serif !important;
+    font-size: 0.72rem !important;
+}
+/* Number inputs, selectbox, text input labels */
+div[data-testid="stNumberInput"] label,
+div[data-testid="stSelectbox"] label,
+div[data-testid="stTextInput"] label,
+div[data-testid="stMultiSelect"] label {
+    font-family: 'Spectral', serif !important;
+    font-size: 0.70rem !important;
 }
 
 /* Ticker strip */
@@ -375,13 +400,6 @@ html, body, [class*="css"] {
 }
 
 /* Tabs — scrollable, compact, no wrap */
-/* Buttons — slightly compact, uniform Spectral font */
-.stButton > button {
-    font-family: 'Spectral', serif !important;
-    font-size: 0.58rem !important;
-    padding: 0.22rem 0.56rem !important;
-    font-weight: 600 !important;
-}
 
 .stTabs [data-baseweb="tab-list"] {
     background: transparent;
@@ -2529,8 +2547,7 @@ with tab_signals:
 
     if not _all_sig:
         st.markdown(
-            '<div class="empty-state">No signals yet — click <strong>🔄 News</strong> to fetch '
-            'and classify articles. Signals appear after the first fetch with ANTHROPIC_API_KEY set.</div>',
+            '<div class="empty-state">No signals yet — click <strong>🔄 Refresh</strong> to fetch and classify articles.</div>',
             unsafe_allow_html=True
         )
     else:
