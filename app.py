@@ -176,8 +176,9 @@ html, body, [class*="css"] {
 
 /* Toolbar buttons — smaller */
 .stButton button {
-    font-size: 0.75rem !important;
-    padding: 0.3rem 0.7rem !important;
+    font-family: 'Spectral', serif !important;
+    font-size: 0.60rem !important;
+    padding: 0.24rem 0.56rem !important;
     height: auto !important;
     min-height: 0 !important;
 }
@@ -374,10 +375,11 @@ html, body, [class*="css"] {
 }
 
 /* Tabs — scrollable, compact, no wrap */
-/* Buttons — slightly compact */
+/* Buttons — slightly compact, uniform Spectral font */
 .stButton > button {
-    font-size: 0.72rem !important;
-    padding: 0.28rem 0.7rem !important;
+    font-family: 'Spectral', serif !important;
+    font-size: 0.58rem !important;
+    padding: 0.22rem 0.56rem !important;
     font-weight: 600 !important;
 }
 
@@ -1136,7 +1138,7 @@ with tab_bytime:
     articles_24h = [a for a in all_articles if a.get("pub_dt") and a["pub_dt"] >= _24h_ago]
 
     if not all_articles:
-        st.markdown('<div class="empty-state">Fetch news first — click <strong>🔄 Fetch All News</strong>.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="empty-state">No headlines loaded — click <strong>🔄 Refresh</strong> above to fetch news.</div>', unsafe_allow_html=True)
     else:
         _bt_col1, _bt_col2 = st.columns([4, 1])
         with _bt_col1:
@@ -1681,204 +1683,12 @@ with tab_market:
             unsafe_allow_html=True
         )
 
-    st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
-
-    # ── Foreign flow ─────────────────────────────────────
-    st.markdown('<div class="section-title">🌍 Foreign Investor Flow</div>', unsafe_allow_html=True)
-    flow = st.session_state.foreign_flow
-    if flow and flow.get("available"):
-        net = flow["net_billion_yen"]
-        val_class = "flow-value-up" if net > 0 else "flow-value-dn"
-        arrow = "▲" if net > 0 else "▼"
-        st.markdown(
-            '<div class="flow-box">'
-            '<div class="ticker-label">Weekly Net Flow — Foreign Investors (TSE)</div>'
-            '<div class="' + val_class + '">' + arrow + " ¥" + f"{abs(net):.1f}B" + '</div>'
-            '<div class="flow-label">' + flow.get("direction","") + " · " + flow.get("as_of","") + '</div>'
-            '</div>',
-            unsafe_allow_html=True
-        )
-    else:
-        jpx_url = (flow or {}).get("jpx_url", "https://www.jpx.co.jp/english/markets/statistics-equities/investor-type/index.html")
-        st.markdown(
-            '<div class="info-box">Foreign flow data published weekly by JPX (Thursdays). '
-            '<a href="' + jpx_url + '" target="_blank" style="color:#8B4513;">→ View on JPX</a></div>',
-            unsafe_allow_html=True
-        )
-
     st.markdown("""
     <div class="info-box" style="margin-top:0.8rem">
         <strong>Key BOJ/macro themes:</strong> Rate normalisation · YCC exit · Yen carry trade ·
         Shunto wage growth · Core CPI · TSE capital efficiency reforms (PBR &lt; 1x pressure)
     </div>
     """, unsafe_allow_html=True)
-
-    # ── Daily Market Wrap ─────────────────────────────────────────────────
-    st.markdown("<hr style='border-color:#D9D3C8;margin:1rem 0 0.5rem'>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title" style="font-size:0.95rem;">📰 Daily Market Wrap</div>', unsafe_allow_html=True)
-
-    jpx = st.session_state.get("jpx_movers", {})
-    topix_ret = st.session_state.get("topix_returns", {})
-
-    if not jpx:
-        st.markdown(
-            '<div class="empty-state">Click <strong>📈 Markets</strong> to load today\'s market wrap.</div>',
-            unsafe_allow_html=True
-        )
-    else:
-        jpx_date   = jpx.get("date", "")
-        advancing  = jpx.get("advancing", 0)
-        declining  = jpx.get("declining", 0)
-        unchanged  = jpx.get("unchanged", 0)
-        total      = jpx.get("total_stocks", 0)
-        src_label  = jpx.get("source", "")
-
-        # Breadth bar
-        if total > 0:
-            adv_pct = advancing / total * 100
-            dec_pct = declining / total * 100
-            st.markdown(
-                f'<div style="margin:0.4rem 0 0.6rem;">'
-                f'<span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#9B8B7A;">Market breadth · {jpx_date}</span><br>'
-                f'<span style="color:#2E7D32;font-weight:700;">▲ {advancing} advancing</span>'
-                f'  <span style="color:#9B8B7A;font-size:0.8rem;">·</span>  '
-                f'<span style="color:#C62828;font-weight:700;">▼ {declining} declining</span>'
-                f'  <span style="color:#9B8B7A;font-size:0.8rem;">·</span>  '
-                f'<span style="color:#9B8B7A;">{unchanged} unchanged</span>'
-                f'  <span style="color:#9B8B7A;font-size:0.75rem;">of {total} stocks</span>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-
-        # Top movers table
-        col_g, col_l = st.columns(2)
-        def _mover_row(m):
-            pct = m.get("pct_change", 0)
-            col  = "#2E7D32" if pct >= 0 else "#C62828"
-            sign = "+" if pct >= 0 else ""
-            return (
-                f'<div style="padding:0.25rem 0;border-bottom:1px solid #EDE8E0;">'
-                f'<span style="font-size:0.78rem;font-weight:600;">{m.get("name","")}</span> '
-                f'<span style="font-size:0.65rem;color:#9B8B7A;">{m.get("code","")}</span><br>'
-                f'<span style="font-size:0.75rem;color:#9B8B7A;">{m.get("sector","")[:28]}</span>'
-                f'<span style="float:right;font-weight:700;color:{col};">{sign}{pct:.2f}%</span>'
-                f'</div>'
-            )
-
-        with col_g:
-            st.markdown('<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#2E7D32;margin-bottom:0.3rem;">Top Gainers</div>', unsafe_allow_html=True)
-            gainer_html = "".join(_mover_row(m) for m in jpx.get("gainers", [])[:8])
-            st.markdown(gainer_html or "<div style='color:#9B8B7A;font-size:0.8rem;'>No data</div>", unsafe_allow_html=True)
-
-        with col_l:
-            st.markdown('<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#C62828;margin-bottom:0.3rem;">Top Losers</div>', unsafe_allow_html=True)
-            loser_html = "".join(_mover_row(m) for m in jpx.get("losers", [])[:8])
-            st.markdown(loser_html or "<div style='color:#9B8B7A;font-size:0.8rem;'>No data</div>", unsafe_allow_html=True)
-
-        # AI Market Wrap narrative
-        st.markdown("<div style='margin-top:0.8rem;'></div>", unsafe_allow_html=True)
-        st.markdown('<div class="section-title" style="font-size:0.78rem;margin-top:0.2rem;">✨ AI Market Wrap</div>', unsafe_allow_html=True)
-
-        if "ai_market_wrap" not in st.session_state:
-            st.session_state.ai_market_wrap = None
-
-        col_w1, col_w2 = st.columns([4, 1])
-        with col_w2:
-            gen_wrap = st.button("✨ Generate", key="btn_market_wrap", use_container_width=True)
-        with col_w1:
-            if st.session_state.ai_market_wrap:
-                _wrap_ts = st.session_state.get("ai_market_wrap_ts")
-                _wrap_ts_str = (" · generated " + format_local_dt(_wrap_ts)) if _wrap_ts else ""
-                st.markdown(
-                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'
-                    f'✨ Market wrap{_wrap_ts_str} · click Generate to refresh</div>',
-                    unsafe_allow_html=True
-                )
-
-        if gen_wrap:
-            api_key = get_secret("ANTHROPIC_API_KEY")
-            if not api_key:
-                st.warning("ANTHROPIC_API_KEY not set in Streamlit Secrets.")
-            else:
-                import anthropic as _ant
-                # Build context: market breadth + movers + recent filings + news
-                gainers_txt = "\n".join(f"  +{m['pct_change']:.2f}% {m['name']} ({m.get('sector','')})" for m in jpx.get("gainers",[])[:8])
-                losers_txt  = "\n".join(f"  {m['pct_change']:.2f}% {m['name']} ({m.get('sector','')})" for m in jpx.get("losers",[])[:8])
-                topix_txt   = ""
-                if topix_ret:
-                    topix_txt = f"TOPIX benchmark: 3M {topix_ret.get('3M','N/A')}, 6M {topix_ret.get('6M','N/A')}, 12M {topix_ret.get('12M','N/A')}"
-                # Recent news
-                _news_arts = []
-                for _sec_arts in st.session_state.get("articles", {}).values():
-                    _news_arts.extend(_sec_arts)
-                _news_arts.sort(key=lambda a: a.get("pub_dt") or __import__("datetime").datetime.min, reverse=True)
-                _wrap_art_index = {}
-                _news_lines_list = []
-                for _wi, _wa in enumerate(_news_arts[:30], 1):
-                    _wrap_art_index[_wi] = {"source": _wa.get("source",""), "url": _wa.get("url","")}
-                    _news_lines_list.append(f"{_wi}. [{_wa.get('source','')}] {_wa.get('translated_title') or _wa.get('title','')}")
-                news_lines = "\n".join(_news_lines_list)
-                # Recent filings
-                filings = st.session_state.get("filings", [])
-                filing_lines = "\n".join(
-                    f"- [{f.get('code','')} {f.get('name_en') or f.get('name','')}] {f.get('title_en') or f.get('title','')}"
-                    for f in filings[:15]
-                )
-
-                prompt = f"""You are a Japan equity analyst writing a concise daily market wrap for an investor.
-
-Date: {jpx_date}
-Market breadth: {advancing} advancing / {declining} declining / {unchanged} unchanged ({total} total TSE stocks)
-{topix_txt}
-
-TOP GAINERS today:
-{gainers_txt}
-
-TOP LOSERS today:
-{losers_txt}
-
-RECENT NEWS HEADLINES:
-{news_lines}
-
-RECENT TDnet FILINGS:
-{filing_lines}
-
-Write a COMPLETE investment-focused daily market wrap:
-1. Opening paragraph: market tone, breadth context, and top investment implication (3-4 sentences)
-2. ## Sector Moves — biggest movers with sector context; note if part of a trend or one-off
-3. ## Corporate Catalysts — filings or news driving movers; include prior guidance/earnings for context
-4. ## Macro & FX — yen levels, rates, key macro developments with historical context
-5. ## What to Watch — 3-5 forward-looking catalysts with specific triggers to monitor
-
-Format rules:
-- ## headers for each section
-- Each bullet 2-3 sentences: key fact → context/comparison → investment implication
-- Cite sources inline using [N] at the end of relevant sentences, where N is the article number from the list. Use [N] format only, not (Headline N) or URLs.
-- Be direct and analytical — no padding
-- COMPLETE the entire wrap, never truncate
-
-Respond only with the market wrap."""
-
-                with st.spinner("Generating market wrap..."):
-                    try:
-                        _client = _ant.Anthropic(api_key=api_key)
-                        _resp   = _client.messages.create(
-                            model="claude-haiku-4-5-20251001",
-                            max_tokens=2000,
-                            messages=[{"role": "user", "content": prompt}]
-                        )
-                        st.session_state.ai_market_wrap = _resp.content[0].text
-                        st.session_state.ai_market_wrap_ts = now_local()
-                        st.session_state.ai_market_wrap_idx = _wrap_art_index
-                    except Exception as e:
-                        st.error(f"AI wrap error: {e}")
-
-        if st.session_state.ai_market_wrap:
-            _wi = st.session_state.get("ai_market_wrap_idx", {})
-            st.markdown(
-                _summary_to_html(st.session_state.ai_market_wrap, _wi),
-                unsafe_allow_html=True
-            )
 
 # ════════════════════════════════════════════════════════════
 # TAB 3 — WATCHLIST

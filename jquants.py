@@ -506,7 +506,7 @@ def fetch_market_data_batch(codes: list) -> dict:
     # First get TOPIX benchmark
     topix_3m = None
     try:
-        topix_data = yf.download("^TOPX", period="4mo", auto_adjust=True, progress=False)
+        topix_data = yf.download("1306.T", period="4mo", auto_adjust=True, progress=False)
         if not topix_data.empty:
             closes = topix_data["Close"].dropna()
             if len(closes) >= 2:

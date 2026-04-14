@@ -201,7 +201,7 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
 # Yahoo Finance ticker symbols
 YF_INDEX_INSTRUMENTS = {
     "nikkei":       ("^N225",  "Nikkei 225"),
-    "topix":        ("^TOPX",  "TOPIX"),  # Real TOPIX index — consistent with ^N225 for Nikkei
+    "topix":        ("1306.T", "TOPIX"),  # NEXT FUNDS TOPIX ETF — ^TOPX no longer reliable on yfinance
     "topix_large":  ("^TPXL",  "TOPIX Large Cap"),
     "topix_mid":    ("^TPXM",  "TOPIX Mid Cap"),
     "topix_small":  ("^TPXS",  "TOPIX Small Cap"),
@@ -620,7 +620,7 @@ def fetch_topix_returns() -> dict:
     """
     if not _YF_AVAILABLE:
         return {}
-    for ticker in ["^TOPX", "1306.T"]:
+    for ticker in ["1306.T", "^TOPX"]:
         try:
             t = yf.Ticker(ticker)
             hist = t.history(period="13mo", auto_adjust=True)

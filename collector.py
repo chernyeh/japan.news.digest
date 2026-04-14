@@ -671,7 +671,7 @@ def run_classifier_on_fetch(unique: list, api_key: str, max_articles: int = 50) 
 
     candidates = [
         a for a in unique
-        if a.get("news_type") == "micro"
+        if (a.get("news_type") == "micro" or a.get("is_wadai_expand"))
         and not a.get("corp_action")
     ]
     candidates.sort(key=lambda a: a.get("pub_dt") or datetime.min, reverse=True)
@@ -693,6 +693,75 @@ def run_classifier_on_fetch(unique: list, api_key: str, max_articles: int = 50) 
     return unique
 
 
+_WADAI_PREFIX = "話題株先取り"
+
+def _expand_wadai_article(source_name: str, entry, pub_display: str, pub_dt) -> list:
+    """
+    Expand a 話題株先取り aggregate article (Kabutan pre-open highlights) into
+    individual per-company articles, one per TSE-listed company found.
+    Returns a list of article dicts, or [] if no companies could be extracted.
+    """
+    title = re.sub(r"<[^>]+>", "", entry.get("title", "").strip())
+    base_url = resolve_gnews_url(entry)
+
+    # Pull summary/description from the entry for richer per-company snippets
+    summary_raw = ""
+    for attr in ("summary", "description"):
+        val = getattr(entry, attr, None) or ""
+        if val:
+            summary_raw = val
+            break
+    summary = re.sub(r"<[^>]+>", "", summary_raw).strip()
+
+    combined = title + "\n" + summary
+
+    # Match "CompanyName（CODE）" or "CompanyName(CODE)" — CODE = 4 digits 1000-9999
+    code_re = re.compile(
+        r'([^\s、。，,！!・\n（(]{2,20})\s*[（(](\d{4})[）)]'
+    )
+    # Deduplicate by code, preserving first-seen order
+    seen_codes: dict[str, str] = {}
+    for m in code_re.finditer(combined):
+        code, name = m.group(2), m.group(1).strip()
+        if 1000 <= int(code) <= 9999 and code not in seen_codes:
+            seen_codes[code] = name
+
+    if not seen_codes:
+        return []
+
+    articles = []
+    for code, company in seen_codes.items():
+        # Try to find a per-company snippet line in the summary
+        snippet = ""
+        for line in summary.splitlines():
+            if code in line or company in line:
+                snippet = line.strip()
+                break
+
+        if snippet and snippet != title:
+            orig_title = f"【話題株】{company}（{code}）: {snippet}"
+        else:
+            orig_title = f"【話題株】{company}（{code}）"
+
+        # Fragment-based URL keeps each article unique for dedup logic
+        art_url = f"{base_url}#wadai-{code}" if base_url else f"https://kabutan.jp/stock/?code={code}"
+
+        articles.append({
+            "source": source_name,
+            "original_title": orig_title,
+            "translated_title": "",
+            "title": "",
+            "url": art_url,
+            "pub_date": pub_display,
+            "pub_dt": pub_dt,
+            "sector": "",
+            "language": "ja",
+            "is_wadai_expand": True,
+        })
+
+    return articles
+
+
 def fetch_rss(source_name: str, url: str, language: str) -> list:
     articles = []
     try:
@@ -708,6 +777,14 @@ def fetch_rss(source_name: str, url: str, language: str) -> list:
             if not title:
                 continue
             pub_display, pub_dt = parse_date(entry)
+
+            # Expand 話題株先取り aggregates into per-company articles
+            if title.startswith(_WADAI_PREFIX):
+                expanded = _expand_wadai_article(source_name, entry, pub_display, pub_dt)
+                if expanded:
+                    articles.extend(expanded)
+                    continue  # skip adding the aggregate article itself
+
             articles.append({
                 "source": source_name,
                 "original_title": title,
