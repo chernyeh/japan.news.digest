@@ -1660,9 +1660,10 @@ with tab_market:
             html = ""
             for m in gainers:
                 flags_html = _under_flags(m["symbol"])
+                _yf_url = f'https://finance.yahoo.com/quote/{m["symbol"]}/'
                 html += (
                     '<div class="mover-card up">'
-                    '<div><div class="mover-name">' + m["name"] + flags_html + '</div>'
+                    '<div><div class="mover-name"><a href="' + _yf_url + '" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">' + m["name"] + '</a>' + flags_html + '</div>'
                     '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
                     '<div class="mover-pct-up">▲ ' + f'{m["pct_change"]:.2f}%' + '</div>'
                     '</div>'
@@ -1677,9 +1678,10 @@ with tab_market:
             html = ""
             for m in losers:
                 flags_html = _under_flags(m["symbol"])
+                _yf_url = f'https://finance.yahoo.com/quote/{m["symbol"]}/'
                 html += (
                     '<div class="mover-card dn">'
-                    '<div><div class="mover-name">' + m["name"] + flags_html + '</div>'
+                    '<div><div class="mover-name"><a href="' + _yf_url + '" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">' + m["name"] + '</a>' + flags_html + '</div>'
                     '<div class="mover-sym">' + m["symbol"] + " · ¥" + f'{m["price"]:,.0f}' + '</div></div>'
                     '<div class="mover-pct-dn">▼ ' + f'{abs(m["pct_change"]):.2f}%' + '</div>'
                     '</div>'
@@ -3101,7 +3103,7 @@ with tab_earnings:
                         f'gap:0.25rem;padding:0.28rem 0.35rem;background:{_bg};{_border}'
                         f'border-bottom:1px solid #EDE8E0;align-items:center;">'
                         f'<div style="color:#F9A825;font-size:0.72rem;">{_star}</div>'
-                        f'<div style="font-size:0.78rem;font-weight:{_weight};">{_name}</div>'
+                        f'<div style="font-size:0.78rem;font-weight:{_weight};"><a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a></div>'
                         f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;">{_code}</div>'
                         f'<div style="font-size:0.68rem;">{_period}</div>'
                         f'<div style="font-size:0.62rem;color:#6B6B6B;">{_sector}</div>'
