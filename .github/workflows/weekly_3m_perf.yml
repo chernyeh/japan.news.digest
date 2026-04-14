@@ -198,7 +198,7 @@ jobs:
 
           # Fallback: fetch TOPIX directly if archive value was missing or implausible
           if topix_3m is None:
-              for ticker in ["^TOPX", "1306.T", "^N300", "1308.T"]:
+              for ticker in ["1306.T", "^TOPX", "^N300", "1308.T"]:
                   try:
                       raw = yf.download(ticker, period="4mo", auto_adjust=True, progress=False)
                       if raw.empty:
