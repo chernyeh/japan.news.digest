@@ -2801,6 +2801,15 @@ with tab_earnings:
                             except Exception as _xe:
                                 st.error(f"Error loading {_xf['name']}: {_xe}")
                         if _all_entries:
+                            # Deduplicate by (code, announcement_date, period_type) — multiple Excel files can overlap
+                            _seen = set()
+                            _unique = []
+                            for _e in _all_entries:
+                                _k = (_e.get("code"), _e.get("announcement_date"), _e.get("period_type"))
+                                if _k not in _seen:
+                                    _seen.add(_k)
+                                    _unique.append(_e)
+                            _all_entries = _unique
                             _all_entries.sort(key=lambda x: x.get("announcement_date") or "9999")
                             st.session_state.earnings_cal = _all_entries
                             st.session_state.earnings_last_fetch = now_local()

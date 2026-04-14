@@ -688,6 +688,16 @@ def load_earnings_cal_from_github(repo: str, token: str = None) -> list:
         except Exception as e:
             print(f"Error loading {f['name']}: {e}")
 
+    # Deduplicate by (code, announcement_date, period_type) — multiple Excel files can overlap
+    seen = set()
+    unique_entries = []
+    for e in all_entries:
+        key = (e.get("code"), e.get("announcement_date"), e.get("period_type"))
+        if key not in seen:
+            seen.add(key)
+            unique_entries.append(e)
+    all_entries = unique_entries
+
     all_entries.sort(key=lambda x: x.get("announcement_date") or "9999")
     print(f"Earnings calendar loaded: {len(all_entries)} entries from {len(files)} file(s)")
     return all_entries
