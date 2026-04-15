@@ -1000,7 +1000,11 @@ with col_info:
             unsafe_allow_html=True
         )
 with col_refresh:
-    if st.button("🔄 Refresh", use_container_width=True):
+    _do_refresh = st.button("🔄 Refresh", use_container_width=True)
+    if not st.session_state.get("_auto_fetch_done") and not st.session_state.articles:
+        _do_refresh = True
+        st.session_state._auto_fetch_done = True
+    if _do_refresh:
         with st.spinner(" "):
             _cd_ph = st.empty()
             _cd_ph.markdown('<div class="countdown-bar">⏱ Fetching — typically 30–60s</div>', unsafe_allow_html=True)
@@ -1488,7 +1492,7 @@ with tab_market:
         if md.get("indices") or md.get("forex"):
             st.markdown("Partial data from Stooq (may be incomplete):", unsafe_allow_html=False)
     else:
-        RETURN_PERIODS = ["MTD", "1M", "3M", "YTD", "1Y", "3Y"]
+        RETURN_PERIODS = ["MTD", "1M", "3M", "YTD", "1Y"]
 
         def fmt_price(price, is_forex=False):
             if is_forex:
@@ -1741,25 +1745,14 @@ with tab_watchlist:
     st.markdown('<div class="section-title">⭐ My Company Watchlist</div>', unsafe_allow_html=True)
     watchlist = load_watchlist()
 
-    col_sel, col_add = st.columns([3, 1])
-    with col_sel:
-        options = sorted(KNOWN_COMPANIES.keys()) + ["— Enter custom name —"]
-        selected_known = st.selectbox("Add company:", options)
+    col_inp, col_add = st.columns([3, 1])
+    with col_inp:
+        add_input = st.text_input("Add by name or TSE code:", placeholder="e.g. Toyota, Recruit, 6098")
     with col_add:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         if st.button("➕ Add", use_container_width=True):
-            if selected_known and selected_known != "— Enter custom name —":
-                add_to_watchlist(selected_known)
-                st.rerun()
-
-    custom_col, custom_btn = st.columns([3, 1])
-    with custom_col:
-        custom = st.text_input("Custom name / TSE code:", placeholder="e.g. Recruit, 6098.T")
-    with custom_btn:
-        st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
-        if st.button("➕ Add Custom", use_container_width=True):
-            if custom.strip():
-                add_to_watchlist(custom.strip())
+            if add_input.strip():
+                add_to_watchlist(add_input.strip())
                 st.rerun()
 
     st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
@@ -1951,7 +1944,8 @@ with tab_filings:
         st.markdown("</div>", unsafe_allow_html=True)
     with col_f3:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
-        _filings_sum_btn = st.button("✨ Summarise", key="btn_filings_sum", use_container_width=True)
+        _filings_sum_btn = st.button("✨ Summarise", key="btn_filings_sum", use_container_width=True,
+                                      help="Summarise filings from the last 3 days")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Auto-load on first visit OR on button click
@@ -2114,10 +2108,10 @@ with tab_filings:
         <table class="filings-table">
         <thead>
           <tr>
-            <th style="width:70px">Code</th>
-            <th style="width:160px">Company</th>
+            <th style="width:56px">Code</th>
+            <th style="width:90px">Company</th>
             <th>Title</th>
-            <th style="width:120px">Date/Time</th>
+            <th style="width:56px">Date</th>
             <th style="width:50px">PDF</th>
           </tr>
         </thead>
@@ -2131,14 +2125,20 @@ with tab_filings:
             # Japanese PDF link
             _jpn_url  = f.get("doc_url", "")
             _jpn_link = f'<a href="{_jpn_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if _jpn_url else "—"
-            # "All Filings" — links to TDnet English search for this company code
-            # English PDFs are only filed by some companies; this page shows all available versions
+            # Split pub_date "2026-04-15 09:30" into date + time lines
+            _pub = f.get("pub_date", "")
+            if " " in _pub:
+                _pub_date, _pub_time = _pub.split(" ", 1)
+            else:
+                _pub_date, _pub_time = _pub, ""
+            _date_cell = (f'<span style="white-space:nowrap;">{_pub_date}</span>'
+                          + (f'<br><span style="color:#9B8B7A;">{_pub_time}</span>' if _pub_time else ""))
             table_html += (
                 "<tr>"
                 f'<td style="font-family:monospace;font-size:0.75rem;white-space:nowrap;">{f.get("code","")}</td>'
-                f'<td style="font-size:0.8rem;font-weight:600;white-space:nowrap;">{f.get("name_en") or f.get("name","")}</td>'
+                f'<td style="font-size:0.75rem;font-weight:600;overflow-wrap:break-word;max-width:90px;">{f.get("name_en") or f.get("name","")}</td>'
                 f'<td style="font-size:0.8rem;">{_display_title}{_orig_note}</td>'
-                f'<td style="font-size:0.72rem;color:#9B8B7A;white-space:nowrap;">{f.get("pub_date","")}</td>'
+                f'<td style="font-size:0.72rem;color:#9B8B7A;">{_date_cell}</td>'
                 f'<td style="text-align:center;">{_jpn_link}</td>'
                 "</tr>"
             )
@@ -2647,7 +2647,7 @@ with tab_signals:
         #         within each group newest first ────────────────────────────
         _dir_order = {"positive": 0, "mixed": 1, "negative": 2, "neutral": 3}
         _priority_first = sorted(
-            _filtered,
+            [a for a in _filtered if a.get("company_code") or a.get("company_name_clean")],
             key=lambda a: (
                 0 if a.get("is_priority_signal") else 1,
                 _dir_order.get(a.get("action_direction", "neutral"), 3),
