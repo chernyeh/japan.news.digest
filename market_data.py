@@ -419,21 +419,16 @@ def fetch_market_overview() -> dict:
                 except Exception:
                     pass
 
-    yf_got_indices = any(results["indices"].get(k, {}).get("price", 0) > 0
-                         for k in ["nikkei", "topix"])
-    yf_got_forex   = any(results["forex"].get(k, {}).get("price", 0) > 0
-                         for k in ["usdjpy", "eurjpy"])
+    # ── Step 2: Stooq for every instrument Yahoo missed (per-instrument) ────────
+    stooq_tasks = {}
+    for k, (sym, lbl) in STOOQ_INDEX_INSTRUMENTS.items():
+        if not results["indices"].get(k, {}).get("price", 0) > 0:
+            stooq_tasks[k] = (sym, lbl, "index")
+    for k, (sym, lbl) in STOOQ_FOREX_INSTRUMENTS.items():
+        if not results["forex"].get(k, {}).get("price", 0) > 0:
+            stooq_tasks[k] = (sym, lbl, "forex")
 
-    # ── Step 2: Stooq for anything Yahoo missed ──────────────────────────────
-    if not yf_got_indices or not yf_got_forex:
-        stooq_tasks = {}
-        if not yf_got_indices:
-            stooq_tasks.update({k: (sym, lbl, "index")
-                                 for k, (sym, lbl) in STOOQ_INDEX_INSTRUMENTS.items()})
-        if not yf_got_forex:
-            stooq_tasks.update({k: (sym, lbl, "forex")
-                                 for k, (sym, lbl) in STOOQ_FOREX_INSTRUMENTS.items()})
-
+    if stooq_tasks:
         with ThreadPoolExecutor(max_workers=8) as ex:
             futures = {
                 ex.submit(stooq_fetch, sym, lbl, 4): (k, kind)
@@ -449,19 +444,14 @@ def fetch_market_overview() -> dict:
                 except Exception:
                     pass
 
-    got_indices = any(results["indices"].get(k, {}).get("price", 0) > 0
-                      for k in ["nikkei", "topix"])
-    got_forex   = any(results["forex"].get(k, {}).get("price", 0) > 0
-                      for k in ["usdjpy", "eurjpy"])
-
-    # ── Step 3: Alpha Vantage for anything still missing ─────────────────────
-    if api_key and (not got_indices or not got_forex):
+    # ── Step 3: Alpha Vantage for each instrument still missing ──────────────
+    if api_key:
         av_tasks = []
-        if not got_indices:
-            for key, (sym, label) in AV_EQUITY_INSTRUMENTS.items():
+        for key, (sym, label) in AV_EQUITY_INSTRUMENTS.items():
+            if not results["indices"].get(key, {}).get("price", 0) > 0:
                 av_tasks.append(("equity", key, sym, label))
-        if not got_forex:
-            for key, (fc, tc, label) in AV_FOREX_INSTRUMENTS.items():
+        for key, (fc, tc, label) in AV_FOREX_INSTRUMENTS.items():
+            if not results["forex"].get(key, {}).get("price", 0) > 0:
                 av_tasks.append(("forex", key, fc + "|" + tc, label))
 
         for i, task in enumerate(av_tasks):
