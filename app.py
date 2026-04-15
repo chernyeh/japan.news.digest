@@ -936,8 +936,13 @@ def render_ticker(label, data):
     state = data.get("state_label", "")
     chg_class = "ticker-change-up" if pct >= 0 else "ticker-change-dn"
     arrow = "▲" if pct >= 0 else "▼"
-    # Format: large numbers as integers, small as 3dp
-    price_str = f"{price:,.0f}" if price > 100 else f"{price:,.2f}"
+    # Format: JPY pairs get 1dp; other large numbers as integers; small as 2dp
+    if label.endswith("JPY") and price > 100:
+        price_str = f"{price:,.1f}"
+    elif price > 100:
+        price_str = f"{price:,.0f}"
+    else:
+        price_str = f"{price:,.2f}"
     return (
         '<div class="ticker-item">'
         '<div class="ticker-label">' + label + '</div>'
@@ -1572,10 +1577,11 @@ with tab_market:
                 _flab = _fd.get("label", _fk.upper())
                 _fcol = "#2E7D32" if _fchg >= 0 else "#C62828"
                 _farr = "▲" if _fchg >= 0 else "▼"
+                _fp_str = f"{_fp:,.1f}" if _fk in ("usdjpy", "eurjpy", "sgdjpy") else f"{_fp:,.2f}"
                 fx_html += (
                     '<div style="background:white;border:1px solid #E8E3DC;border-radius:4px;padding:0.4rem 0.6rem;">'
                     f'<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B6B6B;">{_flab}</div>'
-                    f'<div style="font-size:1.0rem;font-weight:700;">{_fp:,.2f}</div>'
+                    f'<div style="font-size:1.0rem;font-weight:700;">{_fp_str}</div>'
                     f'<div style="font-size:0.72rem;color:{_fcol};font-weight:600;">{_farr} {abs(_fchg):.2f}%</div>'
                     '</div>')
             fx_html += '</div>'
