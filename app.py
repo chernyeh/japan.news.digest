@@ -7,7 +7,7 @@ import pytz
 from collector import (fetch_all_news, fetch_source_headlines,
                         SOURCE_DIRECTORY, SOURCE_GROUPS,
                         CORP_ACTION_META, PRIORITY_ACTIONS, DIRECTION_ORDER)
-from emailer import subscribe_email, send_digest, get_secret
+from emailer import subscribe_email, send_digest, get_secret, load_subscribers
 from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_flow,
                           fetch_jpx_daily_movers, fetch_topix_returns,
                           fetch_underperformance_screen, TSE_STOCKS)
@@ -222,6 +222,17 @@ div[data-testid="stMultiSelect"] label {
     font-family: 'Spectral', serif !important;
     font-size: 0.70rem !important;
 }
+
+/* Compact multiselect tags — keep all selected chips on one line */
+div[data-baseweb="tag"] {
+    height: 1.3rem !important;
+    padding: 0 0.35rem !important;
+    line-height: 1.3rem !important;
+    font-size: 0.60rem !important;
+    border-radius: 2px !important;
+}
+div[data-baseweb="tag"] span { font-size: 0.60rem !important; }
+div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !important; }
 
 /* Ticker strip */
 .ticker-strip {
@@ -1148,7 +1159,7 @@ except Exception:
 (tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings,
  tab_earnings, tab_bysource, tab_news, tab_watchlist, tab_screener,
  tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
-    "📊 Markets", "🕐 By Time", "⚡ Breaking News",
+    "📊 Markets", "🕐 Timeline", "⚡ Breaking News",
     "🚦 Signals", "📋 Reg Filings", "📅 Earnings",
     "📁 By Source", "📰 By Industry", "⭐ Watchlist", "🔬 Screener",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
@@ -1296,18 +1307,14 @@ with tab_breaking:
     if "breaking_last_fetch" not in st.session_state:
         st.session_state.breaking_last_fetch = None
 
-    col_b1, col_b2 = st.columns([3, 1])
-    with col_b2:
-        fetch_breaking = st.button("🔄 Refresh", key="btn_breaking", use_container_width=True)
-    with col_b1:
-        if st.session_state.breaking_last_fetch:
-            st.markdown(
-                '<div style="font-size:0.7rem;color:#9B8B7A;padding-top:0.5rem;">Updated: '
-                + format_local_dt(st.session_state.breaking_last_fetch) + '</div>',
-                unsafe_allow_html=True
-            )
+    if st.session_state.breaking_last_fetch:
+        st.markdown(
+            '<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.3rem;">Updated: '
+            + format_local_dt(st.session_state.breaking_last_fetch) + '</div>',
+            unsafe_allow_html=True
+        )
 
-    if fetch_breaking or not st.session_state.breaking_news:
+    if not st.session_state.breaking_news:
         with st.spinner("Fetching Nikkei breaking news…"):
             try:
                 from collector import fetch_rss, translate_articles
@@ -2188,16 +2195,16 @@ with tab_sentiment:
 with tab_bysource:
     st.markdown('<div class="section-title">📁 Headlines by Source</div>', unsafe_allow_html=True)
 
-    # ── Source picker: group tabs then source buttons ─────────────────────
+    # ── Source picker: group dropdown then source pills ─────────────────────
     group_names = list(SOURCE_GROUPS.keys())
     if st.session_state.source_group not in group_names:
         st.session_state.source_group = group_names[0]
 
-    # Group selector as compact radio
-    _sel_grp = st.radio("Group:", group_names,
-                        index=group_names.index(st.session_state.source_group),
-                        horizontal=True, key="_src_group_radio",
-                        label_visibility="collapsed")
+    _grp_col, _load_col = st.columns([3, 1])
+    with _grp_col:
+        _sel_grp = st.selectbox("Group:", group_names,
+                                index=group_names.index(st.session_state.source_group),
+                                key="_src_group_sel", label_visibility="collapsed")
     if _sel_grp != st.session_state.source_group:
         st.session_state.source_group = _sel_grp
         st.session_state.source_selected = None
@@ -2211,18 +2218,12 @@ with tab_bysource:
         if st.session_state.source_selected not in available:
             st.session_state.source_selected = available[0]
 
-        # Source pills — compact button grid
-        _src_cols = st.columns(min(len(available), 4))
+        # Source pills — compact button grid, up to 5 columns
+        _ncols = min(len(available), 5)
+        _src_cols = st.columns(_ncols)
         for _si, _sn in enumerate(available):
             _is_sel = (_sn == st.session_state.source_selected)
-            _btn_style = (
-                "background:#1A1A1A;color:#F7F4EF;font-size:0.62rem;font-weight:700;"
-                "padding:0.2rem 0.5rem;border-radius:3px;border:none;width:100%;cursor:pointer;"
-                if _is_sel else
-                "background:#EDE8E0;color:#1A1A1A;font-size:0.62rem;font-weight:600;"
-                "padding:0.2rem 0.5rem;border-radius:3px;border:1px solid #D9D3C8;width:100%;cursor:pointer;"
-            )
-            with _src_cols[_si % 4]:
+            with _src_cols[_si % _ncols]:
                 if st.button(_sn, key=f"src_pill_{_sn}",
                              use_container_width=True,
                              type="primary" if _is_sel else "secondary"):
@@ -2231,29 +2232,27 @@ with tab_bysource:
                         st.rerun()
 
         selected_source = st.session_state.source_selected
-
-        # Load / status row
         cached = st.session_state.source_cache.get(selected_source)
-        _src_l1, _src_l2 = st.columns([4, 1])
-        with _src_l1:
-            if cached is not None:
-                st.markdown(
-                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.3rem;">'
-                    f'{len(cached)} headlines · {selected_source}</div>',
-                    unsafe_allow_html=True)
-            else:
-                st.markdown(
-                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.3rem;">'
-                    f'{selected_source} — not yet loaded</div>',
-                    unsafe_allow_html=True)
-        with _src_l2:
+
+        # Load button sits in the column reserved next to the group dropdown
+        with _load_col:
             if st.button("🔄 Load", use_container_width=True, key="load_source"):
-                with st.spinner(f"Fetching {selected_source}..."):
-                    results = fetch_source_headlines(selected_source, days=14)
-                    st.session_state.source_cache[selected_source] = results
+                with st.spinner(f"Fetching {selected_source}…"):
+                    _src_results = fetch_source_headlines(selected_source, days=14)
+                    st.session_state.source_cache[selected_source] = _src_results
                 st.rerun()
 
-        st.markdown("<div style='margin-bottom:0.3rem'></div>", unsafe_allow_html=True)
+        # Status line
+        if cached is not None:
+            st.markdown(
+                f'<div style="font-size:0.65rem;color:#9B8B7A;margin:0.1rem 0 0.3rem;">'
+                f'{len(cached)} headlines · {selected_source}</div>',
+                unsafe_allow_html=True)
+        else:
+            st.markdown(
+                f'<div style="font-size:0.65rem;color:#9B8B7A;margin:0.1rem 0 0.3rem;">'
+                f'{selected_source} — not yet loaded</div>',
+                unsafe_allow_html=True)
 
         # Display headlines
         articles = st.session_state.source_cache.get(selected_source)
@@ -2785,30 +2784,33 @@ with tab_earnings:
         st.session_state.earnings_auto_loaded = True
 
 
-    ec_col1, ec_col2, ec_col3 = st.columns([2, 2, 1])
-    with ec_col1:
+    # Row 1: time period + load button
+    _ec_r1a, _ec_r1b = st.columns([4, 1])
+    with _ec_r1a:
         ec_bucket = st.radio(
             "Show:", ["Next 2 Days", "This Week", "Next Week", "Next 14 Days", "Next 30 Days", "All"],
             horizontal=True, key="ec_bucket", label_visibility="collapsed",
         )
-    with ec_col2:
+    with _ec_r1b:
+        st.markdown("<div style='margin-top:0.35rem'>", unsafe_allow_html=True)
+        ec_fetch = st.button("📥 Load Earnings", use_container_width=True, key="btn_ec_fetch")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Row 2: search + compact filters
+    _ec_r2a, _ec_r2b, _ec_r2c, _ec_r2d = st.columns([3, 1.2, 1.2, 1.6])
+    with _ec_r2a:
         ec_search = st.text_input(
             "Search:", placeholder="Company name or TSE code…",
             key="ec_search", label_visibility="collapsed",
         )
-    with ec_col3:
-        ec_fetch = st.button("📥 Load Earnings", use_container_width=True, key="btn_ec_fetch")
-
-    # Market cap filter + sort row
-    _mf_col1, _mf_col2, _mf_col3 = st.columns([2, 2, 2])
-    with _mf_col1:
-        ec_mcap_min = st.number_input("Mkt Cap min (¥B)", min_value=0, value=0,
+    with _ec_r2b:
+        ec_mcap_min = st.number_input("Min ¥B", min_value=0, value=0,
                                       step=50, key="ec_mcap_min", label_visibility="visible")
-    with _mf_col2:
-        ec_mcap_max = st.number_input("Mkt Cap max (¥B, 0=no limit)", min_value=0, value=0,
+    with _ec_r2c:
+        ec_mcap_max = st.number_input("Max ¥B", min_value=0, value=0,
                                       step=500, key="ec_mcap_max", label_visibility="visible")
-    with _mf_col3:
-        ec_sort = st.selectbox("Sort by", ["Date", "Mkt Cap ↓", "Mkt Cap ↑", "3M vs TOPIX ↓", "3M vs TOPIX ↑"],
+    with _ec_r2d:
+        ec_sort = st.selectbox("Sort", ["Date", "Mkt Cap ↓", "Mkt Cap ↑", "3M vs TOPIX ↓", "3M vs TOPIX ↑"],
                               key="ec_sort", label_visibility="visible")
 
     if ec_fetch:
@@ -3221,13 +3223,33 @@ with tab_earnings:
 
 with tab_subscribe:
     st.markdown('<div class="section-title">📬 Email Digest</div>', unsafe_allow_html=True)
+
+    # ── Secret status banner ───────────────────────────────────────────────────
+    _sg_key    = get_secret("SENDGRID_API_KEY")
+    _from_addr = get_secret("DIGEST_FROM_EMAIL")
+    _sub_seed  = get_secret("SUBSCRIBER_EMAILS")
+    _subs_now  = load_subscribers()
+
+    _ok   = "✅"
+    _miss = "❌"
+    st.markdown(
+        f'<div style="background:#F5F0EA;border:1px solid #D9D3C8;border-radius:4px;'
+        f'padding:0.55rem 0.8rem;font-size:0.68rem;line-height:1.9;margin-bottom:0.6rem;">'
+        f'<strong>Setup status</strong><br>'
+        f'{_ok if _sg_key else _miss} <code>SENDGRID_API_KEY</code> — '
+        f'{"set" if _sg_key else "missing · add to Streamlit Secrets to enable sending"}<br>'
+        f'{_ok if _from_addr else _miss} <code>DIGEST_FROM_EMAIL</code> — '
+        f'{"set (" + _from_addr + ")" if _from_addr else "missing · sender address for outgoing emails"}<br>'
+        f'{_ok if _sub_seed else _miss} <code>SUBSCRIBER_EMAILS</code> — '
+        f'{"set · " + str(len(_subs_now)) + " subscriber(s) total" if _sub_seed else "missing · persistent subscriber list (survives restarts)"}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
     st.markdown("""
     <div class="info-box">
-    Subscribe to receive the <strong>Japan Investment Digest</strong> by email — automatically sent twice daily:<br><br>
-    <strong>🌅 Pre-market edition</strong> &nbsp;·&nbsp; 07:00 JST (2 hours before TSE open at 09:00)&nbsp; — <em>6:00 MYT</em><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;Market recap, overnight news, what to watch at open<br><br>
-    <strong>🌆 Close-of-day edition</strong> &nbsp;·&nbsp; 19:00 JST (4 hours after TSE close at 15:30)&nbsp; — <em>18:00 MYT</em><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;Full day summary · AI briefing · corporate filings · sector moves · market data
+    <strong>🌅 Pre-market</strong> 07:00 JST (06:00 MYT) — market recap, overnight news<br>
+    <strong>🌆 Close-of-day</strong> 19:00 JST (18:00 MYT) — full summary, filings, sector moves
     </div>
     """, unsafe_allow_html=True)
 
@@ -3329,15 +3351,33 @@ Current webhook token: `{tok_display}`
     # ── Manual send (for admin use) ──
     if get_secret("SENDGRID_API_KEY"):
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
-        st.markdown('<div style="font-size:0.72rem;font-weight:700;color:#8B4513;margin-bottom:0.4rem;">ADMIN: Send Digest Now</div>', unsafe_allow_html=True)
-        manual_email = st.text_input("Send to email:", placeholder="your@email.com", key="manual_email")
-        if st.button("Send Digest Now", use_container_width=False):
-            if manual_email and "@" in manual_email:
-                with st.spinner("Sending…"):
-                    send_digest(st.session_state.articles, [manual_email])
-                st.success(f"✓ Sent to {manual_email}")
-            else:
-                st.error("Enter a valid email address.")
+        st.markdown('<div style="font-size:0.72rem;font-weight:700;color:#8B4513;margin-bottom:0.4rem;">Send Digest Now</div>', unsafe_allow_html=True)
+        _adm_col1, _adm_col2, _adm_col3 = st.columns([3, 1, 1])
+        with _adm_col1:
+            manual_email = st.text_input("To:", placeholder="your@email.com", key="manual_email",
+                                         label_visibility="collapsed")
+        with _adm_col2:
+            _adm_edition = st.selectbox("Edition:", ["close", "premarket"], key="manual_edition",
+                                        label_visibility="collapsed")
+        with _adm_col3:
+            st.markdown("<div style='margin-top:0.35rem'>", unsafe_allow_html=True)
+            if st.button("✉️ Send", use_container_width=True, key="btn_send_digest"):
+                if manual_email and "@" in manual_email:
+                    with st.spinner("Sending…"):
+                        _ok_send = send_digest(
+                            st.session_state.articles,
+                            recipients=[manual_email],
+                            edition=_adm_edition,
+                            market_data=st.session_state.market_data,
+                            filings=st.session_state.get("filings", []),
+                        )
+                    if _ok_send:
+                        st.success(f"✓ Sent to {manual_email}")
+                    else:
+                        st.error("Send failed — check SENDGRID_API_KEY and DIGEST_FROM_EMAIL in Secrets.")
+                else:
+                    st.error("Enter a valid email address.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("""

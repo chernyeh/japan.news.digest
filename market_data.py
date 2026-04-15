@@ -444,6 +444,33 @@ def fetch_market_overview() -> dict:
                 except Exception:
                     pass
 
+    # ── Step 2.5: yfinance ETF proxies for indices still missing (gives history+returns) ──
+    # EWJ/EZJ are US-listed ETFs that yfinance reliably serves from cloud IPs.
+    # Tried here (not in step 1) so real index data from Yahoo/Stooq wins when available.
+    YF_INDEX_PROXIES = {
+        "nikkei": ("EWJ", "Nikkei 225 (EWJ proxy)"),
+        "topix":  ("EZJ", "TOPIX (EZJ proxy)"),
+    }
+    if _YF_AVAILABLE:
+        proxy_tasks = {
+            k: (sym, lbl) for k, (sym, lbl) in YF_INDEX_PROXIES.items()
+            if not results["indices"].get(k, {}).get("price", 0) > 0
+        }
+        if proxy_tasks:
+            with ThreadPoolExecutor(max_workers=4) as ex:
+                futures = {
+                    ex.submit(yf_fetch, sym, lbl, 2): k
+                    for k, (sym, lbl) in proxy_tasks.items()
+                }
+                for f in as_completed(futures):
+                    k = futures[f]
+                    try:
+                        d = f.result()
+                        if d.get("price", 0) > 0:
+                            results["indices"][k] = d
+                    except Exception:
+                        pass
+
     # ── Step 3: Alpha Vantage for each instrument still missing ──────────────
     if api_key:
         av_tasks = []
