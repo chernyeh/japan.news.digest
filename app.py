@@ -147,9 +147,17 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;0,800;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Noto+Serif+JP:wght@300;400;500;600&display=swap');
 
 html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Spectral', serif;
     background-color: #F7F4EF;
     color: #1A1A1A;
+}
+/* Tabs — explicit override for all Streamlit tab selectors */
+div[data-testid="stTabs"] button,
+div[data-testid="stTabs"] [role="tab"],
+div[data-testid="stTabs"] [role="tablist"] button,
+.stTabs [data-baseweb="tab"],
+.stTabs [data-baseweb="tab-list"] button {
+    font-family: 'Spectral', serif !important;
 }
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 1rem; padding-bottom: 3rem; max-width: 1060px; }
@@ -499,7 +507,7 @@ div[data-testid="stMultiSelect"] label {
     font-size: 1.0rem; line-height: 1.8; color: #1A1A1A;
 }
 .ai-h2 {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Spectral', serif;
     font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em;
     text-transform: uppercase; color: #8B4513; margin: 1.2rem 0 0.4rem 0;
     border-bottom: 2px solid #EDE8E0; padding-bottom: 0.2rem;
@@ -511,7 +519,7 @@ div[data-testid="stMultiSelect"] label {
 a.summary-link {
     display: inline-block !important; margin-left: 0.3rem;
     background: #8B4513 !important; color: #FFF !important;
-    font-size: 0.68rem !important; font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.68rem !important; font-family: 'Spectral', serif !important;
     font-weight: 700 !important; letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
     padding: 0.08rem 0.4rem !important; border-radius: 3px !important;
