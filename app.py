@@ -142,23 +142,28 @@ MEDIA_SOURCES = [
 ]
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
+# Inject Google Fonts via <link> — @import inside dynamically injected <style>
+# tags is unreliable in browsers (often silently ignored).
+st.markdown(
+    '<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Noto+Serif+JP:wght@300;400;500;600&display=swap" rel="stylesheet">',
+    unsafe_allow_html=True,
+)
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;0,800;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Noto+Serif+JP:wght@300;400;500;600&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Spectral', serif;
+html, body {
     background-color: #F7F4EF;
     color: #1A1A1A;
 }
-/* Tabs — explicit override for all Streamlit tab selectors */
-div[data-testid="stTabs"] button,
-div[data-testid="stTabs"] [role="tab"],
-div[data-testid="stTabs"] [role="tablist"] button,
-.stTabs [data-baseweb="tab"],
-.stTabs [data-baseweb="tab-list"] button {
+/* Apply Spectral globally — use !important to override Streamlit/BaseWeb emotion CSS */
+*, *::before, *::after {
     font-family: 'Spectral', serif !important;
 }
+/* Restore monospace for code elements */
+code, pre, kbd, samp {
+    font-family: monospace !important;
+}
+
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 1rem; padding-bottom: 3rem; max-width: 1060px; }
 
