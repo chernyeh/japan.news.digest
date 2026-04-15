@@ -2461,7 +2461,7 @@ with tab_screener:
         with _sc4:
             _scr_threshold = st.slider("Highlight threshold (%)", 0, 30, 10, 1, key="scr_threshold")
         with _sc5:
-            _all_sectors = sorted({s for s in SECTOR_LOOKUP.values() if s})
+            _all_sectors = sorted({s for s in SECTOR_LOOKUP.values() if isinstance(s, str) and s})
             _scr_sector = st.selectbox("Sector", ["All"] + _all_sectors, key="scr_sector")
 
         # ── Apply universe filter ─────────────────────────────────────────────
