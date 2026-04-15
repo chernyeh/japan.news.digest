@@ -21,7 +21,8 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      get_performance_band, fetch_3m_performance_batch,
                      fetch_market_data_batch, load_mktcap_from_github,
                      load_3m_perf_from_github, load_earnings_cal_from_github,
-                     fetch_jpx_excel_from_github, filter_upcoming)
+                     fetch_jpx_excel_from_github, filter_upcoming,
+                     load_perf_map_from_github, load_prices_from_github)
 
 # ── HELPER: LOAD METADATA BRAIN ───────────────────────────────────────────────
 @st.cache_data
@@ -31,14 +32,15 @@ def load_metadata_brain():
     if os.path.exists(path):
         try:
             df = _pd.read_csv(path, dtype={"Code": str})
-            shares = df.set_index("Code")["Shares"].to_dict()
-            names  = df.set_index("Code")["Name"].to_dict()
-            return shares, names
+            shares  = df.set_index("Code")["Shares"].to_dict()
+            names   = df.set_index("Code")["Name"].to_dict()
+            sectors = df.set_index("Code")["Sector"].to_dict() if "Sector" in df.columns else {}
+            return shares, names, sectors
         except Exception as e:
             print(f"Error loading metadata.csv: {e}")
-    return {}, {}
+    return {}, {}, {}
 
-SHARES_LOOKUP, NAMES_LOOKUP = load_metadata_brain()
+SHARES_LOOKUP, NAMES_LOOKUP, SECTOR_LOOKUP = load_metadata_brain()
 
 def calculate_mkt_cap(code, price):
     """Calculates Market Cap in Billions of Yen."""
@@ -1128,6 +1130,15 @@ if _digest_trigger in ("premarket", "close"):
         st.error(f"Digest webhook error: {_e}")
     st.stop()
 
+
+# ── GitHub repo config (used by Screener + Earnings Calendar) ─────────────────
+_ec_repo_default = "chernyeh/japan.news.digest"
+_gh_token = None
+try:
+    _ec_repo = st.secrets.get("GITHUB_REPO", _ec_repo_default)
+    _gh_token = st.secrets.get("GITHUB_TOKEN", None)
+except Exception:
+    _ec_repo = _ec_repo_default
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 (tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings,
@@ -2374,161 +2385,189 @@ with tab_sources:
 # TAB — SCREENER (Underperformance vs TOPIX)
 # ════════════════════════════════════════════════════════════
 with tab_screener:
-    st.markdown('<div class="section-title">🔬 Performance Screener — TOPIX Top 200</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="info-box">Screen ~200 major TSE stocks for underperformance vs TOPIX over 3, 6 and 12 months. '
-        'Data via Yahoo Finance. Batch fetch takes ~15–20 seconds.</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="section-title">🔬 Performance Screener</div>', unsafe_allow_html=True)
 
-    topix_ret   = st.session_state.get("topix_returns", {})
-    screen_data = st.session_state.get("screen_data", [])
-    screen_ts   = st.session_state.get("screen_last_fetch")
+    # ── Load data from pre-computed CSVs (same source as Earnings Calendar) ──
+    if not st.session_state.get("screener_perf_map") and not st.session_state.get("screener_load_attempted"):
+        st.session_state.screener_load_attempted = True
+        try:
+            _pm, _tr = load_perf_map_from_github(_ec_repo, _gh_token)
+            if _pm:
+                st.session_state.screener_perf_map = _pm
+                st.session_state.screener_topix_returns = _tr
+        except Exception as _e:
+            print(f"Screener perf load error: {_e}")
 
-    # Controls row
-    scr_col1, scr_col2, scr_col3 = st.columns([2, 2, 1])
-    with scr_col1:
-        scr_threshold = st.slider(
-            "Underperform threshold (%):", 0, 30, 10, 1, key="scr_threshold"
-        )
-    with scr_col2:
-        scr_period = st.radio(
-            "Flag period:", ["3M", "6M", "12M", "Any"],
-            horizontal=True, key="scr_period", label_visibility="collapsed"
-        )
-    with scr_col3:
-        st.markdown("<div style='margin-top:1.4rem'>", unsafe_allow_html=True)
-        fetch_screen = st.button("🔄 Run Screen", use_container_width=True, key="btn_run_screen")
+    if not st.session_state.get("mktcap_map") and not st.session_state.get("mktcap_load_attempted"):
+        st.session_state.mktcap_load_attempted = True
+        try:
+            _mc = load_mktcap_from_github(_ec_repo, _gh_token)
+            if _mc:
+                st.session_state.mktcap_map = _mc
+                st.session_state.mktcap_load_attempted = False
+        except Exception:
+            pass
 
-    if fetch_screen:
-        with st.spinner("Fetching performance data for ~200 stocks (~15–20s)..."):
-            if not topix_ret:
-                topix_ret = fetch_topix_returns()
-                st.session_state.topix_returns = topix_ret
-            screen_data = fetch_underperformance_screen(topix_returns=topix_ret, max_workers=25)
-            st.session_state.screen_data = screen_data
-            st.session_state.screen_last_fetch = now_local()
-        st.rerun()
+    if not st.session_state.get("screener_prices_map"):
+        try:
+            _px = load_prices_from_github(_ec_repo, _gh_token)
+            if _px:
+                st.session_state.screener_prices_map = _px
+        except Exception:
+            pass
 
-    if screen_ts:
+    _scr_perf   = st.session_state.get("screener_perf_map", {})
+    _scr_mktcap = st.session_state.get("mktcap_map", {})
+    _scr_prices = st.session_state.get("screener_prices_map", {})
+    _scr_topix  = st.session_state.get("screener_topix_returns", {})
+
+    if not _scr_perf:
         st.markdown(
-            f'<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.4rem;">Last run: {screen_ts}</div>',
-            unsafe_allow_html=True
-        )
-
-    if not screen_data:
-        st.markdown(
-            '<div class="empty-state">Click <strong>🔄 Run Screen</strong> to fetch performance data.</div>',
+            '<div class="empty-state">Performance data loading… refresh in a moment or check that '
+            'the GitHub repo and token are configured.</div>',
             unsafe_allow_html=True
         )
     else:
-        topix_3m  = topix_ret.get("3M")
-        topix_6m  = topix_ret.get("6M")
-        topix_12m = topix_ret.get("12M")
+        # ── Build merged stock list ───────────────────────────────────────────
+        _scr_stocks = []
+        for _code, _perfs in _scr_perf.items():
+            _scr_stocks.append({
+                "code":   _code,
+                "name":   NAMES_LOOKUP.get(_code, f"({_code})"),
+                "sector": SECTOR_LOOKUP.get(_code, ""),
+                "mktcap": _scr_mktcap.get(_code),
+                "price":  _scr_prices.get(_code),
+                "vs3m":   _perfs.get("vs3m"),
+                "vs6m":   _perfs.get("vs6m"),
+                "vs12m":  _perfs.get("vs12m"),
+            })
 
-        # Filter by underperformance
-        def _is_flagged(d):
-            t = -scr_threshold
-            if scr_period == "3M":
-                return d.get("under_3m") is not None and d["under_3m"] < t
-            elif scr_period == "6M":
-                return d.get("under_6m") is not None and d["under_6m"] < t
-            elif scr_period == "12M":
-                return d.get("under_12m") is not None and d["under_12m"] < t
-            else:  # Any
-                return (
-                    (d.get("under_3m")  is not None and d["under_3m"]  < t) or
-                    (d.get("under_6m")  is not None and d["under_6m"]  < t) or
-                    (d.get("under_12m") is not None and d["under_12m"] < t)
-                )
+        # ── Controls ─────────────────────────────────────────────────────────
+        _sc1, _sc2 = st.columns([3, 3])
+        with _sc1:
+            _scr_sort = st.selectbox("Sort by", [
+                "Worst 3M vs TOPIX", "Worst 6M vs TOPIX", "Worst 12M vs TOPIX",
+                "Best 3M vs TOPIX",  "Best 6M vs TOPIX",  "Best 12M vs TOPIX",
+                "Largest market cap", "Smallest market cap",
+            ], key="scr_sort")
+        with _sc2:
+            _universe_opts = ["All", "Top 100 by mkt cap", "Top 200 by mkt cap", "Top 500 by mkt cap"]
+            _scr_universe = st.selectbox("Universe", _universe_opts, key="scr_universe")
 
-        flagged   = [d for d in screen_data if _is_flagged(d)]
-        unflagged = [d for d in screen_data if not _is_flagged(d)]
+        _sc3, _sc4, _sc5 = st.columns([2, 2, 2])
+        with _sc3:
+            _scr_mcap_min = st.number_input("Min mkt cap (¥B)", min_value=0, value=0,
+                                            step=50, key="scr_mcap_min")
+        with _sc4:
+            _scr_threshold = st.slider("Highlight threshold (%)", 0, 30, 10, 1, key="scr_threshold")
+        with _sc5:
+            _all_sectors = sorted({s for s in SECTOR_LOOKUP.values() if s})
+            _scr_sector = st.selectbox("Sector", ["All"] + _all_sectors, key="scr_sector")
 
-        # Summary stats
-        total_ok  = len([d for d in screen_data if d.get("price", 0) > 0])
+        # ── Apply universe filter ─────────────────────────────────────────────
+        _rows = _scr_stocks
+        if _scr_universe != "All":
+            _top_n = {"Top 100 by mkt cap": 100, "Top 200 by mkt cap": 200,
+                      "Top 500 by mkt cap": 500}[_scr_universe]
+            _ranked = sorted([(c, v) for c, v in _scr_mktcap.items() if v],
+                             key=lambda x: x[1], reverse=True)
+            _top_codes = {c for c, _ in _ranked[:_top_n]}
+            _rows = [s for s in _rows if s["code"] in _top_codes]
+
+        if _scr_mcap_min > 0:
+            _rows = [s for s in _rows if s.get("mktcap") and s["mktcap"] >= _scr_mcap_min]
+
+        if _scr_sector != "All":
+            _rows = [s for s in _rows if s.get("sector") == _scr_sector]
+
+        # ── Sort ──────────────────────────────────────────────────────────────
+        _SORT_KEYS = {
+            "Worst 3M vs TOPIX":  lambda s: s.get("vs3m")   if s.get("vs3m")  is not None else 9999,
+            "Worst 6M vs TOPIX":  lambda s: s.get("vs6m")   if s.get("vs6m")  is not None else 9999,
+            "Worst 12M vs TOPIX": lambda s: s.get("vs12m")  if s.get("vs12m") is not None else 9999,
+            "Best 3M vs TOPIX":   lambda s: -(s.get("vs3m")  or -9999),
+            "Best 6M vs TOPIX":   lambda s: -(s.get("vs6m")  or -9999),
+            "Best 12M vs TOPIX":  lambda s: -(s.get("vs12m") or -9999),
+            "Largest market cap": lambda s: -(s.get("mktcap") or 0),
+            "Smallest market cap":lambda s:  (s.get("mktcap") or 999999),
+        }
+        _rows = sorted(_rows, key=_SORT_KEYS[_scr_sort])
+
+        # ── Summary bar ───────────────────────────────────────────────────────
+        def _fmt_tr(v):
+            return f"{v:+.1f}%" if v is not None else "N/A"
+
+        _t3  = _scr_topix.get("3M")
+        _t6  = _scr_topix.get("6M")
+        _t12 = _scr_topix.get("12M")
         st.markdown(
             f'<div class="info-box">'
-            f'<strong>{len(flagged)}</strong> of {total_ok} stocks underperform TOPIX by >{scr_threshold}% '
-            f'over {scr_period} &nbsp;·&nbsp; '
-            f'TOPIX: 3M <strong>{f"{topix_3m:+.1f}%" if topix_3m else "N/A"}</strong> · '
-            f'6M <strong>{f"{topix_6m:+.1f}%" if topix_6m else "N/A"}</strong> · '
-            f'12M <strong>{f"{topix_12m:+.1f}%" if topix_12m else "N/A"}</strong>'
+            f'{len(_rows):,} stocks &nbsp;·&nbsp; '
+            f'TOPIX: 3M <strong>{_fmt_tr(_t3)}</strong>'
+            f'{"  ·  6M <strong>" + _fmt_tr(_t6) + "</strong>" if _t6 is not None else ""}'
+            f'{"  ·  12M <strong>" + _fmt_tr(_t12) + "</strong>" if _t12 is not None else ""}'
+            f'{"  · <em style=\"color:#9B8B7A;\">6M/12M data builds up over time as price archives deepen</em>" if _t6 is None else ""}'
             f'</div>',
             unsafe_allow_html=True
         )
 
-        # Show toggle
-        show_all = st.checkbox("Show all stocks (not just flagged)", key="scr_show_all")
-        rows_to_show = screen_data if show_all else flagged
+        # ── Table ─────────────────────────────────────────────────────────────
+        def _perf_cell(val, threshold):
+            if val is None:
+                return '<div style="text-align:right;color:#C8B89A;font-size:0.72rem;">—</div>'
+            color = ("#C62828" if val < -threshold
+                     else "#2E7D32" if val > threshold
+                     else "#6B6B6B")
+            marker = " ▼" if val < -threshold else (" ▲" if val > threshold else "")
+            return (f'<div style="text-align:right;color:{color};font-weight:700;'
+                    f'font-size:0.72rem;">{val:+.1f}%{marker}</div>')
 
-        if not rows_to_show:
-            st.markdown(
-                '<div class="info-box">No stocks match the current filter. Try lowering the threshold or changing the period.</div>',
-                unsafe_allow_html=True
-            )
-        else:
-            # Sort selector
-            sort_by = st.radio(
-                "Sort by:", ["12M underperformance", "6M underperformance", "3M underperformance", "Today % change"],
-                horizontal=True, key="scr_sort", label_visibility="collapsed"
-            )
-            sort_key_map = {
-                "12M underperformance": lambda d: d.get("under_12m") or 0,
-                "6M underperformance":  lambda d: d.get("under_6m")  or 0,
-                "3M underperformance":  lambda d: d.get("under_3m")  or 0,
-                "Today % change":       lambda d: d.get("pct_change") or 0,
-            }
-            rows_to_show = sorted(rows_to_show, key=sort_key_map[sort_by])
+        _hdr = (
+            '<div style="display:grid;grid-template-columns:2.2fr 1.2fr 0.9fr 0.9fr 0.9fr 0.9fr;'
+            'gap:0.3rem;padding:0.3rem 0.5rem;background:#1A1A1A;color:#F7F4EF;'
+            'font-size:0.60rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
+            'border-radius:3px 3px 0 0;margin-top:0.5rem;">'
+            '<div>Company</div>'
+            '<div>Sector</div>'
+            '<div style="text-align:right;">Mkt Cap</div>'
+            '<div style="text-align:right;">3M vs T</div>'
+            '<div style="text-align:right;">6M vs T</div>'
+            '<div style="text-align:right;">12M vs T</div>'
+            '</div>'
+        )
+        st.markdown(_hdr, unsafe_allow_html=True)
 
-            # Table header
-            header = (
-                '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;'
-                'gap:0.3rem;padding:0.3rem 0.4rem;background:#1A1A1A;color:#F7F4EF;'
-                'font-size:0.62rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
-                'border-radius:3px 3px 0 0;margin-top:0.5rem;">'
-                '<div>Company</div><div style="text-align:right;">Price</div>'
-                '<div style="text-align:right;">Today</div>'
-                '<div style="text-align:right;">3M vs TOPIX</div>'
-                '<div style="text-align:right;">6M vs TOPIX</div>'
-                '<div style="text-align:right;">12M vs TOPIX</div>'
-                '</div>'
+        _rows_html = ""
+        for _i, _s in enumerate(_rows):
+            _bg = "#FAFAF8" if _i % 2 == 0 else "#F7F4EF"
+            _vs = _s.get("vs3m") or _s.get("vs6m") or _s.get("vs12m")
+            _border = ("border-left:3px solid #C62828;" if (_vs is not None and _vs < -_scr_threshold)
+                       else "border-left:3px solid #2E7D32;" if (_vs is not None and _vs > _scr_threshold)
+                       else "border-left:3px solid transparent;")
+            _mc_str = f'¥{_s["mktcap"]:,.0f}B' if _s.get("mktcap") else "—"
+            _sector_short = (_s.get("sector") or "")[:18]
+            _yf_url = f"https://finance.yahoo.com/quote/{_s['code']}.T"
+            _rows_html += (
+                f'<div style="display:grid;grid-template-columns:2.2fr 1.2fr 0.9fr 0.9fr 0.9fr 0.9fr;'
+                f'gap:0.3rem;padding:0.32rem 0.5rem;background:{_bg};{_border}'
+                f'border-bottom:1px solid #EDE8E0;">'
+                f'<div><a href="{_yf_url}" target="_blank" style="font-size:0.78rem;font-weight:600;'
+                f'color:#1A1A1A;text-decoration:none;">{_s["name"]}</a>'
+                f'&nbsp;<span style="font-size:0.60rem;color:#9B8B7A;">{_s["code"]}</span></div>'
+                f'<div style="font-size:0.68rem;color:#6B6B6B;">{_sector_short}</div>'
+                f'<div style="text-align:right;font-size:0.72rem;color:#4A4A4A;">{_mc_str}</div>'
+                + _perf_cell(_s.get("vs3m"),  _scr_threshold)
+                + _perf_cell(_s.get("vs6m"),  _scr_threshold)
+                + _perf_cell(_s.get("vs12m"), _scr_threshold)
+                + '</div>'
             )
-            st.markdown(header, unsafe_allow_html=True)
-
-            def _cell(val, threshold):
-                if val is None:
-                    return '<div style="text-align:right;color:#9B8B7A;font-size:0.75rem;">N/A</div>'
-                color = "#C62828" if val < -threshold else ("#2E7D32" if val >= 0 else "#6B6B6B")
-                flag  = " ⚠" if val < -threshold else ""
-                return f'<div style="text-align:right;color:{color};font-weight:700;font-size:0.75rem;">{val:+.1f}%{flag}</div>'
-
-            rows_html = ""
-            for i, d in enumerate(rows_to_show):
-                bg = "#FAFAF8" if i % 2 == 0 else "#F7F4EF"
-                pct = d.get("pct_change", 0)
-                today_col = "#2E7D32" if pct >= 0 else "#C62828"
-                flagged_row = _is_flagged(d)
-                left_border = "border-left:3px solid #C62828;" if flagged_row else "border-left:3px solid transparent;"
-                rows_html += (
-                    f'<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;'
-                    f'gap:0.3rem;padding:0.35rem 0.4rem;background:{bg};{left_border}'
-                    f'border-bottom:1px solid #EDE8E0;">'
-                    f'<div><span style="font-size:0.8rem;font-weight:600;">{d["name"]}</span>'
-                    f'&nbsp;<span style="font-size:0.62rem;color:#9B8B7A;">{d["code"]}</span></div>'
-                    f'<div style="text-align:right;font-size:0.78rem;">¥{d["price"]:,.0f}</div>'
-                    f'<div style="text-align:right;color:{today_col};font-weight:700;font-size:0.78rem;">{pct:+.2f}%</div>'
-                    + _cell(d.get("under_3m"), scr_threshold)
-                    + _cell(d.get("under_6m"), scr_threshold)
-                    + _cell(d.get("under_12m"), scr_threshold)
-                    + '</div>'
-                )
-            st.markdown(rows_html, unsafe_allow_html=True)
-            st.markdown(
-                f'<div style="font-size:0.65rem;color:#9B8B7A;margin-top:0.4rem;">'
-                f'Showing {len(rows_to_show)} stocks · ⚠ = underperforms TOPIX by >{scr_threshold}% · Data via Yahoo Finance</div>',
-                unsafe_allow_html=True
-            )
+        st.markdown(_rows_html, unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="font-size:0.63rem;color:#9B8B7A;margin-top:0.4rem;">'
+            f'Showing {len(_rows):,} stocks · ▼ = underperforms · ▲ = outperforms TOPIX by >{_scr_threshold}% · '
+            f'Data from daily price archive (same source as Earnings Calendar)</div>',
+            unsafe_allow_html=True
+        )
 
 
 # ════════════════════════════════════════════════════════════
@@ -2710,16 +2749,6 @@ with tab_earnings:
         '</div>',
         unsafe_allow_html=True
     )
-
-    # ── Repo config (silent — set via Streamlit Secrets) ────────────────────
-    _ec_repo_default = "chernyeh/japan.news.digest"
-    _gh_token = None
-    try:
-        import streamlit as _st2
-        _ec_repo = _st2.secrets.get("GITHUB_REPO", _ec_repo_default)
-        _gh_token = _st2.secrets.get("GITHUB_TOKEN", None)
-    except Exception:
-        _ec_repo = _ec_repo_default
 
     # ── Auto-load all cron-generated data once per session ─────────────────
     # All three datasets load silently from GitHub CSVs at session start.
