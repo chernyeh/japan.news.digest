@@ -201,7 +201,7 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
 # Yahoo Finance ticker symbols
 YF_INDEX_INSTRUMENTS = {
     "nikkei":       ("^N225",  "Nikkei 225"),
-    "topix":        ("1306.T", "TOPIX"),  # NEXT FUNDS TOPIX ETF — ^TOPX no longer reliable on yfinance
+    "topix":        ("1308.T", "TOPIX"),  # Daiwa TOPIX ETF — 1306.T had unadjusted unit split 2026-03-30
     "topix_large":  ("^TPXL",  "TOPIX Large Cap"),
     "topix_mid":    ("^TPXM",  "TOPIX Mid Cap"),
     "topix_small":  ("^TPXS",  "TOPIX Small Cap"),
