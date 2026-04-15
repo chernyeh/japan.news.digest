@@ -60,9 +60,12 @@ jobs:
           # (3172 unique companies vs only 228 in shares_map).
           # Market cap is still computed only for companies in shares_map.
           import random
+          # Always fetch TOPIX ETFs first so they're available for the benchmark
+          TOPIX_MUST = ["1308", "1306"]
           codes = [str(i).zfill(4) for i in range(1300, 9999)]
-          codes = list(dict.fromkeys(codes))
-          random.shuffle(codes)  # shuffle so partial runs still get broad coverage
+          codes = [c for c in dict.fromkeys(codes) if c not in TOPIX_MUST]
+          random.shuffle(codes)
+          codes = TOPIX_MUST + codes
           tickers = [c + ".T" for c in codes]
           print(f"Fetching prices for {len(tickers)} tickers...")
 
@@ -241,8 +244,10 @@ jobs:
                       if raw.empty:
                           continue
                       if isinstance(raw.columns, pd.MultiIndex):
-                          raw.columns = raw.columns.get_level_values(0)
+                          raw.columns = raw.columns.get_level_values(-1)
                       closes = raw["Close"].dropna()
+                      if isinstance(closes, pd.DataFrame):
+                          closes = closes.iloc[:, 0]
                       if len(closes) >= 30:
                           for period in missing:
                               if period in topix_returns:
@@ -258,6 +263,36 @@ jobs:
                           break
                   except Exception as e:
                       print(f"TOPIX {ticker}: {e}")
+
+              # Stooq fallback — more reliable from CI for Japanese index data
+              missing_topix = [p for p in missing if p not in topix_returns]
+              if missing_topix:
+                  try:
+                      import requests as _req
+                      _end = date.today()
+                      _start = _end - timedelta(days=400)
+                      _url = (f"https://stooq.com/q/d/l/?s=^tpx"
+                              f"&d1={_start:%Y%m%d}&d2={_end:%Y%m%d}&i=d")
+                      _r = _req.get(_url, timeout=12)
+                      _stooq_rows = []
+                      for _line in _r.text.strip().splitlines()[1:]:
+                          _parts = _line.split(",")
+                          if len(_parts) >= 5:
+                              try: _stooq_rows.append((_parts[0], float(_parts[4])))
+                              except: pass
+                      _stooq_rows.sort()
+                      if len(_stooq_rows) >= 30:
+                          _p_now = _stooq_rows[-1][1]
+                          for period in missing_topix:
+                              _idx = max(0, len(_stooq_rows) - PERIODS[period][0])
+                              _p_then = _stooq_rows[_idx][1]
+                              if _p_then > 0:
+                                  _cand = round((_p_now / _p_then - 1) * 100, 2)
+                                  if abs(_cand) <= 80:
+                                      topix_returns[period] = _cand
+                                      print(f"  TOPIX {period} via stooq: {_cand}%")
+                  except Exception as _se:
+                      print(f"Stooq TOPIX fallback: {_se}")
 
               # Stock prices for periods still lacking archive data
               periods_need_prices = [p for p in missing if p not in past_prices]
