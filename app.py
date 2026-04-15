@@ -1159,9 +1159,9 @@ except Exception:
 (tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings,
  tab_earnings, tab_screener, tab_bysource, tab_news, tab_watchlist,
  tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
-    "📊 Markets", "🕐 Timeline", "⚡ Breaking News",
+    "📊 Markets", "📰 News Feed", "📡 Nikkei Live",
     "🚦 Signals", "📋 Reg Filings", "📅 Earnings", "🔬 Screener",
-    "📁 By Source", "📰 By Industry", "⭐ Watchlist",
+    "📰 By Publication", "🏭 By Sector", "⭐ Watchlist",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
 
