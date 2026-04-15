@@ -1157,11 +1157,11 @@ except Exception:
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 (tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings,
- tab_earnings, tab_bysource, tab_news, tab_watchlist, tab_screener,
+ tab_earnings, tab_screener, tab_bysource, tab_news, tab_watchlist,
  tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
     "📊 Markets", "🕐 Timeline", "⚡ Breaking News",
-    "🚦 Signals", "📋 Reg Filings", "📅 Earnings",
-    "📁 By Source", "📰 By Industry", "⭐ Watchlist", "🔬 Screener",
+    "🚦 Signals", "📋 Reg Filings", "📅 Earnings", "🔬 Screener",
+    "📁 By Source", "📰 By Industry", "⭐ Watchlist",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
 
@@ -1297,7 +1297,7 @@ with tab_bytime:
 with tab_breaking:
     st.markdown('<div class="section-title">⚡ Breaking News — Nikkei Shimbun</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="info-box">Latest headlines from Nikkei Shimbun (日本経済新聞) via Google News feed. '
+        '<div class="info-box">Latest headlines from Nikkei Shimbun (日本経済新聞). '
         'Auto-translated. Click any headline to read on nikkei.com (subscription may be required).</div>',
         unsafe_allow_html=True
     )
@@ -1419,13 +1419,6 @@ with tab_news:
 
         sector_name = st.session_state.selected_sector
         raw_articles = st.session_state.articles.get(sector_name, [])
-        # AI summary for this sector
-        if raw_articles:
-            render_ai_summary(
-                raw_articles,
-                f"{sector_name} sector news",
-                f"summary_industry_{sector_name.replace(' ','_').replace('/','_')}"
-            )
         articles = flag_high_value_articles(raw_articles)
         icon = next((i for n, i in MSCI_SECTORS if n == sector_name), "📰")
 
@@ -1435,13 +1428,27 @@ with tab_news:
         badge_class = "badge-pos" if sent_label == "Positive" else ("badge-neg" if sent_label == "Negative" else "badge-neu")
         sentiment_html = (' &nbsp;<span class="sentiment-badge ' + badge_class + '">' + sent.get("icon","") + ' ' + sent_label + '</span>') if sent_label else ""
 
-        # ── News type filter ─────────────────────────────────────────────
+        # ── News type filter + Summarise button on the same row ──────────
         _micro_n = sum(1 for a in articles if a.get("news_type") == "micro")
         _macro_n = len(articles) - _micro_n
-        _ni_filter = st.radio(
-            "Filter:", ["All", "🏢 Company / Micro", "🌐 Macro / Policy"],
-            horizontal=True, key=f"nt_filter_industry_{sector_name}", label_visibility="collapsed",
-        )
+        _ni_sum_key = f"summary_industry_{sector_name.replace(' ','_').replace('/','_')}"
+        _ni_col1, _ni_col2 = st.columns([4, 1])
+        with _ni_col1:
+            _ni_filter = st.radio(
+                "Filter:", ["All", "🏢 Company / Micro", "🌐 Macro / Policy"],
+                horizontal=True, key=f"nt_filter_industry_{sector_name}", label_visibility="collapsed",
+            )
+        with _ni_col2:
+            _ni_sum_btn = st.button("✨ Summarise", key=f"btn_{_ni_sum_key}", use_container_width=True)
+
+        # AI summary (button rendered above via _override_btn)
+        if raw_articles:
+            render_ai_summary(
+                raw_articles,
+                f"{sector_name} sector news",
+                _ni_sum_key,
+                _override_btn=_ni_sum_btn,
+            )
         _ni_map = {"All": None, "🏢 Company / Micro": "micro", "🌐 Macro / Policy": "macro"}
         _ni_sel = _ni_map[_ni_filter]
         if _ni_sel:
@@ -2572,7 +2579,7 @@ with tab_signals:
     st.markdown('<div class="section-title">🚦 Corporate Action Signal Feed</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="info-box">AI-classified corporate action signals from the latest news fetch. '
-        'Positive signals first. Only articles where Claude identified a specific corporate action '
+        'Positive signals first. Only articles identified with a specific corporate action '
         'with medium or high confidence are shown. Fetch news first to populate.</div>',
         unsafe_allow_html=True
     )
@@ -2792,16 +2799,16 @@ with tab_earnings:
             horizontal=True, key="ec_bucket", label_visibility="collapsed",
         )
     with _ec_r1b:
-        st.markdown("<div style='margin-top:0.35rem'>", unsafe_allow_html=True)
+        st.markdown("<div style='padding-top:0.1rem'>", unsafe_allow_html=True)
         ec_fetch = st.button("📥 Load Earnings", use_container_width=True, key="btn_ec_fetch")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Row 2: search + compact filters
+    # Row 2: search + compact filters (all with visible labels so they align)
     _ec_r2a, _ec_r2b, _ec_r2c, _ec_r2d = st.columns([3, 1.2, 1.2, 1.6])
     with _ec_r2a:
         ec_search = st.text_input(
             "Search:", placeholder="Company name or TSE code…",
-            key="ec_search", label_visibility="collapsed",
+            key="ec_search", label_visibility="visible",
         )
     with _ec_r2b:
         ec_mcap_min = st.number_input("Min ¥B", min_value=0, value=0,
@@ -3051,10 +3058,13 @@ with tab_earnings:
                 st.markdown(
                     '<div style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;"'
                     ' gap:0.25rem;padding:0.2rem 0.35rem;background:#1A1A1A;color:#F7F4EF;'
-                    'font-size:0.57rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
+                    'font-size:0.50rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
                     'border-radius:3px 3px 0 0;">'
-                    '<div></div><div>Company</div><div>Code</div>'
-                    '<div>Period</div><div>Sector</div>'
+                    '<div></div>'
+                    '<div style="text-align:left;">Company</div>'
+                    '<div style="text-align:left;">Code</div>'
+                    '<div style="text-align:left;">Period</div>'
+                    '<div style="text-align:left;">Sector</div>'
                     '<div style="text-align:right;">Mkt Cap ¥B</div>'
                     '<div style="text-align:right;">3M vs TOPIX</div>'
                     '</div>',
@@ -3152,10 +3162,10 @@ with tab_earnings:
                         f'gap:0.25rem;padding:0.28rem 0.35rem;background:{_bg};{_border}'
                         f'border-bottom:1px solid #EDE8E0;align-items:center;">'
                         f'<div style="color:#F9A825;font-size:0.72rem;">{_star}</div>'
-                        f'<div style="font-size:0.78rem;font-weight:{_weight};"><a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a></div>'
-                        f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;">{_code}</div>'
-                        f'<div style="font-size:0.68rem;">{_period}</div>'
-                        f'<div style="font-size:0.62rem;color:#6B6B6B;">{_sector}</div>'
+                        f'<div style="font-size:0.78rem;font-weight:{_weight};text-align:left;"><a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a></div>'
+                        f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;text-align:left;">{_code}</div>'
+                        f'<div style="font-size:0.68rem;text-align:left;">{_period}</div>'
+                        f'<div style="font-size:0.62rem;color:#6B6B6B;text-align:left;">{_sector}</div>'
                         f'{_mcap_cell}'
                         f'{_perf_cell}'
                         f'</div>'
