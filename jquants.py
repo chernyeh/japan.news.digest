@@ -648,6 +648,89 @@ def load_3m_perf_from_github(repo: str, token: str = None) -> dict:
     return result
 
 
+def load_perf_map_from_github(repo: str, token: str = None) -> tuple:
+    """
+    Load 3M/6M/12M vs TOPIX performance from the extended jquants_3m_perf.csv.
+    Returns (perf_dict, topix_returns) where:
+      perf_dict     = {code: {"vs3m": float|None, "vs6m": float|None, "vs12m": float|None}}
+      topix_returns = {"3M": float|None, "6M": float|None, "12M": float|None}
+    """
+    import requests, csv, io
+
+    headers = {"Accept": "application/vnd.github.v3.raw"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    url = f"https://raw.githubusercontent.com/{repo}/main/data/jquants_3m_perf.csv"
+    r = requests.get(url, headers=headers, timeout=15)
+    if r.status_code != 200:
+        print(f"Perf map fetch error: {r.status_code}")
+        return {}, {"3M": None, "6M": None, "12M": None}
+
+    def _f(v):
+        if v not in ("", "None", "null", None):
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                pass
+        return None
+
+    perf_dict = {}
+    topix_returns = {"3M": None, "6M": None, "12M": None}
+    topix_set = False
+
+    for row in csv.DictReader(io.StringIO(r.text)):
+        code = str(row.get("Code", "")).strip().zfill(4)[:4]
+        if not code or not code.isdigit():
+            continue
+        perf_dict[code] = {
+            "vs3m":  _f(row.get("VsTopix3M")),
+            "vs6m":  _f(row.get("VsTopix6M")),
+            "vs12m": _f(row.get("VsTopix12M")),
+        }
+        if not topix_set:
+            topix_returns["3M"]  = _f(row.get("TopixReturn3M"))
+            topix_returns["6M"]  = _f(row.get("TopixReturn6M"))
+            topix_returns["12M"] = _f(row.get("TopixReturn12M"))
+            if any(v is not None for v in topix_returns.values()):
+                topix_set = True
+
+    print(f"Perf map loaded: {len(perf_dict)} companies")
+    return perf_dict, topix_returns
+
+
+def load_prices_from_github(repo: str, token: str = None) -> dict:
+    """
+    Load latest close prices from jquants_prices_latest.csv.
+    Returns {code_4digit: close_price_float}
+    """
+    import requests, csv, io
+
+    headers = {}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    url = f"https://raw.githubusercontent.com/{repo}/main/data/jquants_prices_latest.csv"
+    r = requests.get(url, headers=headers, timeout=15)
+    if r.status_code != 200:
+        return {}
+
+    prices = {}
+    for row in csv.DictReader(io.StringIO(r.text)):
+        code = str(row.get("Code", "")).strip().zfill(4)[:4]
+        if not code or not code.isdigit():
+            continue
+        try:
+            p = row.get("Close", "")
+            if p not in ("", "None", "null"):
+                prices[code] = float(p)
+        except (ValueError, TypeError):
+            pass
+
+    print(f"Prices loaded: {len(prices)} companies")
+    return prices
+
+
 def load_earnings_cal_from_github(repo: str, token: str = None) -> list:
     """
     Load all JPX earnings calendar entries directly from GitHub repo.
