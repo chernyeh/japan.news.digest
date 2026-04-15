@@ -2454,15 +2454,14 @@ with tab_screener:
             _universe_opts = ["All", "Top 100 by mkt cap", "Top 200 by mkt cap", "Top 500 by mkt cap"]
             _scr_universe = st.selectbox("Universe", _universe_opts, key="scr_universe")
 
-        _sc3, _sc4, _sc5 = st.columns([2, 2, 2])
+        _sc3, _sc4 = st.columns([2, 2])
         with _sc3:
             _scr_mcap_min = st.number_input("Min mkt cap (¥B)", min_value=0, value=0,
                                             step=50, key="scr_mcap_min")
         with _sc4:
-            _scr_threshold = st.slider("Highlight threshold (%)", 0, 30, 10, 1, key="scr_threshold")
-        with _sc5:
             _all_sectors = sorted({s for s in SECTOR_LOOKUP.values() if isinstance(s, str) and s})
             _scr_sector = st.selectbox("Sector", ["All"] + _all_sectors, key="scr_sector")
+        _scr_threshold = 0  # no threshold — colour by sign only
 
         # ── Apply universe filter ─────────────────────────────────────────────
         _rows = _scr_stocks
@@ -2512,15 +2511,12 @@ with tab_screener:
         )
 
         # ── Table ─────────────────────────────────────────────────────────────
-        def _perf_cell(val, threshold):
+        def _perf_cell(val):
             if val is None:
                 return '<div style="text-align:right;color:#C8B89A;font-size:0.72rem;">—</div>'
-            color = ("#C62828" if val < -threshold
-                     else "#2E7D32" if val > threshold
-                     else "#6B6B6B")
-            marker = " ▼" if val < -threshold else (" ▲" if val > threshold else "")
+            color = "#C62828" if val < 0 else "#2E7D32"
             return (f'<div style="text-align:right;color:{color};font-weight:700;'
-                    f'font-size:0.72rem;">{val:+.1f}%{marker}</div>')
+                    f'font-size:0.72rem;">{val:+.1f}%</div>')
 
         _hdr = (
             '<div style="display:grid;grid-template-columns:2.2fr 1.2fr 0.9fr 0.9fr 0.9fr 0.9fr;'
@@ -2541,8 +2537,8 @@ with tab_screener:
         for _i, _s in enumerate(_rows):
             _bg = "#FAFAF8" if _i % 2 == 0 else "#F7F4EF"
             _vs = _s.get("vs3m") or _s.get("vs6m") or _s.get("vs12m")
-            _border = ("border-left:3px solid #C62828;" if (_vs is not None and _vs < -_scr_threshold)
-                       else "border-left:3px solid #2E7D32;" if (_vs is not None and _vs > _scr_threshold)
+            _border = ("border-left:3px solid #C62828;" if (_vs is not None and _vs < 0)
+                       else "border-left:3px solid #2E7D32;" if (_vs is not None and _vs > 0)
                        else "border-left:3px solid transparent;")
             _mc_str = f'¥{_s["mktcap"]:,.0f}B' if _s.get("mktcap") else "—"
             _sector_short = (_s.get("sector") or "")[:18]
@@ -2556,15 +2552,15 @@ with tab_screener:
                 f'&nbsp;<span style="font-size:0.60rem;color:#9B8B7A;">{_s["code"]}</span></div>'
                 f'<div style="font-size:0.68rem;color:#6B6B6B;">{_sector_short}</div>'
                 f'<div style="text-align:right;font-size:0.72rem;color:#4A4A4A;">{_mc_str}</div>'
-                + _perf_cell(_s.get("vs3m"),  _scr_threshold)
-                + _perf_cell(_s.get("vs6m"),  _scr_threshold)
-                + _perf_cell(_s.get("vs12m"), _scr_threshold)
+                + _perf_cell(_s.get("vs3m"))
+                + _perf_cell(_s.get("vs6m"))
+                + _perf_cell(_s.get("vs12m"))
                 + '</div>'
             )
         st.markdown(_rows_html, unsafe_allow_html=True)
         st.markdown(
             f'<div style="font-size:0.63rem;color:#9B8B7A;margin-top:0.4rem;">'
-            f'Showing {len(_rows):,} stocks · ▼ = underperforms · ▲ = outperforms TOPIX by >{_scr_threshold}% · '
+            f'Showing {len(_rows):,} stocks · red = underperforms · green = outperforms TOPIX · '
             f'Data from daily price archive (same source as Earnings Calendar)</div>',
             unsafe_allow_html=True
         )
