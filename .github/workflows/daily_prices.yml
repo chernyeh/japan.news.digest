@@ -123,16 +123,76 @@ jobs:
               w.writerows(rows)
           print(f"Archived: {archive_path}")
 
-          # Clean archives older than 380 days (need 365d for 12M perf lookback)
+          # ── Backfill missing historical snapshots ─────────────────────────────
+          # Ensures 3M/6M/12M windows are always covered so the compute script
+          # can derive TOPIX benchmarks from archives instead of relying on yfinance.
+          LOOKBACKS = {"3M": (91, 14), "6M": (181, 21), "12M": (365, 28)}
+          today = date.today()
+          existing_dates = set()
+          for fname in os.listdir("data/archive"):
+              if fname.startswith("prices_") and fname.endswith(".csv"):
+                  try: existing_dates.add(date.fromisoformat(fname[7:-4]))
+                  except Exception: pass
+
+          backfill_targets = []
+          for period, (days_ago, tolerance) in LOOKBACKS.items():
+              target = today - timedelta(days=days_ago)
+              covered = any(abs((d - target).days) <= tolerance for d in existing_dates)
+              if not covered:
+                  backfill_targets.append((period, target))
+                  print(f"Backfill needed: {period} target {target}")
+
+          for period, target in backfill_targets:
+              start_str = (target - timedelta(days=5)).isoformat()
+              end_str   = (target + timedelta(days=1)).isoformat()
+              print(f"Backfilling {period} ({target})...")
+              hist_prices = {}
+              for i in range(0, len(tickers), BATCH):
+                  batch = tickers[i:i+BATCH]
+                  n = i // BATCH + 1
+                  try:
+                      raw = yf.download(batch, start=start_str, end=end_str,
+                                        auto_adjust=True, progress=False, group_by="ticker")
+                      if raw.empty:
+                          continue
+                      for t in batch:
+                          code = t.replace(".T","")
+                          try:
+                              cl = (raw[t]["Close"] if isinstance(raw.columns, pd.MultiIndex)
+                                    else raw["Close"]).dropna()
+                              if not cl.empty:
+                                  hist_prices[code] = float(cl.iloc[-1])
+                          except Exception:
+                              pass
+                  except Exception as e:
+                      print(f"  Backfill batch {n} error: {e}")
+              if hist_prices:
+                  target_str = target.isoformat()
+                  bf_path = f"data/archive/prices_{target_str}.csv"
+                  with open(bf_path, "w", newline="", encoding="utf-8") as f:
+                      w = csv.writer(f)
+                      w.writerow(["Code","Date","Close","MarketCapB"])
+                      for code, price in sorted(hist_prices.items()):
+                          w.writerow([code, target_str, price, ""])
+                  print(f"  Backfilled {bf_path} ({len(hist_prices)} stocks)")
+              else:
+                  print(f"  Backfill {period}: no prices returned (market closed?)")
+
+          # ── Delete archives older than 380 days ───────────────────────────────
+          # 380-day buffer keeps 12M lookback (365d) with room for weekends/holidays
           cutoff = date.today() - timedelta(days=380)
+          removed = 0
           for fname in os.listdir("data/archive"):
               if fname.startswith("prices_") and fname.endswith(".csv"):
                   try:
                       fdate = date.fromisoformat(fname[7:-4])
                       if fdate < cutoff:
                           os.remove(f"data/archive/{fname}")
+                          removed += 1
                   except Exception:
                       pass
+          if removed:
+              print(f"Cleaned {removed} archives older than {cutoff}")
           PYEOF
 
       - name: Run fetch script
