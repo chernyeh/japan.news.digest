@@ -731,7 +731,102 @@ def load_prices_from_github(repo: str, token: str = None) -> dict:
     return prices
 
 
-def load_earnings_cal_from_github(repo: str, token: str = None) -> list:
+def compute_perf_map_inline(prices_map: dict) -> tuple:
+    """
+    Compute 3M/6M/12M vs TOPIX performance for all stocks in prices_map using
+    yfinance batch download (~1-2 min for ~400 stocks).
+
+    prices_map: {code_4digit: current_close_float}
+    Returns (perf_dict, topix_returns) where:
+      perf_dict     = {code: {"vs3m": float|None, "vs6m": float|None, "vs12m": float|None}}
+      topix_returns = {"3M": float|None, "6M": float|None, "12M": float|None}
+    """
+    try:
+        import yfinance as yf
+        import pandas as pd
+    except ImportError:
+        print("compute_perf_map_inline: yfinance/pandas not available")
+        return {}, {}
+
+    # Trading-day approximate lookbacks
+    PERIODS = {"3M": 63, "6M": 126, "12M": 252}
+
+    def _geo_rel(r_stock, r_bench):
+        try:
+            return round(((1 + r_stock / 100) / (1 + r_bench / 100) - 1) * 100, 1)
+        except Exception:
+            return None
+
+    # ── TOPIX reference (1308.T ETF) ──────────────────────────────────────────
+    topix_returns = {}
+    try:
+        t_hist = yf.download("1308.T", period="14mo", auto_adjust=True, progress=False)
+        if not t_hist.empty:
+            t_closes = t_hist["Close"].dropna()
+            p_now = float(t_closes.iloc[-1])
+            for period, days in PERIODS.items():
+                idx = max(0, len(t_closes) - days)
+                p_then = float(t_closes.iloc[idx])
+                if p_then > 0:
+                    topix_returns[period] = round((p_now / p_then - 1) * 100, 2)
+    except Exception as e:
+        print(f"compute_perf_map_inline: TOPIX fetch error: {e}")
+
+    if not topix_returns:
+        return {}, {}
+
+    # ── Batch download all stock histories ────────────────────────────────────
+    codes   = list(prices_map.keys())
+    tickers = [c + ".T" for c in codes]
+    past_prices = {p: {} for p in PERIODS}
+    BATCH = 400
+
+    for i in range(0, len(tickers), BATCH):
+        batch = tickers[i:i + BATCH]
+        try:
+            raw = yf.download(batch, period="14mo", auto_adjust=True,
+                              progress=False, group_by="ticker")
+            if raw is None or (hasattr(raw, "empty") and raw.empty):
+                continue
+            for t in batch:
+                code = t.replace(".T", "")
+                try:
+                    if isinstance(raw.columns, pd.MultiIndex):
+                        closes = raw[t]["Close"].dropna()
+                    else:
+                        closes = raw["Close"].dropna()
+                    if len(closes) < 20:
+                        continue
+                    for period, days in PERIODS.items():
+                        idx = max(0, len(closes) - days)
+                        past_prices[period][code] = float(closes.iloc[idx])
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"compute_perf_map_inline: batch error at {i}: {e}")
+
+    # ── Compute relative performance ──────────────────────────────────────────
+    perf_dict = {}
+    for code, p_now in prices_map.items():
+        row = {}
+        for period in ("3M", "6M", "12M"):
+            if period not in topix_returns:
+                continue
+            p_then = past_prices[period].get(code)
+            if p_then and p_then > 0 and p_now and p_now > 0:
+                r_stock = (p_now / p_then - 1) * 100
+                rel = _geo_rel(r_stock, topix_returns[period])
+                if rel is not None:
+                    row[period] = rel
+        if row:
+            perf_dict[code] = row
+
+    print(f"compute_perf_map_inline: {len(perf_dict)} stocks computed, "
+          f"TOPIX returns={topix_returns}")
+    return perf_dict, topix_returns
+
+
+
     """
     Load all JPX earnings calendar entries directly from GitHub repo.
     Reads all .xlsx files in data/jpx_earnings/ and parses them.

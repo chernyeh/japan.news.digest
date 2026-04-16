@@ -22,7 +22,8 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      fetch_market_data_batch, load_mktcap_from_github,
                      load_3m_perf_from_github, load_earnings_cal_from_github,
                      fetch_jpx_excel_from_github, filter_upcoming,
-                     load_perf_map_from_github, load_prices_from_github)
+                     load_perf_map_from_github, load_prices_from_github,
+                     compute_perf_map_inline)
 
 # ── HELPER: LOAD METADATA BRAIN ───────────────────────────────────────────────
 @st.cache_data
@@ -2413,16 +2414,14 @@ with tab_sources:
 with tab_screener:
     st.markdown('<div class="section-title">🔬 Performance Screener</div>', unsafe_allow_html=True)
 
-    # ── Load data from pre-computed CSVs (same source as Earnings Calendar) ──
-    if not st.session_state.get("screener_perf_map") and not st.session_state.get("screener_load_attempted"):
-        st.session_state.screener_load_attempted = True
+    # ── Load prices and mktcap (fast — small CSVs on GitHub) ──────────────────
+    if not st.session_state.get("screener_prices_map"):
         try:
-            _pm, _tr = load_perf_map_from_github(_ec_repo, _gh_token)
-            if _pm:
-                st.session_state.screener_perf_map = _pm
-                st.session_state.screener_topix_returns = _tr
-        except Exception as _e:
-            print(f"Screener perf load error: {_e}")
+            _px = load_prices_from_github(_ec_repo, _gh_token)
+            if _px:
+                st.session_state.screener_prices_map = _px
+        except Exception:
+            pass
 
     if not st.session_state.get("mktcap_map") and not st.session_state.get("mktcap_load_attempted"):
         st.session_state.mktcap_load_attempted = True
@@ -2434,13 +2433,19 @@ with tab_screener:
         except Exception:
             pass
 
-    if not st.session_state.get("screener_prices_map"):
+    # ── Load pre-computed perf CSV (written by weekly cron) ───────────────────
+    # Only try once per session; if CSV is empty/missing, fall through to
+    # the inline compute button below.
+    if not st.session_state.get("screener_perf_map") and not st.session_state.get("screener_load_attempted"):
+        st.session_state.screener_load_attempted = True
         try:
-            _px = load_prices_from_github(_ec_repo, _gh_token)
-            if _px:
-                st.session_state.screener_prices_map = _px
-        except Exception:
-            pass
+            _pm, _tr = load_perf_map_from_github(_ec_repo, _gh_token)
+            if _pm:
+                st.session_state.screener_perf_map = _pm
+                st.session_state.screener_topix_returns = _tr
+                st.session_state.screener_load_attempted = False  # allow retry next session
+        except Exception as _e:
+            print(f"Screener perf load error: {_e}")
 
     _scr_perf   = st.session_state.get("screener_perf_map", {})
     _scr_mktcap = st.session_state.get("mktcap_map", {})
@@ -2449,10 +2454,27 @@ with tab_screener:
 
     if not _scr_perf:
         st.markdown(
-            '<div class="empty-state">Performance data loading… refresh in a moment or check that '
-            'the GitHub repo and token are configured.</div>',
+            '<div class="empty-state">'
+            'Performance vs TOPIX data has not been computed yet. '
+            'The weekly scheduled job runs every Sunday — or you can compute it now '
+            '(downloads ~14 months of price history for all stocks, takes 1–2 min).'
+            '</div>',
             unsafe_allow_html=True
         )
+        if st.button("⚙️ Compute Performance Data Now", key="scr_compute_btn"):
+            _prices_for_compute = _scr_prices or {}
+            if not _prices_for_compute:
+                st.warning("No current price data available — try refreshing market data first.")
+            else:
+                with st.spinner(f"Downloading 14 months of history for {len(_prices_for_compute)} stocks… (1–2 min)"):
+                    _pm, _tr = compute_perf_map_inline(_prices_for_compute)
+                if _pm:
+                    st.session_state.screener_perf_map = _pm
+                    st.session_state.screener_topix_returns = _tr
+                    st.session_state.screener_load_attempted = False
+                    st.rerun()
+                else:
+                    st.error("Computation failed — check that yfinance is available in the app environment.")
     else:
         # ── Build merged stock list ───────────────────────────────────────────
         _scr_stocks = []
