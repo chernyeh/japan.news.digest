@@ -826,7 +826,7 @@ def compute_perf_map_inline(prices_map: dict) -> tuple:
     return perf_dict, topix_returns
 
 
-
+def load_earnings_cal_from_github(repo: str, token: str = None) -> list:
     """
     Load all JPX earnings calendar entries directly from GitHub repo.
     Reads all .xlsx files in data/jpx_earnings/ and parses them.
