@@ -560,6 +560,15 @@ def fetch_tse_movers() -> dict:
             except Exception:
                 pass
 
+    # Deduplicate by symbol (TSE_STOCKS may have repeated codes)
+    seen = set()
+    unique = []
+    for m in movers:
+        if m["symbol"] not in seen:
+            seen.add(m["symbol"])
+            unique.append(m)
+    movers = unique
+
     movers.sort(key=lambda x: x["pct_change"], reverse=True)
     return {
         "gainers": [m for m in movers if m["pct_change"] > 0][:5],

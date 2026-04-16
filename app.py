@@ -102,6 +102,16 @@ def format_local_dt(dt):
         dt = dt.astimezone(LOCAL_TZ)
     return dt.strftime("%a, %d %b %Y · %H:%M MYT")
 
+def format_mkt_ts(dt):
+    """Compact market data timestamp for inline display, e.g. '16 Apr · 22:32'."""
+    if dt is None:
+        return ""
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt).astimezone(LOCAL_TZ)
+    else:
+        dt = dt.astimezone(LOCAL_TZ)
+    return dt.strftime("%-d %b · %H:%M")
+
 # ── Media source directory ────────────────────────────────────────────────────
 MEDIA_SOURCES = [
     # General / Business news
@@ -959,7 +969,8 @@ def render_ticker(label, data):
         )
     price = data["price"]
     pct = data.get("pct_change", 0)
-    state = data.get("state_label", "")
+    _lmf = st.session_state.get("last_market_fetch")
+    state = format_mkt_ts(_lmf) if _lmf else data.get("state_label", "")
     chg_class = "ticker-change-up" if pct >= 0 else "ticker-change-dn"
     arrow = "▲" if pct >= 0 else "▼"
     # Format: JPY pairs get 1dp; other large numbers as integers; small as 2dp
@@ -1540,7 +1551,8 @@ with tab_market:
             price   = data["price"]
             pct     = data.get("pct_change", 0)
             chg     = data.get("change", 0)
-            state   = data.get("state_label", "Last close")
+            _lmf    = st.session_state.get("last_market_fetch")
+            state   = format_mkt_ts(_lmf) if _lmf else data.get("state_label", "Last close")
             label   = data.get("label", "")
             rets    = data.get("returns", {})
 
@@ -1613,6 +1625,7 @@ with tab_market:
         _fx_pairs = [(k, forex.get(k)) for k in ["usdjpy","eurjpy","cnyjpy","sgdjpy"]
                      if forex.get(k) and forex[k].get("price")]
         if _fx_pairs:
+            _fx_ts_str = format_mkt_ts(st.session_state.get("last_market_fetch"))
             fx_html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.4rem;">'
             for _fk, _fd in _fx_pairs:
                 _fp = _fd["price"]; _fchg = _fd.get("pct_change",0) or 0
@@ -1625,7 +1638,8 @@ with tab_market:
                     f'<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B6B6B;">{_flab}</div>'
                     f'<div style="font-size:1.0rem;font-weight:700;">{_fp_str}</div>'
                     f'<div style="font-size:0.72rem;color:{_fcol};font-weight:600;">{_farr} {abs(_fchg):.2f}%</div>'
-                    '</div>')
+                    + (f'<div style="font-size:0.55rem;color:#9B8B7A;margin-top:0.15rem;">{_fx_ts_str}</div>' if _fx_ts_str else '')
+                    + '</div>')
             fx_html += '</div>'
             st.markdown(fx_html, unsafe_allow_html=True)
 
