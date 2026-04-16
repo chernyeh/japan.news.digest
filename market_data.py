@@ -380,7 +380,7 @@ TSE_STOCKS = [
     ("6988","Nitto Denko"),("4021","Nissan Chemical"),
     ("2768","Sojitz"),("9766","Konami Group"),("7832","Bandai Namco Holdings"),
     ("2784","Alfresa Holdings"),("3197","Skylark Holdings"),
-    ("6367","Daikin Industries"),("5631","Japan Steel Works"),
+    ("5631","Japan Steel Works"),
 ]
 
 

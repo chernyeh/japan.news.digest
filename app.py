@@ -1717,7 +1717,7 @@ with tab_market:
     col3, col4 = st.columns(2)
     with col3:
         st.markdown('<div class="section-title">🚀 Top Gainers</div>', unsafe_allow_html=True)
-        gainers = movers.get("gainers", [])
+        gainers = list({m["symbol"]: m for m in movers.get("gainers", [])}.values())
         if gainers:
             html = ""
             for m in gainers:
@@ -1735,7 +1735,7 @@ with tab_market:
             st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
     with col4:
         st.markdown('<div class="section-title">📉 Top Losers</div>', unsafe_allow_html=True)
-        losers = movers.get("losers", [])
+        losers = list({m["symbol"]: m for m in movers.get("losers", [])}.values())
         if losers:
             html = ""
             for m in losers:
