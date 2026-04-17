@@ -113,6 +113,14 @@ def format_mkt_ts(dt):
         dt = dt.astimezone(LOCAL_TZ)
     return dt.strftime("%-d %b · %H:%M")
 
+def format_data_date(s: str) -> str:
+    """Format ISO date string from data source, e.g. '2026-04-17' → '17 Apr'."""
+    try:
+        from datetime import datetime as _dt
+        return _dt.strptime(s, "%Y-%m-%d").strftime("%-d %b")
+    except Exception:
+        return s
+
 # ── Media source directory ────────────────────────────────────────────────────
 MEDIA_SOURCES = [
     # General / Business news
@@ -971,8 +979,9 @@ def render_ticker(label, data):
         )
     price = data["price"]
     pct = data.get("pct_change", 0)
+    _dd = data.get("data_date", "")
     _lmf = st.session_state.get("last_market_fetch")
-    state = format_mkt_ts(_lmf) if _lmf else data.get("state_label", "")
+    state = format_data_date(_dd) if _dd else (format_mkt_ts(_lmf) if _lmf else data.get("state_label", ""))
     chg_class = "ticker-change-up" if pct >= 0 else "ticker-change-dn"
     arrow = "▲" if pct >= 0 else "▼"
     # Format: JPY pairs get 1dp; other large numbers as integers; small as 2dp
@@ -1553,8 +1562,9 @@ with tab_market:
             price   = data["price"]
             pct     = data.get("pct_change", 0)
             chg     = data.get("change", 0)
+            _dd     = data.get("data_date", "")
             _lmf    = st.session_state.get("last_market_fetch")
-            state   = format_mkt_ts(_lmf) if _lmf else data.get("state_label", "Last close")
+            state   = format_data_date(_dd) if _dd else (format_mkt_ts(_lmf) if _lmf else data.get("state_label", "Last close"))
             label   = data.get("label", "")
             rets    = data.get("returns", {})
 
@@ -3309,7 +3319,9 @@ with tab_subscribe:
     st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
     # ── Scheduler setup instructions ──────────────────────────────────────────
-    with st.expander("Set up automatic digest delivery", expanded=False):
+    if st.button("⚙️ Set up automatic digest delivery", key="btn_sched_toggle"):
+        st.session_state["_sched_open"] = not st.session_state.get("_sched_open", False)
+    if st.session_state.get("_sched_open", False):
         app_url = st.text_input(
             "Your Streamlit app URL:",
             placeholder="https://your-app.streamlit.app",
@@ -3322,8 +3334,8 @@ with tab_subscribe:
 Add `DIGEST_WEBHOOK_TOKEN = "your-secret"` to Streamlit Secrets to protect it.
 
 **Step 1 — Add to Streamlit Secrets:**
-DIGEST_WEBHOOK_TOKEN = "choose-a-secret-token" 
-SENDGRID_API_KEY = "your-sendgrid-key" 
+DIGEST_WEBHOOK_TOKEN = "choose-a-secret-token"
+SENDGRID_API_KEY = "your-sendgrid-key"
 DIGEST_FROM_EMAIL = "digest@yourdomain.com"
 **Step 2 — Set up cron-job.org (free):**
 

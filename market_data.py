@@ -106,6 +106,7 @@ def av_global_quote(symbol: str, api_key: str, label: str) -> dict:
         return {
             "price": price, "change": chg, "pct_change": pct,
             "state_label": "Last close", "label": label,
+            "data_date": q.get("07. latest trading day", ""),
             "returns": {p: None for p in ["MTD","1M","3M","6M","YTD","1Y","3Y"]},
             "source": "alphavantage",
         }
@@ -142,6 +143,7 @@ def av_fx_daily(from_ccy: str, to_ccy: str, api_key: str, label: str) -> dict:
         return {
             "price": price, "change": change, "pct_change": pct,
             "state_label": "Last close", "label": label,
+            "data_date": rows[-1][0],
             "returns": compute_returns(rows),
             "source": "alphavantage",
         }
@@ -190,6 +192,7 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
         return {
             "price": price, "change": change, "pct_change": pct,
             "state_label": "Last close", "label": label,
+            "data_date": rows[-1][0],
             "returns": compute_returns(rows), "source": "stooq",
         }
     except Exception as e:
@@ -201,7 +204,7 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
 # Yahoo Finance ticker symbols
 YF_INDEX_INSTRUMENTS = {
     "nikkei":       ("^N225",  "Nikkei 225"),
-    "topix":        ("1308.T", "TOPIX"),  # Daiwa TOPIX ETF — 1306.T had unadjusted unit split 2026-03-30
+    "topix":        ("^TOPX",  "TOPIX"),   # actual TOPIX index — avoids ETF dividend-adjustment artefacts
     "topix_large":  ("^TPXL",  "TOPIX Large Cap"),
     "topix_mid":    ("^TPXM",  "TOPIX Mid Cap"),
     "topix_small":  ("^TPXS",  "TOPIX Small Cap"),
@@ -256,6 +259,7 @@ def yf_fetch(ticker: str, label: str, years: int = 2) -> dict:
         return {
             "price": price, "change": change, "pct_change": pct,
             "state_label": "Last close", "label": label,
+            "data_date": rows[-1][0],
             "returns": compute_returns(rows),
             "source": "yahoo",
         }
