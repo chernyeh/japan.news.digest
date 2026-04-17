@@ -1127,7 +1127,7 @@ if _stale_news or _stale_market:
         '<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:3px;'
         'padding:0.35rem 0.8rem;font-size:0.75rem;color:#795548;margin-bottom:0.4rem;">'
         '⏱ Data may be stale — last fetched: ' + " · ".join(_stale_parts) +
-        '. Click <strong>📈 Markets</strong> or <strong>🔄 News</strong> to refresh.</div>',
+        '. Click <strong>🔄 Refresh</strong> to fetch the latest data.</div>',
         unsafe_allow_html=True
     )
 elif _from_cache and not _stale_news and not _stale_market:
