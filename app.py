@@ -755,7 +755,8 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
                 out.append("<ul>"); in_ul = True
             bullet_text = line[2:]
             # Auto-append source pill by keyword matching against art_index
-            if art_index:
+            # Skip if bullet already has inline citation links from [N] resolution
+            if art_index and 'summary-link' not in bullet_text:
                 best_idx, best_score = None, 0
                 bullet_lower = bullet_text.lower()
                 for _ai, _ad in art_index.items():
@@ -3308,7 +3309,7 @@ with tab_subscribe:
     st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
     # ── Scheduler setup instructions ──────────────────────────────────────────
-    with st.expander("⚙️ Set up automatic digest delivery", expanded=False):
+    with st.expander("Set up automatic digest delivery", expanded=False):
         app_url = st.text_input(
             "Your Streamlit app URL:",
             placeholder="https://your-app.streamlit.app",
