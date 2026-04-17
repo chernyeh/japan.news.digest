@@ -89,6 +89,14 @@ RSS_SOURCES = [
 
     # QUICK Money World — institutional-grade Japan market commentary
     ("QUICK Money World",     "https://news.google.com/rss/search?q=site:moneyworld.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+
+    # ── Startups & Disruptors ────────────────────────────────────────────────────
+    # The Bridge (English) — premier source for Japan startup funding rounds and founder profiles
+    ("The Bridge",            "https://thebridge.jp/en/feed",                                  "en"),
+    # The Bridge (Japanese) — Japanese edition with broader startup coverage
+    ("The Bridge JP",         "https://thebridge.jp/feed",                                     "ja"),
+    # Prtimes startups — press releases from Japan startups filtered to funding/launch announcements
+    ("Prtimes Startups",      "https://news.google.com/rss/search?q=site:prtimes.jp+(資金調達+OR+スタートアップ+OR+シリーズ+OR+新サービス+OR+ローンチ)&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 ]
 
 # ── Trade paper scrape targets ────────────────────────────────────────────────

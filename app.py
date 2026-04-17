@@ -160,6 +160,9 @@ MEDIA_SOURCES = [
     ("Rakumachi",           "https://www.rakumachi.jp/news/",               "🏘️"),
     ("Zaikai Online",       "https://www.zaikai.jp/",                       "🏢"),
     ("QUICK Money World",   "https://moneyworld.jp/",                       "💰"),
+    # Startups & Disruptors
+    ("The Bridge",          "https://thebridge.jp/en/",                     "🚀"),
+    ("Prtimes",             "https://prtimes.jp/",                          "📣"),
 ]
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
