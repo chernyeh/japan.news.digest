@@ -1112,53 +1112,15 @@ def scrape_trade_paper(source_name: str, url: str, selectors: str, language: str
     return articles[:12]
 
 
-# ── Source directory (for By Source tab) ─────────────────────────────────────
-# Maps display name → (url, language) for sources that have working RSS feeds
-SOURCE_DIRECTORY = {
-    # English sources
-    "Japan Times Business": ("https://news.google.com/rss/search?q=site:japantimes.co.jp+business&hl=en&gl=JP&ceid=JP:en", "en"),
-    "Nikkei Asia":          ("https://asia.nikkei.com/rss/feed/nar",                                          "en"),
-    "Nikkei Shimbun":       ("https://news.google.com/rss/search?q=site:nikkei.com&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "Nikkei Business":      ("https://business.nikkei.com/rss/sns/nb.rdf",                                  "ja"),
-    "Nikkei Xtech":         ("https://xtech.nikkei.com/rss/index.rdf",                                      "ja"),
-    "Nikkei Xtech IT":      ("https://xtech.nikkei.com/rss/xtech-it.rdf",                                   "ja"),
-    "Nikkei Xtech Auto":    ("https://xtech.nikkei.com/rss/xtech-at.rdf",                                   "ja"),
-    "Reuters Japan":        ("https://news.google.com/rss/search?q=reuters+japan+economy+OR+business+OR+markets&hl=en&gl=JP&ceid=JP:en", "en"),
-    "NHK World Business":   ("https://www3.nhk.or.jp/nhkworld/en/news/feeds/business.xml", "en"),
-    "Japan Industry News":  ("https://japanindustrynews.com/feed/",                  "en"),
-    # Japanese sources (will be translated)
-    "Asahi Shimbun":        ("https://rss.asahi.com/rss/asahi/newsheadlines.rdf",   "ja"),
-    "NHK Economics":        ("https://www3.nhk.or.jp/rss/news/cat4.xml",             "ja"),
-    "NHK Business":         ("https://www3.nhk.or.jp/rss/news/cat5.xml",             "ja"),
-    "Mainichi Shimbun":     ("https://news.google.com/rss/search?q=site:mainichi.jp+%E7%B5%8C%E6%B8%88+OR+%E3%83%93%E3%82%B8%E3%83%8D%E3%82%B9&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "Sankei Shimbun":       ("https://news.google.com/rss/search?q=site:sankei.com+%E7%B5%8C%E6%B8%88+OR+%E7%94%A3%E6%A5%AD&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "Yahoo Japan Business": ("https://news.yahoo.co.jp/rss/topics/business.xml",     "ja"),
-    "Yahoo Japan Economy":  ("https://news.yahoo.co.jp/rss/topics/economy.xml",      "ja"),
-    "IT Media Business":    ("https://rss.itmedia.co.jp/rss/2.0/business_media.xml", "ja"),
-    "Toyo Keizai":          ("https://toyokeizai.net/list/feed/rss",                 "ja"),
-    "Diamond Online":       ("https://diamond.jp/list/feed/rss/dol",                 "ja"),
-    "Nikkan Kogyo":         ("https://news.google.com/rss/search?q=site:nikkan.co.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "FACTA":                 ("https://facta.co.jp/",                                "ja"),
-    # Company / Micro — earnings, IR, M&A, analyst
-    "Nikkei IR / Earnings":  ("https://news.google.com/rss/search?q=site:nikkei.com+(決算OR業績OR増益OR減益OR配当OR自社株買い)&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "Kabutan Corporate":     ("https://kabutan.jp/rss/news_corporate.xml",              "ja"),
-    "Kabutan Earnings":      ("https://kabutan.jp/rss/news_kessan.xml",                 "ja"),
-    "Minkabu":               ("https://minkabu.jp/rss/news",                            "ja"),
-    "Traders Web":           ("https://www.traders.co.jp/news/rss_all.aspx",            "ja"),
-    "Reuters Japan Companies": ("https://news.google.com/rss/search?q=reuters+japan+(earnings+OR+profit+OR+forecast+OR+acquisition+OR+merger+OR+dividend)&hl=en&gl=JP&ceid=JP:en", "en"),
-    "Bloomberg Japan":      ("https://news.google.com/rss/search?q=bloomberg+japan+economy+OR+markets+OR+business&hl=en&gl=JP&ceid=JP:en", "en"),
-    "Bloomberg Japan Co":    ("https://news.google.com/rss/search?q=bloomberg+japan+(earnings+OR+results+OR+forecast+OR+buyback+OR+dividend+OR+acquisition)&hl=en&gl=JP&ceid=JP:en", "en"),
-    # New sources
-    "Kabutan Market News":   ("https://kabutan.jp/rss/news_marketnews.xml",            "ja"),
-    "Fisco":                 ("https://news.google.com/rss/search?q=site:fisco.jp+OR+site:web.fisco.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "Jiji Press":            ("https://www.jiji.com/rss/ranking.rdf",                  "ja"),
-    "JBpress":               ("https://jbpress.ismedia.jp/rss/latest",                 "ja"),
-    "TSE Manebu":            ("https://news.google.com/rss/search?q=site:jpx.co.jp+%E6%9D%B1%E8%A8%BC%E3%83%9E%E3%83%8D%E9%83%A8&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "President Online":      ("https://president.jp/list/feed/rss",                   "ja"),
-    "Rakumachi":             ("https://news.google.com/rss/search?q=site:rakumachi.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "Zaikai Online":         ("https://news.google.com/rss/search?q=site:zaikai.net&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    "QUICK Money World":     ("https://news.google.com/rss/search?q=site:moneyworld.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+# ── Source directory (for By Publication tab) ────────────────────────────────
+# Derived automatically from RSS_SOURCES so the two are always in sync.
+# FACTA has no RSS and is added manually below as a scrape-only entry.
+SOURCE_DIRECTORY: dict[str, tuple[str, str]] = {
+    name: (url, lang) for name, url, lang in RSS_SOURCES
 }
+# FACTA is scrape-only (no RSS); add its homepage so fetch_source_headlines
+# can fall through to scrape_trade_paper.
+SOURCE_DIRECTORY["FACTA"] = ("https://facta.co.jp/", "ja")
 
 # Group labels for the UI
 SOURCE_GROUPS = {
@@ -1209,16 +1171,22 @@ SCRAPE_ONLY_SOURCES = {"FACTA"}
 
 def fetch_source_headlines(source_name: str, days: int = 14) -> list:
     """
-    Fetch all available headlines for a single source.
-    Uses RSS for most sources; falls back to HTML scraping for scrape-only sources.
-    Translates Japanese headlines automatically.
+    Fetch all available headlines for a single source (By Publication tab).
+
+    Delegates to fetch_rss() so it shares the same resilience stack as the
+    main News Feed: cloudscraper for CF-protected sources, fallback URL chains,
+    Shift-JIS/EUC-JP encoding detection, and body extraction.
+
+    For FACTA (scrape-only) falls back to scrape_trade_paper().
+    Articles older than `days` days are filtered out; articles without a
+    parseable date (common for scraped sources) are always included.
     """
     if source_name not in SOURCE_DIRECTORY:
         return []
 
     url, language = SOURCE_DIRECTORY[source_name]
 
-    # Scrape-only sources (no RSS available)
+    # ── Scrape-only sources (no RSS) ─────────────────────────────────────────
     if source_name in SCRAPE_ONLY_SOURCES:
         try:
             articles = scrape_trade_paper(source_name, url, "h3", language)
@@ -1230,53 +1198,29 @@ def fetch_source_headlines(source_name: str, days: int = 14) -> list:
             print(f"Scrape error [{source_name}]: {e}")
             return []
 
-    cutoff = datetime.now() - timedelta(days=days)
-
+    # ── RSS sources — delegate to fetch_rss for full resilience ─────────────
+    # fetch_rss handles: cloudscraper, fallback URL chains, encoding, body.
+    # We ask for up to 50 entries (the default cap is 20 in the News Feed;
+    # the By Publication tab wants a fuller per-source view).
     try:
-        feed = feedparser.parse(url)
-        articles = []
-
-        for entry in feed.entries[:50]:  # fetch more than usual for 2-week window
-            title = re.sub(r"<[^>]+>", "", entry.get("title", "").strip())
-            if not title:
-                continue
-
-            link    = resolve_gnews_url(entry)
-            summary = re.sub(r"<[^>]+>", "", entry.get("summary", "")[:200])
-            pub_str = parse_date(entry)
-
-            # Date filter — include if within window or if date unknown
-            include = True
-            if hasattr(entry, "published_parsed") and entry.published_parsed:
-                try:
-                    pub_dt = datetime(*entry.published_parsed[:6])
-                    if pub_dt < cutoff:
-                        include = False
-                except Exception:
-                    pass
-
-            if include:
-                articles.append({
-                    "source":           source_name,
-                    "original_title":   title,
-                    "translated_title": title if language == "en" else "",
-                    "title":            title if language == "en" else "",
-                    "url":              link,
-                    "pub_date":         pub_str,
-                    "summary":          summary,
-                    "language":         language,
-                    "sector":           "",
-                })
-
-        # Translate Japanese headlines
-        if language == "ja" and articles:
-            articles = translate_articles(articles)
-
-        return articles
-
+        articles = fetch_rss(source_name, url, language)
     except Exception as e:
         print(f"Source fetch error [{source_name}]: {e}")
         return []
+
+    # Date filter — keep articles within the window; include unknowns
+    cutoff = datetime.now() - timedelta(days=days)
+    filtered = []
+    for a in articles:
+        pub_dt = a.get("pub_dt")
+        if pub_dt is None or pub_dt >= cutoff:
+            filtered.append(a)
+
+    # Translate Japanese headlines (fetch_rss leaves translated_title blank for ja)
+    if language == "ja" and filtered:
+        filtered = translate_articles(filtered)
+
+    return filtered
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
