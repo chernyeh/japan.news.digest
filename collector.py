@@ -34,11 +34,9 @@ except Exception:
 
 # Sources whose direct RSS endpoints sit behind Cloudflare or aggressive
 # bot-detection; cloudscraper is required to get valid XML back.
+# Note: Kabutan, Minkabu and Fisco are now routed via Google News (no CF issue);
+# only Traders Web still hits its own domain directly.
 _CF_PROTECTED_SOURCES = frozenset({
-    "Kabutan Corporate",
-    "Kabutan Earnings",
-    "Kabutan Market News",
-    "Minkabu",
     "Traders Web",
 })
 
@@ -81,11 +79,14 @@ RSS_SOURCES = [
     # ── Company / Micro news (earnings, M&A, guidance, analyst) ────────────────
     # Nikkei earnings & corporate actions
     ("Nikkei IR / Earnings",  "https://news.google.com/rss/search?q=site:nikkei.com+(決算OR業績OR増益OR減益OR配当OR自社株買い)&hl=ja&gl=JP&ceid=JP:ja", "ja"),
-    # Kabutan — Japan's primary dedicated earnings / IR news site
-    ("Kabutan Corporate",     "https://kabutan.jp/rss/news_corporate.xml",                   "ja"),
-    ("Kabutan Earnings",      "https://kabutan.jp/rss/news_kessan.xml",                       "ja"),
-    # Minkabu — retail investor/analyst commentary, stock-specific
-    ("Minkabu",               "https://minkabu.jp/rss/news",                                  "ja"),
+    # Kabutan (株探) — Japan's primary dedicated earnings / IR news site.
+    # Direct kabutan.jp RSS is Cloudflare-blocked; Google News site: query
+    # returns 100 entries reliably and is used as primary for all three feeds.
+    ("Kabutan Corporate",     "https://news.google.com/rss/search?q=site:kabutan.jp+%EF%BC%BB%E4%BC%81%E6%A5%AD%EF%BC%BD+OR+%EF%BC%BB%E6%8B%AC%E7%9B%AE%EF%BC%BD+OR+IR+OR+%E9%96%8B%E7%A4%BA+OR+%E5%A2%97%E9%85%8D%E5%BD%93+OR+%E8%87%AA%E7%A4%BE%E6%A0%AA&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    ("Kabutan Earnings",      "https://news.google.com/rss/search?q=site:kabutan.jp+%E6%B1%BA%E7%AE%97+OR+%E6%A5%AD%E7%B8%BE+OR+%E5%A2%97%E7%9B%8A+OR+%E6%B8%9B%E7%9B%8A+OR+%E9%80%9A%E6%9C%9F+OR+%E4%B8%AD%E9%96%93%E6%9C%9F&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    # Minkabu (みんかぶ) — retail investor/analyst commentary, stock-specific.
+    # minkabu.jp direct RSS is Cloudflare-blocked; Google News site: query confirmed working.
+    ("Minkabu",               "https://news.google.com/rss/search?q=site:minkabu.jp+%E6%A0%AA%E5%BC%8F+OR+%E6%A0%AA%E4%BE%A1+OR+%E6%A0%AA&hl=ja&gl=JP&ceid=JP:ja", "ja"),
     # Traders Web — corporate disclosures, earnings, analyst ratings
     ("Traders Web",           "https://www.traders.co.jp/news/rss_all.aspx",                  "ja"),
     # Reuters company-specific Japan
@@ -96,12 +97,13 @@ RSS_SOURCES = [
 
     # ── New sources ──────────────────────────────────────────────────────────────
     # Kabutan Market News — morning/evening stock movers, "話題株" pre-open highlights
-    ("Kabutan Market News",   "https://kabutan.jp/rss/news_marketnews.xml",            "ja"),
+    ("Kabutan Market News",   "https://news.google.com/rss/search?q=site:kabutan.jp+%E8%A9%B1%E9%A1%8C%E6%A0%AA+OR+%E5%A4%95%E5%88%8A+OR+%E6%9C%9D%E5%88%8A+OR+%E3%83%9E%E3%83%BC%E3%82%B1%E3%83%83%E3%83%88&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 
-    # Fisco — stock analyst commentary, individual stock analysis, morning market notes
-    # Primary: direct RSS from web.fisco.jp (ASP.NET endpoint, no CF block)
-    # Fallback handled inside fetch_rss via FISCO_FALLBACK_URLS
-    ("Fisco",                 "https://web.fisco.jp/pfweb/service/rss/FiscoNewsRss.aspx",          "ja"),
+    # Fisco (フィスコ) — stock analyst commentary, individual stock analysis, morning market notes.
+    # fisco.jp direct RSS returns 403; web.fisco.jp ASP.NET endpoint also blocks.
+    # Google News brand-name query surfaces Fisco articles re-published on
+    # Yahoo Finance JP and Kabutan, confirmed returning 100 entries.
+    ("Fisco",                 "https://news.google.com/rss/search?q=%22%E3%83%95%E3%82%A3%E3%82%B9%E3%82%B3%22+%E6%A0%AA%E5%BC%8F&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 
     # Jiji Press — Japan wire service, fast on BOJ/government/corporate events
     ("Jiji Press",            "https://www.jiji.com/rss/ranking.rdf",                  "ja"),
@@ -121,9 +123,9 @@ RSS_SOURCES = [
     # Zaikai Online — business leadership, major corporate news
     ("Zaikai Online",         "https://news.google.com/rss/search?q=site:zaikai.net&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 
-    # QUICK Money World — institutional-grade Japan market commentary
-    # Primary: direct RSS feed; fallback handled inside fetch_rss
-    ("QUICK Money World",     "https://moneyworld.jp/rss/news.xml",                                 "ja"),
+    # QUICK Money World — institutional-grade Japan market commentary.
+    # moneyworld.jp direct RSS returns 404; Google News brand-name query confirmed working.
+    ("QUICK Money World",     "https://news.google.com/rss/search?q=%22QUICK+Money+World%22+OR+%22QUICKマネーワールド%22&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 ]
 
 # ── Trade paper scrape targets ────────────────────────────────────────────────
@@ -391,26 +393,45 @@ RSS_HEADERS = {
 
 # ── Fallback URL chains for sources whose primary URL may fail ─────────────────
 # fetch_rss tries each URL in order and uses the first one that yields entries.
+#
+# Kabutan, Minkabu, Fisco, and QUICK Money World now use Google News as their
+# primary URL (direct site RSS is either CF-blocked or 404).  Their old direct
+# URLs are kept here only as last-resort fallbacks in case Google News changes.
 _SOURCE_FALLBACK_URLS: dict[str, list[str]] = {
-    "Fisco": [
-        "https://web.fisco.jp/pfweb/service/rss/FiscoNewsRss.aspx",
-        "https://fisco.jp/news/rss/",
-        # Google News keyword query (no site: operator — more reliable than site:)
-        "https://news.google.com/rss/search?q=fisco+%E6%A0%AA%E5%BC%8F+%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88&hl=ja&gl=JP&ceid=JP:ja",
-    ],
-    "QUICK Money World": [
-        "https://moneyworld.jp/rss/news.xml",
-        "https://moneyworld.jp/rss",
-        "https://moneyworld.jp/feed",
-        "https://news.google.com/rss/search?q=QUICK%E3%83%9E%E3%83%8D%E3%83%BC%E3%83%AF%E3%83%BC%E3%83%AB%E3%83%89+%E5%B8%82%E5%A0%B4&hl=ja&gl=JP&ceid=JP:ja",
-    ],
+    # Traders Web: still hits its own domain; www vs no-www fallback
     "Traders Web": [
         "https://www.traders.co.jp/news/rss_all.aspx",
         "https://traders.co.jp/news/rss_all.aspx",
     ],
+    # Kabutan: Google News is primary; direct URL kept as last resort
+    "Kabutan Corporate": [
+        "https://news.google.com/rss/search?q=site:kabutan.jp+%EF%BC%BB%E4%BC%81%E6%A5%AD%EF%BC%BD+OR+%EF%BC%BB%E6%8B%AC%E7%9B%AE%EF%BC%BD+OR+IR+OR+%E9%96%8B%E7%A4%BA+OR+%E5%A2%97%E9%85%8D%E5%BD5+OR+%E8%87%AA%E7%A4%BE%E6%A0%AA&hl=ja&gl=JP&ceid=JP:ja",
+        "https://kabutan.jp/rss/news_corporate.xml",
+    ],
+    "Kabutan Earnings": [
+        "https://news.google.com/rss/search?q=site:kabutan.jp+%E6%B1%BA%E7%AE%97+OR+%E6%A5%AD%E7%B8%BE+OR+%E5%A2%97%E7%9B%8A+OR+%E6%B8%9B%E7%9B%8A+OR+%E9%80%9A%E6%9C%9F+OR+%E4%B8%AD%E9%96%93%E6%9C%9F&hl=ja&gl=JP&ceid=JP:ja",
+        "https://kabutan.jp/rss/news_kessan.xml",
+    ],
+    "Kabutan Market News": [
+        "https://news.google.com/rss/search?q=site:kabutan.jp+%E8%A9%B1%E9%A1%8C%E6%A0%AA+OR+%E5%A4%95%E5%88%8A+OR+%E6%9C%9D%E5%88%8A+OR+%E3%83%9E%E3%83%BC%E3%82%B1%E3%83%83%E3%83%88&hl=ja&gl=JP&ceid=JP:ja",
+        "https://kabutan.jp/rss/news_marketnews.xml",
+    ],
+    # Minkabu: Google News is primary; direct URL kept as last resort
     "Minkabu": [
+        "https://news.google.com/rss/search?q=site:minkabu.jp+%E6%A0%AA%E5%BC%8F+OR+%E6%A0%AA%E4%BE%A1+OR+%E6%A0%AA&hl=ja&gl=JP&ceid=JP:ja",
         "https://minkabu.jp/rss/news",
-        "https://minkabu.jp/news/rss",
+    ],
+    # Fisco: Google News brand-name query is primary; direct endpoints kept as last resort
+    "Fisco": [
+        "https://news.google.com/rss/search?q=%22%E3%83%95%E3%82%A3%E3%82%B9%E3%82%B3%22+%E6%A0%AA%E5%BC%8F&hl=ja&gl=JP&ceid=JP:ja",
+        "https://web.fisco.jp/pfweb/service/rss/FiscoNewsRss.aspx",
+        "https://fisco.jp/news/rss/",
+    ],
+    # QUICK Money World: Google News brand-name query is primary
+    "QUICK Money World": [
+        "https://news.google.com/rss/search?q=%22QUICK+Money+World%22+OR+%22QUICKマネーワールド%22&hl=ja&gl=JP&ceid=JP:ja",
+        "https://moneyworld.jp/rss/news.xml",
+        "https://moneyworld.jp/rss",
     ],
 }
 
