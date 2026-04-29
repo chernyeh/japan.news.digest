@@ -5,6 +5,9 @@ collector.py  —  Phase 2
 - HTML scrapers for trade papers: Nikkan Kogyo, Nikkan Jidosha, Denki Shimbun,
   Dempa Shimbun, Kagaku Kogyo Nippo, Japan Marine Daily, Nikkan Kensetsu, Nihon Nogyo
 - Concurrent fetching for speed
+- cloudscraper for Cloudflare-protected sources (Kabutan, Minkabu, Traders Web)
+- Shift-JIS / EUC-JP encoding detection via chardet
+- Article body extraction for Gemini summarisation pipeline
 """
 
 import feedparser
@@ -13,6 +16,35 @@ import re
 import os
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# ── Bot-bypass HTTP session (cloudscraper) ─────────────────────────────────────
+# cloudscraper rotates TLS fingerprints and solves Cloudflare JS challenges.
+# Falls back to plain requests when the package is unavailable so the app still
+# runs in environments where it isn't installed.
+try:
+    import cloudscraper as _cs_mod
+    _CLOUD_SESSION = _cs_mod.create_scraper(
+        browser={"browser": "chrome", "platform": "darwin", "mobile": False},
+        delay=3,
+    )
+    HAS_CLOUDSCRAPER = True
+except Exception:
+    _CLOUD_SESSION = None
+    HAS_CLOUDSCRAPER = False
+
+# Sources whose direct RSS endpoints sit behind Cloudflare or aggressive
+# bot-detection; cloudscraper is required to get valid XML back.
+_CF_PROTECTED_SOURCES = frozenset({
+    "Kabutan Corporate",
+    "Kabutan Earnings",
+    "Kabutan Market News",
+    "Minkabu",
+    "Traders Web",
+})
+
+# Encoding labels that chardet may return for legacy Japanese pages
+_JAPANESE_ENCODINGS = {"shift_jis", "shift-jis", "sjis", "euc-jp", "euc_jp",
+                       "iso-2022-jp", "cp932", "ms932"}
 
 # ── RSS Sources ───────────────────────────────────────────────────────────────
 RSS_SOURCES = [
@@ -67,7 +99,9 @@ RSS_SOURCES = [
     ("Kabutan Market News",   "https://kabutan.jp/rss/news_marketnews.xml",            "ja"),
 
     # Fisco — stock analyst commentary, individual stock analysis, morning market notes
-    ("Fisco",                 "https://news.google.com/rss/search?q=site:fisco.jp+OR+site:web.fisco.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    # Primary: direct RSS from web.fisco.jp (ASP.NET endpoint, no CF block)
+    # Fallback handled inside fetch_rss via FISCO_FALLBACK_URLS
+    ("Fisco",                 "https://web.fisco.jp/pfweb/service/rss/FiscoNewsRss.aspx",          "ja"),
 
     # Jiji Press — Japan wire service, fast on BOJ/government/corporate events
     ("Jiji Press",            "https://www.jiji.com/rss/ranking.rdf",                  "ja"),
@@ -88,7 +122,8 @@ RSS_SOURCES = [
     ("Zaikai Online",         "https://news.google.com/rss/search?q=site:zaikai.net&hl=ja&gl=JP&ceid=JP:ja", "ja"),
 
     # QUICK Money World — institutional-grade Japan market commentary
-    ("QUICK Money World",     "https://news.google.com/rss/search?q=site:moneyworld.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    # Primary: direct RSS feed; fallback handled inside fetch_rss
+    ("QUICK Money World",     "https://moneyworld.jp/rss/news.xml",                                 "ja"),
 ]
 
 # ── Trade paper scrape targets ────────────────────────────────────────────────
@@ -338,15 +373,122 @@ def parse_date(entry) -> tuple:
 
 
 RSS_HEADERS = {
+    # Keep UA in sync with the cloudscraper browser profile above
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/rss+xml, application/xml, text/xml, */*",
-    "Accept-Language": "en-US,en;q=0.9,ja;q=0.8",
+    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
     "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
     "Referer": "https://www.google.com/",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "cross-site",
 }
+
+# ── Fallback URL chains for sources whose primary URL may fail ─────────────────
+# fetch_rss tries each URL in order and uses the first one that yields entries.
+_SOURCE_FALLBACK_URLS: dict[str, list[str]] = {
+    "Fisco": [
+        "https://web.fisco.jp/pfweb/service/rss/FiscoNewsRss.aspx",
+        "https://fisco.jp/news/rss/",
+        # Google News keyword query (no site: operator — more reliable than site:)
+        "https://news.google.com/rss/search?q=fisco+%E6%A0%AA%E5%BC%8F+%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88&hl=ja&gl=JP&ceid=JP:ja",
+    ],
+    "QUICK Money World": [
+        "https://moneyworld.jp/rss/news.xml",
+        "https://moneyworld.jp/rss",
+        "https://moneyworld.jp/feed",
+        "https://news.google.com/rss/search?q=QUICK%E3%83%9E%E3%83%8D%E3%83%BC%E3%83%AF%E3%83%BC%E3%83%AB%E3%83%89+%E5%B8%82%E5%A0%B4&hl=ja&gl=JP&ceid=JP:ja",
+    ],
+    "Traders Web": [
+        "https://www.traders.co.jp/news/rss_all.aspx",
+        "https://traders.co.jp/news/rss_all.aspx",
+    ],
+    "Minkabu": [
+        "https://minkabu.jp/rss/news",
+        "https://minkabu.jp/news/rss",
+    ],
+}
+
+
+# ── HTTP helpers ──────────────────────────────────────────────────────────────
+
+def _http_get(source_name: str, url: str):
+    """
+    Perform an HTTP GET, using cloudscraper for Cloudflare-protected sources
+    and plain requests otherwise.  Raises on non-200 status.
+    """
+    if HAS_CLOUDSCRAPER and source_name in _CF_PROTECTED_SOURCES:
+        resp = _CLOUD_SESSION.get(url, timeout=20)
+    else:
+        resp = requests.get(url, headers=RSS_HEADERS, timeout=15)
+    if resp.status_code != 200:
+        raise IOError(f"HTTP {resp.status_code} for {url}")
+    return resp
+
+
+def _decode_rss_bytes(resp) -> bytes:
+    """
+    Return bytes suitable for feedparser.parse().
+
+    feedparser reads the XML/HTML encoding declaration itself, so we mostly
+    pass raw bytes.  However, if the HTTP Content-Type or chardet says the
+    page is a legacy Japanese encoding (Shift-JIS, EUC-JP …) AND the response
+    was decoded as latin-1 (requests default for text/html with no charset),
+    we re-encode to UTF-8 so feedparser receives clean Unicode bytes.
+    """
+    raw = resp.content
+    ct = resp.headers.get("Content-Type", "").lower()
+
+    # Fast path: server declared UTF-8 or it's XML (feedparser handles it)
+    if "utf-8" in ct or "xml" in ct:
+        return raw
+
+    # Try chardet only when needed (adds ~2 ms per call)
+    try:
+        import chardet
+        detected = chardet.detect(raw[:4096])
+        enc = (detected.get("encoding") or "").lower().replace("-", "_")
+        if enc in _JAPANESE_ENCODINGS:
+            text = raw.decode(enc, errors="replace")
+            return text.encode("utf-8")
+    except Exception:
+        pass
+
+    return raw
+
+
+def _extract_rss_body(entry) -> str:
+    """
+    Extract article body / summary text from an RSS entry.
+
+    Tries feedparser fields in priority order:
+      content  →  summary  →  description
+
+    Strips HTML, collapses whitespace, and caps at 2 000 chars so the
+    Gemini API receives a clean, bounded ``body`` string alongside the
+    ``headline`` (original_title / translated_title).
+
+    Returns an empty string when nothing useful is found.
+    """
+    for field in ("content", "summary", "description"):
+        if field == "content":
+            items = entry.get("content", [])
+            raw = items[0].get("value", "") if items else ""
+        else:
+            raw = entry.get(field, "") or ""
+        if not raw:
+            continue
+        text = re.sub(r"<[^>]+>", " ", raw)          # strip HTML tags
+        text = re.sub(r"&[a-z]+;", " ", text)         # decode common HTML entities
+        text = re.sub(r"\s+", " ", text).strip()
+        if len(text) > 30:
+            return text[:2000]
+    return ""
 
 def resolve_gnews_url(entry) -> str:
     """
@@ -747,74 +889,150 @@ def _expand_wadai_article(source_name: str, entry, pub_display: str, pub_dt) -> 
         art_url = f"{base_url}#wadai-{code}" if base_url else f"https://kabutan.jp/stock/?code={code}"
 
         articles.append({
-            "source": source_name,
-            "original_title": orig_title,
+            "source":           source_name,
+            "original_title":   orig_title,
             "translated_title": "",
-            "title": "",
-            "url": art_url,
-            "pub_date": pub_display,
-            "pub_dt": pub_dt,
-            "sector": "",
-            "language": "ja",
-            "is_wadai_expand": True,
+            "title":            "",
+            "url":              art_url,
+            "pub_date":         pub_display,
+            "pub_dt":           pub_dt,
+            "sector":           "",
+            "language":         "ja",
+            "is_wadai_expand":  True,
+            # body: use the per-company snippet if one was found, otherwise the
+            # full summary of the aggregate (both already HTML-stripped above)
+            "body":             snippet or summary[:500],
         })
 
     return articles
 
 
 def fetch_rss(source_name: str, url: str, language: str) -> list:
+    """
+    Fetch and parse an RSS/Atom feed, returning a list of article dicts.
+
+    Resilience layers
+    -----------------
+    1. Uses cloudscraper for Cloudflare-protected sources (Kabutan, Minkabu,
+       Traders Web) so the full TLS fingerprint matches a real browser.
+    2. For sources in _SOURCE_FALLBACK_URLS, iterates through alternate URLs
+       until one yields at least one feed entry.
+    3. Falls back to bare feedparser.parse(url) if all HTTP attempts fail.
+    4. Passes raw bytes to feedparser so its XML parser reads the encoding
+       declaration; _decode_rss_bytes() re-encodes Shift-JIS/EUC-JP → UTF-8
+       when chardet detects a legacy Japanese charset.
+    5. Populates a ``body`` field from the RSS description/summary for use by
+       the Gemini summarisation pipeline (headline = original_title, body = body).
+    """
     articles = []
-    try:
-        # Use requests with browser headers to avoid blocks, then parse the content
+
+    # Build the ordered list of URLs to attempt
+    url_chain = _SOURCE_FALLBACK_URLS.get(source_name)
+    if url_chain:
+        # Make sure the canonical URL from RSS_SOURCES is first if not already present
+        if url not in url_chain:
+            url_chain = [url] + list(url_chain)
+    else:
+        url_chain = [url]
+
+    feed = None
+    last_err = None
+
+    for attempt_url in url_chain:
         try:
-            resp = requests.get(url, headers=RSS_HEADERS, timeout=15)
-            feed = feedparser.parse(resp.content)
-        except Exception:
-            # Fall back to plain feedparser if requests fails
+            resp = _http_get(source_name, attempt_url)
+            data = _decode_rss_bytes(resp)
+            parsed = feedparser.parse(data)
+            if parsed.entries:           # success — stop trying fallbacks
+                feed = parsed
+                break
+            # Zero entries might mean wrong URL format; try next fallback
+            last_err = f"0 entries at {attempt_url}"
+        except Exception as exc:
+            last_err = str(exc)
+            continue
+
+    if feed is None:
+        # Last resort: let feedparser handle the primary URL directly
+        try:
             feed = feedparser.parse(url)
-        for entry in feed.entries[:20]:
-            title = re.sub(r"<[^>]+>", "", entry.get("title", "").strip())
-            if not title:
-                continue
-            pub_display, pub_dt = parse_date(entry)
+        except Exception as exc:
+            print(f"RSS error [{source_name}]: {last_err or exc}")
+            return articles
 
-            # Expand 話題株先取り aggregates into per-company articles
-            if title.startswith(_WADAI_PREFIX):
-                expanded = _expand_wadai_article(source_name, entry, pub_display, pub_dt)
-                if expanded:
-                    articles.extend(expanded)
-                    continue  # skip adding the aggregate article itself
+    if not feed.entries:
+        if last_err:
+            print(f"RSS warning [{source_name}]: no entries — {last_err}")
+        return articles
 
-            articles.append({
-                "source": source_name,
-                "original_title": title,
-                "translated_title": title if language == "en" else "",
-                "title": title if language == "en" else "",
-                "url": resolve_gnews_url(entry),
-                "pub_date": pub_display,
-                "pub_dt": pub_dt,
-                "sector": "",
-                "language": language,
-            })
-    except Exception as e:
-        print(f"RSS error [{source_name}]: {e}")
+    for entry in feed.entries[:20]:
+        title = re.sub(r"<[^>]+>", "", entry.get("title", "").strip())
+        if not title:
+            continue
+        pub_display, pub_dt = parse_date(entry)
+        body = _extract_rss_body(entry)
+
+        # Expand 話題株先取り aggregates into per-company articles
+        if title.startswith(_WADAI_PREFIX):
+            expanded = _expand_wadai_article(source_name, entry, pub_display, pub_dt)
+            if expanded:
+                articles.extend(expanded)
+                continue  # skip adding the aggregate article itself
+
+        articles.append({
+            "source":           source_name,
+            "original_title":   title,
+            "translated_title": title if language == "en" else "",
+            "title":            title if language == "en" else "",
+            "url":              resolve_gnews_url(entry),
+            "pub_date":         pub_display,
+            "pub_dt":           pub_dt,
+            "sector":           "",
+            "language":         language,
+            # ── Gemini pipeline fields ──────────────────────────────────────
+            # headline  →  use translated_title (filled by translate_articles)
+            # body      →  RSS summary/description stripped of HTML
+            "body":             body,
+        })
+
     return articles
 
 
 # ── HTML scraping ─────────────────────────────────────────────────────────────
 
 def scrape_trade_paper(source_name: str, url: str, selectors: str, language: str) -> list:
+    """
+    Scrape headline links from a trade-paper homepage using CSS selectors.
+
+    Encoding: uses chardet for Shift-JIS / EUC-JP pages when the server does
+    not declare a charset (common on older Japanese newspaper sites).
+    Body: captures any sibling/child text around the headline element so the
+    Gemini pipeline receives a meaningful ``body`` alongside the headline.
+    """
     articles = []
     headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "ja,en;q=0.9",
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     }
     try:
         from bs4 import BeautifulSoup
         from urllib.parse import urlparse
+
         resp = requests.get(url, headers=headers, timeout=12)
-        resp.encoding = resp.apparent_encoding
+
+        # ── Encoding detection for legacy Japanese sites ──────────────────
+        # requests defaults to latin-1 for text/html without charset header;
+        # chardet corrects this for Shift-JIS / EUC-JP pages.
+        detected_enc = resp.apparent_encoding or ""
+        if detected_enc.lower().replace("-", "_") in _JAPANESE_ENCODINGS:
+            resp.encoding = detected_enc
+        else:
+            resp.encoding = resp.encoding or "utf-8"
+
         soup = BeautifulSoup(resp.text, "html.parser")
         seen = set()
 
@@ -826,6 +1044,7 @@ def scrape_trade_paper(source_name: str, url: str, selectors: str, language: str
                         continue
                     seen.add(title)
 
+                    # Resolve URL
                     link = el.get("href", "")
                     if not link:
                         a_tag = el.find_parent("a") or el.find("a")
@@ -837,15 +1056,27 @@ def scrape_trade_paper(source_name: str, url: str, selectors: str, language: str
                     if not link:
                         link = url
 
+                    # Best-effort body: grab the nearest sibling paragraph or
+                    # a descriptive <p> / <span> inside the same container.
+                    body = ""
+                    parent = el.find_parent(["li", "article", "div", "section"])
+                    if parent:
+                        for tag in parent.find_all(["p", "span", "div"], recursive=False):
+                            candidate = tag.get_text(strip=True)
+                            if candidate and candidate != title and len(candidate) > 20:
+                                body = candidate[:500]
+                                break
+
                     articles.append({
-                        "source": source_name,
-                        "original_title": title,
+                        "source":           source_name,
+                        "original_title":   title,
                         "translated_title": "",
-                        "title": "",
-                        "url": link,
-                        "pub_date": datetime.now().strftime("%b %d, %Y"),
-                        "sector": "",
-                        "language": language,
+                        "title":            "",
+                        "url":              link,
+                        "pub_date":         datetime.now().strftime("%b %d, %Y"),
+                        "sector":           "",
+                        "language":         language,
+                        "body":             body,
                     })
                 if articles:
                     break
