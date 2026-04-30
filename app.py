@@ -2066,23 +2066,26 @@ with tab_filings:
                         "doc_url": _doc_url,
                     })
 
-                # Translate Japanese titles to English using Google free translate
+                # Translate Japanese titles and company names concurrently (no cap)
                 from collector import translate_single_google
+                from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _asc
                 _to_translate = [f for f in filings if f["title"] and not f["title_en"]]
-                # Translate both title AND company name in batches of 20
-                for _i in range(0, min(len(_to_translate), 200), 20):
-                    _batch = _to_translate[_i:_i+20]
-                    for _f in _batch:
-                        try:
-                            _en = translate_single_google(_f["title"])
-                            _f["title_en"] = _en if _en and _en != _f["title"] else _f["title"]
-                        except Exception:
-                            _f["title_en"] = _f["title"]
-                        try:
-                            _nm = translate_single_google(_f["name"])
-                            _f["name_en"] = _nm if _nm and _nm != _f["name"] else _f["name"]
-                        except Exception:
-                            _f["name_en"] = _f["name"]
+
+                def _translate_filing(_f):
+                    try:
+                        _en = translate_single_google(_f["title"])
+                        _f["title_en"] = _en if _en and _en != _f["title"] else _f["title"]
+                    except Exception:
+                        _f["title_en"] = _f["title"]
+                    try:
+                        _nm = translate_single_google(_f["name"])
+                        _f["name_en"] = _nm if _nm and _nm != _f["name"] else _f["name"]
+                    except Exception:
+                        _f["name_en"] = _f["name"]
+
+                if _to_translate:
+                    with _TPE(max_workers=10) as _ex:
+                        list(_asc({_ex.submit(_translate_filing, _f): _f for _f in _to_translate}))
 
                 # Sort newest first (all pub_dt are naive UTC now)
                 filings.sort(key=lambda x: x["pub_dt"] or _dt.min, reverse=True)
