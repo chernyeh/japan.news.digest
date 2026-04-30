@@ -1957,10 +1957,10 @@ with tab_filings:
     st.markdown('<div class="section-title">📋 Corporate Filings — TDnet Timely Disclosures</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="info-box">Timely disclosures (&#9002;&#26178;&#38283;&#31034;) from the Tokyo Stock Exchange &mdash; '
-        'last 5 days. <strong>JPN</strong> opens the Japanese PDF directly. '
-        '<strong>All Filings</strong> (&nearr;) opens the company filing history on Yanoshin where English PDFs '
-        'are listed when available (required for TSE Prime companies from April 2025). '
-        'Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a>.</div>',
+        'last 5 days. Where an official English filing exists it is shown directly; Japanese-only filings are '
+        'machine-translated. <strong>ENG</strong> / <strong>JPN</strong> open the respective PDFs. '
+        'Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a> '
+        '+ <a href="https://www.release.tdnet.info/index_e.html" target="_blank" style="color:#8B4513;">TSE English disclosures</a>.</div>',
         unsafe_allow_html=True
     )
 
@@ -1969,19 +1969,33 @@ with tab_filings:
     if "filings_last_fetch" not in st.session_state:
         st.session_state.filings_last_fetch = None
 
-    # ── Controls: keyword filter + window selector + refresh + summarise ──
-    col_f1, col_f2, col_f3, col_f4 = st.columns([2.4, 0.9, 0.8, 0.8])
+    # ── Lazy-load mktcap if not already in session (same pattern as Earnings/Screener) ──
+    if not st.session_state.get("mktcap_map") and not st.session_state.get("mktcap_load_attempted"):
+        st.session_state.mktcap_load_attempted = True
+        try:
+            _mc = load_mktcap_from_github(_ec_repo, _gh_token)
+            if _mc:
+                st.session_state.mktcap_map = _mc
+                st.session_state.mktcap_load_attempted = False
+        except Exception:
+            pass
+
+    # ── Controls: keyword · min cap · briefing window · refresh · summarise ──
+    col_f1, col_f2, col_f3, col_f4, col_f5 = st.columns([1.8, 0.75, 0.9, 0.75, 0.75])
     with col_f1:
         keyword_filter = st.text_input("Filter by keyword or company:", key="filings_keyword",
                                        placeholder="e.g. Toyota, 決算, dividend")
     with col_f2:
+        _fil_mcap_min = st.number_input("Min mkt cap (¥B)", min_value=0, value=0,
+                                        step=50, key="filings_mcap_min")
+    with col_f3:
         _sum_window = st.selectbox("Briefing window:", ["12h", "24h", "36h", "48h", "60h"],
                                    index=1, key="filings_sum_window")
-    with col_f3:
+    with col_f4:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         fetch_filings_btn = st.button("🔄 Refresh", key="btn_filings", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
-    with col_f4:
+    with col_f5:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         _filings_sum_btn = st.button("✨ Summarise", key="btn_filings_sum", use_container_width=True,
                                       help="Summarise filings within the selected briefing window")
@@ -1993,7 +2007,6 @@ with tab_filings:
             try:
                 import requests as _req
                 import re as _re
-                import html as _html_mod
                 import datetime as _dtmod
                 from datetime import timedelta as _td
                 from bs4 import BeautifulSoup as _BS
@@ -2002,8 +2015,62 @@ with tab_filings:
                 _d_from = (_today - _td(days=5)).strftime("%Y%m%d")
                 _d_to   = _today.strftime("%Y%m%d")
 
-                # Scrape Yanoshin HTML table — most reliable, clear structure
-                # Format: date | [CODE]Company | FilingTitle(linked to PDF)
+                # ── Step 1: fetch English filings from TSE to build a dedup lookup ──
+                # Key: (5-digit code, "YYYY-MM-DD HH:MM") → {name_en, title_en, eng_url}
+                _en_lookup = {}
+                try:
+                    _en_ua = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                              "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    _en_sess = _req.Session()
+                    _en_sess.headers.update({"User-Agent": _en_ua})
+                    _en_sess.get("https://www.release.tdnet.info/onsf/TDJFSearch_e/I_head", timeout=15)
+                    _en_post_url = "https://www.release.tdnet.info/onsf/TDJFSearch_e/TDJFSearch_e"
+                    _en_ref      = "https://www.release.tdnet.info/onsf/TDJFSearch_e/I_head"
+                    _en_page = 1
+                    while _en_page <= 30:  # safety cap at 30 pages (~6 000 filings)
+                        _en_resp = _en_sess.post(
+                            _en_post_url,
+                            data={"t0": _d_from, "t1": _d_to, "q": "", "p": str(_en_page)},
+                            headers={"Referer": _en_ref},
+                            timeout=20,
+                        )
+                        _en_soup = _BS(_en_resp.content, "lxml")
+                        _en_rows = _en_soup.find_all("tr")[1:]  # skip header row
+                        if not _en_rows:
+                            break
+                        for _en_row in _en_rows:
+                            _en_cells = _en_row.find_all("td")
+                            if len(_en_cells) < 5:
+                                continue
+                            # Columns: Date | Code | Name | Sector | Title | XBRL | Notes
+                            _en_date_raw = _en_cells[0].get_text(strip=True)  # "2026/04/30 19:00"
+                            _en_code     = _en_cells[1].get_text(strip=True)  # "45270"
+                            _en_name     = _en_cells[2].get_text(strip=True)
+                            _en_title    = _en_cells[4].get_text(strip=True)
+                            _en_a        = _en_cells[4].find("a")
+                            _en_url      = ""
+                            if _en_a and _en_a.get("href"):
+                                _h = _en_a["href"]
+                                _en_url = ("https://www.release.tdnet.info" + _h
+                                           if _h.startswith("/") else _h)
+                            try:
+                                _en_dt  = _dtmod.datetime.strptime(_en_date_raw, "%Y/%m/%d %H:%M")
+                                _en_key = _en_dt.strftime("%Y-%m-%d %H:%M")
+                            except Exception:
+                                _en_key = _en_date_raw
+                            if _en_code and _en_title:
+                                _en_lookup[(_en_code, _en_key)] = {
+                                    "name_en":  _en_name,
+                                    "title_en": _en_title,
+                                    "eng_url":  _en_url,
+                                }
+                        if len(_en_rows) < 200:
+                            break
+                        _en_page += 1
+                except Exception as _en_err:
+                    print(f"English TDnet fetch error (non-fatal): {_en_err}")
+
+                # ── Step 2: fetch Japanese filings from Yanoshin ──
                 _url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{_d_from}-{_d_to}.html?limit=500"
                 _hdrs = {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -2014,6 +2081,7 @@ with tab_filings:
                 _resp = _req.get(_url, headers=_hdrs, timeout=20)
                 _soup = _BS(_resp.content, "lxml")
 
+                _fil_mktcap_map = st.session_state.get("mktcap_map", {})
                 filings = []
                 for _row in _soup.find_all("tr"):
                     _cells = _row.find_all("td")
@@ -2041,13 +2109,12 @@ with tab_filings:
                         _name = _cm.group(2).strip()
 
                     # Cell 2: FilingTitle (with link to PDF)
-                    _title_cell = _cells[2]
+                    _title_cell   = _cells[2]
                     _filing_title = _title_cell.get_text(strip=True)
-                    _a_tag = _title_cell.find("a")
+                    _a_tag  = _title_cell.find("a")
                     _doc_url = ""
                     if _a_tag and _a_tag.get("href"):
                         _href = _a_tag["href"]
-                        # Yanoshin links: /rd.php?https://... → extract real URL
                         _rd = _re.search(r"/rd\.php\?(https?://.*)", _href)
                         if _rd:
                             _doc_url = _rd.group(1)
@@ -2059,17 +2126,23 @@ with tab_filings:
                     if not _filing_title:
                         continue
 
+                    # Check English lookup: match on (code, minute-timestamp)
+                    _en_match = _en_lookup.get((_code, _pdate_str))
+
                     filings.append({
-                        "code": _code,
-                        "name": _name,
-                        "title": _filing_title,
-                        "title_en": "",          # filled by translation below
+                        "code":     _code,
+                        "name":     _name,
+                        "title":    _filing_title,
+                        "title_en": _en_match["title_en"] if _en_match else "",
+                        "name_en":  _en_match["name_en"]  if _en_match else "",
                         "pub_date": _pdate_str,
-                        "pub_dt": _pdate_dt,
-                        "doc_url": _doc_url,
+                        "pub_dt":   _pdate_dt,
+                        "doc_url":  _doc_url,
+                        "eng_url":  _en_match["eng_url"] if _en_match else "",
+                        "mktcap":   _fil_mktcap_map.get(_code[:4]) if _code else None,
                     })
 
-                # Translate Japanese titles and company names concurrently (no cap)
+                # ── Step 3: translate only filings with no English match ──
                 from collector import translate_single_google
                 from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _asc
                 _to_translate = [f for f in filings if f["title"] and not f["title_en"]]
@@ -2090,7 +2163,6 @@ with tab_filings:
                     with _TPE(max_workers=10) as _ex:
                         list(_asc({_ex.submit(_translate_filing, _f): _f for _f in _to_translate}))
 
-                # Sort newest first (all pub_dt are naive UTC now)
                 filings.sort(key=lambda x: x["pub_dt"] or _dt.min, reverse=True)
                 st.session_state.filings = filings
                 st.session_state.filings_last_fetch = now_local()
@@ -2104,16 +2176,30 @@ with tab_filings:
 
     filings = st.session_state.filings
     if st.session_state.filings_last_fetch:
+        _en_count = sum(1 for f in filings if f.get("eng_url"))
+        _status_parts = [
+            "Updated: " + format_local_dt(st.session_state.filings_last_fetch),
+            f"{len(filings)} disclosures",
+        ]
+        if _en_count:
+            _status_parts.append(f"{_en_count} with English PDF")
         st.markdown(
-            '<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.4rem;">Updated: '
-            + format_local_dt(st.session_state.filings_last_fetch) + f" · {len(filings)} disclosures</div>",
+            '<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.4rem;">'
+            + " · ".join(_status_parts) + "</div>",
             unsafe_allow_html=True
         )
 
-    # Apply keyword filter
+    # ── Apply keyword filter ──
     kw = (keyword_filter or "").strip().lower()
     if kw:
-        filings = [f for f in filings if kw in (f.get("name_en") or f.get("name","")).lower() or kw in (f.get("title_en") or f.get("title","")).lower() or kw in f.get("code","").lower()]
+        filings = [f for f in filings if kw in (f.get("name_en") or f.get("name","")).lower()
+                   or kw in (f.get("title_en") or f.get("title","")).lower()
+                   or kw in f.get("code","").lower()]
+
+    # ── Apply market cap filter (unified: affects both table and briefing) ──
+    _mcap_min = int(st.session_state.get("filings_mcap_min", 0) or 0)
+    if _mcap_min > 0:
+        filings = [f for f in filings if f.get("mktcap") and f["mktcap"] >= _mcap_min]
 
     if not filings:
         st.markdown('<div class="empty-state">No filings found. Click 🔄 Load to fetch disclosures.</div>', unsafe_allow_html=True)
@@ -2124,21 +2210,19 @@ with tab_filings:
         _win_label = st.session_state.get("filings_sum_window", "24h")
         _win_ago   = _dt3.now() - _td3(hours=_win_hours[_win_label])
         filings_win = [f for f in filings if f.get("pub_dt") and f["pub_dt"].replace(tzinfo=None) >= _win_ago]
-        # Cap: 100 for Haiku, 200 for Sonnet; model chosen after counting
         _win_pool   = (filings_win or filings)[:200]
         filing_articles = [
             {
-                "title": f.get("title_en") or f.get("title",""),
-                "source": f.get("name_en") or f.get("name",""),
-                "url": f.get("doc_url","") if f.get("doc_url","").startswith("https://www.release.tdnet") else "",
-                "pub_date": f.get("pub_date",""),
-                "pub_dt": None,
-                "translated_title": f.get("title_en") or f.get("title",""),
-                "original_title": f.get("title",""),
+                "title":            f.get("title_en") or f.get("title", ""),
+                "source":           f.get("name_en")  or f.get("name", ""),
+                "url":              f.get("eng_url") or (f.get("doc_url", "") if f.get("doc_url", "").startswith("https://www.release.tdnet") else ""),
+                "pub_date":         f.get("pub_date", ""),
+                "pub_dt":           None,
+                "translated_title": f.get("title_en") or f.get("title", ""),
+                "original_title":   f.get("title", ""),
             }
             for f in _win_pool
         ]
-        # Switch to Sonnet (with higher output budget) when volume exceeds 100
         if len(filing_articles) > 100:
             _briefing_model      = "claude-sonnet-4-6"
             _briefing_max_tokens = 16000
@@ -2158,7 +2242,7 @@ with tab_filings:
         )
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
-        # ── Table header (matches TDnet layout) ──
+        # ── Table ──
         table_html = """
         <div style="overflow-x:auto;margin-top:0.4rem;">
         <table class="filings-table">
@@ -2168,7 +2252,7 @@ with tab_filings:
             <th style="width:90px">Company</th>
             <th>Title</th>
             <th style="width:56px">Date</th>
-            <th style="width:50px">PDF</th>
+            <th style="width:60px">PDF</th>
           </tr>
         </thead>
         <tbody>
@@ -2178,9 +2262,16 @@ with tab_filings:
             _orig_title    = f.get("title", "")
             _orig_note     = (f'<div style="font-size:0.65rem;color:#9B8B7A;margin-top:2px;">{_orig_title}</div>'
                               if _orig_title and _orig_title != _display_title else "")
-            # Japanese PDF link
-            _jpn_url  = f.get("doc_url", "")
-            _jpn_link = f'<a href="{_jpn_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>' if _jpn_url else "—"
+            # PDF links: prefer English, show Japanese as secondary
+            _eng_url = f.get("eng_url", "")
+            _jpn_url = f.get("doc_url", "")
+            if _eng_url:
+                _pdf_cell = (f'<a href="{_eng_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">ENG ↗</a>'
+                             + (f'<br><a href="{_jpn_url}" target="_blank" style="color:#9B8B7A;font-size:0.68rem;">JPN</a>' if _jpn_url else ""))
+            elif _jpn_url:
+                _pdf_cell = f'<a href="{_jpn_url}" target="_blank" style="color:#8B4513;font-size:0.75rem;font-weight:600;">PDF ↗</a>'
+            else:
+                _pdf_cell = "—"
             # Split pub_date "2026-04-15 09:30" into date + time lines
             _pub = f.get("pub_date", "")
             if " " in _pub:
@@ -2195,7 +2286,7 @@ with tab_filings:
                 f'<td style="font-size:0.75rem;font-weight:600;overflow-wrap:break-word;max-width:90px;">{f.get("name_en") or f.get("name","")}</td>'
                 f'<td style="font-size:0.8rem;">{_display_title}{_orig_note}</td>'
                 f'<td style="font-size:0.72rem;color:#9B8B7A;">{_date_cell}</td>'
-                f'<td style="text-align:center;">{_jpn_link}</td>'
+                f'<td style="text-align:center;">{_pdf_cell}</td>'
                 "</tr>"
             )
         table_html += "</tbody></table></div>"
