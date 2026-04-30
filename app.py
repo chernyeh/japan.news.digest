@@ -820,7 +820,7 @@ def _safe_text(text: str) -> str:
     return _h.escape(str(text)) if text else ""
 
 
-def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn = None):
+def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn=None, model: str = "claude-haiku-4-5-20251001", max_tokens: int = 8192):
     """
     Renders an AI-powered summary panel with a Generate button.
     Uses the Anthropic API (ANTHROPIC_API_KEY in Streamlit Secrets).
@@ -923,8 +923,8 @@ Respond only with the briefing."""
                     try:
                         client = _anthropic.Anthropic(api_key=api_key)
                         msg = client.messages.create(
-                            model="claude-haiku-4-5-20251001",
-                            max_tokens=8192,
+                            model=model,
+                            max_tokens=max_tokens,
                             messages=[{"role": "user", "content": prompt}]
                         )
                         st.session_state[session_key] = msg.content[0].text
@@ -1969,19 +1969,22 @@ with tab_filings:
     if "filings_last_fetch" not in st.session_state:
         st.session_state.filings_last_fetch = None
 
-    # ── Controls: keyword filter + refresh only ──
-    col_f1, col_f2, col_f3 = st.columns([3, 0.8, 0.8])
+    # ── Controls: keyword filter + window selector + refresh + summarise ──
+    col_f1, col_f2, col_f3, col_f4 = st.columns([2.4, 0.9, 0.8, 0.8])
     with col_f1:
         keyword_filter = st.text_input("Filter by keyword or company:", key="filings_keyword",
                                        placeholder="e.g. Toyota, 決算, dividend")
     with col_f2:
+        _sum_window = st.selectbox("Briefing window:", ["12h", "24h", "36h", "48h", "60h"],
+                                   index=1, key="filings_sum_window")
+    with col_f3:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         fetch_filings_btn = st.button("🔄 Refresh", key="btn_filings", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
-    with col_f3:
+    with col_f4:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         _filings_sum_btn = st.button("✨ Summarise", key="btn_filings_sum", use_container_width=True,
-                                      help="Summarise filings from the last 3 days")
+                                      help="Summarise filings within the selected briefing window")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Auto-load on first visit OR on button click
@@ -2115,29 +2118,43 @@ with tab_filings:
     if not filings:
         st.markdown('<div class="empty-state">No filings found. Click 🔄 Load to fetch disclosures.</div>', unsafe_allow_html=True)
     else:
-        # ── AI summary: last 3 days only ──
+        # ── AI summary: user-selected window ──
         from datetime import datetime as _dt3, timedelta as _td3
-        _3d_ago = _dt3.now() - _td3(days=3)
-        filings_3d = [f for f in filings if f.get("pub_dt") and f["pub_dt"].replace(tzinfo=None) >= _3d_ago]
+        _win_hours = {"12h": 12, "24h": 24, "36h": 36, "48h": 48, "60h": 60}
+        _win_label = st.session_state.get("filings_sum_window", "24h")
+        _win_ago   = _dt3.now() - _td3(hours=_win_hours[_win_label])
+        filings_win = [f for f in filings if f.get("pub_dt") and f["pub_dt"].replace(tzinfo=None) >= _win_ago]
+        # Cap: 100 for Haiku, 200 for Sonnet; model chosen after counting
+        _win_pool   = (filings_win or filings)[:200]
         filing_articles = [
             {
                 "title": f.get("title_en") or f.get("title",""),
                 "source": f.get("name_en") or f.get("name",""),
-                # Use doc_url only if it's a proper tdnet URL, else skip linking
                 "url": f.get("doc_url","") if f.get("doc_url","").startswith("https://www.release.tdnet") else "",
                 "pub_date": f.get("pub_date",""),
                 "pub_dt": None,
                 "translated_title": f.get("title_en") or f.get("title",""),
                 "original_title": f.get("title",""),
             }
-            for f in (filings_3d or filings)[:80]
+            for f in _win_pool
         ]
+        # Switch to Sonnet (with higher output budget) when volume exceeds 100
+        if len(filing_articles) > 100:
+            _briefing_model      = "claude-sonnet-4-6"
+            _briefing_max_tokens = 16000
+            _briefing_cap        = 200
+        else:
+            _briefing_model      = "claude-haiku-4-5-20251001"
+            _briefing_max_tokens = 8192
+            _briefing_cap        = 100
         render_ai_summary(
             filing_articles,
-            "TDnet corporate filings — last 3 days",
+            f"TDnet corporate filings — last {_win_label}",
             "summary_filings",
-            max_articles=80,
-            _override_btn=_filings_sum_btn
+            max_articles=_briefing_cap,
+            _override_btn=_filings_sum_btn,
+            model=_briefing_model,
+            max_tokens=_briefing_max_tokens,
         )
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
