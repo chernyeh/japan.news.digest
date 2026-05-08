@@ -731,25 +731,24 @@ def load_prices_from_github(repo: str, token: str = None) -> dict:
     return prices
 
 
-def compute_perf_map_inline(prices_map: dict) -> tuple:
+def compute_perf_map_inline(prices_map: dict, repo: str = None, token: str = None) -> tuple:
     """
     Compute 3M/6M/12M vs TOPIX performance for all stocks in prices_map using
-    yfinance batch download (~1-2 min for ~400 stocks).
+    archived price CSVs from GitHub (no yfinance required).
 
     prices_map: {code_4digit: current_close_float}
     Returns (perf_dict, topix_returns) where:
       perf_dict     = {code: {"vs3m": float|None, "vs6m": float|None, "vs12m": float|None}}
       topix_returns = {"3M": float|None, "6M": float|None, "12M": float|None}
     """
-    try:
-        import yfinance as yf
-        import pandas as pd
-    except ImportError:
-        print("compute_perf_map_inline: yfinance/pandas not available")
-        return {}, {}
+    import requests as _req
+    import csv as _csv
+    import io as _io
+    from datetime import date, timedelta
 
-    # Trading-day approximate lookbacks
-    PERIODS = {"3M": 63, "6M": 126, "12M": 252}
+    # calendar-day lookbacks with tolerances matching weekly_3m_perf.yml
+    PERIODS = {"3M": (91, 14), "6M": (181, 21), "12M": (365, 28)}
+    TOPIX_CODES = ["1308", "1306"]
 
     def _geo_rel(r_stock, r_bench):
         try:
@@ -757,67 +756,134 @@ def compute_perf_map_inline(prices_map: dict) -> tuple:
         except Exception:
             return None
 
-    # ── TOPIX reference (1308.T ETF) ──────────────────────────────────────────
-    topix_returns = {}
-    try:
-        t_hist = yf.download("1308.T", period="14mo", auto_adjust=True, progress=False)
-        if not t_hist.empty:
-            t_closes = t_hist["Close"].dropna()
-            p_now = float(t_closes.iloc[-1])
-            for period, days in PERIODS.items():
-                idx = max(0, len(t_closes) - days)
-                p_then = float(t_closes.iloc[idx])
-                if p_then > 0:
-                    topix_returns[period] = round((p_now / p_then - 1) * 100, 2)
-    except Exception as e:
-        print(f"compute_perf_map_inline: TOPIX fetch error: {e}")
+    def _load_csv_prices(url, headers):
+        r = _req.get(url, headers=headers, timeout=20)
+        if r.status_code != 200:
+            return {}
+        prices = {}
+        for row in _csv.DictReader(_io.StringIO(r.text)):
+            code = str(row.get("Code", "")).strip().zfill(4)[:4]
+            try:
+                p = float(row.get("Close", "") or 0)
+                if p > 0:
+                    prices[code] = p
+            except (ValueError, TypeError):
+                pass
+        return prices
 
-    if not topix_returns:
+    headers = {"Authorization": f"token {token}"} if token else {}
+
+    # ── Discover available archives via GitHub Contents API ───────────────────
+    if not repo:
+        print("compute_perf_map_inline: repo not provided")
         return {}, {}
 
-    # ── Batch download all stock histories ────────────────────────────────────
-    codes   = list(prices_map.keys())
-    tickers = [c + ".T" for c in codes]
-    past_prices = {p: {} for p in PERIODS}
-    BATCH = 400
-
-    for i in range(0, len(tickers), BATCH):
-        batch = tickers[i:i + BATCH]
-        try:
-            raw = yf.download(batch, period="14mo", auto_adjust=True,
-                              progress=False, group_by="ticker")
-            if raw is None or (hasattr(raw, "empty") and raw.empty):
-                continue
-            for t in batch:
-                code = t.replace(".T", "")
+    try:
+        api_url = f"https://api.github.com/repos/{repo}/contents/data/archive"
+        resp = _req.get(api_url, headers=headers, timeout=15)
+        if resp.status_code != 200:
+            print(f"compute_perf_map_inline: archive listing failed ({resp.status_code})")
+            return {}, {}
+        archive_files = {}
+        for item in resp.json():
+            fname = item.get("name", "")
+            if fname.startswith("prices_") and fname.endswith(".csv"):
                 try:
-                    if isinstance(raw.columns, pd.MultiIndex):
-                        closes = raw[t]["Close"].dropna()
-                    else:
-                        closes = raw["Close"].dropna()
-                    if len(closes) < 20:
-                        continue
-                    for period, days in PERIODS.items():
-                        idx = max(0, len(closes) - days)
-                        past_prices[period][code] = float(closes.iloc[idx])
-                except Exception:
+                    fdate = date.fromisoformat(fname[7:-4])
+                    archive_files[fdate] = fname
+                except ValueError:
                     pass
-        except Exception as e:
-            print(f"compute_perf_map_inline: batch error at {i}: {e}")
+    except Exception as e:
+        print(f"compute_perf_map_inline: archive listing error: {e}")
+        return {}, {}
+
+    if not archive_files:
+        print("compute_perf_map_inline: no archive files found")
+        return {}, {}
+
+    today = date.today()
+
+    # ── Find best archive for each period ─────────────────────────────────────
+    past_prices = {}
+    topix_returns = {}
+
+    for period, (target_days, tolerance) in PERIODS.items():
+        target_date = today - timedelta(days=target_days)
+        best_date, best_delta = None, 9999
+        for fdate in archive_files:
+            delta = abs((fdate - target_date).days)
+            if delta < best_delta:
+                best_delta = delta
+                best_date = fdate
+        if best_date is None or best_delta > tolerance:
+            print(f"compute_perf_map_inline: no archive within {tolerance}d for {period} "
+                  f"(best={best_delta}d)")
+            continue
+
+        fname = archive_files[best_date]
+        url = f"https://raw.githubusercontent.com/{repo}/main/data/archive/{fname}"
+        arch = _load_csv_prices(url, headers)
+        if not arch:
+            print(f"compute_perf_map_inline: failed to load {fname}")
+            continue
+
+        past_prices[period] = arch
+        print(f"compute_perf_map_inline: {period} → {fname} ({best_delta}d from target, "
+              f"{len(arch)} stocks)")
+
+        # TOPIX return from this archive
+        for tc in TOPIX_CODES:
+            t_today = prices_map.get(tc)
+            t_past = arch.get(tc)
+            if t_today and t_past and t_past > 0:
+                cand = round((t_today / t_past - 1) * 100, 2)
+                if abs(cand) <= 80:
+                    topix_returns[period] = cand
+                    print(f"compute_perf_map_inline: TOPIX {period} from {tc}: {cand}%")
+                    break
+
+    # ── yfinance fallback for any missing TOPIX returns ──────────────────────
+    # Old archives pre-date the TOPIX_MUST fetch, so ETF codes may be absent.
+    # Use yf.Ticker().history() (stable API, valid period) — works from Streamlit Cloud.
+    missing_topix = [p for p in PERIODS if p not in topix_returns and p in past_prices]
+    if missing_topix:
+        try:
+            import yfinance as _yf
+            _hist = _yf.Ticker("1308.T").history(period="2y", auto_adjust=True)
+            if not _hist.empty:
+                _closes = _hist["Close"].dropna()
+                if hasattr(_closes, "iloc") and len(_closes) >= 30:
+                    _p_now = float(_closes.iloc[-1])
+                    for period in missing_topix:
+                        _target_days = PERIODS[period][0]
+                        _idx = max(0, len(_closes) - _target_days)
+                        _p_then = float(_closes.iloc[_idx])
+                        if _p_then > 0:
+                            _cand = round((_p_now / _p_then - 1) * 100, 2)
+                            if abs(_cand) <= 80:
+                                topix_returns[period] = _cand
+                                print(f"compute_perf_map_inline: TOPIX {period} via yfinance: {_cand}%")
+        except Exception as _ye:
+            print(f"compute_perf_map_inline: yfinance TOPIX fallback error: {_ye}")
+
+    if not topix_returns:
+        print("compute_perf_map_inline: no TOPIX returns computed")
+        return {}, {}
 
     # ── Compute relative performance ──────────────────────────────────────────
+    KEY_MAP = {"3M": "vs3m", "6M": "vs6m", "12M": "vs12m"}
     perf_dict = {}
     for code, p_now in prices_map.items():
         row = {}
         for period in ("3M", "6M", "12M"):
-            if period not in topix_returns:
+            if period not in topix_returns or period not in past_prices:
                 continue
             p_then = past_prices[period].get(code)
             if p_then and p_then > 0 and p_now and p_now > 0:
                 r_stock = (p_now / p_then - 1) * 100
                 rel = _geo_rel(r_stock, topix_returns[period])
                 if rel is not None:
-                    row[period] = rel
+                    row[KEY_MAP[period]] = rel
         if row:
             perf_dict[code] = row
 
