@@ -2578,15 +2578,15 @@ with tab_screener:
             if not _prices_for_compute:
                 st.warning("No current price data available — try refreshing market data first.")
             else:
-                with st.spinner(f"Downloading 14 months of history for {len(_prices_for_compute)} stocks… (1–2 min)"):
-                    _pm, _tr = compute_perf_map_inline(_prices_for_compute)
+                with st.spinner(f"Loading archive data for {len(_prices_for_compute)} stocks from GitHub…"):
+                    _pm, _tr = compute_perf_map_inline(_prices_for_compute, repo=_ec_repo, token=_gh_token)
                 if _pm:
                     st.session_state.screener_perf_map = _pm
                     st.session_state.screener_topix_returns = _tr
                     st.session_state.screener_load_attempted = False
                     st.rerun()
                 else:
-                    st.error("Computation failed — check that yfinance is available in the app environment.")
+                    st.error("Computation failed — no archive price data found in the repository.")
     else:
         # ── Build merged stock list ───────────────────────────────────────────
         _scr_stocks = []

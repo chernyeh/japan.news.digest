@@ -119,16 +119,10 @@ jobs:
 
           if missing:
               print(f"yfinance fallback for: {missing}")
-              for ticker in ["1308.T", "1306.T", "^TOPX"]:
+              for ticker in ["1308.T", "1306.T"]:
                   try:
-                      raw = yf.download(ticker, period="13mo", auto_adjust=True, progress=False)
-                      if raw.empty:
-                          continue
-                      if isinstance(raw.columns, pd.MultiIndex):
-                          raw.columns = raw.columns.get_level_values(-1)
-                      closes = raw["Close"].dropna()
-                      if isinstance(closes, pd.DataFrame):
-                          closes = closes.iloc[:, 0]
+                      import yfinance as _yf2
+                      closes = _yf2.Ticker(ticker).history(period="2y", auto_adjust=True)["Close"].dropna()
                       if len(closes) >= 30:
                           for period in missing:
                               if period in topix_returns:
