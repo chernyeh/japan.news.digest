@@ -2070,7 +2070,7 @@ with tab_filings:
                 except Exception as _en_err:
                     print(f"English TDnet fetch error (non-fatal): {_en_err}")
 
-                # ── Step 2: fetch Japanese filings from Yanoshin ──
+                # ── Step 2: fetch Japanese filings from Yanoshin (with retry) ──
                 _url = f"https://webapi.yanoshin.jp/webapi/tdnet/list/{_d_from}-{_d_to}.html?limit=500"
                 _hdrs = {
                     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -2078,7 +2078,19 @@ with tab_filings:
                     "Accept": "text/html,*/*",
                     "Accept-Language": "ja,en;q=0.9",
                 }
-                _resp = _req.get(_url, headers=_hdrs, timeout=20)
+                import time as _time
+                _last_exc = None
+                for _attempt in range(3):
+                    try:
+                        _resp = _req.get(_url, headers=_hdrs, timeout=20)
+                        _last_exc = None
+                        break
+                    except Exception as _exc:
+                        _last_exc = _exc
+                        if _attempt < 2:
+                            _time.sleep(3 * (_attempt + 1))
+                if _last_exc:
+                    raise _last_exc
                 _soup = _BS(_resp.content, "lxml")
 
                 _fil_mktcap_map = st.session_state.get("mktcap_map", {})
@@ -2181,8 +2193,13 @@ with tab_filings:
                 _c["filings_last_fetch"]  = st.session_state.filings_last_fetch
 
             except Exception as e:
-                st.error(f"Error fetching TDnet data: {e}")
                 import traceback; print(traceback.format_exc())
+                _cached_filings = _get_app_cache().get("filings")
+                if _cached_filings:
+                    st.session_state.filings = _cached_filings
+                    st.warning(f"TDnet fetch failed ({type(e).__name__}) — showing last cached data.")
+                else:
+                    st.error(f"Error fetching TDnet data: {e}")
 
     filings = st.session_state.filings
     if st.session_state.filings_last_fetch:
