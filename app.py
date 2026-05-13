@@ -820,7 +820,7 @@ def _safe_text(text: str) -> str:
     return _h.escape(str(text)) if text else ""
 
 
-def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn=None, model: str = "claude-haiku-4-5-20251001", max_tokens: int = 8192):
+def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn=None, model: str = "claude-haiku-4-5-20251001", max_tokens: int = 8192, prompt_extra: str = ""):
     """
     Renders an AI-powered summary panel with a Generate button.
     Uses the Anthropic API (ANTHROPIC_API_KEY in Streamlit Secrets).
@@ -914,7 +914,7 @@ Format rules:
 - Do NOT write (Headline N) — use [N] only
 - Cover every meaningful story — do not skip or truncate
 - No preamble, no filler, no generic observations
-
+{prompt_extra}
 IMPORTANT: Complete the entire briefing including What to Watch. Never truncate mid-bullet.
 
 Respond only with the briefing."""
@@ -1957,7 +1957,7 @@ with tab_filings:
     st.markdown('<div class="section-title">📋 Corporate Filings — TDnet Timely Disclosures</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="info-box">Timely disclosures (&#9002;&#26178;&#38283;&#31034;) from the Tokyo Stock Exchange &mdash; '
-        'last 5 days. Where an official English filing exists it is shown directly; Japanese-only filings are '
+        'last 3 days. Where an official English filing exists it is shown directly; Japanese-only filings are '
         'machine-translated. <strong>ENG</strong> / <strong>JPN</strong> open the respective PDFs. '
         'Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a> '
         '+ <a href="https://www.release.tdnet.info/index_e.html" target="_blank" style="color:#8B4513;">TSE English disclosures</a>.</div>',
@@ -2003,7 +2003,7 @@ with tab_filings:
 
     # Auto-load on first visit OR on button click
     if fetch_filings_btn or not st.session_state.filings:
-        with st.spinner("Fetching TDnet disclosures (last 5 days)…"):
+        with st.spinner("Fetching TDnet disclosures (last 3 days)…"):
             try:
                 import requests as _req
                 import re as _re
@@ -2012,7 +2012,7 @@ with tab_filings:
                 from bs4 import BeautifulSoup as _BS
 
                 _today = _dtmod.datetime.now()
-                _d_from = (_today - _td(days=5)).strftime("%Y%m%d")
+                _d_from = (_today - _td(days=3)).strftime("%Y%m%d")
                 _d_to   = _today.strftime("%Y%m%d")
 
                 # ── Step 1: fetch English filings from TSE to build a dedup lookup ──
@@ -2142,6 +2142,16 @@ with tab_filings:
                         "mktcap":   _fil_mktcap_map.get(_code[:4]) if _code else None,
                     })
 
+                # ── Deduplicate: same company + same document ──
+                _seen_fil = set()
+                _deduped_fil = []
+                for _f in filings:
+                    _fkey = (_f["code"], _f["doc_url"] if _f["doc_url"] else _f["title"])
+                    if _fkey not in _seen_fil:
+                        _seen_fil.add(_fkey)
+                        _deduped_fil.append(_f)
+                filings = _deduped_fil
+
                 # ── Step 3: translate only filings with no English match ──
                 from collector import translate_single_google
                 from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _asc
@@ -2210,11 +2220,15 @@ with tab_filings:
         _win_label = st.session_state.get("filings_sum_window", "24h")
         _win_ago   = _dt3.now() - _td3(hours=_win_hours[_win_label])
         filings_win = [f for f in filings if f.get("pub_dt") and f["pub_dt"].replace(tzinfo=None) >= _win_ago]
-        _win_pool   = (filings_win or filings)[:200]
+        _win_pool   = sorted(
+            (filings_win or filings),
+            key=lambda f: f.get("mktcap") or 0,
+            reverse=True,
+        )[:200]
         filing_articles = [
             {
                 "title":            f.get("title_en") or f.get("title", ""),
-                "source":           f.get("name_en")  or f.get("name", ""),
+                "source":           (f.get("name_en") or f.get("name", "")) + (f" (¥{f['mktcap']:,.0f}B)" if f.get("mktcap") else ""),
                 "url":              f.get("eng_url") or (f.get("doc_url", "") if f.get("doc_url", "").startswith("https://www.release.tdnet") else ""),
                 "pub_date":         f.get("pub_date", ""),
                 "pub_dt":           None,
@@ -2239,6 +2253,11 @@ with tab_filings:
             _override_btn=_filings_sum_btn,
             model=_briefing_model,
             max_tokens=_briefing_max_tokens,
+            prompt_extra=(
+                "Articles are sorted by company market cap (largest first), shown in brackets after each company name. "
+                "Weight your coverage accordingly — the opening paragraph and early thematic clusters should lead with the largest-cap companies. "
+                "Work down through mid-cap and smaller companies as coverage allows."
+            ),
         )
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
