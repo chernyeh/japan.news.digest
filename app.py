@@ -903,8 +903,9 @@ Write a COMPLETE, INVESTMENT-FOCUSED briefing. For each story, go beyond the hea
 
 Structure:
 1. Opening paragraph (3-4 sentences): overall market tone, dominant themes, and top investment implication
-2. Thematic clusters with ## headers — group stories logically (e.g. "BOJ & Rates", "Corporate Earnings", "M&A", "Yen & FX", "Energy & Commodities", "Sector Moves", "Geopolitics")
-3. Under each cluster: bullet points covering every significant story
+2. Thematic clusters with ## headers — group stories logically. Company and business-specific news is more actionable for investment decisions; prioritise it over macro/political news when both are present.
+   Cluster examples (use what fits the day's news): "Corporate Earnings & Guidance", "CEO & Executive Insights", "Stock Movers & Themes", "M&A & Restructuring", "Executive Changes", "Supply Chain & Raw Materials", "Business Features & Sector Trends", "BOJ & Rates", "Yen & FX", "Trade & Geopolitics", "Energy & Commodities"
+3. Under each cluster: bullet points covering every significant story. For company-specific stories actively look for and call out: executive interviews and what they reveal about strategy or outlook; earnings numbers and what they suggest about the business trajectory; stocks that moved significantly and whether a common theme links them; executive appointments or departures and what they signal; business magazine features or in-depth sector analyses (e.g. Toyo Keizai, Diamond, President); supply chain disruptions, component shortages, or raw material pressures affecting Japanese businesses; Japan-specific business trends that mirror or diverge from global patterns
 4. Closing ## What to Watch section: 3-5 forward-looking points with specific catalysts to monitor
 
 Format rules:
@@ -914,6 +915,7 @@ Format rules:
 - Do NOT write (Headline N) — use [N] only
 - Cover every meaningful story — do not skip or truncate
 - No preamble, no filler, no generic observations
+- If the article pool contains company-specific stories, ensure they appear in at least half the thematic clusters
 {prompt_extra}
 IMPORTANT: Complete the entire briefing including What to Watch. Never truncate mid-bullet.
 
@@ -1220,8 +1222,17 @@ with tab_bytime:
             st.markdown('<div style="font-size:0.78rem;font-weight:700;letter-spacing:0.04em;color:#1A1A1A;padding-top:0.3rem;">✨ AI Briefing — Last 24 Hours</div>', unsafe_allow_html=True)
         with _bt_col2:
             _bytime_gen_btn = st.button("✨ Summarise", key="btn_summary_bytime", use_container_width=True)
+        # Balance micro vs macro so high-frequency wire services can't crowd out
+        # company-specific articles. Target up to 30 from each group (50/50 ceiling);
+        # if one pool is thin the other fills the remaining slots.
+        _brief_all   = articles_24h or all_articles
+        _brief_micro = [a for a in _brief_all if a.get("news_type") == "micro"]
+        _brief_macro = [a for a in _brief_all if a.get("news_type") != "micro"]
+        _n_micro     = min(len(_brief_micro), 30)
+        _n_macro     = min(len(_brief_macro), 60 - _n_micro)
+        _briefing_pool = _brief_micro[:_n_micro] + _brief_macro[:_n_macro]
         render_ai_summary(
-            articles_24h or all_articles[:60],
+            _briefing_pool,
             "the last 24 hours of Japan business news across all sources",
             "summary_bytime",
             _override_btn=_bytime_gen_btn
