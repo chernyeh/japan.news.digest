@@ -315,6 +315,8 @@ MICRO_SOURCES = {
     "Nikkei IR / Earnings", "Reuters Japan Companies", "Bloomberg Japan Co",
     "Nikkei Xtech IT", "Nikkei Xtech Auto",
     "QUICK Money World",
+    # Business/magazine sources — company profiles, CEO interviews, sector features
+    "Toyo Keizai", "Diamond Online", "President Online", "JBpress", "Zaikai Online",
 }
 
 # Keyword signals for micro (company-level) news
@@ -328,6 +330,10 @@ MICRO_KEYWORDS = [
     "ipo", "listing", "secondary offering", "rights issue",
     "restructuring", "job cuts", "layoffs", "plant closure", "spin-off",
     "ceo", "president", "management", "appointment", "resignation",
+    # Executive interviews, business features, supply chain
+    "interview", "ceo says", "executive says", "in conversation", "feature",
+    "company profile", "business model", "strategy", "shortage",
+    "supply chain", "component", "raw material", "inventory",
     # Japanese
     "決算", "業績", "純利益", "営業利益", "売上", "増益", "減益", "予想", "見通し",
     "配当", "自社株買い", "買収", "合併", "提携", "受注", "出荷",
@@ -335,6 +341,10 @@ MICRO_KEYWORDS = [
     "上場", "増資", "公募",
     "リストラ", "希望退職", "工場閉鎖", "分社",
     "社長", "代表取締役", "就任", "退任",
+    # Japanese — interviews, features, supply chain
+    "インタビュー", "対談", "特集", "企業分析", "経営戦略", "ビジネスモデル",
+    "不足", "供給不足", "部品不足", "原材料", "在庫", "サプライチェーン",
+    "社長インタビュー", "トップインタビュー",
 ]
 
 # Macro/policy keyword signals
