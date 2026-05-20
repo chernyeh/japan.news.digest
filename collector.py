@@ -334,6 +334,22 @@ MICRO_KEYWORDS = [
     "interview", "ceo says", "executive says", "in conversation", "feature",
     "company profile", "business model", "strategy", "shortage",
     "supply chain", "component", "raw material", "inventory",
+    # Shareholder activity / stake sales / PE exits / activist investors
+    "stake", "sells stake", "stake sale", "block trade", "block sale",
+    "sell-down", "selldown", "sell down", "secondary placement", "share placement",
+    "share offering", "share sale", "secondary share", "trims stake", "pares stake",
+    "lock-up", "lockup", "lock up expir",
+    "private equity", "pe firm", "pe exit", "fund exit", "buyout fund",
+    "kkr", "carlyle", "blackstone", "bain capital", "cvc", "advantage partners",
+    "japan industrial partners", "polaris capital", "integral",
+    "activist", "activist investor", "elliott", "valueact", "oasis", "third point",
+    "starboard", "icahn", "engine no.",
+    # Significant share-price moves (often the only signal of a material event)
+    "shares slump", "shares plunge", "shares jump", "shares surge",
+    "shares fall", "shares rise", "shares drop", "shares soar", "shares tumble",
+    "stock falls", "stock surges", "stock tumbles", "stock plunges", "stock jumps",
+    "tumbles", "soars", "limit up", "limit down", "circuit breaker",
+    "hits record", "all-time high", "52-week high", "52-week low",
     # Japanese
     "決算", "業績", "純利益", "営業利益", "売上", "増益", "減益", "予想", "見通し",
     "配当", "自社株買い", "買収", "合併", "提携", "受注", "出荷",
@@ -345,7 +361,48 @@ MICRO_KEYWORDS = [
     "インタビュー", "対談", "特集", "企業分析", "経営戦略", "ビジネスモデル",
     "不足", "供給不足", "部品不足", "原材料", "在庫", "サプライチェーン",
     "社長インタビュー", "トップインタビュー",
+    # Japanese — shareholder activity / stake sales / activist
+    "売却", "売り出し", "売出", "保有株", "持ち分", "持分", "持株売却",
+    "親会社売却", "大株主", "ロックアップ", "ブロック取引",
+    "アクティビスト", "物言う株主", "ファンド", "プライベートエクイティ",
+    # Japanese — significant price moves
+    "急落", "急騰", "ストップ高", "ストップ安", "急伸", "急反発", "年初来高値",
+    "年初来安値", "上場来高値",
 ]
+
+# Company-action triggers — a curated subset of MICRO_KEYWORDS used to spot
+# macro-bucket articles that almost certainly describe a single-company event
+# (stake sale, PE exit, activist stake, sharp price move). These are the
+# articles that should be fed into the LLM classifier even if keyword scoring
+# classified them as macro — otherwise stories like KKR selling down Kokusai
+# Electric never get a corp_action and never earn is_priority_signal.
+COMPANY_TRIGGER_TERMS = [
+    # English — stake / selldown / block trade / lock-up
+    "stake", "sells stake", "stake sale", "block trade", "block sale",
+    "sell-down", "selldown", "sell down", "secondary placement", "share placement",
+    "share offering", "secondary share", "trims stake", "pares stake",
+    "lock-up", "lockup", "lock up expir",
+    # English — PE / activist firms (a named firm in a headline almost always
+    # signals a corporate action)
+    "private equity", "pe exit", "buyout fund",
+    "kkr", "carlyle", "blackstone", "bain capital", "cvc", "advantage partners",
+    "japan industrial partners", "polaris capital", "integral",
+    "activist", "activist investor", "elliott", "valueact", "oasis", "third point",
+    "starboard", "icahn",
+    # English — sharp price moves (when a named stock plunges/surges, there is
+    # almost always a corporate cause worth surfacing)
+    "shares slump", "shares plunge", "shares jump", "shares surge",
+    "shares fall", "shares drop", "shares soar", "shares tumble",
+    "stock plunges", "stock surges", "stock tumbles", "stock jumps",
+    "tumbles", "soars", "limit up", "limit down",
+    # Japanese — stake / selldown / activist
+    "売却", "売り出し", "売出", "保有株", "持ち分", "持分", "持株売却",
+    "親会社売却", "大株主", "ロックアップ", "ブロック取引",
+    "アクティビスト", "物言う株主", "プライベートエクイティ",
+    # Japanese — sharp price moves
+    "急落", "急騰", "ストップ高", "ストップ安", "急伸", "急反発",
+]
+
 
 # Macro/policy keyword signals
 MACRO_KEYWORDS = [
@@ -693,6 +750,8 @@ CORP_ACTION_TYPES = {
     "buyback":            {"label": "Buyback",            "emoji": "🔄", "direction": "positive", "priority": True},
     "capital_raise":      {"label": "Capital Raise",      "emoji": "🏦", "direction": "negative", "priority": True},
     "rights_issue":       {"label": "Rights Issue",       "emoji": "📄", "direction": "negative", "priority": True},
+    "shareholder_selldown":{"label": "Shareholder Selldown","emoji": "📉", "direction": "negative", "priority": True},
+    "activist_stake":     {"label": "Activist Stake",     "emoji": "🦅", "direction": "mixed",    "priority": True},
     # M&A / corporate structure
     "ma_acquirer":        {"label": "M&A: Acquirer",      "emoji": "🤝", "direction": "mixed",    "priority": True},
     "ma_target":          {"label": "M&A: Target",        "emoji": "🎯", "direction": "positive", "priority": True},
@@ -770,7 +829,10 @@ For EACH headline, return a JSON object with:
 Rules:
 - "none" = no specific corporate action, just general news
 - Use "mixed" for M&A acquirer (may overpay), restructuring (short pain / long gain)
-- Extract TSE code from article content or known companies (Toyota=7203, Sony=6758, SoftBank=9984, Nintendo=7974, Honda=7267, Keyence=6861, Tokyo Electron=8035, NTT=9432, KDDI=9433, Recruit=6098, Hitachi=6501, Fanuc=6954, Daikin=6367, Mitsubishi UFJ=8306, Sumitomo Mitsui=8316, Mizuho=8411, Fast Retailing=9983, etc.)
+- Use "shareholder_selldown" when a major shareholder, parent, or PE/buyout fund (KKR, Carlyle, Bain, Blackstone, CVC, Advantage Partners, JIP, etc.) sells down, exits, or trims its stake; also for post-IPO lock-up expiries and secondary share offerings by existing holders. Direction usually negative (supply overhang).
+- Use "activist_stake" when an activist investor (Elliott, Oasis, ValueAct, Third Point, Starboard, 物言う株主) takes a stake or makes public demands.
+- A headline reporting a sharp share-price move (急落/急騰/plunges/surges/limit up/down) usually points to a corporate event — pick the action that caused it (e.g. earnings_miss, shareholder_selldown, guidance_cut) rather than "none".
+- Extract TSE code from article content or known companies (Toyota=7203, Sony=6758, SoftBank=9984, Nintendo=7974, Honda=7267, Keyence=6861, Tokyo Electron=8035, NTT=9432, KDDI=9433, Recruit=6098, Hitachi=6501, Fanuc=6954, Daikin=6367, Mitsubishi UFJ=8306, Sumitomo Mitsui=8316, Mizuho=8411, Fast Retailing=9983, Kokusai Electric=6525, etc.)
 - high confidence = headline explicitly states the action; medium = implied; low = uncertain
 
 Return ONLY a JSON array, no markdown, no explanation:
@@ -826,10 +888,34 @@ Headlines:
             a.setdefault("is_priority_signal", False)
 
 
-def run_classifier_on_fetch(unique: list, api_key: str, max_articles: int = 50) -> list:
+_TSE_CODE_RE = re.compile(r"\b\d{4}\b")
+
+
+def _is_macro_company_trigger(a) -> bool:
+    """Return True if a macro-bucket article looks like a single-company event.
+
+    Triggered by an explicit company-action term (PE/activist firm name,
+    stake/selldown wording, sharp price move) OR a 4-digit TSE code in the
+    title. These are the articles the LLM classifier should see even though
+    keyword scoring put them in the macro bucket.
     """
-    Run classifier on the top 50 micro articles from a fetch.
-    Only classifies articles not already classified.
+    text = ((a.get("translated_title") or a.get("title") or "") + " " +
+            a.get("original_title", "")).lower()
+    if any(term in text for term in COMPANY_TRIGGER_TERMS):
+        return True
+    return bool(_TSE_CODE_RE.search(text))
+
+
+def run_classifier_on_fetch(unique: list, api_key: str,
+                            max_micro: int = 50, max_macro: int = 30) -> list:
+    """
+    Run the LLM classifier on a two-tier candidate set:
+      Tier A — micro + wadai-expand articles (up to `max_micro`)
+      Tier B — macro articles that look like single-company events
+               (PE firm name, stake/selldown wording, sharp price move,
+               or a 4-digit TSE code) — up to `max_macro`
+    Only classifies articles not already classified. One Haiku call covers
+    both tiers.
     """
     if not api_key:
         # Set safe defaults so UI doesn't crash
@@ -842,16 +928,29 @@ def run_classifier_on_fetch(unique: list, api_key: str, max_articles: int = 50) 
             a.setdefault("is_priority_signal", False)
         return unique
 
-    candidates = [
+    def _sort_recent(items):
+        return sorted(items, key=lambda a: a.get("pub_dt") or datetime.min, reverse=True)
+
+    tier_a = _sort_recent([
         a for a in unique
         if (a.get("news_type") == "micro" or a.get("is_wadai_expand"))
         and not a.get("corp_action")
-    ]
-    candidates.sort(key=lambda a: a.get("pub_dt") or datetime.min, reverse=True)
-    to_classify = candidates[:max_articles]
+    ])[:max_micro]
+
+    seen_urls = {a.get("url") for a in tier_a if a.get("url")}
+    tier_b = _sort_recent([
+        a for a in unique
+        if a.get("news_type") == "macro"
+        and not a.get("corp_action")
+        and a.get("url") not in seen_urls
+        and _is_macro_company_trigger(a)
+    ])[:max_macro]
+
+    to_classify = tier_a + tier_b
 
     if to_classify:
-        print(f"Classifying {len(to_classify)} micro articles...")
+        print(f"Classifying {len(to_classify)} articles "
+              f"({len(tier_a)} micro + {len(tier_b)} macro-trigger)...")
         classify_articles_batch(to_classify, api_key)
 
     # Defaults for unclassified articles
@@ -1303,7 +1402,7 @@ def _fetch_all_news_inner() -> dict:
             _api_key = _os.environ.get("ANTHROPIC_API_KEY", "")
     except Exception:
         _api_key = _os.environ.get("ANTHROPIC_API_KEY", "") if "_os" in dir() else ""
-    run_classifier_on_fetch(unique, _api_key, max_articles=50)
+    run_classifier_on_fetch(unique, _api_key, max_micro=50, max_macro=30)
 
 
     # Group by MSCI sector

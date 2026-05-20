@@ -238,8 +238,17 @@ def flag_high_value_articles(articles: list) -> list:
         "ipo", "listing", "restructur", "layoff", "recall",
         "quarterly", "annual result", "full year", "guidance",
         "upgrade", "downgrade", "target price",
+        # Shareholder activity / stake sales / PE exits / activists
+        "stake", "selldown", "sell-down", "sell down", "block trade",
+        "secondary placement", "share placement", "lock-up", "lockup",
+        "private equity", "pe exit", "activist",
+        "kkr", "carlyle", "blackstone", "bain capital",
+        # Significant share-price moves
+        "plunge", "slump", "surge", "soar", "tumble", "limit up", "limit down",
         "決算", "業績", "配当", "買収", "合併", "上場", "増配",
         "減配", "自社株買い", "リストラ", "通期", "上方修正", "下方修正",
+        "売却", "売り出し", "売出", "保有株", "大株主", "ロックアップ",
+        "アクティビスト", "物言う株主", "急落", "急騰", "ストップ高", "ストップ安",
     ]
 
     flagged = []
