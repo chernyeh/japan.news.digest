@@ -569,6 +569,42 @@ a.summary-link:hover { background: #5C2E00 !important; }
     margin-bottom: 0.8rem; font-size: 1.0rem; line-height: 1.8;
 }
 
+/* In-Brief panel — newspaper-sidebar list of notable-but-not-headlined items */
+.in-brief-panel {
+    background: #FBF7F1; border-left: 3px solid #C9A87C;
+    padding: 0.65rem 0.9rem 0.75rem 0.95rem; margin: 0.4rem 0 0.8rem 0;
+    border-radius: 2px;
+}
+.in-brief-title {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #5C4033; margin-bottom: 0.5rem;
+}
+.in-brief-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 1.2rem;
+}
+.in-brief-section-title {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+    color: #4A3528; margin-bottom: 0.25rem;
+}
+.in-brief-list {
+    list-style: none; margin: 0; padding: 0;
+}
+.in-brief-list li {
+    margin: 0 0 0.4rem 0; padding: 0; font-size: 0.82rem; line-height: 1.35;
+}
+.in-brief-list li a {
+    color: #1A1A1A; text-decoration: none; font-weight: 500;
+}
+.in-brief-list li a:hover { text-decoration: underline; }
+.in-brief-meta {
+    font-size: 0.66rem; color: #8B7B6A; margin-top: 0.1rem;
+    letter-spacing: 0.02em;
+}
+@media (max-width: 600px) {
+    .in-brief-grid { grid-template-columns: 1fr; }
+}
+
 /* Filings table */
 .filings-table {
     width: 100%; border-collapse: collapse; font-size: 0.82rem;
@@ -669,6 +705,147 @@ if "_cache_loaded" not in st.session_state:
             if _cached_idx:
                 st.session_state[_sk] = _cached_idx
     st.session_state._cache_loaded = True
+
+
+# ── In-Brief panel helper ─────────────────────────────────────────────────────
+# Terms used to spot "named-stock big price move" headlines for the In-Brief
+# panel's price-movers section. Kept inline (not imported from collector) so the
+# panel logic stays self-contained.
+_IN_BRIEF_PRICE_MOVE_TERMS = (
+    "plunge", "slump", "surge", "tumble", "jump", "soar", "sink",
+    "limit up", "limit down",
+    "急落", "急騰", "急伸", "急反発", "ストップ高", "ストップ安",
+)
+_IN_BRIEF_TSE_CODE_RE_PY = __import__("re").compile(r"\b\d{4}\b")
+
+
+def _article_url(a) -> str:
+    return a.get("url", "") or ""
+
+
+def _article_headline_text(a) -> str:
+    return ((a.get("translated_title") or a.get("title") or a.get("original_title") or "") +
+            " " + (a.get("original_title") or "")).lower()
+
+
+def _matches_watchlist(a, known_aliases) -> bool:
+    """True if article title or company_code matches any KNOWN_COMPANIES alias."""
+    code = (a.get("company_code") or "").strip()
+    if code and code in known_aliases:
+        return True
+    text = _article_headline_text(a)
+    return any(alias in text for alias in known_aliases)
+
+
+def _build_in_brief_items(pool_all, briefing_pool, max_per_section: int = 4):
+    """Return an ordered list of (section_label, emoji, [articles]) tuples for
+    the In-Brief panel. Each article appears in at most one section
+    (first-section-wins). Articles already in `briefing_pool[:20]` are skipped
+    so the panel never duplicates a full AI bullet above it.
+    """
+    try:
+        from watchlist import KNOWN_COMPANIES
+        # Flatten all aliases into a single lowercase set for fast matching.
+        known_aliases = {alias.lower() for aliases in KNOWN_COMPANIES.values() for alias in aliases}
+    except Exception:
+        known_aliases = set()
+
+    # URLs that already appear at the top of the briefing — skip in the panel.
+    top_briefing_urls = {_article_url(a) for a in (briefing_pool or [])[:20] if _article_url(a)}
+    seen_urls = set(top_briefing_urls)
+
+    pe_actions = {"shareholder_selldown", "activist_stake",
+                  "ma_acquirer", "ma_target", "ma_rumour"}
+
+    def _take(predicate, limit):
+        out = []
+        for a in pool_all:
+            if len(out) >= limit:
+                break
+            url = _article_url(a)
+            if not url or url in seen_urls:
+                continue
+            if predicate(a):
+                out.append(a)
+                seen_urls.add(url)
+        return out
+
+    sections = []
+
+    # 1. Activists & PE moves — corporate-action driven.
+    pe_items = _take(lambda a: a.get("corp_action") in pe_actions, max_per_section)
+    if pe_items:
+        sections.append(("Activists & PE moves", "🦅", pe_items))
+
+    # 2. Price movers — high-value AND a sharp-price-move term AND a company/TSE code.
+    def _is_price_mover(a):
+        if not a.get("high_value"):
+            return False
+        text = _article_headline_text(a)
+        if not any(term in text for term in _IN_BRIEF_PRICE_MOVE_TERMS):
+            return False
+        if a.get("company_code"):
+            return True
+        if _IN_BRIEF_TSE_CODE_RE_PY.search(text):
+            return True
+        return any(alias in text for alias in known_aliases) if known_aliases else False
+
+    mover_items = _take(_is_price_mover, max_per_section)
+    if mover_items:
+        sections.append(("Price movers", "📉", mover_items))
+
+    # 3. Watchlist mentions — anything matching KNOWN_COMPANIES not already taken.
+    if known_aliases:
+        watch_items = _take(lambda a: _matches_watchlist(a, known_aliases), max_per_section)
+        if watch_items:
+            sections.append(("Watchlist mentions", "👀", watch_items))
+
+    # 4. Macro notes — high-value macro headlines not covered above.
+    macro_items = _take(
+        lambda a: a.get("news_type") == "macro" and a.get("high_value"),
+        max_per_section,
+    )
+    if macro_items:
+        sections.append(("Macro notes", "🌐", macro_items))
+
+    total = sum(len(items) for _, _, items in sections)
+    if total < 3:
+        return []
+    return sections
+
+
+def _render_in_brief_panel(sections) -> str:
+    """Render the In-Brief panel as HTML. Empty string if no sections."""
+    if not sections:
+        return ""
+    parts = ['<div class="in-brief-panel">',
+             '<div class="in-brief-title">✦ In Brief — Also Notable</div>',
+             '<div class="in-brief-grid">']
+    for label, emoji, items in sections:
+        parts.append('<div class="in-brief-section">')
+        parts.append(f'<div class="in-brief-section-title">{emoji} {label}</div>')
+        parts.append('<ul class="in-brief-list">')
+        for a in items:
+            title = a.get("title") or a.get("translated_title") or a.get("original_title", "")
+            url   = _article_url(a) or "#"
+            src   = a.get("source", "")
+            pub_dt = a.get("pub_dt")
+            time_str = ""
+            if pub_dt:
+                try:
+                    time_str = format_local_dt(pub_dt)
+                except Exception:
+                    time_str = ""
+            meta = src + (" · " + time_str if time_str else "")
+            parts.append(
+                '<li>'
+                f'<a href="{_safe_url(url)}" target="_blank">{_safe_text(title)}</a>'
+                f'<div class="in-brief-meta">{_safe_text(meta)}</div>'
+                '</li>'
+            )
+        parts.append('</ul></div>')
+    parts.append('</div></div>')
+    return "".join(parts)
 
 
 # ── AI Summary helper ─────────────────────────────────────────────────────────
@@ -904,8 +1081,17 @@ Write a COMPLETE, INVESTMENT-FOCUSED briefing. For each story, go beyond the hea
 Structure:
 1. Opening paragraph (3-4 sentences): overall market tone, dominant themes, and top investment implication
 2. Thematic clusters with ## headers — group stories logically. Company and business-specific news is more actionable for investment decisions; prioritise it over macro/political news when both are present.
-   Cluster examples (use what fits the day's news): "Corporate Earnings & Guidance", "CEO & Executive Insights", "Stock Movers & Themes", "M&A & Restructuring", "Executive Changes", "Supply Chain & Raw Materials", "Business Features & Sector Trends", "BOJ & Rates", "Yen & FX", "Trade & Geopolitics", "Energy & Commodities"
-3. Under each cluster: bullet points covering every significant story. For company-specific stories actively look for and call out: executive interviews and what they reveal about strategy or outlook; earnings numbers and what they suggest about the business trajectory; stocks that moved significantly and whether a common theme links them; executive appointments or departures and what they signal; business magazine features or in-depth sector analyses (e.g. Toyo Keizai, Diamond, President); supply chain disruptions, component shortages, or raw material pressures affecting Japanese businesses; Japan-specific business trends that mirror or diverge from global patterns
+   Cluster examples (use what fits the day's news): "Corporate Earnings & Guidance", "CEO & Executive Insights", "Stock Movers & Themes", "Shareholder Activity & Stake Sales", "Activist Investors", "M&A & Restructuring", "Executive Changes", "Supply Chain & Raw Materials", "Business Features & Sector Trends", "BOJ & Rates", "Yen & FX", "Trade & Geopolitics", "Energy & Commodities"
+3. Under each cluster: bullet points covering every significant story. Treat the headline list as a CHECKLIST — do not silently drop any micro/company-specific item. If a headline names a company and a corporate event, it belongs in the briefing. Actively look for and call out:
+   - Executive interviews and what they reveal about strategy or outlook
+   - Earnings numbers and what they suggest about the business trajectory
+   - Single-name share price moves — any headline saying a named stock plunged/surged/slumped/jumped/hit a limit. Identify the company-specific cause (selldown, earnings, guidance, contract loss, scandal) and the investment implication; never lump these into generic "market moves"
+   - Shareholder activity by major holders, parents, PE/buyout funds (KKR, Carlyle, Bain, Blackstone, CVC, JIP, Advantage Partners), and post-IPO lock-up expiries — these create supply overhangs and are highly actionable. Flag the seller, the size if disclosed, and the read-through to other PE-backed Japanese listings
+   - Activist investor stakes and demands (Elliott, Oasis, ValueAct, Third Point, Starboard, 物言う株主) — what they want and the precedent
+   - Executive appointments or departures and what they signal
+   - Business magazine features or in-depth sector analyses (e.g. Toyo Keizai, Diamond, President)
+   - Supply chain disruptions, component shortages, or raw material pressures affecting Japanese businesses
+   - Japan-specific business trends that mirror or diverge from global patterns
 4. Closing ## What to Watch section: 3-5 forward-looking points with specific catalysts to monitor
 
 Format rules:
@@ -914,6 +1100,7 @@ Format rules:
 - Cite sources using [N] at the end of each bullet where N is the headline number from the list above (e.g. [12] or [12][15]). Use only numbers, no other brackets or URLs.
 - Do NOT write (Headline N) — use [N] only
 - Cover every meaningful story — do not skip or truncate
+- Every single-name company story is meaningful by default: any headline that names a TSE-listed company together with an event (price move, stake sale, earnings, M&A, executive change, contract, guidance, regulatory action, lock-up expiry) MUST appear as its own bullet. Do not roll these up into a generic "other movers" line.
 - No preamble, no filler, no generic observations
 - If the article pool contains company-specific stories, ensure they appear in at least half the thematic clusters
 {prompt_extra}
@@ -1223,20 +1410,46 @@ with tab_bytime:
         with _bt_col2:
             _bytime_gen_btn = st.button("✨ Summarise", key="btn_summary_bytime", use_container_width=True)
         # Balance micro vs macro so high-frequency wire services can't crowd out
-        # company-specific articles. Target up to 30 from each group (50/50 ceiling);
-        # if one pool is thin the other fills the remaining slots.
-        _brief_all   = articles_24h or all_articles
-        _brief_micro = [a for a in _brief_all if a.get("news_type") == "micro"]
-        _brief_macro = [a for a in _brief_all if a.get("news_type") != "micro"]
-        _n_micro     = min(len(_brief_micro), 30)
-        _n_macro     = min(len(_brief_macro), 60 - _n_micro)
+        # company-specific articles. Within each pool, prefer priority corporate-action
+        # signals and high-value flags so important micro stories (selldowns, earnings,
+        # M&A, big price moves) aren't pushed out by FIFO ordering.
+        _brief_all   = flag_high_value_articles(articles_24h or all_articles)
+        def _brief_rank(a):
+            return (
+                0 if a.get("is_priority_signal") else 1,
+                0 if a.get("high_value") else 1,
+                -(a.get("pub_dt").timestamp() if a.get("pub_dt") else 0),
+            )
+        _brief_micro = sorted(
+            [a for a in _brief_all if a.get("news_type") == "micro"],
+            key=_brief_rank,
+        )
+        _brief_macro = sorted(
+            [a for a in _brief_all if a.get("news_type") != "micro"],
+            key=_brief_rank,
+        )
+        _n_micro     = min(len(_brief_micro), 40)
+        _n_macro     = min(len(_brief_macro), 70 - _n_micro)
         _briefing_pool = _brief_micro[:_n_micro] + _brief_macro[:_n_macro]
         render_ai_summary(
             _briefing_pool,
             "the last 24 hours of Japan business news across all sources",
             "summary_bytime",
-            _override_btn=_bytime_gen_btn
+            max_articles=70,
+            _override_btn=_bytime_gen_btn,
         )
+
+        # ── In Brief — Also Notable ────────────────────────────────────────
+        # Code-driven sidebar list of notable headlines that didn't get a full
+        # AI bullet. Pulled from the same 24h pool (already flagged for
+        # high_value above when _brief_all was built). The briefing pool is
+        # passed so we can suppress duplicates of items already covered in the
+        # AI briefing's top bullets.
+        _in_brief_sections = _build_in_brief_items(_brief_all, _briefing_pool)
+        _in_brief_html = _render_in_brief_panel(_in_brief_sections)
+        if _in_brief_html:
+            st.markdown(_in_brief_html, unsafe_allow_html=True)
+
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
         # Ensure high_value flags are set
