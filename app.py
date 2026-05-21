@@ -1078,31 +1078,27 @@ Here are {len(subset)} headlines from {context}:
 
 Write a COMPLETE, INVESTMENT-FOCUSED briefing. For each story, go beyond the headline — provide context, historical levels where relevant (e.g. previous interest rate levels, prior guidance figures, historical precedent), and flag whether this is part of a trend or a one-off event. Highlight actionable implications for stock or sector positioning.
 
-Structure:
-1. Opening paragraph (3-4 sentences): overall market tone, dominant themes, and top investment implication
-2. Thematic clusters with ## headers — group stories logically. Company and business-specific news is more actionable for investment decisions; prioritise it over macro/political news when both are present.
-   Cluster examples (use what fits the day's news): "Corporate Earnings & Guidance", "CEO & Executive Insights", "Stock Movers & Themes", "Shareholder Activity & Stake Sales", "Activist Investors", "M&A & Restructuring", "Executive Changes", "Supply Chain & Raw Materials", "Business Features & Sector Trends", "BOJ & Rates", "Yen & FX", "Trade & Geopolitics", "Energy & Commodities"
-3. Under each cluster: bullet points covering every significant story. Treat the headline list as a CHECKLIST — do not silently drop any micro/company-specific item. If a headline names a company and a corporate event, it belongs in the briefing. Actively look for and call out:
-   - Executive interviews and what they reveal about strategy or outlook
-   - Earnings numbers and what they suggest about the business trajectory
-   - Single-name share price moves — any headline saying a named stock plunged/surged/slumped/jumped/hit a limit. Identify the company-specific cause (selldown, earnings, guidance, contract loss, scandal) and the investment implication; never lump these into generic "market moves"
-   - Shareholder activity by major holders, parents, PE/buyout funds (KKR, Carlyle, Bain, Blackstone, CVC, JIP, Advantage Partners), and post-IPO lock-up expiries — these create supply overhangs and are highly actionable. Flag the seller, the size if disclosed, and the read-through to other PE-backed Japanese listings
-   - Activist investor stakes and demands (Elliott, Oasis, ValueAct, Third Point, Starboard, 物言う株主) — what they want and the precedent
-   - Executive appointments or departures and what they signal
-   - Business magazine features or in-depth sector analyses (e.g. Toyo Keizai, Diamond, President)
-   - Supply chain disruptions, component shortages, or raw material pressures affecting Japanese businesses
-   - Japan-specific business trends that mirror or diverge from global patterns
-4. Closing ## What to Watch section: 3-5 forward-looking points with specific catalysts to monitor
+Structure (follow this top-to-bottom order):
+
+1. Opening paragraph (3-4 sentences): overall market tone, dominant themes across BOTH macro and corporate news, and the top investment implication.
+
+2. **Macro, policy & business clusters FIRST** — these come before any company briefs and form the bulk of the briefing. Use ## headers, one per cluster, grouped logically. Treat the headline list as a checklist: do not silently drop a macro, policy, sectoral, or business-trend item that has real investment implications.
+   Cluster examples (use what fits the day's news): "BOJ & Rates", "Yen & FX", "Trade & Geopolitics", "Government Policy & Regulation", "Energy & Commodities", "Industry & Sector Trends", "Supply Chain & Raw Materials", "Tech & Semiconductors", "Auto & Mobility", "Banks & Financials", "Real Estate & Construction", "Business Features & Macro Analyses" (e.g. Toyo Keizai, Diamond, President in-depth pieces).
+   Under each cluster: 2-4 sentence bullets that lead with the key fact, add context/comparison (e.g. "vs prior quarter", "first time since...", "X-year high/low", previous policy-rate level), and state the investment implication.
+
+3. **## Company Briefs** — single ## section at the END, just before What to Watch. Cover single-name corporate developments here: earnings & guidance, M&A, shareholder activity (selldowns, activist stakes, PE exits, lock-up expiries), executive changes, contract wins/losses, regulatory actions, and single-stock price moves with their company-specific cause. Use **sub-bullets grouped by event type** (e.g. one parent bullet "Earnings & guidance:" then sub-bullets per name; another "Shareholder activity:" with KKR/Kokusai-class items; another "M&A & restructuring:"). Each item can be 1-2 sentences — be concise; the goal is breadth across names, not depth per name. Ensure stake-sale / PE-exit / activist stories make it into this section when present in the headline pool — they are highly actionable.
+
+4. **## What to Watch** — 3-5 forward-looking points with specific catalysts to monitor (data releases, BOJ meetings, earnings dates, expected M&A closings, etc.).
 
 Format rules:
-- ## headers for each cluster
-- Each bullet: 2-4 sentences. Lead with the key fact, then add context/comparison (e.g. "vs prior quarter", "first time since...", "X-year high/low"), then state the investment implication or risk
+- ## headers for each cluster and for "Company Briefs" / "What to Watch".
+- Macro/business bullets: 2-4 sentences as above.
+- Company Briefs sub-bullets: 1-2 sentences each, terse.
 - Cite sources using [N] at the end of each bullet where N is the headline number from the list above (e.g. [12] or [12][15]). Use only numbers, no other brackets or URLs.
-- Do NOT write (Headline N) — use [N] only
-- Cover every meaningful story — do not skip or truncate
-- Every single-name company story is meaningful by default: any headline that names a TSE-listed company together with an event (price move, stake sale, earnings, M&A, executive change, contract, guidance, regulatory action, lock-up expiry) MUST appear as its own bullet. Do not roll these up into a generic "other movers" line.
-- No preamble, no filler, no generic observations
-- If the article pool contains company-specific stories, ensure they appear in at least half the thematic clusters
+- Do NOT write (Headline N) — use [N] only.
+- Cover every meaningful story across BOTH macro and micro — do not skip or truncate.
+- Company Briefs goes at the bottom; do not let it crowd out macro/business clusters above. Macro/business analysis should account for roughly two-thirds of the briefing's bulk.
+- No preamble, no filler, no generic observations.
 {prompt_extra}
 IMPORTANT: Complete the entire briefing including What to Watch. Never truncate mid-bullet.
 
@@ -1428,14 +1424,19 @@ with tab_bytime:
             [a for a in _brief_all if a.get("news_type") != "micro"],
             key=_brief_rank,
         )
-        _n_micro     = min(len(_brief_micro), 40)
-        _n_macro     = min(len(_brief_macro), 70 - _n_micro)
-        _briefing_pool = _brief_micro[:_n_micro] + _brief_macro[:_n_macro]
+        # Macro-leaning split: the briefing covers macro/business as the bulk
+        # and consolidates single-name news into a Company Briefs section at
+        # the bottom. The In-Brief panel below catches micro spillover, so
+        # the pool can afford to lean toward macro coverage.
+        _n_macro     = min(len(_brief_macro), 45)
+        _n_micro     = min(len(_brief_micro), 75 - _n_macro)
+        _briefing_pool = _brief_macro[:_n_macro] + _brief_micro[:_n_micro]
         render_ai_summary(
             _briefing_pool,
             "the last 24 hours of Japan business news across all sources",
             "summary_bytime",
-            max_articles=70,
+            max_articles=75,
+            max_tokens=12000,
             _override_btn=_bytime_gen_btn,
         )
 
