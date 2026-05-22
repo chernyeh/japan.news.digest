@@ -41,7 +41,7 @@ jobs:
 
           today = date.today()
           archive_dir = "data/archive"
-          PERIODS = {"3M": (91, 14), "6M": (181, 21), "12M": (365, 28)}
+          PERIODS = {"3M": (91, 28), "6M": (181, 42), "12M": (365, 42)}
           TOPIX_CODES = ["1308", "1306"]
 
           today_prices = {}
@@ -171,39 +171,46 @@ jobs:
 
               periods_need_prices = [p for p in missing if p not in past_prices]
               if periods_need_prices:
+                  import time as _time
                   codes = list(today_prices.keys())
                   tickers = [c + ".T" for c in codes]
-                  BATCH = 500
+                  BATCH = 50
                   total = (len(tickers) + BATCH - 1) // BATCH
                   for i in range(0, len(tickers), BATCH):
                       batch = tickers[i:i+BATCH]
                       n = i // BATCH + 1
-                      if n % 5 == 0:
+                      if n % 10 == 0:
                           print(f"  Batch {n}/{total}")
-                      try:
-                          raw = yf.download(batch, period="13mo", auto_adjust=True,
-                                            progress=False, group_by="ticker")
-                          if raw.empty:
-                              continue
-                          for t in batch:
-                              code = t.replace(".T","")
-                              for period in periods_need_prices:
-                                  if period not in past_prices:
-                                      past_prices[period] = {}
-                                  if code in past_prices[period]:
-                                      continue
-                                  try:
-                                      if isinstance(raw.columns, pd.MultiIndex):
-                                          closes = raw[t]["Close"].dropna()
-                                      else:
-                                          closes = raw["Close"].dropna()
-                                      if len(closes) >= 20:
-                                          idx = max(0, len(closes) - PERIODS[period][0])
-                                          past_prices[period][code] = float(closes.iloc[idx])
-                                  except Exception:
-                                      pass
-                      except Exception as e:
-                          print(f"Batch {n} error: {e}")
+                      for attempt in range(3):
+                          try:
+                              raw = yf.download(batch, period="13mo", auto_adjust=True,
+                                                progress=False, group_by="ticker",
+                                                threads=False)
+                              if raw.empty:
+                                  break
+                              for t in batch:
+                                  code = t.replace(".T","")
+                                  for period in periods_need_prices:
+                                      if period not in past_prices:
+                                          past_prices[period] = {}
+                                      if code in past_prices[period]:
+                                          continue
+                                      try:
+                                          if isinstance(raw.columns, pd.MultiIndex):
+                                              closes = raw[t]["Close"].dropna()
+                                          else:
+                                              closes = raw["Close"].dropna()
+                                          if len(closes) >= 20:
+                                              idx = max(0, len(closes) - PERIODS[period][0])
+                                              past_prices[period][code] = float(closes.iloc[idx])
+                                      except Exception:
+                                          pass
+                              break
+                          except Exception as e:
+                              print(f"Batch {n} attempt {attempt+1} error: {e}")
+                              if attempt < 2:
+                                  _time.sleep(5 * (attempt + 1))
+                      _time.sleep(2)
                   for p in periods_need_prices:
                       print(f"  yfinance {p}: {len(past_prices.get(p,{}))} stocks")
 

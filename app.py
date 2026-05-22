@@ -2852,10 +2852,16 @@ with tab_screener:
         # ── Build merged stock list ───────────────────────────────────────────
         _scr_stocks = []
         for _code, _perfs in _scr_perf.items():
+            _name   = NAMES_LOOKUP.get(_code, "")
+            _sector = SECTOR_LOOKUP.get(_code, "")
+            # Skip ETFs, indices, and funds: no name AND no sector means
+            # the code is not a regular listed company in our universe
+            if not _name and not _sector:
+                continue
             _scr_stocks.append({
                 "code":   _code,
-                "name":   NAMES_LOOKUP.get(_code, f"({_code})"),
-                "sector": SECTOR_LOOKUP.get(_code, ""),
+                "name":   _name or f"({_code})",
+                "sector": _sector,
                 "mktcap": _scr_mktcap.get(_code),
                 "price":  _scr_prices.get(_code),
                 "vs3m":   _perfs.get("vs3m"),
