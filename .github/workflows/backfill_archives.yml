@@ -1,0 +1,144 @@
+name: Backfill Historical Price Archives
+
+# One-time manual trigger only — run this once to generate the 6M and 12M
+# archive snapshots that the weekly_3m_perf workflow needs.
+on:
+  workflow_dispatch:
+    inputs:
+      target_dates:
+        description: 'Comma-separated target dates (YYYY-MM-DD). Defaults to ~6M and ~12M ago from today.'
+        required: false
+        default: ''
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install yfinance pandas requests
+
+      - name: Write backfill script
+        run: |
+          cat > backfill_archives.py << 'PYEOF'
+          import yfinance as yf
+          import pandas as pd
+          import csv
+          import os
+          import sys
+          import time
+          from datetime import date, timedelta
+
+          # Determine target dates: 6M and 12M ago (or from env/input)
+          import os as _os
+          _input = _os.environ.get("TARGET_DATES", "").strip()
+          today = date.today()
+          if _input:
+              target_dates = [d.strip() for d in _input.split(",") if d.strip()]
+          else:
+              d6m  = today - timedelta(days=181)
+              d12m = today - timedelta(days=365)
+              target_dates = [str(d6m), str(d12m)]
+
+          print(f"Backfilling archive snapshots for: {target_dates}")
+
+          # Load current stock universe
+          today_codes = []
+          with open("data/jquants_prices_latest.csv") as f:
+              for row in csv.DictReader(f):
+                  code = str(row.get("Code","")).strip().zfill(4)[:4]
+                  if code:
+                      today_codes.append(code)
+          print(f"Stock universe: {len(today_codes)} codes")
+
+          tickers = [c + ".T" for c in today_codes]
+          BATCH = 50
+
+          # Download full 14-month history for all stocks in small batches
+          all_history = {}  # {code: pd.Series of closes indexed by date}
+          total = (len(tickers) + BATCH - 1) // BATCH
+          for i in range(0, len(tickers), BATCH):
+              batch = tickers[i:i+BATCH]
+              n = i // BATCH + 1
+              if n % 10 == 0 or n == 1:
+                  print(f"  Downloading batch {n}/{total} ({len(all_history)} stocks so far)")
+              for attempt in range(3):
+                  try:
+                      raw = yf.download(batch, period="14mo", auto_adjust=True,
+                                        progress=False, group_by="ticker", threads=False)
+                      if raw.empty:
+                          break
+                      for t in batch:
+                          code = t.replace(".T", "")
+                          try:
+                              if isinstance(raw.columns, pd.MultiIndex):
+                                  closes = raw[t]["Close"].dropna()
+                              else:
+                                  closes = raw["Close"].dropna()
+                              if len(closes) >= 20:
+                                  # Index to date strings for easy lookup
+                                  closes.index = pd.to_datetime(closes.index)
+                                  all_history[code] = closes
+                          except Exception:
+                              pass
+                      break
+                  except Exception as e:
+                      print(f"  Batch {n} attempt {attempt+1}: {e}")
+                      if attempt < 2:
+                          time.sleep(5 * (attempt + 1))
+              time.sleep(2)
+
+          print(f"Downloaded history for {len(all_history)} stocks")
+
+          # For each target date, extract the closest available price
+          os.makedirs("data/archive", exist_ok=True)
+          for target_str in target_dates:
+              target_dt = pd.Timestamp(target_str)
+              snapshot = {}
+              for code, closes in all_history.items():
+                  # Find closest trading day at or before target date
+                  candidates = closes[closes.index <= target_dt]
+                  if len(candidates) == 0:
+                      # Try after target date (within 5 days)
+                      candidates = closes[(closes.index > target_dt) &
+                                         (closes.index <= target_dt + pd.Timedelta(days=5))]
+                  if len(candidates) > 0:
+                      price = float(candidates.iloc[-1])
+                      if price > 0:
+                          snapshot[code] = price
+
+              out_file = f"data/archive/prices_{target_str}.csv"
+              with open(out_file, "w", newline="", encoding="utf-8") as f:
+                  w = csv.writer(f)
+                  w.writerow(["Code", "Close"])
+                  for code, price in sorted(snapshot.items()):
+                      w.writerow([code, price])
+              print(f"Written {out_file}: {len(snapshot)} stocks")
+          PYEOF
+
+      - name: Run backfill script
+        env:
+          TARGET_DATES: ${{ github.event.inputs.target_dates }}
+        run: python3 backfill_archives.py
+
+      - name: Commit and push archives
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/archive/
+          if git diff --staged --quiet; then
+            echo "No new archives to commit"
+          else
+            git commit -m "chore: backfill historical price archives [skip ci]"
+            git push
+          fi
