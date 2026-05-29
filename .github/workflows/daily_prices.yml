@@ -25,7 +25,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install yfinance pandas requests
+        run: pip install yfinance pandas requests openpyxl
 
       - name: Write fetch script
         run: |
@@ -55,8 +55,35 @@ jobs:
           else:
               print("WARNING: jquants_shares.csv not found")
 
+          # ── Union in codes from JPX earnings calendar ─────────────────────────
+          earnings_codes = set()
+          jpx_dir = "data/jpx_earnings"
+          if os.path.isdir(jpx_dir):
+              try:
+                  import openpyxl
+              except ImportError:
+                  openpyxl = None
+                  print("openpyxl not installed; skipping JPX earnings universe expansion")
+              if openpyxl:
+                  for fname in os.listdir(jpx_dir):
+                      if not fname.lower().endswith(".xlsx"):
+                          continue
+                      try:
+                          wb = openpyxl.load_workbook(
+                              os.path.join(jpx_dir, fname), data_only=True, read_only=True)
+                          ws = wb["List"] if "List" in wb.sheetnames else wb.active
+                          for row in ws.iter_rows(min_row=6, values_only=True):
+                              if not row or row[1] is None:
+                                  continue
+                              c = str(row[1]).strip().replace(".0", "")
+                              if c.isdigit() and len(c) == 4:
+                                  earnings_codes.add(c)
+                      except Exception as e:
+                          print(f"JPX parse error {fname}: {e}")
+          print(f"Earnings calendar codes: {len(earnings_codes)}")
+
           # ── Load codes ────────────────────────────────────────────────────────
-          codes = list(shares_map.keys())
+          codes = list(set(shares_map.keys()) | earnings_codes)
           if not codes and os.path.exists("data/jquants_prices_latest.csv"):
               with open("data/jquants_prices_latest.csv") as f:
                   for row in csv.DictReader(f):
@@ -99,7 +126,43 @@ jobs:
               sh = shares_map.get(code)
               if sh and sh > 0 and price > 0:
                   mcap_map[code] = round((price * sh) / 1e9, 1)
-          print(f"Market caps: {len(mcap_map)}")
+          print(f"Market caps (from shares x price): {len(mcap_map)}")
+
+          # ── Fallback: per-ticker .info for codes missing shares ──────────────
+          # Earnings-calendar codes that have no shares row need a direct
+          # marketCap pull. Also harvest sharesOutstanding to grow shares CSV.
+          new_shares = {}
+          missing = sorted(c for c in earnings_codes if c not in shares_map)
+          INFO_CAP = 600  # cap per run to keep wall time bounded
+          if len(missing) > INFO_CAP:
+              print(f"Capping .info fallback at {INFO_CAP} of {len(missing)} missing codes")
+              missing = missing[:INFO_CAP]
+          print(f"Fetching .info for {len(missing)} codes without shares data...")
+          for code in missing:
+              try:
+                  info = yf.Ticker(f"{code}.T").info or {}
+                  mc = info.get("marketCap")
+                  if mc and mc > 0:
+                      mcap_map[code] = round(mc / 1e9, 1)
+                  sh = info.get("sharesOutstanding")
+                  if sh and sh > 0:
+                      new_shares[code] = int(sh)
+              except Exception:
+                  continue
+          print(f"Fallback added: mcap+{sum(1 for c in missing if c in mcap_map)}, "
+                f"shares+{len(new_shares)}")
+
+          # ── Append newly-discovered shares to jquants_shares.csv ─────────────
+          if new_shares:
+              today_str_sh = datetime.utcnow().strftime("%Y-%m-%d")
+              header_needed = not os.path.exists("data/jquants_shares.csv")
+              with open("data/jquants_shares.csv", "a", newline="", encoding="utf-8") as f:
+                  w = csv.writer(f)
+                  if header_needed:
+                      w.writerow(["Code", "SharesOutstanding", "UpdatedDate"])
+                  for code, sh in sorted(new_shares.items()):
+                      w.writerow([code, sh, today_str_sh])
+              print(f"Appended {len(new_shares)} rows to jquants_shares.csv")
 
           # ── Write CSV ─────────────────────────────────────────────────────────
           os.makedirs("data", exist_ok=True)
@@ -144,7 +207,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/jquants_prices_latest.csv data/archive/
+          git add data/jquants_prices_latest.csv data/jquants_shares.csv data/archive/
           if git diff --staged --quiet; then
             echo "No changes"
           else
