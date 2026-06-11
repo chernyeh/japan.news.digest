@@ -3230,9 +3230,9 @@ with tab_earnings:
     # ── How this works info box ──────────────────────────────────────────────
     st.markdown(
         '<div style="font-size:0.65rem;color:#9B8B7A;margin-bottom:0.5rem;">'
-        'Data from JPX Excel files in your GitHub repo (<code>data/jpx_earnings/</code>). '
+        'Auto-updated every Tuesday from the '
         '<a href="https://www.jpx.co.jp/listing/event-schedules/financial-announcement/index.html" '
-        'target="_blank" style="color:#8B4513;">Download from JPX ↗</a>'
+        'target="_blank" style="color:#8B4513;">JPX Financial Announcement page ↗</a>.'
         '</div>',
         unsafe_allow_html=True
     )
