@@ -319,6 +319,15 @@ MICRO_SOURCES = {
     "Toyo Keizai", "Diamond Online", "President Online", "JBpress", "Zaikai Online",
 }
 
+# Business-feature magazines: long-form pieces on news topics / businesses that
+# are of-the-moment. These rarely carry the earnings/M&A keywords that drive the
+# high_value flag, so the AI Briefing's ranking would otherwise bury them behind
+# wire-service company news. Used to give them a gentle weighting boost so a few
+# reliably surface in the briefing's "Business Features & Macro Analyses" cluster.
+FEATURE_SOURCES = {
+    "Toyo Keizai", "Diamond Online", "President Online", "JBpress", "Zaikai Online",
+}
+
 # Keyword signals for micro (company-level) news
 MICRO_KEYWORDS = [
     # English

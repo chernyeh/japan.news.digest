@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 import pytz
 from collector import (fetch_all_news, fetch_source_headlines,
-                        SOURCE_DIRECTORY, SOURCE_GROUPS,
+                        SOURCE_DIRECTORY, SOURCE_GROUPS, FEATURE_SOURCES,
                         CORP_ACTION_META, PRIORITY_ACTIONS, DIRECTION_ORDER)
 from emailer import subscribe_email, send_digest, get_secret, load_subscribers
 from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_flow,
@@ -1411,9 +1411,15 @@ with tab_bytime:
         # M&A, big price moves) aren't pushed out by FIFO ordering.
         _brief_all   = flag_high_value_articles(articles_24h or all_articles)
         def _brief_rank(a):
+            # Business-feature magazines (Toyo Keizai, Diamond, President, etc.)
+            # publish of-the-moment features that rarely trip the high_value
+            # keyword flag. Give them a gentle tier below priority signals and
+            # high-value news but above generic recency, so a few reliably reach
+            # the briefing's "Business Features & Macro Analyses" cluster.
             return (
                 0 if a.get("is_priority_signal") else 1,
                 0 if a.get("high_value") else 1,
+                0 if a.get("source") in FEATURE_SOURCES else 1,
                 -(a.get("pub_dt").timestamp() if a.get("pub_dt") else 0),
             )
         _brief_micro = sorted(
