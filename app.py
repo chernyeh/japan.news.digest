@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 import pytz
 from collector import (fetch_all_news, fetch_source_headlines,
-                        SOURCE_DIRECTORY, SOURCE_GROUPS,
+                        SOURCE_DIRECTORY, SOURCE_GROUPS, FEATURE_SOURCES,
                         CORP_ACTION_META, PRIORITY_ACTIONS, DIRECTION_ORDER)
 from emailer import subscribe_email, send_digest, get_secret, load_subscribers
 from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_flow,
@@ -848,6 +848,55 @@ def _render_in_brief_panel(sections) -> str:
     return "".join(parts)
 
 
+def _build_magazine_features(pool_all, max_items: int = 8):
+    """Long-form magazine features (週刊東洋経済, 週刊ダイヤモンド, President,
+    Zaikai, JBpress) from the 24h pool, de-duplicated and newest first.
+
+    These pieces are flagged at fetch time (is_magazine_feature) so they can be
+    surfaced in their own block regardless of how the ranked briefing pool falls.
+    """
+    seen, out = set(), []
+    for a in pool_all or []:
+        if not a.get("is_magazine_feature"):
+            continue
+        url = _article_url(a)
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        out.append(a)
+    out.sort(key=lambda a: a.get("pub_dt") or datetime.min, reverse=True)
+    return out[:max_items]
+
+
+def _render_magazine_features(items) -> str:
+    """Render the Weekly Magazine Features block as HTML. Empty if no items."""
+    if not items:
+        return ""
+    parts = ['<div class="in-brief-panel">',
+             '<div class="in-brief-title">📕 Weekly Magazine Features</div>',
+             '<ul class="in-brief-list">']
+    for a in items:
+        title = a.get("title") or a.get("translated_title") or a.get("original_title", "")
+        url   = _article_url(a) or "#"
+        src   = a.get("source", "")
+        pub_dt = a.get("pub_dt")
+        time_str = ""
+        if pub_dt:
+            try:
+                time_str = format_local_dt(pub_dt)
+            except Exception:
+                time_str = ""
+        meta = src + (" · " + time_str if time_str else "")
+        parts.append(
+            '<li>'
+            f'<a href="{_safe_url(url)}" target="_blank">{_safe_text(title)}</a>'
+            f'<div class="in-brief-meta">{_safe_text(meta)}</div>'
+            '</li>'
+        )
+    parts.append('</ul></div>')
+    return "".join(parts)
+
+
 # ── AI Summary helper ─────────────────────────────────────────────────────────
 def _summary_to_html(text: str, art_index: dict = None) -> str:
     """Convert AI summary markdown to styled HTML.
@@ -1411,9 +1460,15 @@ with tab_bytime:
         # M&A, big price moves) aren't pushed out by FIFO ordering.
         _brief_all   = flag_high_value_articles(articles_24h or all_articles)
         def _brief_rank(a):
+            # Business-feature magazines (Toyo Keizai, Diamond, President, etc.)
+            # publish of-the-moment features that rarely trip the high_value
+            # keyword flag. Give them a gentle tier below priority signals and
+            # high-value news but above generic recency, so a few reliably reach
+            # the briefing's "Business Features & Macro Analyses" cluster.
             return (
                 0 if a.get("is_priority_signal") else 1,
                 0 if a.get("high_value") else 1,
+                0 if a.get("source") in FEATURE_SOURCES else 1,
                 -(a.get("pub_dt").timestamp() if a.get("pub_dt") else 0),
             )
         _brief_micro = sorted(
@@ -1439,6 +1494,15 @@ with tab_bytime:
             max_tokens=12000,
             _override_btn=_bytime_gen_btn,
         )
+
+        # ── Weekly Magazine Features ───────────────────────────────────────
+        # Dedicated, always-visible block for long-form print-magazine features
+        # (週刊東洋経済, 週刊ダイヤモンド, President, Zaikai, JBpress). Surfaced
+        # on their own so they're flagged even when the ranked briefing pool
+        # leans toward higher-frequency breaking news.
+        _mag_html = _render_magazine_features(_build_magazine_features(_brief_all))
+        if _mag_html:
+            st.markdown(_mag_html, unsafe_allow_html=True)
 
         # ── In Brief — Also Notable ────────────────────────────────────────
         # Code-driven sidebar list of notable headlines that didn't get a full

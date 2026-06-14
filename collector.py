@@ -75,6 +75,13 @@ RSS_SOURCES = [
     ("IT Media Business",    "https://rss.itmedia.co.jp/rss/2.0/business_media.xml",        "ja"),
     ("Toyo Keizai",          "https://toyokeizai.net/list/feed/rss",                        "ja"),
     ("Diamond Online",       "https://diamond.jp/list/feed/rss/dol",                        "ja"),
+    # Weekly print-magazine cover features (週刊東洋経済 / 週刊ダイヤモンド — out Mondays).
+    # The generic online feeds above carry the full firehose; these Google News
+    # brand queries isolate the long-form pieces that run in the print magazine,
+    # which mention the weekly-magazine name in their page/breadcrumb. Surfaced in
+    # the AI Briefing's dedicated "Weekly Magazine Features" section.
+    ("Toyo Keizai Weekly",   "https://news.google.com/rss/search?q=site:toyokeizai.net+%E9%80%B1%E5%88%8A%E6%9D%B1%E6%B4%8B%E7%B5%8C%E6%B8%88&hl=ja&gl=JP&ceid=JP:ja", "ja"),
+    ("Diamond Weekly",       "https://news.google.com/rss/search?q=site:diamond.jp+%E9%80%B1%E5%88%8A%E3%83%80%E3%82%A4%E3%83%A4%E3%83%A2%E3%83%B3%E3%83%89&hl=ja&gl=JP&ceid=JP:ja", "ja"),
     ("Nikkan Kogyo",         "https://news.google.com/rss/search?q=site:nikkan.co.jp&hl=ja&gl=JP&ceid=JP:ja", "ja"),
     # ── Company / Micro news (earnings, M&A, guidance, analyst) ────────────────
     # Nikkei earnings & corporate actions
@@ -317,6 +324,30 @@ MICRO_SOURCES = {
     "QUICK Money World",
     # Business/magazine sources — company profiles, CEO interviews, sector features
     "Toyo Keizai", "Diamond Online", "President Online", "JBpress", "Zaikai Online",
+}
+
+# Business-feature magazines: long-form pieces on news topics / businesses that
+# are of-the-moment. These rarely carry the earnings/M&A keywords that drive the
+# high_value flag, so the AI Briefing's ranking would otherwise bury them behind
+# wire-service company news. Used to give them a gentle weighting boost so a few
+# reliably surface in the briefing's "Business Features & Macro Analyses" cluster.
+FEATURE_SOURCES = {
+    "Toyo Keizai", "Toyo Keizai Weekly", "Diamond Online", "Diamond Weekly",
+    "President Online", "JBpress", "Zaikai Online",
+}
+
+# Sources whose output is (or, for the weeklies, is isolated to) long-form
+# magazine features rather than the online news firehose. Articles from these
+# sources get is_magazine_feature=True at fetch time and are collected into the
+# AI Briefing's dedicated "Weekly Magazine Features" section.
+#   • Toyo Keizai Weekly / Diamond Weekly — the Monday print editions, isolated
+#     from their high-volume online feeds via dedicated brand-query feeds.
+#   • Zaikai Online (財界) — itself a business magazine.
+#   • President Online (プレジデント) — biweekly magazine; treated wholesale.
+#   • JBpress — online-only, but long-form analysis treated the same way.
+MAGAZINE_FEATURE_SOURCES = {
+    "Toyo Keizai Weekly", "Diamond Weekly",
+    "President Online", "Zaikai Online", "JBpress",
 }
 
 # Keyword signals for micro (company-level) news
@@ -1119,6 +1150,9 @@ def fetch_rss(source_name: str, url: str, language: str) -> list:
             "pub_dt":           pub_dt,
             "sector":           "",
             "language":         language,
+            # Long-form magazine feature (週刊東洋経済 etc.) — surfaced in the
+            # AI Briefing's dedicated "Weekly Magazine Features" section.
+            "is_magazine_feature": source_name in MAGAZINE_FEATURE_SOURCES,
             # ── Gemini pipeline fields ──────────────────────────────────────
             # headline  →  use translated_title (filled by translate_articles)
             # body      →  RSS summary/description stripped of HTML
@@ -1377,13 +1411,20 @@ def _fetch_all_news_inner() -> dict:
     # Translate
     all_articles = translate_articles(all_articles)
 
-    # Deduplicate
-    seen_urls, unique = set(), []
+    # Deduplicate. A magazine feature can arrive from both its dedicated weekly
+    # feed (flagged) and its high-volume online feed (unflagged); fetch order is
+    # racy, so OR the is_magazine_feature flag into whichever copy we keep.
+    seen_urls, unique, kept_by_url = set(), [], {}
     for a in all_articles:
         url = a.get("url", "")
-        if url and url != "#" and url not in seen_urls:
+        if not url or url == "#":
+            continue
+        if url not in seen_urls:
             seen_urls.add(url)
             unique.append(a)
+            kept_by_url[url] = a
+        elif a.get("is_magazine_feature"):
+            kept_by_url[url]["is_magazine_feature"] = True
 
     # Classify sector + news_type
     for a in unique:
