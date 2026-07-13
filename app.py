@@ -3490,8 +3490,14 @@ with tab_earnings:
                                       help="Fetches market cap and 3M vs TOPIX for the companies currently visible")
             if _load_mkt:
                 _vis_codes = list({e.get("code","") for e in cal_filtered if e.get("code")})
-                if _vis_codes:
-                    with st.spinner(f"Fetching market data for {len(_vis_codes)} companies… (~30s)"):
+                _MKT_FETCH_CAP = 800
+                if len(_vis_codes) > _MKT_FETCH_CAP:
+                    st.warning(
+                        f"{len(_vis_codes):,} companies match — that's too many to fetch at once. "
+                        f"Narrow the filter (date range or market cap) to {_MKT_FETCH_CAP:,} or fewer companies, then try again."
+                    )
+                elif _vis_codes:
+                    with st.spinner(f"Fetching market data for {len(_vis_codes)} companies… (~{max(30, len(_vis_codes)//2)}s)"):
                         _new_perf = fetch_market_data_batch(_vis_codes)
                         # Merge into existing cache
                         for _mc, _mv in _new_perf.items():

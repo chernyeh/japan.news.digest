@@ -506,7 +506,7 @@ def fetch_market_data_batch(codes: list) -> dict:
     # First get TOPIX benchmark
     topix_3m = None
     try:
-        topix_data = yf.download("1306.T", period="4mo", auto_adjust=True, progress=False)
+        topix_data = yf.download("1306.T", period="4mo", auto_adjust=True, progress=False, threads=False)
         if not topix_data.empty:
             closes = topix_data["Close"].dropna()
             if len(closes) >= 2:
@@ -517,27 +517,33 @@ def fetch_market_data_batch(codes: list) -> dict:
     except Exception as e:
         print(f"TOPIX 3M error: {e}")
 
-    # Batch download stock prices
+    # Batch download stock prices — chunked to avoid huge multi-threaded
+    # yfinance downloads, which have been observed to segfault the
+    # interpreter in memory-constrained containers when fetching hundreds
+    # of tickers in one call.
     tickers = [f"{c}.T" for c in codes]
-    try:
-        if len(tickers) == 1:
-            raw = yf.download(tickers[0], period="4mo", auto_adjust=True, progress=False)
-            price_map = {tickers[0]: raw} if not raw.empty else {}
-        else:
-            raw = yf.download(tickers, period="4mo", auto_adjust=True,
-                              progress=False, group_by="ticker")
-            price_map = {}
-            if not raw.empty:
-                for t in tickers:
-                    try:
-                        df = raw[t].dropna(subset=["Close"])
-                        if not df.empty:
-                            price_map[t] = df
-                    except Exception:
-                        pass
-    except Exception as e:
-        print(f"Price batch error: {e}")
-        price_map = {}
+    price_map = {}
+    for i in range(0, len(tickers), 50):
+        chunk = tickers[i:i + 50]
+        try:
+            if len(chunk) == 1:
+                raw = yf.download(chunk[0], period="4mo", auto_adjust=True,
+                                  progress=False, threads=False)
+                if not raw.empty:
+                    price_map[chunk[0]] = raw
+            else:
+                raw = yf.download(chunk, period="4mo", auto_adjust=True,
+                                  progress=False, group_by="ticker", threads=False)
+                if not raw.empty:
+                    for t in chunk:
+                        try:
+                            df = raw[t].dropna(subset=["Close"])
+                            if not df.empty:
+                                price_map[t] = df
+                        except Exception:
+                            pass
+        except Exception as e:
+            print(f"Price batch error (chunk {i//50}): {e}")
 
     # Compute 3M returns
     for code in codes:
