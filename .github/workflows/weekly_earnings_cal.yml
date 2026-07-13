@@ -91,6 +91,7 @@ jobs:
           os.makedirs("data/jpx_earnings", exist_ok=True)
           today_str = datetime.utcnow().strftime("%m%d")
           changed = 0
+          current_files = set()
 
           for url, label in xlsx_links:
               print(f"\nDownloading: {url}")
@@ -114,6 +115,7 @@ jobs:
                       fname = f"{fname_stem}_{today_str}.xlsx"
 
                   outpath = f"data/jpx_earnings/{fname}"
+                  current_files.add(fname)
 
                   # Compare checksum with existing file
                   new_hash = hashlib.md5(content).hexdigest()
@@ -133,7 +135,20 @@ jobs:
                   print(f"  Error: {e}")
                   continue
 
-          print(f"\nDone: {changed} file(s) updated")
+          # Prune stale files: delete any .xlsx in data/jpx_earnings/ not on JPX this run.
+          # Skipped if zero downloads succeeded, so a transient JPX outage can't wipe the cache.
+          removed = 0
+          if current_files:
+              for existing in os.listdir("data/jpx_earnings"):
+                  if existing.lower().endswith(".xlsx") and existing not in current_files:
+                      try:
+                          os.remove(f"data/jpx_earnings/{existing}")
+                          print(f"  Pruned stale file: {existing}")
+                          removed += 1
+                      except Exception as e:
+                          print(f"  Failed to prune {existing}: {e}")
+
+          print(f"\nDone: {changed} file(s) updated, {removed} pruned")
           EOF
 
       - name: Commit and push

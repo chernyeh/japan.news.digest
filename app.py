@@ -3230,9 +3230,9 @@ with tab_earnings:
     # ── How this works info box ──────────────────────────────────────────────
     st.markdown(
         '<div style="font-size:0.65rem;color:#9B8B7A;margin-bottom:0.5rem;">'
-        'Data from JPX Excel files in your GitHub repo (<code>data/jpx_earnings/</code>). '
+        'Auto-updated every Tuesday from the '
         '<a href="https://www.jpx.co.jp/listing/event-schedules/financial-announcement/index.html" '
-        'target="_blank" style="color:#8B4513;">Download from JPX ↗</a>'
+        'target="_blank" style="color:#8B4513;">JPX Financial Announcement page ↗</a>.'
         '</div>',
         unsafe_allow_html=True
     )
@@ -3490,8 +3490,14 @@ with tab_earnings:
                                       help="Fetches market cap and 3M vs TOPIX for the companies currently visible")
             if _load_mkt:
                 _vis_codes = list({e.get("code","") for e in cal_filtered if e.get("code")})
-                if _vis_codes:
-                    with st.spinner(f"Fetching market data for {len(_vis_codes)} companies… (~30s)"):
+                _MKT_FETCH_CAP = 800
+                if len(_vis_codes) > _MKT_FETCH_CAP:
+                    st.warning(
+                        f"{len(_vis_codes):,} companies match — that's too many to fetch at once. "
+                        f"Narrow the filter (date range or market cap) to {_MKT_FETCH_CAP:,} or fewer companies, then try again."
+                    )
+                elif _vis_codes:
+                    with st.spinner(f"Fetching market data for {len(_vis_codes)} companies… (~{max(30, len(_vis_codes)//2)}s)"):
                         _new_perf = fetch_market_data_batch(_vis_codes)
                         # Merge into existing cache
                         for _mc, _mv in _new_perf.items():
