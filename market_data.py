@@ -398,26 +398,22 @@ def fetch_market_overview() -> dict:
     api_key = get_secret("ALPHA_VANTAGE_KEY")
     results = {"indices": {}, "forex": {}}
 
-    # ── Step 1: Yahoo Finance (concurrent, works from cloud IPs) ────────────
+    # ── Step 1: Yahoo Finance (sequential — concurrent yfinance calls via
+    # ThreadPoolExecutor have been observed to segfault the interpreter in
+    # memory-constrained containers) ─────────────────────────────────────
     if _YF_AVAILABLE:
         all_yf = {}
         all_yf.update({k: (sym, lbl, "index") for k, (sym, lbl) in YF_INDEX_INSTRUMENTS.items()})
         all_yf.update({k: (sym, lbl, "forex") for k, (sym, lbl) in YF_FOREX_INSTRUMENTS.items()})
 
-        with ThreadPoolExecutor(max_workers=8) as ex:
-            futures = {
-                ex.submit(yf_fetch, sym, lbl, 2): (k, kind)
-                for k, (sym, lbl, kind) in all_yf.items()
-            }
-            for f in as_completed(futures):
-                k, kind = futures[f]
-                try:
-                    d = f.result()
-                    if d.get("price", 0) > 0:
-                        bucket = "indices" if kind == "index" else "forex"
-                        results[bucket][k] = d
-                except Exception:
-                    pass
+        for k, (sym, lbl, kind) in all_yf.items():
+            try:
+                d = yf_fetch(sym, lbl, 2)
+                if d.get("price", 0) > 0:
+                    bucket = "indices" if kind == "index" else "forex"
+                    results[bucket][k] = d
+            except Exception:
+                pass
 
     # ── Step 2: Stooq for every instrument Yahoo missed (per-instrument) ────────
     stooq_tasks = {}
@@ -456,20 +452,13 @@ def fetch_market_overview() -> dict:
             k: (sym, lbl) for k, (sym, lbl) in YF_INDEX_PROXIES.items()
             if not results["indices"].get(k, {}).get("price", 0) > 0
         }
-        if proxy_tasks:
-            with ThreadPoolExecutor(max_workers=4) as ex:
-                futures = {
-                    ex.submit(yf_fetch, sym, lbl, 2): k
-                    for k, (sym, lbl) in proxy_tasks.items()
-                }
-                for f in as_completed(futures):
-                    k = futures[f]
-                    try:
-                        d = f.result()
-                        if d.get("price", 0) > 0:
-                            results["indices"][k] = d
-                    except Exception:
-                        pass
+        for k, (sym, lbl) in proxy_tasks.items():
+            try:
+                d = yf_fetch(sym, lbl, 2)
+                if d.get("price", 0) > 0:
+                    results["indices"][k] = d
+            except Exception:
+                pass
 
     # ── Step 3: Alpha Vantage for each instrument still missing ──────────────
     if api_key:
@@ -532,33 +521,58 @@ def _stooq_all(results: dict):
 def fetch_tse_movers() -> dict:
     """Fetch TSE movers — tries Yahoo Finance first, falls back to Stooq."""
     movers = []
+    found_codes = set()
 
-    def _fetch_one(code, name):
-        # Try Yahoo Finance (.T suffix) first
-        if _YF_AVAILABLE:
-            d = yf_fetch(f"{code}{YF_TSE_SUFFIX}", name, 1)
-            if d.get("price", 0) > 0:
-                return d
-        # Fallback to Stooq (.jp suffix)
-        return stooq_fetch(f"{code}.jp", name, 1)
+    # ── Yahoo Finance via chunked, single-threaded yf.download() ────────────
+    # Only the latest daily change is needed, so a short "5d" batch download
+    # covers it. Chunked and non-threaded to avoid the segfaults that a single
+    # large multi-threaded yfinance call (or many concurrent ThreadPoolExecutor
+    # workers hitting yfinance) can trigger in memory-constrained containers.
+    if _YF_AVAILABLE:
+        unique_stocks = list({code: name for code, name in TSE_STOCKS}.items())
+        tickers = [f"{code}{YF_TSE_SUFFIX}" for code, _ in unique_stocks]
+        code_map = {f"{code}{YF_TSE_SUFFIX}": (code, name) for code, name in unique_stocks}
 
-    with ThreadPoolExecutor(max_workers=10) as ex:
-        futures = {
-            ex.submit(_fetch_one, code, name): (code, name)
-            for code, name in TSE_STOCKS
-        }
-        for f in as_completed(futures):
-            code, name = futures[f]
+        for i in range(0, len(tickers), 50):
+            chunk = tickers[i:i + 50]
             try:
-                q = f.result()
-                if q.get("price", 0) > 0:
-                    movers.append({
-                        "symbol": f"{code}.T", "name": name,
-                        "price": q["price"], "change": q["change"],
-                        "pct_change": q["pct_change"],
-                    })
-            except Exception:
-                pass
+                raw = yf.download(chunk, period="5d", auto_adjust=True,
+                                  progress=False, group_by="ticker", threads=False)
+            except Exception as e:
+                print(f"TSE movers batch error (chunk {i//50}): {e}")
+                continue
+            if raw.empty:
+                continue
+            for t in chunk:
+                code, name = code_map.get(t, ("", ""))
+                try:
+                    closes = (raw[t]["Close"] if len(chunk) > 1 else raw["Close"]).dropna()
+                    if len(closes) < 1:
+                        continue
+                    price = float(closes.iloc[-1])
+                    prev  = float(closes.iloc[-2]) if len(closes) >= 2 else price
+                    change = price - prev
+                    pct = (change / prev * 100) if prev else 0
+                    if price > 0:
+                        movers.append({
+                            "symbol": t, "name": name,
+                            "price": price, "change": change,
+                            "pct_change": pct,
+                        })
+                        found_codes.add(code)
+                except Exception:
+                    pass
+
+    # ── Stooq fallback for anything Yahoo missed ─────────────────────────────
+    missing = [(code, name) for code, name in TSE_STOCKS if code not in found_codes]
+    for code, name in missing:
+        q = stooq_fetch(f"{code}.jp", name, 1)
+        if q.get("price", 0) > 0:
+            movers.append({
+                "symbol": f"{code}.T", "name": name,
+                "price": q["price"], "change": q["change"],
+                "pct_change": q["pct_change"],
+            })
 
     # Deduplicate by symbol (TSE_STOCKS may have repeated codes)
     seen = set()
@@ -701,8 +715,10 @@ def fetch_stock_performance(code: str, name: str) -> dict:
 
 def _batch_yf_screen(codes_names: list, topix_3m, topix_6m, topix_12m) -> list:
     """
-    Batch-fetch all TSE_STOCKS using yf.download() — one HTTP request for all tickers.
-    ~10x faster than fetching stocks one by one.
+    Batch-fetch all TSE_STOCKS using yf.download() — one HTTP request per chunk
+    of 50 tickers rather than one massive request for everything, and threading
+    disabled. A single large multi-threaded yfinance call has been observed to
+    segfault the interpreter in memory-constrained containers.
     """
     if not _YF_AVAILABLE:
         return []
@@ -710,53 +726,57 @@ def _batch_yf_screen(codes_names: list, topix_3m, topix_6m, topix_12m) -> list:
     tickers = [f"{c}{YF_TSE_SUFFIX}" for c, _ in codes_names]
     code_map = {f"{c}{YF_TSE_SUFFIX}": (c, n) for c, n in codes_names}
 
-    try:
-        # Download 13 months of daily closes for all tickers at once
-        raw = yf.download(
-            tickers, period="13mo", auto_adjust=True,
-            progress=False, threads=True, group_by="ticker"
-        )
-    except Exception as e:
-        print(f"Batch yf.download error: {e}")
-        return []
-
     results = []
-    for ticker in tickers:
-        code, name = code_map.get(ticker, ("", ""))
+    for i in range(0, len(tickers), 50):
+        chunk = tickers[i:i + 50]
         try:
-            # Multi-ticker download returns MultiIndex columns
-            if len(tickers) > 1:
-                closes = raw[ticker]["Close"] if ticker in raw.columns.get_level_values(0) else None
-            else:
-                closes = raw["Close"]
-            if closes is None or closes.empty:
-                continue
-
-            closes = closes.dropna()
-            if len(closes) < 2:
-                continue
-
-            rows = [(d.strftime("%Y-%m-%d"), float(c))
-                    for d, c in zip(closes.index, closes.values)]
-            rows.sort(key=lambda x: x[0])
-
-            price  = rows[-1][1]
-            prev   = rows[-2][1]
-            rets   = compute_returns(rows)
-            r3, r6, r12 = rets.get("3M"), rets.get("6M"), rets.get("1Y")
-
-            results.append({
-                "code": code, "name": name, "price": price,
-                "change": price - prev,
-                "pct_change": (price - prev) / prev * 100 if prev else 0,
-                "ret_3m": r3, "ret_6m": r6, "ret_12m": r12,
-                "ret_mtd": rets.get("MTD"), "symbol": ticker,
-                "under_3m":  (r3  - topix_3m)  if r3  is not None and topix_3m  is not None else None,
-                "under_6m":  (r6  - topix_6m)  if r6  is not None and topix_6m  is not None else None,
-                "under_12m": (r12 - topix_12m) if r12 is not None and topix_12m is not None else None,
-            })
-        except Exception:
+            # Download 13 months of daily closes for this chunk
+            raw = yf.download(
+                chunk, period="13mo", auto_adjust=True,
+                progress=False, threads=False, group_by="ticker"
+            )
+        except Exception as e:
+            print(f"Batch yf.download error (chunk {i//50}): {e}")
             continue
+        if raw.empty:
+            continue
+
+        for ticker in chunk:
+            code, name = code_map.get(ticker, ("", ""))
+            try:
+                # Multi-ticker download returns MultiIndex columns
+                if len(chunk) > 1:
+                    closes = raw[ticker]["Close"] if ticker in raw.columns.get_level_values(0) else None
+                else:
+                    closes = raw["Close"]
+                if closes is None or closes.empty:
+                    continue
+
+                closes = closes.dropna()
+                if len(closes) < 2:
+                    continue
+
+                rows = [(d.strftime("%Y-%m-%d"), float(c))
+                        for d, c in zip(closes.index, closes.values)]
+                rows.sort(key=lambda x: x[0])
+
+                price  = rows[-1][1]
+                prev   = rows[-2][1]
+                rets   = compute_returns(rows)
+                r3, r6, r12 = rets.get("3M"), rets.get("6M"), rets.get("1Y")
+
+                results.append({
+                    "code": code, "name": name, "price": price,
+                    "change": price - prev,
+                    "pct_change": (price - prev) / prev * 100 if prev else 0,
+                    "ret_3m": r3, "ret_6m": r6, "ret_12m": r12,
+                    "ret_mtd": rets.get("MTD"), "symbol": ticker,
+                    "under_3m":  (r3  - topix_3m)  if r3  is not None and topix_3m  is not None else None,
+                    "under_6m":  (r6  - topix_6m)  if r6  is not None and topix_6m  is not None else None,
+                    "under_12m": (r12 - topix_12m) if r12 is not None and topix_12m is not None else None,
+                })
+            except Exception:
+                continue
 
     return results
 
@@ -776,26 +796,22 @@ def fetch_underperformance_screen(topix_returns: dict = None, max_workers: int =
     # Try fast batch path first
     results = _batch_yf_screen(TSE_STOCKS, topix_3m, topix_6m, topix_12m)
 
-    # Fall back to per-stock fetch for any missing
+    # Fall back to per-stock fetch for any missing — sequential, not
+    # concurrent, since ThreadPoolExecutor-driven concurrent yfinance calls
+    # have been observed to segfault the interpreter in this environment.
     fetched_codes = {d["code"] for d in results}
     missing = [(c, n) for c, n in TSE_STOCKS if c not in fetched_codes]
-    if missing:
-        with ThreadPoolExecutor(max_workers=max_workers) as ex:
-            futures = {
-                ex.submit(fetch_stock_performance, code, name): (code, name)
-                for code, name in missing
-            }
-            for f in as_completed(futures):
-                try:
-                    d = f.result()
-                    if d.get("price", 0) > 0:
-                        r3, r6, r12 = d.get("ret_3m"), d.get("ret_6m"), d.get("ret_12m")
-                        d["under_3m"]  = (r3  - topix_3m)  if r3  is not None and topix_3m  is not None else None
-                        d["under_6m"]  = (r6  - topix_6m)  if r6  is not None and topix_6m  is not None else None
-                        d["under_12m"] = (r12 - topix_12m) if r12 is not None and topix_12m is not None else None
-                        results.append(d)
-                except Exception:
-                    pass
+    for code, name in missing:
+        try:
+            d = fetch_stock_performance(code, name)
+            if d.get("price", 0) > 0:
+                r3, r6, r12 = d.get("ret_3m"), d.get("ret_6m"), d.get("ret_12m")
+                d["under_3m"]  = (r3  - topix_3m)  if r3  is not None and topix_3m  is not None else None
+                d["under_6m"]  = (r6  - topix_6m)  if r6  is not None and topix_6m  is not None else None
+                d["under_12m"] = (r12 - topix_12m) if r12 is not None and topix_12m is not None else None
+                results.append(d)
+        except Exception:
+            pass
 
     results.sort(key=lambda x: x.get("under_12m") or 0)
     return results
