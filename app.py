@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import threading
 from datetime import datetime
 import pytz
 from collector import (fetch_all_news, fetch_source_headlines,
@@ -1046,6 +1047,25 @@ def _safe_text(text: str) -> str:
     return _h.escape(str(text)) if text else ""
 
 
+@st.fragment(run_every=2)
+def _render_ai_summary_progress(session_key: str):
+    """Auto-refreshing status pill shown while a background summary generation
+    is in flight. Polls the shared cache every 2s; once the background thread
+    finishes (or errors), triggers a full app rerun so the parent call site
+    picks up and renders the final result — this keeps working even if the
+    user switched to another tab/app while the generation was running."""
+    _status = _get_app_cache()["ai_summaries"].get(session_key + "_status")
+    if _status == "running":
+        st.markdown(
+            '<div style="font-size:0.7rem;color:#9B8B7A;padding:0.3rem 0;">'
+            '⏳ Generating AI summary in the background — this continues even if '
+            'you switch tabs or apps.</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.rerun()
+
+
 def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn=None, model: str = "claude-haiku-4-5-20251001", max_tokens: int = 8192, prompt_extra: str = ""):
     """
     Renders an AI-powered summary panel with a Generate button.
@@ -1055,8 +1075,14 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
     session_key: unique key for caching the summary in session_state
     """
 
+    _ai_cache   = _get_app_cache()["ai_summaries"]
+    _status_key = session_key + "_status"
+    _error_key  = session_key + "_error"
+
     if session_key not in st.session_state:
-        st.session_state[session_key] = None
+        st.session_state[session_key]           = _ai_cache.get(session_key)
+        st.session_state[session_key + "_ts"]   = _ai_cache.get(session_key + "_ts")
+        st.session_state[session_key + "_idx"]  = _ai_cache.get(session_key + "_idx", {})
 
     if _override_btn is not None:
         # Button already rendered by caller — do NOT create another one
@@ -1104,6 +1130,8 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
 ANTHROPIC_API_KEY = "sk-ant-..."
 5. Click **Save** — the app restarts in ~30 seconds and summaries will work
 """)
+            elif _ai_cache.get(_status_key) == "running":
+                pass  # a generation is already in flight for this key — don't start another
             else:
                 # Build article list for the prompt (newest first, capped)
                 subset = articles[:max_articles]
@@ -1153,23 +1181,48 @@ IMPORTANT: Complete the entire briefing including What to Watch. Never truncate 
 
 Respond only with the briefing."""
 
-                with st.spinner("Generating AI summary…"):
+                # Run the actual API call on a background thread, writing results
+                # into the shared cross-session cache (not st.session_state, which
+                # isn't safe to touch off the script-run thread). This decouples
+                # generation from this particular script run, so it keeps going
+                # even if the user switches tabs/apps or the connection drops —
+                # the polling fragment below picks up the result once it lands.
+                _ai_cache[_status_key] = "running"
+                _ai_cache.pop(_error_key, None)
+
+                def _bg_generate(_prompt=prompt, _idx=_art_index, _model=model, _max_tokens=max_tokens,
+                                  _api_key=api_key, _session_key=session_key,
+                                  _status_key=_status_key, _error_key=_error_key, _ai_cache=_ai_cache):
                     try:
-                        client = _anthropic.Anthropic(api_key=api_key)
-                        msg = client.messages.create(
-                            model=model,
-                            max_tokens=max_tokens,
-                            messages=[{"role": "user", "content": prompt}]
+                        _client = _anthropic.Anthropic(api_key=_api_key)
+                        _msg = _client.messages.create(
+                            model=_model,
+                            max_tokens=_max_tokens,
+                            messages=[{"role": "user", "content": _prompt}]
                         )
-                        st.session_state[session_key] = msg.content[0].text
-                        st.session_state[session_key + "_ts"] = now_local()
-                        st.session_state[session_key + "_idx"] = _art_index
-                        # Persist AI summary to shared cache
-                        _get_app_cache()["ai_summaries"][session_key] = msg.content[0].text
-                        _get_app_cache()["ai_summaries"][session_key + "_ts"] = st.session_state[session_key + "_ts"]
-                        _get_app_cache()["ai_summaries"][session_key + "_idx"] = _art_index
-                    except Exception as e:
-                        st.error(f"AI summary error: {e}")
+                        _text = _msg.content[0].text
+                        _ai_cache[_session_key]          = _text
+                        _ai_cache[_session_key + "_ts"]  = now_local()
+                        _ai_cache[_session_key + "_idx"] = _idx
+                        _ai_cache[_status_key]           = "done"
+                    except Exception as _bg_err:
+                        _ai_cache[_status_key] = "error"
+                        _ai_cache[_error_key]  = str(_bg_err)
+
+                threading.Thread(target=_bg_generate, daemon=True).start()
+
+    # ── Sync from shared cache: picks up results/errors from the background
+    #    thread, whether it was kicked off by this session or another one ──
+    if _ai_cache.get(session_key) and _ai_cache.get(session_key + "_ts") != st.session_state.get(session_key + "_ts"):
+        st.session_state[session_key]          = _ai_cache.get(session_key)
+        st.session_state[session_key + "_ts"]  = _ai_cache.get(session_key + "_ts")
+        st.session_state[session_key + "_idx"] = _ai_cache.get(session_key + "_idx", {})
+
+    if _ai_cache.get(_status_key) == "running":
+        _render_ai_summary_progress(session_key)
+    elif _ai_cache.get(_status_key) == "error":
+        st.error(f"AI summary error: {_ai_cache.get(_error_key)}")
+        _ai_cache[_status_key] = None
 
     if st.session_state[session_key]:
         _art_idx_stored = st.session_state.get(session_key + "_idx", {})
@@ -2531,18 +2584,30 @@ with tab_filings:
             key=lambda f: f.get("mktcap") or 0,
             reverse=True,
         )[:200]
-        filing_articles = [
-            {
+        # Dedup by (company code, resolved link) — the same filing sometimes shows
+        # up as more than one entry (e.g. an English match reused across nearby
+        # postings) and would otherwise let the AI cite the identical document
+        # twice under two different [N] numbers, showing as a duplicate link
+        # pill in the rendered briefing. Only merge when there's an actual
+        # shared link; entries with no link at all aren't touched.
+        _seen_filing_links = set()
+        filing_articles = []
+        for f in _win_pool:
+            _f_url = f.get("eng_url") or (f.get("doc_url", "") if f.get("doc_url", "").startswith("https://www.release.tdnet") else "")
+            _link_key = (f.get("code", ""), _f_url)
+            if _f_url and _link_key in _seen_filing_links:
+                continue
+            if _f_url:
+                _seen_filing_links.add(_link_key)
+            filing_articles.append({
                 "title":            f.get("title_en") or f.get("title", ""),
                 "source":           (f.get("name_en") or f.get("name", "")) + (f" (¥{f['mktcap']:,.0f}B)" if f.get("mktcap") else ""),
-                "url":              f.get("eng_url") or (f.get("doc_url", "") if f.get("doc_url", "").startswith("https://www.release.tdnet") else ""),
+                "url":              _f_url,
                 "pub_date":         f.get("pub_date", ""),
                 "pub_dt":           None,
                 "translated_title": f.get("title_en") or f.get("title", ""),
                 "original_title":   f.get("title", ""),
-            }
-            for f in _win_pool
-        ]
+            })
         if len(filing_articles) > 100:
             _briefing_model      = "claude-sonnet-4-6"
             _briefing_max_tokens = 16000
