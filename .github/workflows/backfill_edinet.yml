@@ -1,0 +1,55 @@
+# .github/workflows/backfill_edinet.yml
+#
+# One-time manual trigger — walks back `days` calendar days (default ~2 years)
+# fetching EDINET's daily filing list for each one and builds the initial
+# data/edinet_filings.csv index that the Research tab reads. Run this once
+# after adding the EDINET_API_KEY secret; daily_edinet.yml keeps it current
+# afterwards.
+#
+# ~500 business days of requests takes a while (polite delay between calls) —
+# well within the default 6h job timeout, but expect it to run for a while.
+
+name: Backfill EDINET Filings
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'How many days back to fetch (default ~2 years)'
+        required: false
+        default: '730'
+
+jobs:
+  backfill-edinet:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run collector
+        env:
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+        run: python collect_edinet.py --days "${{ github.event.inputs.days }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/edinet_filings.csv
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: backfill EDINET filings index [skip ci]"
+            git push
+          fi
