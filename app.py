@@ -17,6 +17,7 @@ from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
 from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes)
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
+from ai_summary_store import load_summaries_from_github, save_summary as save_summary_to_github
 from sentiment import score_all_sectors, flag_high_value_articles
 from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      group_calendar_by_date, label_date_bucket,
@@ -696,9 +697,39 @@ for key, default in [
     if key not in st.session_state:
         st.session_state[key] = default
 
+# ── GitHub repo config (used by Screener, Earnings Calendar, Research tab,
+#    and durable AI-summary/research-link storage) ─────────────────────────────
+_ec_repo_default = "chernyeh/japan.news.digest"
+_gh_token = None
+try:
+    _ec_repo = st.secrets.get("GITHUB_REPO", _ec_repo_default)
+    _gh_token = st.secrets.get("GITHUB_TOKEN", None)
+except Exception:
+    _ec_repo = _ec_repo_default
+
 # ── Restore from shared cache on first page load of a new session ─────────────
 if "_cache_loaded" not in st.session_state:
     _c = _get_app_cache()
+
+    # One-time (per running process, not per session) hydration of AI briefings
+    # from the durable GitHub-backed store. The in-memory shared cache above is
+    # wiped on every app restart/redeploy — this fills it back in so a briefing
+    # generated before the restart is still there instead of needing a re-click.
+    if not _c.get("ai_summaries_hydrated"):
+        _c["ai_summaries_hydrated"] = True
+        try:
+            for _sk, _entry in load_summaries_from_github(_ec_repo, _gh_token).items():
+                if _sk not in _c["ai_summaries"]:  # don't clobber anything generated this run
+                    try:
+                        _ts_dt = datetime.fromisoformat(_entry["ts"]) if _entry.get("ts") else None
+                    except ValueError:
+                        _ts_dt = None
+                    _c["ai_summaries"][_sk]            = _entry.get("text", "")
+                    _c["ai_summaries"][_sk + "_ts"]     = _ts_dt
+                    _c["ai_summaries"][_sk + "_idx"]    = _entry.get("idx", {})
+        except Exception as _hyd_e:
+            print(f"AI summaries hydration error: {_hyd_e}")
+
     if _c["articles"]:
         st.session_state.articles          = _c["articles"]
         st.session_state.source_map        = _c["source_map"]
@@ -1223,11 +1254,22 @@ Respond only with the briefing."""
                             max_tokens=_max_tokens,
                             messages=[{"role": "user", "content": _prompt}]
                         )
-                        _text = _msg.content[0].text
+                        _text  = _msg.content[0].text
+                        _ts_dt = now_local()
                         _ai_cache[_session_key]          = _text
-                        _ai_cache[_session_key + "_ts"]  = now_local()
+                        _ai_cache[_session_key + "_ts"]  = _ts_dt
                         _ai_cache[_session_key + "_idx"] = _idx
                         _ai_cache[_status_key]           = "done"
+                        # Persist durably so this briefing survives an app restart/redeploy
+                        # and shows up on other devices, not just this running process.
+                        try:
+                            _dsk_ok, _dsk_msg = save_summary_to_github(
+                                _ec_repo, _gh_token, _session_key, _text, _ts_dt.isoformat(), _idx
+                            )
+                            if not _dsk_ok:
+                                print(f"AI summary not persisted durably ({_session_key}): {_dsk_msg}")
+                        except Exception as _dsk_err:
+                            print(f"AI summary durable-save error ({_session_key}): {_dsk_err}")
                     except Exception as _bg_err:
                         _ai_cache[_status_key] = "error"
                         _ai_cache[_error_key]  = str(_bg_err)
@@ -1473,15 +1515,6 @@ if _digest_trigger in ("premarket", "close"):
         st.error(f"Digest webhook error: {_e}")
     st.stop()
 
-
-# ── GitHub repo config (used by Screener + Earnings Calendar) ─────────────────
-_ec_repo_default = "chernyeh/japan.news.digest"
-_gh_token = None
-try:
-    _ec_repo = st.secrets.get("GITHUB_REPO", _ec_repo_default)
-    _gh_token = st.secrets.get("GITHUB_TOKEN", None)
-except Exception:
-    _ec_repo = _ec_repo_default
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 (tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings, tab_research,
