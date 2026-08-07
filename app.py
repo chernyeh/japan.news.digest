@@ -661,6 +661,13 @@ a.summary-link:hover { background: #5C2E00 !important; }
 [class*="st-key-research_filter_row"] [data-baseweb="tag"] span {
     font-size: 0.68rem !important;
 }
+/* Section toggles — plain-character arrows instead of st.expander's built-in
+   icon font (which silently shows raw ligature text like "keyboard_arrow_right"
+   if that external font fails to load), styled to read like a collapsible
+   section header rather than a generic centered button. */
+[class*="st-key-research_section_toggle"] button {
+    text-align: left !important; justify-content: flex-start !important;
+}
 
 /* Mobile responsive */
 @media (max-width: 600px) {
@@ -3059,9 +3066,23 @@ with tab_research:
                 key=f"research_export_{_rcode}",
             )
 
+        def _toggle_section(label: str, state_key: str) -> bool:
+            """Collapsible section header using a plain-character arrow instead
+            of st.expander's built-in icon font — that font silently falls back
+            to raw ligature text (e.g. "keyboard_arrow_right") if it fails to
+            load client-side, which isn't something this app controls. Returns
+            whether the section's body should render."""
+            st.session_state.setdefault(state_key, False)
+            with st.container(key=f"research_section_toggle_{state_key}"):
+                _arrow = "▾" if st.session_state[state_key] else "▸"
+                if st.button(f"{_arrow}  {label}", key=f"{state_key}_btn", use_container_width=True):
+                    st.session_state[state_key] = not st.session_state[state_key]
+                    st.rerun()  # so the arrow reflects the new state immediately, not one click late
+            return st.session_state[state_key]
+
         # ── Add a custom link ────────────────────────────────────────────
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
-        with st.expander("➕ Add a link (IR page, presentation, transcript…)"):
+        if _toggle_section("➕ Add a link (IR page, presentation, transcript…)", "research_addlink_open"):
             with st.form(key=f"research_add_form_{_rcode}", clear_on_submit=True):
                 _af1, _af2 = st.columns([2, 1])
                 with _af1:
@@ -3106,7 +3127,7 @@ with tab_research:
         # than two unrelated ways to add an IR page.
         _saved_ir_pages = [l["url"] for l in _links_map.get(_rcode, []) if l.get("doc_type") == "IR Page" and l.get("url")]
         _scan_url_default = _saved_ir_pages[-1] if _saved_ir_pages else ""
-        with st.expander("🔍 Pull documents from an IR page"):
+        if _toggle_section("🔍 Pull documents from an IR page", "research_irscan_open"):
             st.markdown(
                 '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
                 'Paste an IR page URL (or an IR document-library sub-page) to scan it for '
