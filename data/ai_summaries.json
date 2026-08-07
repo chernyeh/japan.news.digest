@@ -1,1 +1,383 @@
-{}
+{
+  "summary_bytime": {
+    "idx": {
+      "1": {
+        "source": "NHK Business",
+        "title_for_match": "Food self-sufficiency rate drops to 37% at record low due to soaring rice prices",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015199091000.html"
+      },
+      "10": {
+        "source": "Japan Industry News",
+        "title_for_match": "NAVITIME JAPAN Partners with Taiwan to Enhance Tourism App with TDX Data",
+        "url": "https://www.japanindustrynews.com/2026/08/navitime-japan-partners-with-taiwan-to-enhance-tourism-app-with-tdx-data/"
+      },
+      "11": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Cartier's ``LOVE bracelet'' is running well, but it still wins over ``Birkin'' - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE9TUDRrVlBNeHEzUGk3SXRJUmpvMVQ2b0lsNThKcUV5bm9yQ0wzU2hseTc5bE1VeEJnRERMLUNVeUhqODVfZVU0X1FRSjVYM1hBbk9jRUY2UmozZFRnb3oyUDB6N1dUQVcwU3N0TUVPR29hUFhsRmxkcTYwNURZV3c?oc=5"
+      },
+      "12": {
+        "source": "NHK Economics",
+        "title_for_match": "Junior high school student summit on the abduction issue: message aimed at resolving the abduction issue, Chief Cabinet Secretary",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015199041000.html"
+      },
+      "13": {
+        "source": "NHK Economics",
+        "title_for_match": "Kumamoto Earthquake damage designated as a \"severe disaster\" to support local governments' recovery costs",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198971000.html"
+      },
+      "14": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Reasons why Korean cafes are coming to Japan one after another",
+        "url": "https://news.yahoo.co.jp/pickup/6590848?source=rss"
+      },
+      "15": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Jangria Royal Ticket released",
+        "url": "https://news.yahoo.co.jp/pickup/6590861?source=rss"
+      },
+      "16": {
+        "source": "NHK Economics",
+        "title_for_match": "Fukuoka Prefecture plans to submit an ordinance to protect employees from unreasonable demands from lawmakers and others",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015199151000.html"
+      },
+      "17": {
+        "source": "Bloomberg Japan",
+        "title_for_match": "Yen’s Quick Retreat Shows Limits of US-Japan Intervention - Bloomberg",
+        "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxNTGpZc1hod1czaUNHZWlNU1RsbkQyRHhBb05ES2gzWHV3TFJmaTRaNVlvdzFMSXFpZHh5RFlaUVJOREdVNnp1QTBxNzVxT2VxVmF0WVI4eW9rd3dVeXpBMlhpV0EzbDFrMkl1aUZoOTA1anVoZ0N2akpSLXAyUXlFblNCVnhrVEQzVWZkYXFxNEY3dS1oVlNtRWcyejd5eG5yUlRfakpaclpwVEZjbF9KeVE4bGo?oc=5"
+      },
+      "18": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Increase in major bonuses; disparity widening behind the scenes",
+        "url": "https://news.yahoo.co.jp/pickup/6590856?source=rss"
+      },
+      "19": {
+        "source": "NHK Economics",
+        "title_for_match": "Fukuoka Prefectural Assembly incumbent survey: Nearly half of respondents said they had heard rumors about receiving money",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198861000.html"
+      },
+      "2": {
+        "source": "Diamond Weekly",
+        "title_for_match": "``I try not to think about it as much as possible.'' The surprising things that morning drama star Ai Migami thoroughly prepares for her role - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1TTW5nUFMwSHFuc0tVY21sY0RpbTBJcnRuNzhUZjNiLWJETDR1aXFFZnVrRVdYSTdwZndXaE5QMHVnV3MzOVRzSnBZOXnSAU9BVV95cUxQNTNBUXVORElIdlNwbTh3UThsZF9wT2tFa3FheUhta0xDZXFPNkhxZFVhc3ZOdEk3NDFzVXZ1YTg2V2V2U3ZHY3J6RG8wZXYw?oc=5"
+      },
+      "20": {
+        "source": "NHK Economics",
+        "title_for_match": "Prime Minister's visit to Yasukuni Shrine on the day of the end of the war ``judged himself appropriately'' Chief Cabinet Secretary",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015199051000.html"
+      },
+      "21": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "China's exports increased 24% in July for 9 consecutive months, with huge trade surplus continuing... economic structure dependent on exports - sankei.com",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE1KTzJsWmhsdU1BRW1NQnVIUmFnaC1Yc2JTVmVTX3ZUc3ZCeHlfT2pKTWZGQmo3UUpGU0VHS2xQdDRiSjFvZ0J3dU1NZmx5Yk1ZalZZZ1pFNDN4eC1nZ01qbjJFYXFUajhDVWZnUFNDUE8wSkhoZlE?oc=5"
+      },
+      "22": {
+        "source": "NHK Business",
+        "title_for_match": "Today's Oha Biz Friday, August 7 Spring crude oil price rise will push up prices",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198891000.html"
+      },
+      "23": {
+        "source": "NHK Economics",
+        "title_for_match": "Two people have filed their candidacy for the National Democratic Party representative election and are entering the election campaign.",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198901000.html"
+      },
+      "24": {
+        "source": "NHK Business",
+        "title_for_match": "US imposes additional tariffs on semiconductor and solar panel materials with China in mind",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198941000.html"
+      },
+      "25": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Inappropriate audio at Nishitetsu station, damage report considered",
+        "url": "https://news.yahoo.co.jp/pickup/6590838?source=rss"
+      },
+      "26": {
+        "source": "NHK Business",
+        "title_for_match": "June Household Survey: Decrease for 7th consecutive month Spending decreases widely due to typhoons and rainy season",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198791000.html"
+      },
+      "27": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "Nagoya Institute of Technology proposes clips to correct finger tactile sensation for pianists and others - Nikkan Kogyo Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiW0FVX3lxTFBwSGwxX0doMWp1SGtSRGdmZS1XUlRleE9tWDBiTEZaYm9ibllpRDF5b1pXN2RaUXpGWHFlcGhUNWpBME1xME5pUGhJYmZBcFJFVUhiODFoM08wRE0?oc=5"
+      },
+      "28": {
+        "source": "NHK Business",
+        "title_for_match": "Market intervention on April 30th: Over 6 trillion yen, the largest single-day purchase of yen ever",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198801000.html"
+      },
+      "29": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "New Long Kogyo's \"Factory Cafe\" idea developed by university students and employees - Nikkan Kogyo Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE9zV2l4RnBGb3ZvbU4wTVdCcWpBWnBYT294ZmFPYnNkWHpCWE5xUTFnVWdjVk45c1daMEJTc2tFRnRtU0FLN3RVakRncjNVd3EtRGpGTkE3dThVY0U?oc=5"
+      },
+      "3": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "``Originally a welfare facility for sailors'' ``It's not glamorous, but it's full of flavor''... ``A very happy breakfast'' at the public inn ``Tokyo Kaimen Kaikan'' - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE1QdElfelZuR2c4Zkg0eFZwVFRvaTVTMmtfSWNELVVVSG5ocmZfdmQ2SWxUWWNsSDVXV2RLNUpjeDJ6S0VEa1JQQlhrWUJZMHZwRkE?oc=5"
+      },
+      "30": {
+        "source": "NHK Economics",
+        "title_for_match": "Prime Minister Takaichi’s movements August 6, 2026",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198811000.html"
+      },
+      "31": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "Upstream industry, which makes bubble wrap, changes its company name to \"Puchipuchi\" \"Developing it into a brand that supports a recycling-oriented society\" - sankei.com",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE40cXItT0lEbzRsX3VPQ25NOGFrYlhHUWZvUnEwbm1nclNSdENLYjQ0aFNqNklSRjkySjByeXh0blJLSFduQ3JtTnZxTml6aFVabEhXVVJCTmVWTk5ZVWd0bUFwNzlQTGNROTh2S3lGWjZ1UldicUE?oc=5"
+      },
+      "32": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Zentoshin Bankruptcy: More than 53.9 billion yen",
+        "url": "https://news.yahoo.co.jp/pickup/6590831?source=rss"
+      },
+      "33": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Drugs that promote brain \"cleaning\" prevent the cause of Alzheimer's disease, University of Tokyo and Niigata University - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5EQkNQZFc0dFRtV3V5M2tVdk01M3Y5eDVzd2g1MjJkSGhGZ1FhaUk5cnlwOUN5TW1FbnRwMUl5elBSV0ZWc1V1RmV0ZDc5UFVrT2JPeTVEV2dLSGxzZmhYS1hlQ2dYalNpNGc4ZA?oc=5"
+      },
+      "34": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "Alliance \"SAKURA\" established to realize spaceport and related businesses - sankei.com",
+        "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE0td1RlRUxZb3dMZUJZWFVXZS0wU3RobGJQWm82T19VaDBRSmdSU2Rva1hib0d0RU1KdE5mWk1yWWM2WGZiUGxLbjlXMTVkcXNkRU1BbkhqVzM5dl9Ld2lrc0taOTVHY0w0NWNVSXpibmZObFg2RkpzWkxndw?oc=5"
+      },
+      "35": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Government and Bank of Japan intervened on April 30th with over 6 trillion yen",
+        "url": "https://news.yahoo.co.jp/pickup/6590832?source=rss"
+      },
+      "36": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "Promo Tools Co., Ltd. joins Saitama Nikkei Konwakai - sankei.com",
+        "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE1DRVFmeWw0NWtodUZ2eEFqQWp5aWZ1QlZ1eU9mZklENnlYOFJERXpTSi02R1VBSS1TakdYVFhWWVdLc1oyZ2wyMGlXY3hJd0xoUkdEVVZtY1g5WnE2ak9xeU5KV2RId19UaDZ5SWtVRnRjSXNjbFlaQ0dBZw?oc=5"
+      },
+      "37": {
+        "source": "Bloomberg Japan",
+        "title_for_match": "Asia’s Savers Piled Into Stocks and Reshaped Their Home Markets - Bloomberg",
+        "url": "https://news.google.com/rss/articles/CBMixwFBVV95cUxQNFZBQVA4N1cyQUM1UkQwYWQ5X0hNczdKdHpKc0I5dkRlWlZpdVdibGVibmFjMXpXeDJSSGJFR2N5WjdhcFZmUDJpcDMyMXgta2VvVngtdW5JWm1kV2didlNhQVpKYktnM2dBRFpQNGVVX3lKLXBJZFBrSkZyV0o0RlB5SWZGUjN3UmxxWFFhZjl5MFVOREo1c2VYRnV6eGs4SF95Um5RcW40NmxOT0lSR1daR2UzekRaTnlJWGc3WmtSbWdHMTdv?oc=5"
+      },
+      "38": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "China imposes travel restrictions on its citizens to prevent technology leaks; new immigration regulations to be enforced in September for economic security reasons - sankei.com",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE1qOFBORTE1aXQ4NUM3eUU1THJ5SzZzUDAwN2EyYWx6MUlPWnlJSWZUVk9SQ1hLa0JVWTZpLXdZSU9ORHg1OWp0eXhlc2RMaGVTeTBOSDVjQmY3QW9UVDlTYU9YRDRmTmtzRlFscnBrR0lUQl9oV0E?oc=5"
+      },
+      "39": {
+        "source": "NHK Business",
+        "title_for_match": "Decrease in US crude oil exports may also affect Japan, which is promoting alternative procurement",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198761000.html"
+      },
+      "4": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "<Startup Ranking> Top 20 Fundraising in July, Asuene achieves large-scale procurement totaling 13.5 billion yen - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE96bFhtVEtENkd4eWViQy1iaHBCUFJmTkJMU3BZQzhOcnBxTEpGMjhwajBXRHFTVm4yUlV5bUduVENIbDY2dTRfNk1YT1lDb2paQzROZ3pFUmhwX0JwN3Y0?oc=5"
+      },
+      "40": {
+        "source": "NHK Business",
+        "title_for_match": "First major company's summer bonus exceeds 1 million yen, final tally by Keidanren",
+        "url": "http://www3.nhk.or.jp/news/html/20260807/k10015198751000.html"
+      },
+      "41": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Huis Ten Bosch offers 10% discount on tickets on extremely hot days with temperatures over 35 degrees - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE01VVVfYXBHam1wT1hoS2g1ZlZKVVdpOFl2cVlLNTVtc3JyemRwQ09GVnRHRXRIcDhua0lSeTJhdkZSWDJkUnFUMUFPZnBZNk5scEhDeEE3R1lfS1VXczNOQnhXSjF2Q29MSEd6dQ?oc=5"
+      },
+      "42": {
+        "source": "Rakumachi",
+        "title_for_match": "[Practical landlord column] FIRE days 130: Stop investing in studio apartments! ! - rakumachi.jp",
+        "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTFBYck1VdDBwZjZ0R2hWaUFic0hYdklDVFVxS3NDem9FaFRPS1hVTTVDQnVueW55RDc2bldnekVjWGRNaDVLajhMSmYzQzFQcjdETW9lQzJtMUpmQQ?oc=5"
+      },
+      "43": {
+        "source": "Rakumachi",
+        "title_for_match": "[Practical Landlord Column] Why do people stop “just before buying” - rakumachi.jp",
+        "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9VbVlOY2FEUU0xVkZ6a09lNExrVjdPbGZ0WlltQm82V0l3aTNITGpXN1FlOXNjak85bkF4d1VWdkdnZWUzMXBWeUJnREtNeUplSldFTEJqdGc5UQ?oc=5"
+      },
+      "44": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "Trends in science and technology (349) Microorganisms as allies in treatment - Nikkan Kogyo Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE1ySG04TzJEV0Vvem1vLXVscFZZZEV3WURkYUl4WVQwdVFmYXc0aGJZaDRPd0JFMlF6VWU2RmJISUNUN0h0czZ4cG9LN2VJNXRpcFRuLVltQUdyRzg?oc=5"
+      },
+      "45": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "More than 50% of men took childcare leave, highest last year, achieving government target - Nikkan Kogyo Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiW0FVX3lxTFBQUWZmeWhQZzlHLVZuMFZteTdhd3Y3YzNkcUdZazc5NGRqZkhtcDFhb2d2amhORXpQWndPOUFXT2RnUGpYYURNck9qckg1aTVZVHdzb3REbEU4Skk?oc=5"
+      },
+      "46": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Dynapac [3947]: Notice regarding revisions to earnings forecasts and year-end dividend forecasts August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE95eXl6VnR4ckRVaUN2d29SYVZUSlFuZnliUmdxdkNCMVlYM3VXSzdsVlFuNFk4SWw3WFNLcFNIX05uc1g2Z0VWeWJhcG5Dd2lleU1NX2R2aU1BUWVXSDlJdzJhdmo2cTZ4cXc?oc=5"
+      },
+      "47": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Inui Kisen [9308]: Notice regarding revisions to consolidated earnings forecast and dividend forecast for the fiscal year ending March 2027 August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE9hdEtYYmZLdDZzM2lDek1KV0R1UVdxdjdYd2RuMWc3dVlZcll1bGxnQ3dsWDgxZGdoMEhxWi1tRTRkMGd1bl9qaDRfTXF3bGNXeFNKcU9Sb3Y1RjI5a1BtblZvak9lVE9SVWc?oc=5"
+      },
+      "48": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Seika Sangyo [8061]: Notice regarding revisions to earnings forecasts and dividend forecasts August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE1fN0NkWThXRXhpZFRlVm5Pdmd1NzFjR25ud2FTSFZPQXhjUTFLbjR5SERnQ3h4ZTJ4aXRGMFhjbTJlU2Y0OWQyMzVaSEU2SjJZbmN5UDhmaFhheUlrTVdrR29ENHRSbFdDWnc?oc=5"
+      },
+      "49": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Achilles [5142]: Notice regarding upward revision of full-year earnings forecast and revision (dividend increase) of dividend forecast August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE1pZENqa0p2QllQX3hreTBoMHpzOXBUZm5Xc2hZR1V2a1pNV05vMThUOXZKaGJaUjd5dXpudTc5akJGY210a0p2VlRySGhIU0p6WlVHM1pYbjluejdCeWF4UDhCeEZNN0JmSHc?oc=5"
+      },
+      "5": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "BYD, the world's best EV, is challenging the \"stronghold of light vehicles\" at 1,995,000 yen, and why the light EV \"Otter\" will be a trump card for conquering Japan - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFAxbzA2aDlyRVU4NGFvZ3FJeTJobE5STmdwNVA4SEQwZHlLOGNHQVpqeGg4ZDFHaXlYYkpVWGU1NW5RNVBNS1hVV0gxR1ZjRHMtZ29PSWd4cVQ0R0xoQmkw?oc=5"
+      },
+      "50": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Mugen Estate [3299]: Notice regarding revision of business performance forecast and dividend forecast August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTFB0bDlBdW9zT3QxWFNvY3hXS3NRcGZEbWt0VlpzamY4M3NWMElBbGxpVHVMSUN5MkFSUE5OQ2FvUUhpdjI0dEVmb3hpb1F1QS1xN3dUWVRERS1ZQ2ZMU0lpY2NObXhtNVAzemc?oc=5"
+      },
+      "51": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Kurabo Industries [3106]: Notice regarding revision of earnings forecast August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTFA5Vzc4bWhQSUxKeDZ3X01YcHMtX2xTWGZFeGZodHU4d2RkcFRIRjhBRXpSRTNpbEZYV3BrNm4ycm9ObGJvRHlGSTlRaWhFOW91MDA2d2d4VkNkV2pUSllzdS1wVGFOMFZkZUE?oc=5"
+      },
+      "52": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Shinpokoku Material [5542]: Notice regarding the difference between the second quarter (interim period) performance forecast and actual results, revision of full-year performance forecast, and revision of year-end dividend forecast August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE0wSVFPUFpyQ0xXSTBhNUJianVmTVljYlR5X3NwR0xrTXZkbnphRFZsdFEtdlJuVnR0NFZlUGFhNWR1SUxKZnBkaUFDT2wtT3dLNkROMDJzaUs5YVRkSDc0cmw5WkktanVEZFE?oc=5"
+      },
+      "53": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Trusco Nakayama [9830]: Notice regarding dividend of surplus and revision of business forecast August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE84TDIxT2sxUW9fRDdESUhobU1tcWNlbnh0dnVKTlFJOTlJYmNhd25HMEx0Zk5jUmUwaS1sZEN0OHJDSTBIMXJpbi0zZzhqVkpfUjIzVXBRbXZ0ZFVTSWFFQXJ0TkVLQ2VGV3c?oc=5"
+      },
+      "54": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "T.O.W [4767]: Notice regarding 50th anniversary dividend and dividend forecast for the fiscal year ending June 2027 August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE8tRGpCM0NFTTlCaFB2WFBEcFlLNlM5UEQ2MldfNnhEaktrX3VXYXBra3NhOUwtQTAtVk1nX2Zvb2l0SFQ5ODB2Q0ZpU05pUmRONnFudVZnNkxlYVp0X0dyb2dRREJGckE0M2c?oc=5"
+      },
+      "55": {
+        "source": "Minkabu",
+        "title_for_match": "TKP---continues to decline, announces completion of acquisition of treasury stock Posted date and time: 2026/08/07 12:45 [FISCO] - Minkabu",
+        "url": "https://news.google.com/rss/articles/CBMiSEFVX3lxTE1WM1RuWXhOUXZkZkpYR0wxaUZmNE9pN0xocVl3UGduMnZCWUtGYnhkNVpwTUo5MnBkczVJQzRPVGZMZEJ5WmdyUA?oc=5"
+      },
+      "56": {
+        "source": "Fisco",
+        "title_for_match": "TKP---continues to decline, announces completion of acquisition of treasury stock (FISCO) - Yahoo! Finance",
+        "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPcVRWa3BzT2hRTDFPbVZXTnhVN3VWblc3aEZaZ2daOHprM3NZVElsVFBOS3VmU1B0c2RjMW0xVzV5ZFptbkxta2hIcVdMNDlTbnFwVTYzU2h2N252NkZvN1hIaWdVUlNuTTRKd2dpTzV3X1ZPa3FJUUFJdm5HQ1VhX1ZyRkxBN00?oc=5"
+      },
+      "57": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Nikkei average falls by 644 yen at morning closing price, stalls due to SoftBank G's financial failure - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTFBJTEZacUhNb1Z5Nml0a3R2Q2F6Q0FwNndLb3RBNVF3c0RiTTF5Y0NYMWdSSGd3eDJBQkc3LXJLS2RhRDhZZ0stYUFhazY3T1RmS29YNGUtVHYtQVBmY3FlcG9neUZ5ZDdXb3FObw?oc=5"
+      },
+      "58": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "Obayashi Corporation, April-June period (1Q) ordinary profit increased by 98% - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE81RWp5bzJab2V4dkRCandZa0dwY3JrcFVDM3JWRE1oQkx4VlFXalJRdV84TTJKcmh5S1M1MmRHZHpOTWRiZ0lpS0dYOEJMWjBEQVE?oc=5"
+      },
+      "59": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Nintendo's stock price temporarily rises 5%, net profit increases 54% from April to June, software sales are strong - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5RSkhVNERnMTIteVlPRTJhRG4td0ZGUmxmTHY1VmtBQXhhR1RBVndXYVFLaExFSXk0Y3hSVExCZjhZUG50Ni1PVHV2ZXNSZ2ZIelotTUNza2xPY2dTNXk1M3Y5ZUtsVm8wN1dKcQ?oc=5"
+      },
+      "6": {
+        "source": "Diamond Weekly",
+        "title_for_match": "``I'm a victim!'' Words from a doctor who slashed at a ``victim'' who shouted discriminatory remarks [Manga] - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE8zUTRUSVNMX3V0TC1yWFhNbm9aV2dzWFVURThOVGRGUFIxSXUxVVdPSXFSNlpaQXRuTFd6Z01qUGlKNGhxSkpBQWZvYnXSAU9BVV95cUxNSDFFQTRYdEZ2WnpuRGI0ZlNrNXlkZ0V3WlNlUGp2MnVrNUdxeUxMN0dieUd0UmNzSkgzTkF6UVRESzA0MDlaR3BoWVN4dVRr?oc=5"
+      },
+      "60": {
+        "source": "Fisco",
+        "title_for_match": "Coyu Rentier --- 10 yen per share as interim dividend (FISCO) - Yahoo! Finance",
+        "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPQUVBNzBvOUlLaEVDc1NPX2Fyd3dacEZyektZd0V0S1FqYjVUTGJ5MHZPVmR2SnBabl9FQk5NMkw5bTlZT1hMM3RFMk93SWNGcWFZUW5yWFkwekp3Y1ZVcENKYW02b3F4cWN1eFkwcVpSakFFakI3NjhISVlSRzJ1SzhnTUxxdFU?oc=5"
+      },
+      "61": {
+        "source": "Fisco",
+        "title_for_match": "M3---Significant decline, disgusted with first quarter profit decline (FISCO) - Yahoo! Finance",
+        "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPSVJ2NHRKbV9XTHo5MEd0a1d6VTl6YXlFaDU5V0N2dDFkYUlxMW5oZnVON1pKTTNHV0pqRVBKVlVBX2U3ZlNSSDVSMVN6ZUNSYWV1Qk9BaExfR1IxN2FwbHh2R1VUSDJYRHh4MTc5Z1ZGWXhORlgydk1YRUlPYW5WWjJwV19jS3M?oc=5"
+      },
+      "62": {
+        "source": "Minkabu",
+        "title_for_match": "Tokyo stocks (early closing) = 644 yen weaker compared to the previous day, affected by decline in SoftBank G - Minkabu",
+        "url": "https://news.google.com/rss/articles/CBMiRkFVX3lxTE9oUVNoQjhMNlFjaXgwTTljUGxVVEFpS21JSWNnOEw5WExFSEdOWkYtS3dWRTN6V1JmRWE1SnBzOEJBQXFyQ1E?oc=5"
+      },
+      "63": {
+        "source": "Toyo Keizai",
+        "title_for_match": "How to check your own \"unconscious true feelings\" before taking the plunge to \"move to the countryside\" or \"quit your job to study abroad\" | Life | Toyo Keizai Online",
+        "url": "https://toyokeizai.net/articles/-/952353?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "64": {
+        "source": "Diamond Online",
+        "title_for_match": "Sony's extraordinary passion for the electronics business unexpectedly revealed through its proposed acquisition of Tamron - Atsushi Osanai's deep knowledge of electronics",
+        "url": "https://diamond.jp/articles/-/396640"
+      },
+      "65": {
+        "source": "Diamond Weekly",
+        "title_for_match": "The abnormal value of ``expected PER of 4 times''... What are the behind the scenes of the ``fear market'' that hit KIOXIA stock, which crashed despite record high profits, and what are the two stocks to watch during the rebound phase? - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE94cWpLYlhvWm8ySWlvXzU0OEpHaXRySEpseWpCZXIwUVFsdmNuUVRMQVFWWmdxb3BXTDNXOGF1d2FGSUV2eFExMXZmNHfSAU9BVV95cUxOcDRmQ2lOd1RLRWYxVjJBTWRNTmdmQndvdjZuX1RZcTNVZTRjVjBYcExUa25paTVDSm1Td1p2VThRS2ppVmlSaWdUMkhxZ244?oc=5"
+      },
+      "66": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "Using \"docomo Shop\" as a base for acquiring bank and securities accounts...The president of Docomo FG talks about the path to \"doubling financial profits in 5 years\" and the chances of success - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBYT2ZBek9WYjM5TDliTmpmYk1ROUFWYkRPSW5RTnVMaWRJbktiSmZVWm9fV3BuMEJEQ0JPSjJjRm1XX2NfaDZpN3JLNUZDUGk5RXlZNjRfS0JtVzNTRGlZ?oc=5"
+      },
+      "67": {
+        "source": "Diamond Weekly",
+        "title_for_match": "JGC, Chiyoda Corporation, and Toyo Engineering are shifting to a management system where they refuse large-scale projects, and the world's unprecedented plant boom is accelerating the shift away from contracting...What are the markets they are targeting as a revenue base? - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE5KN2tTVnJWNERZMEM3S1dFVEpKUHY5elhQZXBlSUJCVlZyLVoweXpJLWFzWWtVTWhoc2JRVEpGZGxFQlpQNkc4czhkeXbSAU9BVV95cUxPSlZUQnN1dFJHS0lpMktJRjFLc2dtY0Ntcy00aFFYeElfUElGTU0teDFYZXBFelM3OERCWFFCamhrVXpVWU5UbXNOWnVyb1pj?oc=5"
+      },
+      "68": {
+        "source": "Minkabu",
+        "title_for_match": "Notice regarding decisions regarding acquisition of own shares Posted date and time: 2026/08/07 15:10 [Timely disclosure] - Minkabu",
+        "url": "https://news.google.com/rss/articles/CBMiSEFVX3lxTE1NNlhKdWpRa1llQ19wOVBGWEdRWGhod3NvZnR1MHhJdFMtX3p1S0lwVXZCOTdZODRIYjZrSndqYkhkU2phTV84VQ?oc=5"
+      },
+      "69": {
+        "source": "Minkabu",
+        "title_for_match": "Notice of decision on matters related to acquisition of own shares Posted date and time: 2026/08/07 14:30 [Timely disclosure] - Minkabu",
+        "url": "https://news.google.com/rss/articles/CBMiSEFVX3lxTE5DSXZjallKcTg2bnV5bi1BRnZVOWNIc0NYcFV4WF84ZTVndGZLWk9iQ0Y1WGludkR3cGhUN0FjMUloams3STdmYw?oc=5"
+      },
+      "7": {
+        "source": "Diamond Weekly",
+        "title_for_match": "What is the annual salary of a senior manager in his early 40s at AGC (formerly Asahi Glass)? [5000 reviews information data] - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE9wc0MzaUJTbHhUUXRIbjc2WEN6YTRlWkVzcmtsbVFQLXNOWHRrdUZxZ29BZXF1MG1XWnhRd2duUUtHUEx5cGxMeEl3bUzSAU9BVV95cUxNNGJhQXdHWGNyWTBUTXFqME5QenJFUXY4Qkg5LXRoZ1ZPaUI5dGNPUEZkQ2Y3dkFUQUxua196UGYwdlNQRVRGdzdBejJMVTdz?oc=5"
+      },
+      "70": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Shibusawa Warehouse [9304]: Summary of financial results for the first quarter of the fiscal year ending March 2027 [Japanese standards] (consolidated) August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE1lREliSzZHem1FQzBBbmc4MjdBZldWRVBmeVRFUFNFa3dxWFVHSVVjTEZnczNXMUVnR2FkZnpycG1yWXkzeE4tSFdDV0dJSGZsejJjZXFVeEhSaGhfbjZPbXNzMFNGeUtyUEE?oc=5"
+      },
+      "71": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Sun Asterisk [4053]: Notice regarding disclosure of financial results for the second quarter of the fiscal year ending December 2026 more than 45 days after the end of the quarter August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE1UUmFhbU11aXZHWDl0bjBlRGdwcWxMaXR0YWlxdUhaMGpoSFNyRDhJVHFXZFpsQkRqdUdKUmEzYWx2RjJzakdwa0ZkSTVPUmtxeGF5MkNyUjhIdlJ5YVRMVTJ1VlhnSlc0OEE?oc=5"
+      },
+      "72": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Nippon Shokubai [4114]: Notice regarding earnings forecast and dividend forecast for the fiscal year ending March 2027 August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE83M1I3d0RtNXRjRDkybFpNYzhmVmlDbks2amNLWm9wT1hzbWQxbW45THI5X0ZfTjdCdFhJRHRVT3VaMjNkYks0TW9HMHhtZ2hkMUpqMVp5eXZRV0ZhejgzWlp3UnhnS3FrZXc?oc=5"
+      },
+      "73": {
+        "source": "Reuters Japan Companies",
+        "title_for_match": "Japan’s Earnings Calendar Picks Up The Pace Next Week - Finimize",
+        "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxPcVdJT0dvSmNCWlFOVlVjVTV5UWt5bUsxclc0LTVpUEU1UzF3WkhzdDRKc0RZa2pUSlhCc3dEQ3dXN05CLUdHNHViSzhmZTc1V3ZXajdUMkRZVFNnWGc5bFVmd0E2NkRWQ2VBZW9KdFplcHEtd0NOVV9tbHpxVGJrTTNiWTcwTUlD?oc=5"
+      },
+      "74": {
+        "source": "QUICK Money World",
+        "title_for_match": "FANUC (6954) 1Q orders reached a record high for the quarter. We raise our research forecasts - QUICK Money World",
+        "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9zQWllT29sUm9fOG5hUDZoN2c0dHRxeVQ1MjBkSG52VXdtSXUxWkZ0bERFQjdvSkxNdTNraHF3YXNsNXFQM2JWUlV0TkVMbTZEODV1SFFB?oc=5"
+      },
+      "75": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Gurunavi [2440]: Announcement of publication of Logmy Finance transcript article (with QA) for the first quarter of the fiscal year ending March 2027 August 7, 2026 (timely disclosure): Nikkei Company Information DIGITAL - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTFA5by1nMEtyaElsYVhFZ2RkWGtDT0VHV2lNTTdXZU9kYzJkR2tIZGlsZHJqcFV3Tlk3SXVSdFRaeVlxUno1dmdVUXc4Tm1xY2UwZFlFU2xoTWx5eDR1SXIxUlkxNEtHMUNKdXc?oc=5"
+      },
+      "8": {
+        "source": "Diamond Weekly",
+        "title_for_match": "Akio Toyoda's answer to young people who said, ``I want to do what I like as a job'' was so true that I couldn't even make a sound - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE5nLUI5ZmN3SUtiVFlwWnRJSzYzZWhJOURhMVpCWTI1Q0cxTkxaaGhzVV9xN0dhRThRcUxpTW53alE1bEF4UW0zVUhfdUvSAU9BVV95cUxPRWV1MG1ERFBzNFVUQXl4c0duaVRjNlpsaklBYWp0bDVBZEE3ZzZrXzRzTC15VkJqX1pBYjJmRklYVXQ5Z1ctNWpPckhxQ3Vz?oc=5"
+      },
+      "9": {
+        "source": "Reuters Japan",
+        "title_for_match": "Japan set for third quarter of growth on solid domestic demand: Reuters poll - The Mighty 790 KFGO",
+        "url": "https://news.google.com/rss/articles/CBMipwFBVV95cUxPQVdhTXRFRlU5bFRFNkcyR1I2U19KSnZnTDBlbVZSeVg5bS1HVHB2a1o1Y3hEMUprYlF3NDdpbnVUMHdUZkUxSHZkSTZzdTZzclNERTdKZWRxZ0VVMG1wZG9xZE0tQnpySkh2Zl8xOGdkbDQzdXdLdEdZT2E3bFI0bjdSQTdzLWV4NEtvRTBsU09SU2xvSUVRUFd2WTh1MDIzYkt5eUpMTQ?oc=5"
+      }
+    },
+    "text": "# Japan Equities & Macro Briefing – 7 August 2026\n\n**Market tone: Equities weakened as SoftBank Group's reported financial difficulties weighed on the Nikkei, which fell 644 yen by morning close, offsetting strength in Nintendo (net profit +54% Q1) and robotics leader FANUC (record quarterly orders). Macro backdrop remains mixed—domestic consumption is slowing for a seventh consecutive month, food self-sufficiency has hit record lows, and yen intervention costs topped 6 trillion yen in a single day (April 30), yet Reuters polling suggests Q3 growth remains solid. Geopolitical and commodity headwinds (China export surge, US tariffs on semiconductors/solar, crude oil export risks) alongside structural domestic weaknesses (ageing workforce, import dependency) define the investment landscape. Key implication: selective strength in tech/automation and consumer-facing plays (Nintendo, FANUC) offers hedges against broader macro softening and currency volatility.**\n\n---\n\n## Yen & FX Intervention\n\n- Bank of Japan and government intervention on April 30 totaled over 6 trillion yen in a single day—the largest yen-purchase operation ever recorded—reflecting extraordinary efforts to stabilize the currency after rapid depreciation. [28][35] This marks a significant policy escalation; prior intervention episodes (e.g., 2011 post-tsunami, 2015 August shock) typically involved 1–2 trillion yen per session. The scale underscores official desperation to arrest yen weakness, which had likely breached 150+ to the dollar. Implication: repeated large-scale interventions signal structural JPY weakness tied to rate differentials with the US (BOJ rates remain near zero); investors should expect continued volatility and potential future intervention costs if dollar strength persists.\n\n- Bloomberg reports that the yen's \"quick retreat\" shows limits of US-Japan intervention, suggesting recent efforts have not held durably and suggest the yen may resume weakening. [17] Market re-pricing of US-Japan rate expectations (Fed terminal rate vs. BOJ guidance) will likely dominate FX trends through Q4. For equity investors, yen weakness is a double-edged sword: it supports exporters' reported earnings but increases overseas M&A costs and dividend repatriation friction for foreign shareholders.\n\n---\n\n## Domestic Consumption & Household Demand\n\n- June household spending fell for a seventh consecutive month (down from prior month), with declines broadly distributed across categories, driven by typhoons, rainy season disruption, and likely underlying consumer caution. [26] This marks the longest continuous spending contraction since the COVID-era downturn (2020–2021) and contradicts the Reuters poll narrative of \"solid domestic demand\" sustaining Q3 growth. [9] The disconnect suggests that headline GDP resilience may mask household balance-sheet stress and wage-growth disappointment relative to bonus expectations. Implication: retail and consumer discretionary stocks face headwinds; focus on dividend-paying, defensive sectors and firms with overseas earnings exposure.\n\n- Summer bonuses (first major company tally by Keidanren) exceeded 1 million yen, marking a year-on-year gain, though a separate report notes widening bonus disparity. [40][18] While nominal bonus growth is positive for consumption, the widening spread reflects wage inequality and suggests aggregate spending multiplier is declining—high earners tend to save incremental income. Combined with seven-month household spend decline, bonus boosts may not translate to durable demand lift.\n\n---\n\n## Food Security & Agricultural Inflation\n\n- Japan's food self-sufficiency rate has fallen to 37%, a record low, amid soaring rice prices. [1] Historically, food self-sufficiency has oscillated between 35–65% since the 1960s; the 37% reading reflects acute post-pandemic supply pressures, labor shortages in farming, and import-cost inflation (weak yen amplifies this). The record-low signals structural food import dependency and vulnerability to external shocks (harvest failures, trade disruptions, commodity volatility). Implication: inflationary pressure on consumer baskets; food & beverage sector input costs will remain elevated, pressuring margins unless pricing power holds. Defensive food manufacturers with hedged commodity exposure (e.g., major processors with long-term supply contracts) merit monitoring; smaller players face margin compression risk.\n\n---\n\n## Trade, Tariffs & Geopolitical Risk\n\n- US imposes additional tariffs on semiconductor and solar panel materials with China in mind; separately, China's exports surged 24% in July for a ninth consecutive month with a massive trade surplus, and China is imposing travel restrictions on citizens to prevent technology leaks (new immigration regs enforceable September 2026). [24][21][38] These moves signal escalating US-China tech decoupling and rising protectionism, which creates both risk and opportunity for Japanese midstream suppliers (chipmaking equipment, materials, solar components). Japan's semiconductor and capital-equipment firms stand to gain if tariffs redirect US orders; conversely, Japanese exporters with China supply chains or China sales face retaliatory tariff/regulatory risk. Implication: long Japanese semiconductor-equipment makers (FANUC, others in supply chain) but hedge China exposure; monitor tariff widening as Q3 earnings season progresses.\n\n---\n\n## Energy Markets & Crude Oil\n\n- NHK reports spring crude oil prices are rising and will push up domestic prices; separately, decrease in US crude oil exports may affect Japan, which is promoting alternative procurement. [22][39] Japan relies on energy imports for ~90% of oil; rising US crude exports have offered pricing diversification, and their potential decline forces Japan back toward Middle Eastern suppliers and higher geopolitical/logistical risk. With yen weakness, JPY-denominated energy costs are rising in real terms even if USD prices flatten. Implication: expect persistent inflation in power, transport, and industrial-input costs; energy-intensive manufacturers (chemicals, steel, cement) face margin pressure; utilities with pass-through pricing mechanisms and renewable-energy plays (solar, offshore wind per Alliance \"SAKURA\" spaceport/clean-tech initiative) [34] offer some hedge.\n\n---\n\n## Government Policy & Regulation\n\n- Fukuoka Prefecture plans to submit an ordinance protecting employees from unreasonable demands by lawmakers; separately, Fukuoka Prefectural Assembly's incumbent survey shows nearly half of respondents have heard rumors of receiving money. [16][19] While governance/anti-corruption measures are positive long-term, the scale of alleged misconduct in a major prefecture suggests broader institutional weakness in local government and potential near-term political instability. Implication: regulatory tightening and litigation risk for contractors and lobbying firms; increased scrutiny on government-linked businesses. More broadly, the \"50% of men took childcare leave\" policy achievement [45] signals labor-market tightening and upward wage pressure, particularly in tight labor categories.\n\n---\n\n## Macro Analyses & Business Structure Trends\n\n- Reuters poll indicates Japan is set for a third quarter of growth on solid domestic demand, yet household spending data (seven-month decline) and bonus-inequality widening suggest demand composition is skewing toward higher earners and overseas demand. [9][26][18] This implies Q3 growth may be driven by capex and exports, not consumption. If true, economic resilience is narrow and vulnerable to external shocks (trade escalation, forex volatility). Implication: favor capex-linked names (construction, machinery, IT services) and exporters; be cautious on consumer-dependent names unless they have premium or luxury positioning (see Cartier \"LOVE bracelet\" outperforming Hermès \"Birkin\" [11]).\n\n- Toyo Keizai's deep-dive on NTT Docomo FG's strategy to double financial-services profit in five years by leveraging Docomo Shop branch network reflects broader financial services digitalization and fintech integration play. [66] This is part of a sector-wide trend (see M3's first-quarter profit decline [61] signaling healthcare sector disruption) where incumbent business models face margin compression from digital displacement. Implication: monitor Docomo FG and peers (MUFG, Sumitomo Mitsui) for execution on digital pivot; legacy branch-dependent banks face structural headwinds.\n\n- Diamond Online reports that JGC, Chiyoda, and Toyo Engineering are shifting away from large-scale EPC (Engineering, Procurement, Construction) project contracts toward recurring-revenue and smaller-project models. [67] This reflects tight global labor markets, supply-chain fragmentation, and end-client preference for modular capex—a structural shift away from mega-project economics. Implication: these firms are repositioning away from EPC-cycle volatility toward steadier revenue, but near-term earnings may be lumpy during the transition; focus on order book quality and contract margins, not top-line growth rates.\n\n- Sony's proposed acquisition of Tamron (camera lens maker) signals Sony's broadening play in high-end optics and imaging beyond consumer electronics, capitalizing on semiconductor and camera-chip strength. [64] This M&A is strategic (not financial engineering) and reflects Sony's push into professional and industrial imaging niches with higher margins. Implication: Sony's optics/imaging vertical deserves closer scrutiny in earnings; if successful, Tamron integration could add 10-15% to Sony's imaging segment EBITDA by FY2028.\n\n---\n\n## Tech & Semiconductors\n\n- FANUC Q1 orders reached a record high for the quarter, supporting upward revision to full-year research forecasts. [74] FANUC is Japan's leading factory automation/robotics OEM; record orders reflect global capex rebound post-pandemic, AI/generative-AI-driven demand for data-center infrastructure, and reshoring/nearshoring to Japan and allied countries. This is not a one-off; Q2–Q3 order visibility remains strong. Implication: FANUC is a core long-term holding for Japanese equity exposure; upside to forecasts likely through FY2027 as capex cycle extends.\n\n- Nintendo's net profit rose 54% in April–June quarter with strong software sales (likely Switch, new console launches). [59] This is positive momentum but should be contextualized: Nintendo's cyclical; console cycle maturity risk remains for late-cycle Switch and depends on successful next-gen launch transition. Implication: strong near-term, but watch Q4 FY2026 for new-console launch timing and sell-through; software backlog (franchises like Mario, Zelda, Pokémon) is durable.\n\n- US tariffs on semiconductor and solar materials [24] create near-term headwinds for Japanese chipmakers' upstream suppliers (equipment, materials) if tariffs shift US orders to allies (Japan, South Korea). However, Japanese firms benefit if tariffs protect or redirect orders away from China. Implication: favors established Japanese semicon-equipment firms (Tokyo Electron, Nikon, Screen Holdings); avoid firms with high China revenue concentration.\n\n---\n\n## Auto & Mobility\n\n- BYD's EV \"Otter\" is launching in Japan at 1.995 million yen, positioned to challenge the \"stronghold of light vehicles\" market. [5] BYD is the world's largest EV maker by volume; entry into Japan's kei-car/mini-EV segment (historically a Toyota-Daihatsu-Suzuki oligopoly) signals competitive disruption. Japanese automakers' EV transition is lagging BYD's battery-cost and manufacturing advantages. Implication: watch for market-share erosion in entry-level EV segment; Japanese OEMs must accelerate EV cost reduction or face margin compression. This is a medium-term structural threat, not an immediate crisis, but investors should downgrade growth forecasts for mass-market Japanese EV programs through 2027–2028.\n\n---\n\n## Real Estate & Construction\n\n- Obayashi Corporation's Q1 (April–June) ordinary profit increased 98% year-over-year, reflecting strong residential and infrastructure demand post-earthquake reconstruction and Kumamoto recovery efforts. [58] Kumamoto Earthquake damage has been designated a \"severe disaster\" to unlock accelerated government support for local-government recovery costs. [13] This is cyclical capex stimulus, not structural demand; comparable to post-2011 Tohoku rebuild. Implication: construction and materials stocks (Obayashi, Shimizu, Taisei, cement makers) have 2–3 year upside from disaster-rebuild stimulus, but this is time-limited. Lock in gains by late 2027 as rebuild peaks; avoid overweighting.\n\n- Zentoshin bankruptcy: liabilities exceed 53.9 billion yen, marking a significant real-estate/construction sector distress signal. [32] Real-estate market weakness (long-term housing shortage paradox, oversupply in some regions, labor cost inflation) is creating stress for mid-tier developers and contractors. Implication: monitor sector balance sheets; smaller regional players face refinancing risk; divest if exposure to overleveraged builders.\n\n---\n\n## Healthcare & Biotech\n\n- University of Tokyo and Niigata University research on drugs that promote brain \"cleaning\" to prevent Alzheimer's disease has been announced, but commercialization timeline is unclear. [33] This is basic research, not near-term pipeline catalyst, but if validated, could open new pharma-sector opportunities. Implication: watch for pharma/biotech licensing deals over next 12–24 months; no immediate earnings impact.\n\n- M3's first-quarter profit declined significantly, attributed to sector-wide healthcare disruption (likely telemedicine, margin compression from digital channels, regulatory price pressure). [61] M3 is Japan's leading physician-network platform; if M3 is under pressure, smaller healthcare IT players are vulnerable. Implication: healthcare IT sector faces structural headwinds; only backing firms with differentiated SaaS/recurring-revenue models, not transactional healthcare staffing.\n\n---\n\n## Consumer & Hospitality\n\n- Huis Ten Bosch theme park offers 10% discount on tickets on extremely hot days (temperature >35°C), signaling climate-driven operational stress and demand softness in peak-season tourism. [41] Japanese theme parks are facing rising utility costs and visitor hesitancy due to extreme heat; this is a margin-pressure signal for leisure operators. Implication: holiday and leisure stocks under pressure from climate/cost factors; focus on premium experiences (luxury hotels, restaurants) with pricing power over volume-dependent attractions.\n\n- Reasons why Korean cafes are coming to Japan \"one after another\" [14] signals consumer trend shift toward Korean-style F&B (branding, aesthetics, menu innovation) and market-share erosion for traditional Japanese coffee/casual dining. Implication: structural headwind for domestic casual-dining chains; watch for menu/branding innovation and M&A consolidation in Q4 FY2026.\n\n---\n\n## Startups & Innovation\n\n- Toyo Keizai's \"Top 20 Fundraising in July\" reports Asuene achieved large-scale procurement totaling 13.5 billion yen. [4] This signals strong VC/growth-equity appetite in Japan's startup ecosystem, despite macro headwinds. Sectors in focus: likely agritech (food security tie-in [1]), cleantech, and enterprise SaaS. Implication: Japanese startups are becoming IPO-ready; watch for 2027–2028 debuts on Growth Market and Mothers; these could provide alternative growth exposure for Japan-focused funds.\n\n---\n\n## Company Briefs\n\n### Earnings & Guidance Revisions\n\n- **Dynapac [3947]**: Revised earnings and dividend forecasts (Aug 7). [46] No direction given in headline; monitor release for guidance trajectory. Dynapac is a construction-equipment manufacturer; if downward, signals sector capex softness; if upward, supports Obayashi-led construction cycle narrative.\n\n- **Inui Kisen [9308]**: Revised consolidated earnings and dividend forecast for FY ending March 2027. [47] Inui is a shipping/marine logistics firm; revision likely tied to freight volatility, fuel costs, and China trade dynamics. Watch for margin pressure.\n\n- **Seika Sangyo [8061]**: Revised earnings and dividend forecasts. [48] Seika is a food/beverage producer; revision likely reflects input-cost inflation (agricultural, energy) tied to food-security crisis [1]. If downward, signals margin compression across food sector.\n\n- **Achilles [5142]**: Upward revision of full-year earnings forecast with dividend increase. [49] Achilles is a chemical/rubber manufacturer; upward revision is contrarian to sector weakness and suggests strong pricing power or margin optimization. Implication: company-specific strength; monitor for sector-wide replicability.\n\n- **Mugen Estate [3299]**: Revised business and dividend forecast. [50] Real-estate developer; direction unclear from headline; monitor for distress vs. recovery signal.\n\n- **Kurabo Industries [3106]**: Revised earnings forecast (direction unclear). [51] Kurabo is a textile/apparel manufacturer; likely facing input-cost pressure and consumer discretionary softness.\n\n- **Shinpokoku Material [5542]**: Difference between Q2 forecast and actual results, full-year revision, dividend revision. [52] Materials supplier; likely negative variance if triggering forecast cut; monitor.\n\n- **Trusco Nakayama [9830]**: Dividend of surplus and business forecast revision. [53] Trusco is an industrial-supplies distributor; if combining dividend bonus with forecast revision, may signal capital management ahead of potential acquisition or strategic pivot.\n\n- **T.O.W [4767]**: 50th anniversary dividend and FY2027 dividend forecast. [54] No earnings revision noted; likely celebratory capital allocation, not earnings-driven.\n\n- **Nippon Shokubai [4114]**: Earnings and dividend forecast for FY ending March 2027. [72] Nippon Shokubai is a major chemical producer (catalysts, performance chemicals); guidance important for sector view. Watch for input-cost pass-through success.\n\n- **Shibusawa Warehouse [9304]**: Summary of financial results for Q1 FY ending March 2027. [70] Shibusawa is a warehousing/logistics operator; Q1 results should reflect inflation, labor costs, and logistics demand trends.\n\n- **Sun Asterisk [4053]**: Disclosure of Q2 FY2026 results (filed late, >45 days post-quarter-end). [71] Late filing is a governance/operational flag; scrutinize for hidden issues.\n\n- **Gurunavi [2440]**: Publication of earnings transcript for Q1 FY2027. [75] Gurunavi is a restaurant/hospitality platform; Q1 results relevant to consumer-demand weakness [26] and Korean-cafe disruption trends [14].\n\n### Shareholder Activity & Capital Allocation\n\n- **TKP**: Continues to decline; announces completion of acquisition of treasury stock. [55][56] TKP is a flexible-office/event-space operator; treasury-stock buyback amid share-price decline signals management confidence in valuation but raises capital-efficiency questions. Implication: watch for dividend hikes or strategic M&A use of treasury stock; otherwise, buyback in downturn is shareholder-unfavorable.\n\n- **Timely disclosure notices (companies A & B)**: Decisions regarding acquisition of own shares. [68][69] Broad buyback announcements across multiple firms suggest managements believe shares are undervalued; can be positive signal if coordinated, or signal of poor M&A alternatives. Implication: monitor aggregate buyback volume as market sentiment indicator.\n\n### M&A & Restructuring\n\n- **Sony's proposed acquisition of Tamron**: Strategic broadening of high-end optics and imaging beyond consumer electronics; reflects Sony's push into professional/industrial imaging niches. [64] Implication: Sony's optics/imaging vertical adds durability to semiconductor/imaging earnings and diversifies away from legacy consumer electronics.\n\n### Market Performance Notes\n\n- **Nikkei 225**: Falls 644 yen by morning close (early August 7, 2026), with SoftBank Group [9306] reported financial difficulties cited as primary drag. [57][62] SoftBank is a large index constituent; financial stress (likely tied to Vision Fund mark-downs, yen weakness on forex losses, or dividend/debt sustainability concerns) is a sector-wide risk. Implication: SoftBank weakness is short-term technicals; monitor for contagion to mid-cap growth/tech stocks if liquidity pressures emerge.\n\n- **Nintendo**: Stock temporarily rises 5% on Q1 net profit +54%; strong software sales momentum. [59] Nintendo remains a secular growth story; hold through console-transition cycle.\n\n- **M3**: Significant decline amid first-quarter profit decline, attributed to sector disruption. [61] Healthcare IT/staffing sector under structural pressure; avoid unless turnaround credible.\n\n---\n\n## What to Watch\n\n1. **BOJ Guidance & Rate Expectations (Q3 2026 meetings)**: Next BOJ policy meetings (likely late August and September) will clarify stance on rates given persistent yen weakness, energy-cost inflation, and mixed domestic-demand signals. If BOJ hints at rate hikes, yen will strengthen sharply (near-term equity headwind, but medium-term positive for savers/insurers). Watch for divergence between hawkish BOJ communication and dovish Fed, which exacerbates FX volatility. [17][28]\n\n2. **Food Inflation & Agricultural Policy (Sept–Oct 2026)**: Government response to record-low food self-sufficiency [1] and rising rice/commodity prices will likely include support measures (tariff relief, subsidies) by September. Monitor for sectoral winners (food importers, agritech) and losers (small regional farmers, domestic-input-dependent processors). This feeds into Q3 inflation data (CPI print mid-August, likely to show persistence of food/energy cost push).\n\n3. **Earnings Season & Guidance Downgrades (Ongoing through mid-September)**: With household spending declining for seven months [26] and input costs rising, expect Q1–Q2 FY2026 earnings beats on buybacks and cost-control, but watch for FY2026–2027 guidance cuts in consumer discretionary, food, and small/mid-cap construction. FANUC's record orders [74] and Obayashi's +98% profit [58] may not be replicated across sectors. Prioritize guidance revisions over beat/miss metrics.\n\n4. **US Tariff Escalation & Supply-Chain Rerouting (Ongoing through year-end)**: US tariffs on semiconductors/solar materials [24] and China's retaliatory immigration/tech-export restrictions [38] will reshape supply chains by Q4 2026. Japanese semiconductor-equipment and materials firms (Tokyo Electron, Shin-Etsu, Sumco) should see order redirects, but watch for China-exposure write-downs and FX headwinds. Major earnings revisions expected in late-August disclosures.\n\n5. **Disaster Reconstruction Capex Cycle Peak (Q4 2026–Q2 2027)**: Kumamoto earthquake recovery [13] and broader reconstruction stimulus will drive construction sector through early 2027. Lock in gains on building-materials and GC stocks (Obayashi, Shimizu, Taisei, cement) by late Q2 2027 as rebuild peaks. Watch for capacity utilization rates and labor-cost inflation in Q3–Q4 2026 reports to gauge margin sustainability.",
+    "ts": "2026-08-07T14:24:19.721855+08:00"
+  }
+}
