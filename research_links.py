@@ -20,11 +20,11 @@ _UA = "japan-news-digest-research-tab"
 
 DOC_TYPES = [
     "IR Page",
-    "Investor Presentation",
-    "Earnings Call Transcript",
-    "Q&A / Briefing Notes",
-    "Annual Report (Company IR)",
-    "Shareholder Meeting Materials",
+    "Presentation",
+    "Transcript",
+    "Q&A",
+    "Annual Report (IR)",
+    "AGM Materials",
     "Other",
 ]
 
