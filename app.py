@@ -14,6 +14,10 @@ from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_
                           fetch_underperformance_screen, TSE_STOCKS)
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES)
+from edinet import (load_edinet_filings_from_github, doc_type_label,
+                     fetch_edinet_document_bytes)
+from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
+from ai_summary_store import load_summaries_from_github, save_summary as save_summary_to_github
 from sentiment import score_all_sectors, flag_high_value_articles
 from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      group_calendar_by_date, label_date_bucket,
@@ -623,6 +627,26 @@ a.summary-link:hover { background: #5C2E00 !important; }
 }
 .filings-table tr:hover td { background: #FDFAF7; }
 
+/* Research tab */
+.research-row {
+    display: flex; align-items: flex-start; gap: 0.7rem;
+    padding: 0.5rem 0.2rem; border-bottom: 1px solid #EDE8E0;
+}
+.research-row:hover { background: #FDFAF7; }
+.research-date {
+    font-size: 0.72rem; color: #9B8B7A; white-space: nowrap; padding-top: 0.2rem;
+    min-width: 62px;
+}
+.research-type-badge {
+    display: inline-block; font-size: 0.6rem; font-weight: 700;
+    padding: 0.12rem 0.45rem; border-radius: 10px; letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+.research-type-edinet  { background: #F0EDE8; color: #8B4513; border: 1px solid #E0D5C5; }
+.research-type-tdnet   { background: #EBF5FB; color: #1B4F72; border: 1px solid #AED6F1; }
+.research-type-custom  { background: #F1F8E9; color: #33691E; border: 1px solid #C5E1A5; }
+.research-title { font-size: 0.85rem; line-height: 1.4; flex: 1; }
+
 /* Mobile responsive */
 @media (max-width: 600px) {
     .masthead-title { font-size: 1.6rem; }
@@ -673,9 +697,39 @@ for key, default in [
     if key not in st.session_state:
         st.session_state[key] = default
 
+# ── GitHub repo config (used by Screener, Earnings Calendar, Research tab,
+#    and durable AI-summary/research-link storage) ─────────────────────────────
+_ec_repo_default = "chernyeh/japan.news.digest"
+_gh_token = None
+try:
+    _ec_repo = st.secrets.get("GITHUB_REPO", _ec_repo_default)
+    _gh_token = st.secrets.get("GITHUB_TOKEN", None)
+except Exception:
+    _ec_repo = _ec_repo_default
+
 # ── Restore from shared cache on first page load of a new session ─────────────
 if "_cache_loaded" not in st.session_state:
     _c = _get_app_cache()
+
+    # One-time (per running process, not per session) hydration of AI briefings
+    # from the durable GitHub-backed store. The in-memory shared cache above is
+    # wiped on every app restart/redeploy — this fills it back in so a briefing
+    # generated before the restart is still there instead of needing a re-click.
+    if not _c.get("ai_summaries_hydrated"):
+        _c["ai_summaries_hydrated"] = True
+        try:
+            for _sk, _entry in load_summaries_from_github(_ec_repo, _gh_token).items():
+                if _sk not in _c["ai_summaries"]:  # don't clobber anything generated this run
+                    try:
+                        _ts_dt = datetime.fromisoformat(_entry["ts"]) if _entry.get("ts") else None
+                    except ValueError:
+                        _ts_dt = None
+                    _c["ai_summaries"][_sk]            = _entry.get("text", "")
+                    _c["ai_summaries"][_sk + "_ts"]     = _ts_dt
+                    _c["ai_summaries"][_sk + "_idx"]    = _entry.get("idx", {})
+        except Exception as _hyd_e:
+            print(f"AI summaries hydration error: {_hyd_e}")
+
     if _c["articles"]:
         st.session_state.articles          = _c["articles"]
         st.session_state.source_map        = _c["source_map"]
@@ -1200,11 +1254,22 @@ Respond only with the briefing."""
                             max_tokens=_max_tokens,
                             messages=[{"role": "user", "content": _prompt}]
                         )
-                        _text = _msg.content[0].text
+                        _text  = _msg.content[0].text
+                        _ts_dt = now_local()
                         _ai_cache[_session_key]          = _text
-                        _ai_cache[_session_key + "_ts"]  = now_local()
+                        _ai_cache[_session_key + "_ts"]  = _ts_dt
                         _ai_cache[_session_key + "_idx"] = _idx
                         _ai_cache[_status_key]           = "done"
+                        # Persist durably so this briefing survives an app restart/redeploy
+                        # and shows up on other devices, not just this running process.
+                        try:
+                            _dsk_ok, _dsk_msg = save_summary_to_github(
+                                _ec_repo, _gh_token, _session_key, _text, _ts_dt.isoformat(), _idx
+                            )
+                            if not _dsk_ok:
+                                print(f"AI summary not persisted durably ({_session_key}): {_dsk_msg}")
+                        except Exception as _dsk_err:
+                            print(f"AI summary durable-save error ({_session_key}): {_dsk_err}")
                     except Exception as _bg_err:
                         _ai_cache[_status_key] = "error"
                         _ai_cache[_error_key]  = str(_bg_err)
@@ -1451,21 +1516,12 @@ if _digest_trigger in ("premarket", "close"):
     st.stop()
 
 
-# ── GitHub repo config (used by Screener + Earnings Calendar) ─────────────────
-_ec_repo_default = "chernyeh/japan.news.digest"
-_gh_token = None
-try:
-    _ec_repo = st.secrets.get("GITHUB_REPO", _ec_repo_default)
-    _gh_token = st.secrets.get("GITHUB_TOKEN", None)
-except Exception:
-    _ec_repo = _ec_repo_default
-
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-(tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings,
+(tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings, tab_research,
  tab_earnings, tab_screener, tab_bysource, tab_news, tab_watchlist,
  tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
     "📊 Markets", "📰 News Feed", "📡 Nikkei Live",
-    "🚦 Signals", "📋 Reg Filings", "📅 Earnings", "🔬 Screener",
+    "🚦 Signals", "📋 Reg Filings", "🔎 Research", "📅 Earnings", "🔬 Screener",
     "📰 By Publication", "🏭 By Sector", "⭐ Watchlist",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
@@ -2681,6 +2737,289 @@ with tab_filings:
             )
         table_html += "</tbody></table></div>"
         st.markdown(table_html, unsafe_allow_html=True)
+
+# TAB — RESEARCH
+# ════════════════════════════════════════════════════════════
+with tab_research:
+    st.markdown('<div class="section-title">🔎 Research — Company Filing &amp; Link Library</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="info-box">Search a company to see its statutory EDINET filings (rolling ~2-year index), '
+        'recent TDnet timely disclosures (from the Reg Filings tab), and your own curated links — IR pages, '
+        'investor presentations, earnings-call transcripts. <strong>EN</strong> marks an English-language document '
+        'where EDINET has one on file. Sort or filter the combined list by date or document type.</div>',
+        unsafe_allow_html=True
+    )
+
+    # A message queued right before st.rerun() (e.g. from the add/delete-link
+    # actions below) doesn't reliably reach the browser — the rerun cuts the
+    # script off before it's flushed. Queuing it here in session_state and
+    # showing it on the NEXT full run (then clearing it) is the reliable
+    # cross-rerun "flash message" pattern.
+    _research_flash = st.session_state.pop("research_flash", None)
+    if _research_flash:
+        _flash_level, _flash_msg = _research_flash
+        getattr(st, _flash_level)(_flash_msg)
+
+    _edinet_api_key = get_secret("EDINET_API_KEY")
+    if not _edinet_api_key:
+        st.markdown(
+            '<div class="empty-state" style="margin-bottom:0.6rem;">⚠️ <strong>EDINET_API_KEY</strong> not found in '
+            'Streamlit Secrets — EDINET document downloads are disabled (free registration at '
+            '<a href="https://disclosure2.edinet-fsa.go.jp/" target="_blank">disclosure2.edinet-fsa.go.jp</a>). '
+            'TDnet filings and your own links still work below.</div>',
+            unsafe_allow_html=True
+        )
+
+    # ── Lazy-load the EDINET index + research links once per session ──
+    if "edinet_filings_idx" not in st.session_state:
+        try:
+            _rows = load_edinet_filings_from_github(_ec_repo, _gh_token)
+            _idx = {}
+            for _r in _rows:
+                _idx.setdefault(_r.get("SecCode", ""), []).append(_r)
+            st.session_state.edinet_filings_idx = _idx
+        except Exception as _e:
+            st.session_state.edinet_filings_idx = {}
+            print(f"EDINET index load error: {_e}")
+
+    if "research_links_map" not in st.session_state:
+        try:
+            st.session_state.research_links_map = load_links_from_github(_ec_repo, _gh_token)
+        except Exception as _e:
+            st.session_state.research_links_map = {}
+            print(f"Research links load error: {_e}")
+
+    _edinet_idx = st.session_state.edinet_filings_idx
+    _links_map  = st.session_state.research_links_map
+
+    if not _edinet_idx:
+        st.markdown(
+            '<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.4rem;">'
+            'ℹ️ EDINET index is empty — run the one-time "Backfill EDINET Filings" GitHub Action after adding '
+            'EDINET_API_KEY as a repo secret; the daily job keeps it current after that.</div>',
+            unsafe_allow_html=True
+        )
+
+    # ── Company search ──────────────────────────────────────────────────
+    @st.cache_data
+    def _research_company_options():
+        opts = [f"{code} — {name}" for code, name in NAMES_LOOKUP.items() if code and name]
+        return sorted(opts, key=lambda s: s.split(" — ", 1)[1].lower())
+
+    _sel = st.selectbox(
+        "Search company (name or 4-digit code):", options=_research_company_options(),
+        index=None, placeholder="Start typing a company name or code…", key="research_company_sel",
+    )
+
+    if not _sel:
+        st.markdown('<div class="empty-state">Search for a company above to see its filing &amp; link library.</div>', unsafe_allow_html=True)
+    else:
+        _rcode   = _sel.split(" — ", 1)[0]
+        _rname   = NAMES_LOOKUP.get(_rcode, _sel)
+        _rsector = SECTOR_LOOKUP.get(_rcode, "")
+        _rmcap   = st.session_state.get("mktcap_map", {}).get(_rcode)
+
+        _hdr_col1, _hdr_col2, _hdr_col3 = st.columns([4, 1.2, 1.2])
+        with _hdr_col1:
+            _mcap_str   = f" · ¥{_rmcap:,.0f}B" if _rmcap else ""
+            _sector_str = _safe_text(_rsector) if _rsector else ""
+            st.markdown(
+                f'<div style="font-size:1.1rem;font-weight:700;color:#2B2420;">{_safe_text(_rname)} '
+                f'<span style="font-family:monospace;font-weight:400;font-size:0.85rem;color:#9B8B7A;">({_rcode})</span></div>'
+                f'<div style="font-size:0.75rem;color:#9B8B7A;">{_sector_str}{_mcap_str}</div>',
+                unsafe_allow_html=True
+            )
+        with _hdr_col2:
+            if st.button("⭐ Add to Watchlist", key=f"research_wl_{_rcode}", use_container_width=True):
+                add_to_watchlist(_rname)
+                st.toast(f"Added {_rname} to Watchlist")
+        with _hdr_col3:
+            _ir_query = f'"{_rname}" investor relations'
+            st.link_button(
+                "🔍 Search for IR page", f"https://www.google.com/search?q={_ir_query.replace(' ', '+')}",
+                use_container_width=True,
+            )
+
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
+
+        # ── Assemble the unified item list ──────────────────────────────
+        _items = []
+        for _f in _edinet_idx.get(_rcode, []):
+            _items.append({
+                "date":       (_f.get("SubmitDateTime") or "")[:10],
+                "type_label": doc_type_label(_f.get("DocTypeCode", "")),
+                "source":     "edinet",
+                "title":      _f.get("DocDescription") or doc_type_label(_f.get("DocTypeCode", "")),
+                "filer":      _f.get("FilerName", ""),
+                "doc_id":     _f.get("DocID", ""),
+                "has_en":     _f.get("EnglishDocFlag") == "1",
+            })
+        for _f in st.session_state.get("filings", []):
+            if _f.get("code") == _rcode:
+                _items.append({
+                    "date":       (_f.get("pub_date") or "")[:10],
+                    "type_label": "Timely Disclosure",
+                    "source":     "tdnet",
+                    "title":      _f.get("title_en") or _f.get("title", ""),
+                    "url_en":     _f.get("eng_url", ""),
+                    "url_jp":     _f.get("doc_url", ""),
+                })
+        for _li, _lk in enumerate(_links_map.get(_rcode, [])):
+            _items.append({
+                "date":       _lk.get("date") or "",
+                "type_label": _lk.get("doc_type") or "Other",
+                "source":     "custom",
+                "title":      _lk.get("title") or _lk.get("url", ""),
+                "url":        _lk.get("url", ""),
+                "link_index": _li,
+            })
+
+        # ── Sort / filter controls ──────────────────────────────────────
+        _fc1, _fc2 = st.columns([1.2, 2])
+        with _fc1:
+            _sort_mode = st.radio("Sort by:", ["Date (newest first)", "Document type"],
+                                   horizontal=True, key=f"research_sort_{_rcode}")
+        with _fc2:
+            _type_opts = sorted(set(it["type_label"] for it in _items))
+            _type_filter = st.multiselect("Filter by type:", options=_type_opts, key=f"research_typef_{_rcode}")
+
+        _filtered = [it for it in _items if not _type_filter or it["type_label"] in _type_filter]
+        if _sort_mode == "Document type":
+            _filtered.sort(key=lambda it: (it["type_label"], it["date"] or ""), reverse=False)
+        else:
+            _filtered.sort(key=lambda it: it["date"] or "", reverse=True)
+
+        st.markdown(
+            f'<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.3rem;">{len(_filtered)} item(s)</div>',
+            unsafe_allow_html=True
+        )
+
+        if not _filtered:
+            st.markdown(
+                '<div class="empty-state">No filings or links yet for this company. Add one below, or check '
+                'back once the EDINET index has run.</div>', unsafe_allow_html=True
+            )
+
+        _edinet_doc_cache = _get_app_cache().setdefault("edinet_docs", {})
+
+        for it in _filtered:
+            _row = st.container()
+            with _row:
+                _c_date, _c_badge, _c_title, _c_links = st.columns([0.9, 1.5, 4.2, 2.0])
+                with _c_date:
+                    st.markdown(f'<div class="research-date">{_safe_text(it["date"] or "—")}</div>', unsafe_allow_html=True)
+                with _c_badge:
+                    _badge_cls = {"edinet": "research-type-edinet", "tdnet": "research-type-tdnet",
+                                  "custom": "research-type-custom"}[it["source"]]
+                    st.markdown(
+                        f'<span class="research-type-badge {_badge_cls}">{_safe_text(it["type_label"])}</span>',
+                        unsafe_allow_html=True
+                    )
+                with _c_title:
+                    st.markdown(f'<div class="research-title">{_safe_text(it["title"])}</div>', unsafe_allow_html=True)
+                with _c_links:
+                    if it["source"] == "edinet":
+                        _doc_id = it["doc_id"]
+                        if not _edinet_api_key:
+                            st.markdown('<span style="font-size:0.7rem;color:#B0A798;">key required</span>', unsafe_allow_html=True)
+                        else:
+                            _jp_bytes = _edinet_doc_cache.get((_doc_id, 2))
+                            if _jp_bytes is None:
+                                if st.button("JP PDF", key=f"edinet_fetch_jp_{_doc_id}"):
+                                    try:
+                                        _jp_bytes = fetch_edinet_document_bytes(_doc_id, 2, _edinet_api_key)
+                                        _edinet_doc_cache[(_doc_id, 2)] = _jp_bytes
+                                    except Exception as _dl_e:
+                                        st.error(f"Fetch failed: {_dl_e}")
+                            if _edinet_doc_cache.get((_doc_id, 2)) is not None:
+                                st.download_button(
+                                    "💾 Save JP PDF", data=_edinet_doc_cache[(_doc_id, 2)],
+                                    file_name=f"{_rcode}_{_doc_id}_jp.pdf", mime="application/pdf",
+                                    key=f"edinet_save_jp_{_doc_id}",
+                                )
+                            if it["has_en"]:
+                                _en_bytes = _edinet_doc_cache.get((_doc_id, 4))
+                                if _en_bytes is None:
+                                    if st.button("EN Doc", key=f"edinet_fetch_en_{_doc_id}"):
+                                        try:
+                                            _en_bytes = fetch_edinet_document_bytes(_doc_id, 4, _edinet_api_key)
+                                            _edinet_doc_cache[(_doc_id, 4)] = _en_bytes
+                                        except Exception as _dl_e:
+                                            st.error(f"Fetch failed: {_dl_e}")
+                                if _edinet_doc_cache.get((_doc_id, 4)) is not None:
+                                    st.download_button(
+                                        "💾 Save EN Doc", data=_edinet_doc_cache[(_doc_id, 4)],
+                                        file_name=f"{_rcode}_{_doc_id}_en.zip", mime="application/zip",
+                                        key=f"edinet_save_en_{_doc_id}",
+                                    )
+                    elif it["source"] == "tdnet":
+                        _tl = []
+                        if it.get("url_en"):
+                            _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" class="summary-link">ENG ↗</a>')
+                        if it.get("url_jp"):
+                            _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" class="summary-link">JPN ↗</a>')
+                        st.markdown(" ".join(_tl) or "—", unsafe_allow_html=True)
+                    else:  # custom link
+                        _lcol1, _lcol2 = st.columns([3, 1])
+                        with _lcol1:
+                            st.markdown(
+                                f'<a href="{_safe_url(it["url"])}" target="_blank" class="summary-link">Open ↗</a>',
+                                unsafe_allow_html=True
+                            )
+                        with _lcol2:
+                            if st.button("🗑", key=f"research_del_{_rcode}_{it['link_index']}", help="Remove this link"):
+                                _ok, _msg = delete_link(_ec_repo, _gh_token, _rcode, it["link_index"])
+                                _links_map.get(_rcode, []).pop(it["link_index"])
+                                st.session_state.research_flash = (
+                                    ("success", "Link removed.") if _ok
+                                    else ("warning", f"Removed from view, but not saved: {_msg}")
+                                )
+                                st.rerun()
+
+        # ── Export current list ─────────────────────────────────────────
+        if _filtered:
+            _md_lines = [f"# {_rname} ({_rcode}) — Research Links", ""]
+            for it in _filtered:
+                _md_lines.append(f"- **{it['date'] or '—'}** · {it['type_label']} — {it['title']}")
+            st.download_button(
+                "⬇ Export list as Markdown", data="\n".join(_md_lines),
+                file_name=f"{_rcode}_research_links.md", mime="text/markdown",
+                key=f"research_export_{_rcode}",
+            )
+
+        # ── Add a custom link ────────────────────────────────────────────
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
+        with st.expander("➕ Add a link (IR page, presentation, transcript…)"):
+            with st.form(key=f"research_add_form_{_rcode}", clear_on_submit=True):
+                _af1, _af2 = st.columns([2, 1])
+                with _af1:
+                    _new_title = st.text_input("Title", placeholder="e.g. FY26 Q1 Earnings Call Transcript")
+                with _af2:
+                    _new_type = st.selectbox("Type", options=RESEARCH_DOC_TYPES)
+                _af3, _af4 = st.columns([3, 1])
+                with _af3:
+                    _new_url = st.text_input("URL", placeholder="https://…")
+                with _af4:
+                    _new_date = st.text_input("Date (optional)", placeholder="YYYY-MM-DD")
+                _submitted = st.form_submit_button("Add link")
+                if _submitted:
+                    if not _new_url.strip().startswith("http"):
+                        st.error("Please enter a valid URL starting with http(s)://")
+                    else:
+                        _link_entry = {
+                            "title":   _new_title.strip() or _new_url.strip(),
+                            "url":     _new_url.strip(),
+                            "doc_type": _new_type,
+                            "date":    _new_date.strip(),
+                            "added_at": now_local().isoformat(),
+                        }
+                        _links_map.setdefault(_rcode, []).append(_link_entry)
+                        _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)
+                        st.session_state.research_flash = (
+                            ("success", "Link added and saved.") if _ok
+                            else ("warning", f"Link added for this session, but not saved permanently: {_msg}")
+                        )
+                        st.rerun()
 
 # TAB 4 — SENTIMENT
 # ════════════════════════════════════════════════════════════
