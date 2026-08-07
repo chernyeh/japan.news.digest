@@ -16,6 +16,7 @@ from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES)
 from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
+from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
 from ir_scanner import scan_page_for_documents
 from ai_summary_store import load_summaries_from_github, save_summary as save_summary_to_github
@@ -629,24 +630,37 @@ a.summary-link:hover { background: #5C2E00 !important; }
 .filings-table tr:hover td { background: #FDFAF7; }
 
 /* Research tab */
-.research-row {
-    display: flex; align-items: flex-start; gap: 0.7rem;
-    padding: 0.5rem 0.2rem; border-bottom: 1px solid #EDE8E0;
-}
-.research-row:hover { background: #FDFAF7; }
 .research-date {
     font-size: 0.72rem; color: #9B8B7A; white-space: nowrap; padding-top: 0.2rem;
-    min-width: 62px;
 }
 .research-type-badge {
     display: inline-block; font-size: 0.6rem; font-weight: 700;
-    padding: 0.12rem 0.45rem; border-radius: 10px; letter-spacing: 0.03em;
+    padding: 0.1rem 0.4rem; border-radius: 9px; letter-spacing: 0.02em;
     white-space: nowrap;
 }
 .research-type-edinet  { background: #F0EDE8; color: #8B4513; border: 1px solid #E0D5C5; }
 .research-type-tdnet   { background: #EBF5FB; color: #1B4F72; border: 1px solid #AED6F1; }
 .research-type-custom  { background: #F1F8E9; color: #33691E; border: 1px solid #C5E1A5; }
-.research-title { font-size: 0.85rem; line-height: 1.4; flex: 1; }
+.research-title { font-size: 0.83rem; line-height: 1.35; padding-top: 0.05rem; }
+.research-col-header {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #9B8B7A; border-bottom: 2px solid #D9D3C8; padding-bottom: 0.25rem; margin-bottom: 0.3rem;
+}
+.research-no-doc { font-size: 0.65rem; color: #B0A798; }
+
+/* Compact buttons/downloads inside the item list only */
+[class*="st-key-research_items_list"] .stButton button,
+[class*="st-key-research_items_list"] .stDownloadButton button {
+    font-size: 0.68rem !important; padding: 0.15rem 0.5rem !important;
+    min-height: 1.7rem !important; line-height: 1.2 !important;
+}
+/* Smaller filter-pill text in the type multiselect */
+[class*="st-key-research_filter_row"] [data-baseweb="tag"] {
+    font-size: 0.68rem !important; padding: 0.05rem 0.4rem !important; height: 1.5rem !important;
+}
+[class*="st-key-research_filter_row"] [data-baseweb="tag"] span {
+    font-size: 0.68rem !important;
+}
 
 /* Mobile responsive */
 @media (max-width: 600px) {
@@ -2746,7 +2760,8 @@ with tab_research:
     st.markdown(
         '<div class="info-box">Search a company to see its statutory EDINET filings (rolling ~2-year index, '
         'covering all filing types — annual/quarterly reports, extraordinary reports, large shareholding and '
-        'tender offer filings, and more), recent TDnet timely disclosures (from the Reg Filings tab), and your '
+        'tender offer filings, and more), TDnet timely disclosures (earnings summaries/tanshin, dividends, '
+        'guidance revisions — also a rolling ~2-year index), and your '
         'own curated links — IR pages, investor presentations, earnings-call transcripts, shareholder-meeting '
         'materials. <strong>JP PDF</strong> / <strong>EN Doc</strong> each attempt a fetch — EDINET doesn\'t '
         'reliably flag in advance which filings have an English version, so a "not available" result for EN '
@@ -2787,6 +2802,17 @@ with tab_research:
             st.session_state.edinet_filings_idx = {}
             print(f"EDINET index load error: {_e}")
 
+    if "tdnet_filings_idx" not in st.session_state:
+        try:
+            _trows = load_tdnet_filings_from_github(_ec_repo, _gh_token)
+            _tidx = {}
+            for _r in _trows:
+                _tidx.setdefault(_r.get("Code", ""), []).append(_r)
+            st.session_state.tdnet_filings_idx = _tidx
+        except Exception as _e:
+            st.session_state.tdnet_filings_idx = {}
+            print(f"TDnet index load error: {_e}")
+
     if "research_links_map" not in st.session_state:
         try:
             st.session_state.research_links_map = load_links_from_github(_ec_repo, _gh_token)
@@ -2795,13 +2821,22 @@ with tab_research:
             print(f"Research links load error: {_e}")
 
     _edinet_idx = st.session_state.edinet_filings_idx
+    _tdnet_idx  = st.session_state.tdnet_filings_idx
     _links_map  = st.session_state.research_links_map
 
     if not _edinet_idx:
         st.markdown(
-            '<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.4rem;">'
+            '<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.2rem;">'
             'ℹ️ EDINET index is empty — run the one-time "Backfill EDINET Filings" GitHub Action after adding '
             'EDINET_API_KEY as a repo secret; the daily job keeps it current after that.</div>',
+            unsafe_allow_html=True
+        )
+    if not _tdnet_idx:
+        st.markdown(
+            '<div style="font-size:0.68rem;color:#9B8B7A;margin-bottom:0.4rem;">'
+            'ℹ️ TDnet index is empty (this is where earnings summaries / tanshin come from) — run the one-time '
+            '"Backfill TDnet Filings" GitHub Action; no API key needed for this one. The daily job keeps it '
+            'current after that.</div>',
             unsafe_allow_html=True
         )
 
@@ -2854,20 +2889,40 @@ with tab_research:
                 "date":       (_f.get("SubmitDateTime") or "")[:10],
                 "type_label": doc_type_label(_f.get("DocTypeCode", "")),
                 "source":     "edinet",
-                "title":      _f.get("DocDescription") or doc_type_label(_f.get("DocTypeCode", "")),
+                "title":      _f.get("DocDescriptionEN") or _f.get("DocDescription") or doc_type_label(_f.get("DocTypeCode", "")),
                 "filer":      _f.get("FilerName", ""),
                 "doc_id":     _f.get("DocID", ""),
             })
+        # TDnet: the persisted ~2-year index is the primary source; merge in
+        # anything from this session's live Reg Filings tab fetch that isn't
+        # in it yet (fresher than the last daily collector run), deduped by
+        # (doc url or title) so the same disclosure isn't listed twice.
+        _tdnet_seen_keys = set()
+        for _f in _tdnet_idx.get(_rcode, []):
+            _tkey = _f.get("DocUrl") or _f.get("Title", "")
+            _tdnet_seen_keys.add(_tkey)
+            _items.append({
+                "date":       (_f.get("PubDateTime") or "")[:10],
+                "type_label": classify_tdnet_title(_f.get("Title", "")),
+                "source":     "tdnet",
+                "title":      _f.get("TitleEN") or _f.get("Title", ""),
+                "url_en":     _f.get("EngUrl", ""),
+                "url_jp":     _f.get("DocUrl", ""),
+            })
         for _f in st.session_state.get("filings", []):
-            if _f.get("code") == _rcode:
-                _items.append({
-                    "date":       (_f.get("pub_date") or "")[:10],
-                    "type_label": "Timely Disclosure",
-                    "source":     "tdnet",
-                    "title":      _f.get("title_en") or _f.get("title", ""),
-                    "url_en":     _f.get("eng_url", ""),
-                    "url_jp":     _f.get("doc_url", ""),
-                })
+            if _f.get("code") != _rcode:
+                continue
+            _tkey = _f.get("doc_url") or _f.get("title", "")
+            if _tkey in _tdnet_seen_keys:
+                continue
+            _items.append({
+                "date":       (_f.get("pub_date") or "")[:10],
+                "type_label": classify_tdnet_title(_f.get("title", "")),
+                "source":     "tdnet",
+                "title":      _f.get("title_en") or _f.get("title", ""),
+                "url_en":     _f.get("eng_url", ""),
+                "url_jp":     _f.get("doc_url", ""),
+            })
         for _li, _lk in enumerate(_links_map.get(_rcode, [])):
             _items.append({
                 "date":       _lk.get("date") or "",
@@ -2879,13 +2934,14 @@ with tab_research:
             })
 
         # ── Sort / filter controls ──────────────────────────────────────
-        _fc1, _fc2 = st.columns([1.2, 2])
-        with _fc1:
-            _sort_mode = st.radio("Sort by:", ["Date (newest first)", "Document type"],
-                                   horizontal=True, key=f"research_sort_{_rcode}")
-        with _fc2:
-            _type_opts = sorted(set(it["type_label"] for it in _items))
-            _type_filter = st.multiselect("Filter by type:", options=_type_opts, key=f"research_typef_{_rcode}")
+        with st.container(key="research_filter_row"):
+            _fc1, _fc2 = st.columns([1.2, 2])
+            with _fc1:
+                _sort_mode = st.radio("Sort by:", ["Date (newest first)", "Document type"],
+                                       horizontal=True, key=f"research_sort_{_rcode}")
+            with _fc2:
+                _type_opts = sorted(set(it["type_label"] for it in _items))
+                _type_filter = st.multiselect("Filter by type:", options=_type_opts, key=f"research_typef_{_rcode}")
 
         _filtered = [it for it in _items if not _type_filter or it["type_label"] in _type_filter]
         if _sort_mode == "Document type":
@@ -2905,11 +2961,21 @@ with tab_research:
             )
 
         _edinet_doc_cache = _get_app_cache().setdefault("edinet_docs", {})
+        _row_cols_ratio = [0.8, 1.3, 4.3, 2.4]
 
-        for it in _filtered:
-            _row = st.container()
-            with _row:
-                _c_date, _c_badge, _c_title, _c_links = st.columns([0.9, 1.5, 4.2, 2.0])
+        with st.container(key="research_items_list"):
+            _h_date, _h_badge, _h_title, _h_links = st.columns(_row_cols_ratio, gap="small")
+            with _h_date:
+                st.markdown('<div class="research-col-header">Date</div>', unsafe_allow_html=True)
+            with _h_badge:
+                st.markdown('<div class="research-col-header">Type</div>', unsafe_allow_html=True)
+            with _h_title:
+                st.markdown('<div class="research-col-header">Title</div>', unsafe_allow_html=True)
+            with _h_links:
+                st.markdown('<div class="research-col-header">Links</div>', unsafe_allow_html=True)
+
+            for it in _filtered:
+                _c_date, _c_badge, _c_title, _c_links = st.columns(_row_cols_ratio, gap="small")
                 with _c_date:
                     st.markdown(f'<div class="research-date">{_safe_text(it["date"] or "—")}</div>', unsafe_allow_html=True)
                 with _c_badge:
@@ -2925,49 +2991,48 @@ with tab_research:
                     if it["source"] == "edinet":
                         _doc_id = it["doc_id"]
                         if not _edinet_api_key:
-                            st.markdown('<span style="font-size:0.7rem;color:#B0A798;">key required</span>', unsafe_allow_html=True)
+                            st.markdown('<span class="research-no-doc">key required</span>', unsafe_allow_html=True)
                         else:
                             # EDINET's own englishDocFlag on the list endpoint isn't
                             # reliable enough to gate on, so both JP and EN are always
                             # offered as an attempt — a missing document just resolves
                             # to a calm "not available" note instead of an error.
-                            for _doc_type, _label, _fname_suffix, _mime in (
-                                (2, "JP PDF", "jp.pdf", "application/pdf"),
-                                (4, "EN Doc", "en.zip", "application/zip"),
+                            _jp_col, _en_col = st.columns(2, gap="small")
+                            for _lcol, (_doc_type, _label, _fname_suffix, _mime) in zip(
+                                (_jp_col, _en_col),
+                                ((2, "JP", "jp.pdf", "application/pdf"), (4, "EN", "en.zip", "application/zip")),
                             ):
-                                _cache_key = (_doc_id, _doc_type)
-                                _unavail_key = (_doc_id, _doc_type, "unavailable")
-                                _bytes = _edinet_doc_cache.get(_cache_key)
-                                if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
-                                    if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}"):
-                                        try:
-                                            _bytes = fetch_edinet_document_bytes(_doc_id, _doc_type, _edinet_api_key)
-                                            _edinet_doc_cache[_cache_key] = _bytes
-                                        except DocumentNotAvailable:
-                                            _edinet_doc_cache[_unavail_key] = True
-                                            st.info(f"No {_label.lower()} available for this filing.", icon="ℹ️")
-                                        except Exception as _dl_e:
-                                            st.error(f"Fetch failed: {_dl_e}")
-                                elif _edinet_doc_cache.get(_unavail_key):
-                                    st.markdown(
-                                        f'<span style="font-size:0.68rem;color:#B0A798;">no {_label.lower()}</span>',
-                                        unsafe_allow_html=True
-                                    )
-                                if _edinet_doc_cache.get(_cache_key) is not None:
-                                    st.download_button(
-                                        f"💾 Save {_label}", data=_edinet_doc_cache[_cache_key],
-                                        file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
-                                        key=f"edinet_save_{_doc_type}_{_doc_id}",
-                                    )
+                                with _lcol:
+                                    _cache_key = (_doc_id, _doc_type)
+                                    _unavail_key = (_doc_id, _doc_type, "unavailable")
+                                    _bytes = _edinet_doc_cache.get(_cache_key)
+                                    if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
+                                        if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}", use_container_width=True):
+                                            try:
+                                                _bytes = fetch_edinet_document_bytes(_doc_id, _doc_type, _edinet_api_key)
+                                                _edinet_doc_cache[_cache_key] = _bytes
+                                            except DocumentNotAvailable:
+                                                _edinet_doc_cache[_unavail_key] = True
+                                                st.info(f"No {_label} doc available.", icon="ℹ️")
+                                            except Exception as _dl_e:
+                                                st.error(f"Fetch failed: {_dl_e}")
+                                    elif _edinet_doc_cache.get(_unavail_key):
+                                        st.markdown(f'<span class="research-no-doc">no {_label.lower()}</span>', unsafe_allow_html=True)
+                                    if _edinet_doc_cache.get(_cache_key) is not None:
+                                        st.download_button(
+                                            f"💾 {_label}", data=_edinet_doc_cache[_cache_key],
+                                            file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
+                                            key=f"edinet_save_{_doc_type}_{_doc_id}", use_container_width=True,
+                                        )
                     elif it["source"] == "tdnet":
                         _tl = []
                         if it.get("url_en"):
-                            _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" class="summary-link">ENG ↗</a>')
+                            _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" class="summary-link">EN</a>')
                         if it.get("url_jp"):
-                            _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" class="summary-link">JPN ↗</a>')
+                            _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" class="summary-link">JP</a>')
                         st.markdown(" ".join(_tl) or "—", unsafe_allow_html=True)
                     else:  # custom link
-                        _lcol1, _lcol2 = st.columns([3, 1])
+                        _lcol1, _lcol2 = st.columns([3, 1], gap="small")
                         with _lcol1:
                             st.markdown(
                                 f'<a href="{_safe_url(it["url"])}" target="_blank" class="summary-link">Open ↗</a>',
@@ -3035,18 +3100,26 @@ with tab_research:
         # reliable universal scraper — every IR site is laid out differently
         # and some are JS-rendered SPAs this can't see at all.
         _scan_key = f"ir_scan_results_{_rcode}"
+        # If a plain "IR Page" bookmark is already saved for this company (via
+        # "Add a link" above), it's a different action from scanning it — pre-fill
+        # the scanner with that URL so the two features read as connected rather
+        # than two unrelated ways to add an IR page.
+        _saved_ir_pages = [l["url"] for l in _links_map.get(_rcode, []) if l.get("doc_type") == "IR Page" and l.get("url")]
+        _scan_url_default = _saved_ir_pages[-1] if _saved_ir_pages else ""
         with st.expander("🔍 Pull documents from an IR page"):
             st.markdown(
                 '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
                 'Paste an IR page URL (or an IR document-library sub-page) to scan it for '
                 'transcripts, Q&A notes, presentations, and similar investor documents — then '
-                'pick which ones to add. Best-effort: not every site can be read this way, and '
-                'guessed titles/types are worth a quick check before saving.</div>',
+                'pick which ones to add. This is separate from bookmarking the page itself above: '
+                'that just saves the link, this reads the page and finds individual documents on it. '
+                'Best-effort: not every site can be read this way, and guessed titles/types are worth '
+                'a quick check before saving.</div>',
                 unsafe_allow_html=True
             )
             _scan_col1, _scan_col2 = st.columns([4, 1])
             with _scan_col1:
-                _scan_url = st.text_input("Page URL", placeholder="https://…/ir/library/",
+                _scan_url = st.text_input("Page URL", value=_scan_url_default, placeholder="https://…/ir/library/",
                                            key=f"ir_scan_url_{_rcode}", label_visibility="collapsed")
             with _scan_col2:
                 _scan_clicked = st.button("Scan page", key=f"ir_scan_btn_{_rcode}", use_container_width=True)

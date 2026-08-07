@@ -22,14 +22,14 @@ DOCUMENT_EXTENSIONS = (".pdf", ".ppt", ".pptx", ".xls", ".xlsx", ".doc", ".docx"
 # (keywords, guessed doc_type) — checked in order, first match wins. Mixes
 # English and Japanese since most IR pages are Japanese-only or bilingual.
 _TYPE_RULES = [
-    (["transcript", "議事録", "トランスクリプト"], "Earnings Call Transcript"),
-    (["q&a", "qanda", "q & a", "想定問答", "質疑応答"], "Q&A / Briefing Notes"),
+    (["transcript", "議事録", "トランスクリプト"], "Transcript"),
+    (["q&a", "qanda", "q & a", "想定問答", "質疑応答"], "Q&A"),
     (["presentation", "説明会資料", "決算説明", "説明資料", "スライド", "slide", "決算補足"],
-     "Investor Presentation"),
+     "Presentation"),
     (["annual report", "integrated report", "統合報告書", "アニュアルレポート", "factbook", "fact book"],
-     "Annual Report (Company IR)"),
+     "Annual Report (IR)"),
     (["shareholder meeting", "notice of convocation", "annual general meeting", " agm ",
-      "招集通知", "株主総会", "議決権行使"], "Shareholder Meeting Materials"),
+      "招集通知", "株主総会", "議決権行使"], "AGM Materials"),
 ]
 
 

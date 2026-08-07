@@ -1,0 +1,54 @@
+# .github/workflows/backfill_tdnet.yml
+#
+# One-time manual trigger — walks back `days` calendar days (default ~2 years)
+# in small chunks, fetching TDnet's timely disclosures for each one, and
+# builds the initial data/tdnet_filings.csv index that the Research tab
+# reads. Run this once; daily_tdnet.yml keeps it current afterwards.
+#
+# No API key needed. ~250 chunks (3 days each) for a 2-year backfill, plus a
+# paginated English-disclosure lookup over the full range done once up
+# front — expect this to run for a while, well within the default 6h job
+# timeout.
+
+name: Backfill TDnet Filings
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'How many days back to fetch (default ~2 years)'
+        required: false
+        default: '730'
+
+jobs:
+  backfill-tdnet:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 lxml
+
+      - name: Run collector
+        run: python collect_tdnet.py --days "${{ github.event.inputs.days }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/tdnet_filings.csv
+          if git diff --staged --quiet; then
+            echo "No new filings to commit"
+          else
+            git commit -m "chore: backfill TDnet filings index [skip ci]"
+            git push
+          fi
