@@ -24,6 +24,7 @@ DOC_TYPES = [
     "Earnings Call Transcript",
     "Q&A / Briefing Notes",
     "Annual Report (Company IR)",
+    "Shareholder Meeting Materials",
     "Other",
 ]
 

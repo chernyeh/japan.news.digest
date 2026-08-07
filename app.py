@@ -15,8 +15,9 @@ from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES)
 from edinet import (load_edinet_filings_from_github, doc_type_label,
-                     fetch_edinet_document_bytes)
+                     fetch_edinet_document_bytes, DocumentNotAvailable)
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
+from ir_scanner import scan_page_for_documents
 from ai_summary_store import load_summaries_from_github, save_summary as save_summary_to_github
 from sentiment import score_all_sectors, flag_high_value_articles
 from jquants import (get_jquants_secret, fetch_earnings_calendar,
@@ -2743,10 +2744,14 @@ with tab_filings:
 with tab_research:
     st.markdown('<div class="section-title">🔎 Research — Company Filing &amp; Link Library</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="info-box">Search a company to see its statutory EDINET filings (rolling ~2-year index), '
-        'recent TDnet timely disclosures (from the Reg Filings tab), and your own curated links — IR pages, '
-        'investor presentations, earnings-call transcripts. <strong>EN</strong> marks an English-language document '
-        'where EDINET has one on file. Sort or filter the combined list by date or document type.</div>',
+        '<div class="info-box">Search a company to see its statutory EDINET filings (rolling ~2-year index, '
+        'covering all filing types — annual/quarterly reports, extraordinary reports, large shareholding and '
+        'tender offer filings, and more), recent TDnet timely disclosures (from the Reg Filings tab), and your '
+        'own curated links — IR pages, investor presentations, earnings-call transcripts, shareholder-meeting '
+        'materials. <strong>JP PDF</strong> / <strong>EN Doc</strong> each attempt a fetch — EDINET doesn\'t '
+        'reliably flag in advance which filings have an English version, so a "not available" result for EN '
+        'just means this particular filing doesn\'t have one. Sort or filter the combined list by date or '
+        'document type.</div>',
         unsafe_allow_html=True
     )
 
@@ -2852,7 +2857,6 @@ with tab_research:
                 "title":      _f.get("DocDescription") or doc_type_label(_f.get("DocTypeCode", "")),
                 "filer":      _f.get("FilerName", ""),
                 "doc_id":     _f.get("DocID", ""),
-                "has_en":     _f.get("EnglishDocFlag") == "1",
             })
         for _f in st.session_state.get("filings", []):
             if _f.get("code") == _rcode:
@@ -2923,34 +2927,37 @@ with tab_research:
                         if not _edinet_api_key:
                             st.markdown('<span style="font-size:0.7rem;color:#B0A798;">key required</span>', unsafe_allow_html=True)
                         else:
-                            _jp_bytes = _edinet_doc_cache.get((_doc_id, 2))
-                            if _jp_bytes is None:
-                                if st.button("JP PDF", key=f"edinet_fetch_jp_{_doc_id}"):
-                                    try:
-                                        _jp_bytes = fetch_edinet_document_bytes(_doc_id, 2, _edinet_api_key)
-                                        _edinet_doc_cache[(_doc_id, 2)] = _jp_bytes
-                                    except Exception as _dl_e:
-                                        st.error(f"Fetch failed: {_dl_e}")
-                            if _edinet_doc_cache.get((_doc_id, 2)) is not None:
-                                st.download_button(
-                                    "💾 Save JP PDF", data=_edinet_doc_cache[(_doc_id, 2)],
-                                    file_name=f"{_rcode}_{_doc_id}_jp.pdf", mime="application/pdf",
-                                    key=f"edinet_save_jp_{_doc_id}",
-                                )
-                            if it["has_en"]:
-                                _en_bytes = _edinet_doc_cache.get((_doc_id, 4))
-                                if _en_bytes is None:
-                                    if st.button("EN Doc", key=f"edinet_fetch_en_{_doc_id}"):
+                            # EDINET's own englishDocFlag on the list endpoint isn't
+                            # reliable enough to gate on, so both JP and EN are always
+                            # offered as an attempt — a missing document just resolves
+                            # to a calm "not available" note instead of an error.
+                            for _doc_type, _label, _fname_suffix, _mime in (
+                                (2, "JP PDF", "jp.pdf", "application/pdf"),
+                                (4, "EN Doc", "en.zip", "application/zip"),
+                            ):
+                                _cache_key = (_doc_id, _doc_type)
+                                _unavail_key = (_doc_id, _doc_type, "unavailable")
+                                _bytes = _edinet_doc_cache.get(_cache_key)
+                                if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
+                                    if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}"):
                                         try:
-                                            _en_bytes = fetch_edinet_document_bytes(_doc_id, 4, _edinet_api_key)
-                                            _edinet_doc_cache[(_doc_id, 4)] = _en_bytes
+                                            _bytes = fetch_edinet_document_bytes(_doc_id, _doc_type, _edinet_api_key)
+                                            _edinet_doc_cache[_cache_key] = _bytes
+                                        except DocumentNotAvailable:
+                                            _edinet_doc_cache[_unavail_key] = True
+                                            st.info(f"No {_label.lower()} available for this filing.", icon="ℹ️")
                                         except Exception as _dl_e:
                                             st.error(f"Fetch failed: {_dl_e}")
-                                if _edinet_doc_cache.get((_doc_id, 4)) is not None:
+                                elif _edinet_doc_cache.get(_unavail_key):
+                                    st.markdown(
+                                        f'<span style="font-size:0.68rem;color:#B0A798;">no {_label.lower()}</span>',
+                                        unsafe_allow_html=True
+                                    )
+                                if _edinet_doc_cache.get(_cache_key) is not None:
                                     st.download_button(
-                                        "💾 Save EN Doc", data=_edinet_doc_cache[(_doc_id, 4)],
-                                        file_name=f"{_rcode}_{_doc_id}_en.zip", mime="application/zip",
-                                        key=f"edinet_save_en_{_doc_id}",
+                                        f"💾 Save {_label}", data=_edinet_doc_cache[_cache_key],
+                                        file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
+                                        key=f"edinet_save_{_doc_type}_{_doc_id}",
                                     )
                     elif it["source"] == "tdnet":
                         _tl = []
@@ -3020,6 +3027,91 @@ with tab_research:
                             else ("warning", f"Link added for this session, but not saved permanently: {_msg}")
                         )
                         st.rerun()
+
+        # ── Pull documents from an IR page ────────────────────────────────
+        # EDINET/TDnet only carry statutory filings — transcripts, Q&A notes,
+        # and presentation decks generally only exist on the company's own IR
+        # site. This is a best-effort scan (see ir_scanner.py), not a
+        # reliable universal scraper — every IR site is laid out differently
+        # and some are JS-rendered SPAs this can't see at all.
+        _scan_key = f"ir_scan_results_{_rcode}"
+        with st.expander("🔍 Pull documents from an IR page"):
+            st.markdown(
+                '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
+                'Paste an IR page URL (or an IR document-library sub-page) to scan it for '
+                'transcripts, Q&A notes, presentations, and similar investor documents — then '
+                'pick which ones to add. Best-effort: not every site can be read this way, and '
+                'guessed titles/types are worth a quick check before saving.</div>',
+                unsafe_allow_html=True
+            )
+            _scan_col1, _scan_col2 = st.columns([4, 1])
+            with _scan_col1:
+                _scan_url = st.text_input("Page URL", placeholder="https://…/ir/library/",
+                                           key=f"ir_scan_url_{_rcode}", label_visibility="collapsed")
+            with _scan_col2:
+                _scan_clicked = st.button("Scan page", key=f"ir_scan_btn_{_rcode}", use_container_width=True)
+
+            if _scan_clicked:
+                if not _scan_url.strip().startswith("http"):
+                    st.error("Please enter a valid URL starting with http(s)://")
+                else:
+                    try:
+                        with st.spinner("Scanning page…"):
+                            st.session_state[_scan_key] = scan_page_for_documents(_scan_url.strip())
+                        if not st.session_state[_scan_key]:
+                            st.info("No document-like links found on that page.")
+                    except Exception as _scan_e:
+                        st.session_state.pop(_scan_key, None)
+                        st.error(f"Couldn't scan that page: {_scan_e}")
+
+            _scan_results = st.session_state.get(_scan_key)
+            if _scan_results:
+                st.markdown(
+                    f'<div style="font-size:0.7rem;color:#9B8B7A;margin:0.4rem 0;">'
+                    f'Found {len(_scan_results)} candidate(s) — select the ones worth keeping:</div>',
+                    unsafe_allow_html=True
+                )
+                for _si, _sr in enumerate(_scan_results):
+                    st.checkbox(
+                        f'{_sr["title"]}  ·  _{_sr["doc_type"]}_',
+                        key=f"ir_scan_pick_{_rcode}_{_si}",
+                    )
+                _add_col1, _add_col2 = st.columns([1, 3])
+                with _add_col1:
+                    _add_selected = st.button("Add selected", key=f"ir_scan_add_{_rcode}")
+                with _add_col2:
+                    if st.button("Clear results", key=f"ir_scan_clear_{_rcode}"):
+                        st.session_state.pop(_scan_key, None)
+                        for _si in range(len(_scan_results)):
+                            st.session_state.pop(f"ir_scan_pick_{_rcode}_{_si}", None)
+                        st.rerun()
+
+                if _add_selected:
+                    _added, _persisted_all = 0, True
+                    for _si, _sr in enumerate(_scan_results):
+                        if not st.session_state.get(f"ir_scan_pick_{_rcode}_{_si}"):
+                            continue
+                        _link_entry = {
+                            "title":    _sr["title"],
+                            "url":      _sr["url"],
+                            "doc_type": _sr["doc_type"],
+                            "date":     "",
+                            "added_at": now_local().isoformat(),
+                        }
+                        _links_map.setdefault(_rcode, []).append(_link_entry)
+                        _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)
+                        _persisted_all = _persisted_all and _ok
+                        _added += 1
+                        st.session_state.pop(f"ir_scan_pick_{_rcode}_{_si}", None)
+                    if _added:
+                        st.session_state.pop(_scan_key, None)
+                        st.session_state.research_flash = (
+                            ("success", f"Added {_added} link(s).") if _persisted_all
+                            else ("warning", f"Added {_added} link(s) for this session, but at least one wasn't saved permanently (no/invalid GITHUB_TOKEN).")
+                        )
+                    else:
+                        st.session_state.research_flash = ("warning", "No items were checked — nothing added.")
+                    st.rerun()
 
 # TAB 4 — SENTIMENT
 # ════════════════════════════════════════════════════════════

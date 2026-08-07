@@ -29,24 +29,53 @@ EDINET_API_BASE = "https://api.edinet-fsa.go.jp/api/v2"
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-# Curated set of statutory docTypeCodes relevant to equity research. EDINET's
-# full type list also includes fund prospectuses, foreign-issuer filings, and
-# other document classes we deliberately don't surface here.
+# The full documented set of EDINET docTypeCodes (all 42), used only for
+# display labels — fetch_edinet_day no longer filters on this at all, so a
+# type missing from this map still comes through with a generic fallback
+# label rather than being silently dropped from the index.
 EDINET_DOC_TYPES = {
-    "010": "Securities Registration Statement",
-    "043": "Shelf Registration Supplement",
+    "010": "Securities Notification",
+    "020": "Securities Notification (Amended)",
+    "030": "Securities Registration Statement",
+    "040": "Securities Registration Statement (Amended)",
+    "050": "Securities Registration Withdrawal",
+    "060": "Issuance Registration Notification",
+    "070": "Shelf Registration",
+    "080": "Issuance Registration Statement",
+    "090": "Issuance Registration Statement (Amended)",
+    "100": "Shelf Registration Supplement",
+    "110": "Issuance Registration Withdrawal",
     "120": "Annual Securities Report",
     "130": "Annual Securities Report (Amended)",
+    "135": "Confirmation Document",
+    "136": "Confirmation Document (Amended)",
     "140": "Quarterly Report",
     "150": "Quarterly Report (Amended)",
     "160": "Semi-Annual Report",
     "170": "Semi-Annual Report (Amended)",
     "180": "Extraordinary Report",
     "190": "Extraordinary Report (Amended)",
+    "200": "Parent Company Status Report",
+    "210": "Parent Company Status Report (Amended)",
     "220": "Treasury Stock Buyback Report",
     "230": "Treasury Stock Buyback Report (Amended)",
+    "235": "Internal Control Report",
+    "236": "Internal Control Report (Amended)",
+    "240": "Tender Offer Registration",
+    "250": "Tender Offer Registration (Amended)",
+    "260": "Tender Offer Withdrawal",
+    "270": "Tender Offer Report",
+    "280": "Tender Offer Report (Amended)",
+    "290": "Tender Offer Opinion Statement",
+    "300": "Tender Offer Opinion Statement (Amended)",
+    "310": "Tender Offer Response to Questions",
+    "320": "Tender Offer Response to Questions (Amended)",
+    "330": "Tender Offer Exemption Application",
+    "340": "Tender Offer Exemption Application (Amended)",
     "350": "Large Shareholding Report",
     "360": "Large Shareholding Report (Amended)",
+    "370": "Large Shareholding Change Report",
+    "380": "Large Shareholding Change Report (Amended)",
 }
 
 CSV_FIELDS = [
@@ -74,9 +103,13 @@ def _normalize_sec_code(raw: str) -> str:
 
 def fetch_edinet_day(target_date, api_key: str, session=None, timeout: int = 20, retries: int = 3):
     """Fetch EDINET's filing list for one date, filtered to listed companies
-    and to EDINET_DOC_TYPES. `target_date` is a date object or "YYYY-MM-DD" str.
-    Returns a list of dicts matching CSV_FIELDS. Raises on repeated failure —
-    callers should catch and continue so one bad day doesn't kill a backfill."""
+    (secCode present) and non-withdrawn filings — every docTypeCode is kept,
+    not just the ones in EDINET_DOC_TYPES, so a filing type this app doesn't
+    have a friendly label for yet still shows up (with a generic fallback
+    label) instead of silently vanishing. `target_date` is a date object or
+    "YYYY-MM-DD" str. Returns a list of dicts matching CSV_FIELDS. Raises on
+    repeated failure — callers should catch and continue so one bad day
+    doesn't kill a backfill."""
     if isinstance(target_date, (date, datetime)):
         date_str = target_date.strftime("%Y-%m-%d")
     else:
@@ -108,8 +141,6 @@ def fetch_edinet_day(target_date, api_key: str, session=None, timeout: int = 20,
     out = []
     for doc in results:
         doc_type = str(doc.get("docTypeCode") or "")
-        if doc_type not in EDINET_DOC_TYPES:
-            continue
         # withdrawalStatus: "1" means the filing was withdrawn — skip those.
         if str(doc.get("withdrawalStatus") or "0") == "1":
             continue
@@ -132,17 +163,33 @@ def fetch_edinet_day(target_date, api_key: str, session=None, timeout: int = 20,
     return out
 
 
+class DocumentNotAvailable(Exception):
+    """Raised when EDINET has no document of the requested type for this
+    filing (e.g. no English version) — distinct from a real fetch failure,
+    so callers can show a calm message instead of an alarming error."""
+
+
 def fetch_edinet_document_bytes(doc_id: str, doc_type: int, api_key: str, timeout: int = 30):
     """Fetch raw document bytes server-side. doc_type: 2 = Japanese PDF, 4 = English
     document (zip). The Subscription-Key must never be exposed client-side (it would
     leak into the browser's address bar / history), so callers must render this as a
-    Streamlit-fetched-then-download_button flow, never as a raw <a href> link."""
+    Streamlit-fetched-then-download_button flow, never as a raw <a href> link.
+
+    Not every filing has an English document — EDINET's own englishDocFlag on
+    the list endpoint isn't reliable enough to gate the UI on, so callers are
+    expected to just try the fetch and handle DocumentNotAvailable."""
     import requests as _requests
     url = f"{EDINET_API_BASE}/documents/{doc_id}"
     params = {"type": str(doc_type), "Subscription-Key": api_key}
     r = _requests.get(url, params=params, headers={"User-Agent": USER_AGENT}, timeout=timeout)
+    if r.status_code == 404:
+        raise DocumentNotAvailable(f"No document of type {doc_type} for {doc_id}")
     if r.status_code != 200:
         raise RuntimeError(f"EDINET document download HTTP {r.status_code}")
+    if not r.content or len(r.content) < 32:
+        # EDINET has been observed returning a 200 with an empty/near-empty
+        # body rather than a 404 when a document doesn't exist for a filing.
+        raise DocumentNotAvailable(f"Empty response for document type {doc_type} on {doc_id}")
     return r.content
 
 
