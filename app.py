@@ -665,13 +665,28 @@ a.summary-link:hover { background: #5C2E00 !important; }
 }
 .research-item-row .research-date { flex: 0 0 auto; padding-top: 0; }
 .research-item-row .research-title { flex: 1 1 220px; min-width: 140px; padding-top: 0; }
-.research-item-links { margin: 0.1rem 0 0.6rem; }
 
-/* Compact buttons/downloads inside the item list only */
-[class*="st-key-research_items_list"] .stButton button,
-[class*="st-key-research_items_list"] .stDownloadButton button {
-    font-size: 0.68rem !important; padding: 0.15rem 0.5rem !important;
-    min-height: 1.7rem !important; line-height: 1.2 !important;
+/* Each item's title + its JP/EN/open/delete buttons live in one container
+   per item (research_item_row_N) — that key lands directly on the
+   stVerticalBlock div itself, not a wrapper around it, so the flex rule
+   targets the keyed element directly rather than a "> stVerticalBlock"
+   child. Turning it into a wrapping flex row lets the title markdown claim
+   a full line (flex-basis 100%) and the buttons that follow flow onto
+   their own line right below it, compact and side by side, instead of
+   each button stretching to its own full-width line the way a 50/50
+   st.columns() split does. */
+[class*="st-key-research_item_row_"] {
+    display: flex; flex-flow: row wrap; align-items: center; gap: 0.15rem 0.4rem;
+    padding-bottom: 0.45rem; border-bottom: 1px solid #F0EBE3;
+}
+[class*="st-key-research_item_row_"] .research-item-row { border-bottom: none; padding-bottom: 0.15rem; }
+[class*="st-key-research_item_row_"] > .stElementContainer:has(.stMarkdown) { flex: 1 1 100%; }
+[class*="st-key-research_item_row_"] > .stElementContainer:has(.stButton),
+[class*="st-key-research_item_row_"] > .stElementContainer:has(.stDownloadButton) { flex: 0 0 auto; }
+[class*="st-key-research_item_row_"] .stButton button,
+[class*="st-key-research_item_row_"] .stDownloadButton button {
+    font-size: 0.66rem !important; padding: 0.1rem 0.55rem !important;
+    min-height: 1.5rem !important; line-height: 1.1 !important; white-space: nowrap;
 }
 /* Smaller filter-pill text in the type multiselect */
 [class*="st-key-research_filter_row"] [data-baseweb="tag"] {
@@ -2972,24 +2987,33 @@ with tab_research:
                 "link_index": _li,
             })
 
-        # ── Sort / filter controls ──────────────────────────────────────
+        # ── Sort / filter / show-limit controls ──────────────────────────
         with st.container(key="research_filter_row"):
-            _fc1, _fc2 = st.columns([1.2, 2])
+            _fc1, _fc2, _fc3 = st.columns([1.2, 1.6, 0.9])
             with _fc1:
                 _sort_mode = st.radio("Sort by:", ["Date (newest first)", "Document type"],
                                        horizontal=True, key=f"research_sort_{_rcode}")
             with _fc2:
                 _type_opts = sorted(set(it["type_label"] for it in _items))
                 _type_filter = st.multiselect("Filter by type:", options=_type_opts, key=f"research_typef_{_rcode}")
+            with _fc3:
+                _show_opts = ["20", "30", "50", "80", "All"]
+                _show_choice = st.selectbox("Show:", options=_show_opts, index=2, key=f"research_show_{_rcode}")
 
+        # A company can rack up hundreds of EDINET filings alone, so "show
+        # the N most recent" is applied on a date-descending view regardless
+        # of the chosen display sort — "most recent" always means by date.
         _filtered = [it for it in _items if not _type_filter or it["type_label"] in _type_filter]
+        _filtered.sort(key=lambda it: it["date"] or "", reverse=True)
+        _total_count = len(_filtered)
+        if _show_choice != "All":
+            _filtered = _filtered[:int(_show_choice)]
         if _sort_mode == "Document type":
             _filtered.sort(key=lambda it: (it["type_label"], it["date"] or ""), reverse=False)
-        else:
-            _filtered.sort(key=lambda it: it["date"] or "", reverse=True)
 
+        _count_note = f"{len(_filtered)} of {_total_count} item(s)" if len(_filtered) < _total_count else f"{_total_count} item(s)"
         st.markdown(
-            f'<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.3rem;">{len(_filtered)} item(s)</div>',
+            f'<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.3rem;">{_count_note}</div>',
             unsafe_allow_html=True
         )
 
@@ -3013,21 +3037,22 @@ with tab_research:
             )
 
             for _ri, it in enumerate(_filtered):
-                # Date/type/title share one self-wrapping flex row we style
-                # ourselves — see .research-item-row — instead of a 4-way
-                # st.columns() row, which fully stacks to 4 full-width lines
-                # per item on narrow (mobile) viewports.
-                st.markdown(
-                    f'<div class="research-item-row">'
-                    f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>'
-                    f'<span class="research-title">'
-                    f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">{_safe_text(it["type_label"])}</span>'
-                    f'&nbsp; {_safe_text(it["title"])}</span>'
-                    f'</div>',
-                    unsafe_allow_html=True
-                )
-                with st.container(key=f"research_item_links_{_ri}"):
-                    st.markdown('<div class="research-item-links">', unsafe_allow_html=True)
+                # Title and its action buttons share one container whose
+                # vertical block is flexed into a wrapping row (see the
+                # research_item_row_ CSS): the title claims a full line,
+                # then JP/EN/open/delete flow directly under it as small,
+                # side-by-side buttons instead of each stretching to its
+                # own full-width line via a 50/50 st.columns() split.
+                with st.container(key=f"research_item_row_{_ri}"):
+                    st.markdown(
+                        f'<div class="research-item-row">'
+                        f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>'
+                        f'<span class="research-title">'
+                        f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">{_safe_text(it["type_label"])}</span>'
+                        f'&nbsp; {_safe_text(it["title"])}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
                     if it["source"] == "edinet":
                         _doc_id = it["doc_id"]
                         if not _edinet_api_key:
@@ -3037,33 +3062,30 @@ with tab_research:
                             # reliable enough to gate on, so both JP and EN are always
                             # offered as an attempt — a missing document just resolves
                             # to a calm "not available" note instead of an error.
-                            _jp_col, _en_col = st.columns(2, gap="small")
-                            for _lcol, (_doc_type, _label, _fname_suffix, _mime) in zip(
-                                (_jp_col, _en_col),
-                                ((2, "JP", "jp.pdf", "application/pdf"), (4, "EN", "en.zip", "application/zip")),
+                            for _doc_type, _label, _fname_suffix, _mime in (
+                                (2, "JP", "jp.pdf", "application/pdf"), (4, "EN", "en.zip", "application/zip"),
                             ):
-                                with _lcol:
-                                    _cache_key = (_doc_id, _doc_type)
-                                    _unavail_key = (_doc_id, _doc_type, "unavailable")
-                                    _bytes = _edinet_doc_cache.get(_cache_key)
-                                    if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
-                                        if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}", use_container_width=True):
-                                            try:
-                                                _bytes = fetch_edinet_document_bytes(_doc_id, _doc_type, _edinet_api_key)
-                                                _edinet_doc_cache[_cache_key] = _bytes
-                                            except DocumentNotAvailable:
-                                                _edinet_doc_cache[_unavail_key] = True
-                                                st.info(f"No {_label} doc available.", icon="ℹ️")
-                                            except Exception as _dl_e:
-                                                st.error(f"Fetch failed: {_dl_e}")
-                                    elif _edinet_doc_cache.get(_unavail_key):
-                                        st.markdown(f'<span class="research-no-doc">no {_label.lower()}</span>', unsafe_allow_html=True)
-                                    if _edinet_doc_cache.get(_cache_key) is not None:
-                                        st.download_button(
-                                            f"💾 {_label}", data=_edinet_doc_cache[_cache_key],
-                                            file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
-                                            key=f"edinet_save_{_doc_type}_{_doc_id}", use_container_width=True,
-                                        )
+                                _cache_key = (_doc_id, _doc_type)
+                                _unavail_key = (_doc_id, _doc_type, "unavailable")
+                                _bytes = _edinet_doc_cache.get(_cache_key)
+                                if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
+                                    if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}"):
+                                        try:
+                                            _bytes = fetch_edinet_document_bytes(_doc_id, _doc_type, _edinet_api_key)
+                                            _edinet_doc_cache[_cache_key] = _bytes
+                                        except DocumentNotAvailable:
+                                            _edinet_doc_cache[_unavail_key] = True
+                                            st.info(f"No {_label} doc available.", icon="ℹ️")
+                                        except Exception as _dl_e:
+                                            st.error(f"Fetch failed: {_dl_e}")
+                                elif _edinet_doc_cache.get(_unavail_key):
+                                    st.markdown(f'<span class="research-no-doc">no {_label.lower()}</span>', unsafe_allow_html=True)
+                                if _edinet_doc_cache.get(_cache_key) is not None:
+                                    st.download_button(
+                                        f"💾 {_label}", data=_edinet_doc_cache[_cache_key],
+                                        file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
+                                        key=f"edinet_save_{_doc_type}_{_doc_id}",
+                                    )
                     elif it["source"] == "tdnet":
                         _tl = []
                         if it.get("url_en"):
@@ -3072,22 +3094,18 @@ with tab_research:
                             _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" class="summary-link">JP</a>')
                         st.markdown(" &nbsp;·&nbsp; ".join(_tl) or "—", unsafe_allow_html=True)
                     else:  # custom link
-                        _lcol1, _lcol2 = st.columns([3, 1], gap="small")
-                        with _lcol1:
-                            st.markdown(
-                                f'<a href="{_safe_url(it["url"])}" target="_blank" class="summary-link">Open ↗</a>',
-                                unsafe_allow_html=True
+                        st.markdown(
+                            f'<a href="{_safe_url(it["url"])}" target="_blank" class="summary-link">Open ↗</a>',
+                            unsafe_allow_html=True
+                        )
+                        if st.button("🗑", key=f"research_del_{_rcode}_{it['link_index']}", help="Remove this link"):
+                            _ok, _msg = delete_link(_ec_repo, _gh_token, _rcode, it["link_index"])
+                            _links_map.get(_rcode, []).pop(it["link_index"])
+                            st.session_state.research_flash = (
+                                ("success", "Link removed.") if _ok
+                                else ("warning", f"Removed from view, but not saved: {_msg}")
                             )
-                        with _lcol2:
-                            if st.button("🗑", key=f"research_del_{_rcode}_{it['link_index']}", help="Remove this link"):
-                                _ok, _msg = delete_link(_ec_repo, _gh_token, _rcode, it["link_index"])
-                                _links_map.get(_rcode, []).pop(it["link_index"])
-                                st.session_state.research_flash = (
-                                    ("success", "Link removed.") if _ok
-                                    else ("warning", f"Removed from view, but not saved: {_msg}")
-                                )
-                                st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
+                            st.rerun()
 
         # ── Export current list ─────────────────────────────────────────
         if _filtered:
@@ -3271,11 +3289,13 @@ with tab_research:
                         for _i, _r in _gitems:
                             _c_pick, _c_open = st.columns([6.4, 0.9], gap="small")
                             with _c_pick:
-                                _meta_bits = []
-                                if _group_mode != "Period" and _r.get("period_label"):
-                                    _meta_bits.append(_r["period_label"])
-                                elif _group_mode == "Period":
-                                    _meta_bits.append(_r["doc_type"])
+                                # The period, when detected, is already baked into
+                                # _r["title"] itself (see ir_scanner.py) so it reads
+                                # as part of the document's name rather than a
+                                # separate line the user has to cross-reference —
+                                # only add the doc type here when grouping by period
+                                # (grouping by type already puts that in the header).
+                                _meta_bits = [_r["doc_type"]] if _group_mode == "Period" else []
                                 _meta_bits.append((_r.get("ext") or "").upper() or "page")
                                 st.checkbox(f'{_r["title"]}  ·  {" · ".join(_meta_bits)}', key=_pick_key(_i))
                             with _c_open:

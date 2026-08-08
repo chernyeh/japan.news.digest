@@ -91,13 +91,30 @@ _MONTH_NAMES = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7, "aug": 8,
     "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
 }
+_MONTH_ABBR = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+# Longest names first so e.g. "June" isn't cut short by a "jun" match earlier
+# in the alternation (both would match the same start; regex engines take
+# the first alternative that matches, not the longest, unless ordered).
+_MONTH_ALT = "|".join(sorted(_MONTH_NAMES, key=len, reverse=True))
 
 _EN_QUARTER_WORDS = {
     "first": 1, "1st": 1, "second": 2, "2nd": 2, "third": 3, "3rd": 3, "fourth": 4, "4th": 4,
 }
 
+
+def _valid_date(year: int, month: int, day: int):
+    """(iso_str, human_label) for a real calendar date, or (None, None)."""
+    import datetime as _dt
+    try:
+        _dt.date(year, month, day)
+    except ValueError:
+        return None, None
+    return f"{year:04d}-{month:02d}-{day:02d}", f"{_MONTH_ABBR[month]} {day}, {year}"
+
+
 # "First Quarter Ended June 30, 2026" / "Fiscal Year Ended March 31, 2026" — a
-# real calendar date, so this is the one case worth converting to ISO.
+# real calendar date tied to a specific quarter/FY, so this is checked first.
 _EN_PERIOD_RE = re.compile(
     r'(?:(?P<q>first|second|third|fourth|1st|2nd|3rd|4th)\s+quarter\s+|fiscal\s+year\s+)?'
     r'end(?:ed|ing)?\s+(?P<month>[A-Za-z]+)\.?\s+(?P<day>\d{1,2}),?\s+(?P<year>\d{4})',
@@ -111,13 +128,45 @@ _EN_PERIOD_RE = re.compile(
 _JP_PERIOD_RE = re.compile(r'(?P<year>\d{4})年(?P<month>\d{1,2})月期(?:第(?P<q>[1-4１２３４])四半期)?')
 _JP_DIGIT_MAP = {"１": "1", "２": "2", "３": "3", "４": "4"}
 
+# Abbreviated fiscal-quarter labels IR sites use as a shorthand instead of
+# spelling out "Ended <date>" — "FY2026 Q1", "Q1 FY26", "1Q FY26". Label
+# only: no day-level date is implied by this notation.
+_FY_Q_RE = re.compile(
+    r'FY\s?(?P<fy1>\d{2,4})\s*Q(?P<q1>[1-4])'
+    r'|Q(?P<q2>[1-4])\s*,?\s*FY\s?(?P<fy2>\d{2,4})'
+    r'|(?P<qn>[1-4])Q\s?(?P<fy3>\d{2,4})\b',
+    re.IGNORECASE,
+)
+
+# A bare calendar date with no fiscal-period wording at all — usually the
+# document's upload/announcement date rather than the period it covers, but
+# that's still exactly the kind of date-when info the user wants surfaced.
+_JP_DATE_RE = re.compile(r'(?P<year>\d{4})年(?P<month>\d{1,2})月(?P<day>\d{1,2})日')
+_EN_DATE_RE = re.compile(
+    r'(?P<month>' + _MONTH_ALT + r')\.?\s+(?P<day>\d{1,2}),?\s+(?P<year>\d{4})',
+    re.IGNORECASE,
+)
+_ISO_DATE_RE = re.compile(r'(?<!\d)(?P<year>20\d{2})[-/](?P<month>0?[1-9]|1[0-2])[-/](?P<day>0?[1-9]|[12]\d|3[01])(?!\d)')
+
+
+def _normalize_fy(raw: str) -> int:
+    fy = int(raw)
+    return fy + 2000 if fy < 100 else fy
+
 
 def extract_period(text: str):
-    """Best-effort fiscal-period detection from a title/context string.
-    Returns {"date": iso_str_or_None, "period_label": str} or None if no
-    period could be detected. English "Quarter Ended <Month> <Day>, <Year>"
-    yields a real ISO date; Japanese "…年…月期" notation yields a label only,
-    since fiscal year-end days vary by company and can't be inferred here."""
+    """Best-effort period/date detection from a title/context string, tried
+    most-specific-first. Returns {"date": iso_str_or_None, "period_label":
+    str} or None if nothing was found.
+
+    - English "Quarter/Year Ended <Month> <Day>, <Year>" -> real ISO date.
+    - Japanese "…年…月期(第N四半期)" fiscal notation -> label only (fiscal
+      year-end days vary by company and can't be inferred from this text).
+    - Abbreviated "FY2026 Q1" / "Q1 FY26" / "1Q26" -> label only.
+    - A bare calendar date (Japanese "…年…月…日", English "Month Day, Year",
+      or ISO-ish "YYYY-MM-DD") -> real ISO date; this is typically an
+      upload/announcement date rather than a reporting period, but is still
+      useful "when" information."""
     if not text:
         return None
 
@@ -125,14 +174,9 @@ def extract_period(text: str):
     if m:
         month = _MONTH_NAMES.get(m.group("month").lower())
         if month:
-            year, day = int(m.group("year")), int(m.group("day"))
-            try:
-                date_iso = f"{year:04d}-{month:02d}-{day:02d}"
-                import datetime as _dt
-                _dt.date(year, month, day)  # validate real calendar date
-            except ValueError:
-                date_iso = None
+            date_iso, _ = _valid_date(int(m.group("year")), month, int(m.group("day")))
             if date_iso:
+                year = m.group("year")
                 q_word = m.group("q")
                 qn = _EN_QUARTER_WORDS.get(q_word.lower()) if q_word else None
                 label = f"Q{qn} FY{year}" if qn else f"FY{year}"
@@ -146,6 +190,60 @@ def extract_period(text: str):
             label = f"Q{_JP_DIGIT_MAP.get(q, q)} {label}"
         return {"date": None, "period_label": label}
 
+    m = _FY_Q_RE.search(text)
+    if m:
+        fy_raw = m.group("fy1") or m.group("fy2") or m.group("fy3")
+        qn = m.group("q1") or m.group("q2") or m.group("qn")
+        if fy_raw and qn:
+            fy = _normalize_fy(fy_raw)
+            if 2000 <= fy <= 2099:
+                return {"date": None, "period_label": f"Q{qn} FY{fy}"}
+
+    m = _JP_DATE_RE.search(text)
+    if m:
+        date_iso, label = _valid_date(int(m.group("year")), int(m.group("month")), int(m.group("day")))
+        if date_iso:
+            return {"date": date_iso, "period_label": label}
+
+    m = _EN_DATE_RE.search(text)
+    if m:
+        month = _MONTH_NAMES.get(m.group("month").lower())
+        if month:
+            date_iso, label = _valid_date(int(m.group("year")), month, int(m.group("day")))
+            if date_iso:
+                return {"date": date_iso, "period_label": label}
+
+    m = _ISO_DATE_RE.search(text)
+    if m:
+        date_iso, label = _valid_date(int(m.group("year")), int(m.group("month")), int(m.group("day")))
+        if date_iso:
+            return {"date": date_iso, "period_label": label}
+
+    return None
+
+
+_URL_YYYYMMDD_RE = re.compile(r'(?<!\d)(?P<year>20\d{2})(?P<month>0[1-9]|1[0-2])(?P<day>0[1-9]|[12]\d|3[01])(?!\d)')
+_URL_DATE_SEP_RE = re.compile(r'(?<!\d)(?P<year>20\d{2})[-_](?P<month>0?[1-9]|1[0-2])[-_](?P<day>0?[1-9]|[12]\d|3[01])(?!\d)')
+_URL_YEAR_DIR_RE = re.compile(r'/(?P<year>20\d{2})/')
+
+
+def extract_period_from_url(href: str):
+    """Last-resort fallback when no period/date could be found in the link's
+    surrounding text: IR document filenames very often embed a date (e.g.
+    "20260807_qa.pdf") or at least live under a fiscal-year folder
+    (".../presentation/2025/...") even when the page text around them
+    doesn't spell one out."""
+    if not href:
+        return None
+    m = _URL_YYYYMMDD_RE.search(href) or _URL_DATE_SEP_RE.search(href)
+    if m:
+        date_iso, label = _valid_date(int(m.group("year")), int(m.group("month")), int(m.group("day")))
+        if date_iso:
+            return {"date": date_iso, "period_label": label}
+    m = _URL_YEAR_DIR_RE.search(href)
+    if m:
+        year = int(m.group("year"))
+        return {"date": None, "period_label": f"FY{year}"}
     return None
 
 
@@ -171,6 +269,24 @@ def _is_generic_label(text: str) -> bool:
     return not text.strip() or bool(_GENERIC_LABEL_RE.match(text.strip()))
 
 
+def _loose_text(ancestor) -> str:
+    """Ancestor's text with all descendant <a> elements' text excluded. A
+    plain `ancestor.get_text()` plus stripping *this* link's own text once
+    isn't enough: a row with several sibling format buttons in the same
+    cell (e.g. three separate "PDF" download links) leaves the other
+    buttons' text behind, producing garbage like "Summary of Q&A PDF PDF
+    PDF" instead of the clean "Summary of Q&A" row label. Excluding every
+    <a>'s text structurally, not just this one's, avoids that."""
+    bits = []
+    for s in ancestor.find_all(string=True):
+        if s.find_parent("a") is not None:
+            continue
+        t = str(s).strip()
+        if t:
+            bits.append(t)
+    return " ".join(bits)
+
+
 def _nearby_context_text(a_tag) -> str:
     """Best-effort text to use instead of a generic link label: prefer other
     descriptive text in a nearby row/list item (common table/list layouts
@@ -179,12 +295,10 @@ def _nearby_context_text(a_tag) -> str:
     ancestor climb is bounded (depth and residual length) so a div-heavy
     layout with no li/tr structure doesn't walk out into unrelated page
     content and return some huge, useless blob of text."""
-    own_text = a_tag.get_text(" ", strip=True)
     for depth, ancestor in enumerate(a_tag.parents):
         if depth >= 4 or ancestor.name in (None, "body", "html"):
             break
-        row_text = ancestor.get_text(" ", strip=True)
-        residual = row_text.replace(own_text, "", 1).strip(" ·-—|/")
+        residual = _loose_text(ancestor).strip(" ·-—|/")
         if residual and 2 < len(residual) <= 120 and not _is_generic_label(residual):
             return residual
     try:
@@ -196,6 +310,34 @@ def _nearby_context_text(a_tag) -> str:
         if heading_text:
             return heading_text
     return ""
+
+
+def _period_context_text(a_tag, text: str) -> str:
+    """Wider text pool for period/date detection than for the title.
+    _nearby_context_text stops at the first ancestor residual that looks
+    title-worthy — right for choosing one clean title, but a document's
+    date/quarter is often split across a heading ("FY2025 Q2") and a
+    sibling size badge ("(EXCEL / 230KB)") that alone doesn't reach the
+    heading fallback (it already "counts" as a residual, short-circuiting
+    the climb). So this always includes a couple of nearby ancestor levels
+    *and* the nearest heading, unconditionally, bounded shallow so it
+    doesn't pull in unrelated sibling rows/sections."""
+    bits = [text or ""]
+    for depth, ancestor in enumerate(a_tag.parents):
+        if depth >= 2 or ancestor.name in (None, "body", "html"):
+            break
+        loose = _loose_text(ancestor)
+        if loose:
+            bits.append(loose)
+    try:
+        heading = a_tag.find_previous(["h1", "h2", "h3", "h4", "h5", "h6"])
+    except Exception:
+        heading = None
+    if heading:
+        heading_text = heading.get_text(strip=True)
+        if heading_text:
+            bits.append(heading_text)
+    return " ".join(b for b in bits if b)
 
 
 def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20) -> list:
@@ -248,7 +390,17 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
         # A link's own text is very often just "PDF" or "PDF(266KB)" — the
         # real description sits in a nearby heading or row label instead.
         context = _nearby_context_text(a) if _is_generic_label(text) else ""
-        title = context or text or _title_from_url(abs_url)
+        # If there's no useful nearby context either, a generic own label
+        # ("Download", "PDF") is a worse title than one derived from the
+        # filename itself (e.g. "fy26q1_transcript.pdf" -> "fy26q1
+        # transcript") — only fall back to showing the generic label verbatim
+        # if even that comes up empty.
+        if context:
+            title = context
+        elif not _is_generic_label(text):
+            title = text
+        else:
+            title = _title_from_url(abs_url) or text
         doc_type = _guess_doc_type(context or text, href)
 
         # Archive pages often repeat the same section link many times; a
@@ -260,7 +412,12 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
                 continue
             seen_labels.add(label_key)
 
-        period = extract_period(context or text)
+        # Period detection always looks at the surrounding row/heading, not
+        # just when the title itself needed it — a link can have a perfectly
+        # good own title ("Presentation Material") while the date/quarter it
+        # covers still only exists in a sibling cell or nearby heading.
+        period_text = _period_context_text(a, context or text)
+        period = extract_period(period_text) or extract_period_from_url(href)
         if period:
             carried_period = period
             carry_remaining = _CARRY_FORWARD_MAX
@@ -269,6 +426,15 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
             carry_remaining -= 1
         else:
             period = None
+
+        # The whole point of detecting a period is so the user can tell what
+        # a document is *for* without opening it — put it in the name itself
+        # rather than a separate field that's easy to miss. Skip if it's
+        # already part of the title (common when the title came from a row
+        # that already spelled the date out, e.g. "Summary of Q&A Aug 7, 2026").
+        _period_label = (period or {}).get("period_label") or ""
+        if _period_label and _period_label not in title:
+            title = f"{_period_label} — {title}"
 
         seen_urls.add(abs_url)
         out.append({
