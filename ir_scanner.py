@@ -33,25 +33,56 @@ _TYPE_RULES = [
 ]
 
 
-def _guess_doc_type(text: str, href: str) -> str:
-    hay = f"{text} {href}".lower()
+def _href_filename(href: str) -> str:
+    """Just the last path segment. Keyword-matching against the *full* href is
+    too loose: on a site like mufg.jp/english/ir/presentation/index.html every
+    link under that directory contains "presentation" in its path, so plain
+    year-navigation links get scooped up and mislabelled. The filename is a
+    far better signal (e.g. "fy26q1_presentation.pdf")."""
+    return unquote(urlparse(href).path.rsplit("/", 1)[-1]).lower()
+
+
+def _file_ext(href: str) -> str:
+    """Document extension without the dot, or "" if this isn't a direct file link."""
+    path = urlparse(href).path.lower()
+    for ext in DOCUMENT_EXTENSIONS:
+        if path.endswith(ext):
+            return ext.lstrip(".")
+    return ""
+
+
+def _matches_type_rules(*texts) -> str:
+    hay = " ".join(t for t in texts if t)
+    hay_lower = hay.lower()
     for keywords, label in _TYPE_RULES:
         for kw in keywords:
-            if kw in hay or kw in text:  # kw may be Japanese, unaffected by .lower()
+            if kw in hay_lower or kw in hay:  # kw may be Japanese, unaffected by .lower()
                 return label
-    return "Other"
+    return ""
+
+
+def _guess_doc_type(text: str, href: str) -> str:
+    return _matches_type_rules(text, _href_filename(href)) or "Other"
 
 
 def _looks_like_document(text: str, href: str) -> bool:
-    path = urlparse(href).path.lower()
-    if path.endswith(DOCUMENT_EXTENSIONS):
+    if _file_ext(href):
         return True
-    hay = f"{text} {href}"
-    for keywords, _label in _TYPE_RULES:
-        for kw in keywords:
-            if kw in hay.lower() or kw in text:
-                return True
-    return False
+    return bool(_matches_type_rules(text, _href_filename(href)))
+
+
+# Link text that's pure navigation rather than a document: a bare year, a page
+# number, or common pager/menu words. These show up constantly on IR archive
+# pages ("2025", "2024", "Next") and are noise in the results.
+_NAV_LABEL_RE = re.compile(
+    r'^(19|20)\d{2}(年|年度)?$|^\d{1,3}$|'
+    r'^(next|prev|previous|back|more|top|home|一覧|次へ|前へ|もっと見る)$',
+    re.IGNORECASE,
+)
+
+
+def _is_nav_label(text: str) -> bool:
+    return bool(_NAV_LABEL_RE.match(text.strip()))
 
 
 def _title_from_url(url: str) -> str:
@@ -103,9 +134,15 @@ def _nearby_context_text(a_tag) -> str:
     return ""
 
 
-def scan_page_for_documents(url: str, max_results: int = 60, timeout: int = 20) -> list:
-    """Fetch `url` and return up to max_results candidate document links as
-    [{"title": str, "url": str, "doc_type": str}, ...], deduped by URL.
+def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20) -> list:
+    """Fetch `url` and return up to max_results candidate links as
+    [{"title", "url", "doc_type", "kind", "ext"}, ...], deduped by URL.
+
+    kind is "file" for a direct document download (.pdf/.pptx/…) or "page"
+    for an HTML link that merely looks document-related — the caller is
+    expected to surface that distinction, since only "file" entries can be
+    downloaded directly.
+
     Raises on a fetch failure (bad URL, network error, non-2xx status) —
     callers should catch and surface that to the user."""
     import requests
@@ -115,7 +152,8 @@ def scan_page_for_documents(url: str, max_results: int = 60, timeout: int = 20) 
     resp.raise_for_status()
     soup = BeautifulSoup(resp.content, "lxml")
 
-    seen = set()
+    seen_urls = set()
+    seen_labels = set()
     out = []
     for a in soup.find_all("a", href=True):
         href = a["href"].strip()
@@ -127,9 +165,14 @@ def scan_page_for_documents(url: str, max_results: int = 60, timeout: int = 20) 
         text = a.get_text(strip=True)
         if not _looks_like_document(text, href):
             continue
-        if abs_url in seen:
+        if abs_url in seen_urls:
             continue
-        seen.add(abs_url)
+
+        ext = _file_ext(href)
+        # Pure navigation ("2025", "Next") is only ever noise — but never drop
+        # a real file link on the strength of its label alone.
+        if not ext and _is_nav_label(text):
+            continue
 
         # A link's own text is very often just "PDF" or "PDF(266KB)" — the
         # real description sits in a nearby heading or row label instead.
@@ -137,7 +180,80 @@ def scan_page_for_documents(url: str, max_results: int = 60, timeout: int = 20) 
         title = context or text or _title_from_url(abs_url)
         doc_type = _guess_doc_type(context or text, href)
 
-        out.append({"title": title, "url": abs_url, "doc_type": doc_type})
+        # Archive pages often repeat the same section link many times; a
+        # same-title same-type *page* link adds nothing. Files are kept even
+        # when titles collide (different documents legitimately share a label).
+        label_key = (title.strip().lower(), doc_type)
+        if not ext:
+            if label_key in seen_labels:
+                continue
+            seen_labels.add(label_key)
+
+        seen_urls.add(abs_url)
+        out.append({
+            "title": title,
+            "url": abs_url,
+            "doc_type": doc_type,
+            "kind": "file" if ext else "page",
+            "ext": ext,
+        })
         if len(out) >= max_results:
             break
     return out
+
+
+def fetch_document_bytes(doc_url: str, timeout: int = 30, max_bytes: int = 40 * 1024 * 1024):
+    """Download one document server-side, for bundling into a batch ZIP.
+    Capped so a single unexpectedly huge file can't exhaust memory."""
+    import requests
+    r = requests.get(doc_url, headers={"User-Agent": USER_AGENT}, timeout=timeout, stream=True)
+    r.raise_for_status()
+    chunks, total = [], 0
+    for chunk in r.iter_content(chunk_size=65536):
+        if not chunk:
+            continue
+        total += len(chunk)
+        if total > max_bytes:
+            raise RuntimeError(f"file exceeds {max_bytes // (1024 * 1024)}MB cap")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def _safe_filename(title: str, ext: str, fallback: str) -> str:
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", (title or fallback)).strip() or fallback
+    name = re.sub(r"\s+", " ", name)[:120].rstrip(". ")
+    return f"{name}.{ext}" if ext and not name.lower().endswith(f".{ext}") else name
+
+
+def build_zip(items: list, timeout: int = 30):
+    """Fetch each item ({"title","url","ext"}) and bundle into an in-memory
+    ZIP. Returns (zip_bytes, ok_count, [(title, error), ...]) — a failed
+    download is skipped and reported rather than aborting the whole batch."""
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    failures = []
+    ok = 0
+    used_names = set()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for item in items:
+            try:
+                data = fetch_document_bytes(item["url"], timeout=timeout)
+            except Exception as exc:
+                failures.append((item.get("title") or item["url"], str(exc)))
+                continue
+            fname = _safe_filename(item.get("title", ""), item.get("ext", ""),
+                                    _title_from_url(item["url"]))
+            if fname.lower() in used_names:
+                stem, dot, suffix = fname.rpartition(".")
+                if not dot:  # no extension — rpartition puts everything in suffix
+                    stem, suffix = fname, ""
+                n = 2
+                while f"{stem} ({n}){dot}{suffix}".lower() in used_names:
+                    n += 1
+                fname = f"{stem} ({n}){dot}{suffix}"
+            used_names.add(fname.lower())
+            zf.writestr(fname, data)
+            ok += 1
+    return buf.getvalue(), ok, failures
