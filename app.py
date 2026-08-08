@@ -648,9 +648,24 @@ a.summary-link:hover { background: #5C2E00 !important; }
 .research-title { font-size: 0.83rem; line-height: 1.35; padding-top: 0.05rem; }
 .research-col-header {
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-    color: #9B8B7A; border-bottom: 2px solid #D9D3C8; padding-bottom: 0.25rem; margin-bottom: 0.3rem;
+    color: #9B8B7A;
 }
 .research-no-doc { font-size: 0.65rem; color: #B0A798; }
+/* Item rows use their own flexbox (not st.columns' data-testid=stHorizontalBlock,
+   which fully stacks each column to 100% width below Streamlit's internal
+   mobile breakpoint — with 4 columns that meant 4 full-width lines per item).
+   flex-wrap here is deliberate and self-contained: date/badge stay inline,
+   title wraps onto its own line only when the row is too narrow to fit it. */
+.research-item-row {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.2rem 0.6rem;
+    padding: 0.4rem 0; border-bottom: 1px solid #F0EBE3;
+}
+.research-item-header-row {
+    border-bottom: 2px solid #D9D3C8; padding-bottom: 0.3rem; margin-bottom: 0.1rem;
+}
+.research-item-row .research-date { flex: 0 0 auto; padding-top: 0; }
+.research-item-row .research-title { flex: 1 1 220px; min-width: 140px; padding-top: 0; }
+.research-item-links { margin: 0.1rem 0 0.6rem; }
 
 /* Compact buttons/downloads inside the item list only */
 [class*="st-key-research_items_list"] .stButton button,
@@ -677,10 +692,6 @@ a.summary-link:hover { background: #5C2E00 !important; }
     font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.2rem;
     margin: 0.7rem 0 0.15rem;
-}
-.research-scan-ext {
-    font-size: 0.6rem; font-weight: 700; color: #9B8B7A; text-align: right;
-    padding-top: 0.15rem; white-space: nowrap;
 }
 [class*="st-key-research_scan_results"] .stCheckbox label p {
     font-size: 0.8rem !important; line-height: 1.3 !important;
@@ -2948,11 +2959,15 @@ with tab_research:
                 "url_jp":     _f.get("doc_url", ""),
             })
         for _li, _lk in enumerate(_links_map.get(_rcode, [])):
+            _lk_title = _lk.get("title") or _lk.get("url", "")
+            _lk_period = _lk.get("period_label") or ""
+            if _lk_period and _lk_period not in _lk_title:
+                _lk_title = f"{_lk_title} ({_lk_period})"
             _items.append({
                 "date":       _lk.get("date") or "",
                 "type_label": _lk.get("doc_type") or "Other",
                 "source":     "custom",
-                "title":      _lk.get("title") or _lk.get("url", ""),
+                "title":      _lk_title,
                 "url":        _lk.get("url", ""),
                 "link_index": _li,
             })
@@ -2985,33 +3000,34 @@ with tab_research:
             )
 
         _edinet_doc_cache = _get_app_cache().setdefault("edinet_docs", {})
-        _row_cols_ratio = [0.8, 1.3, 4.3, 2.4]
+        _badge_cls_map = {"edinet": "research-type-edinet", "tdnet": "research-type-tdnet",
+                           "custom": "research-type-custom"}
 
         with st.container(key="research_items_list"):
-            _h_date, _h_badge, _h_title, _h_links = st.columns(_row_cols_ratio, gap="small")
-            with _h_date:
-                st.markdown('<div class="research-col-header">Date</div>', unsafe_allow_html=True)
-            with _h_badge:
-                st.markdown('<div class="research-col-header">Type</div>', unsafe_allow_html=True)
-            with _h_title:
-                st.markdown('<div class="research-col-header">Title</div>', unsafe_allow_html=True)
-            with _h_links:
-                st.markdown('<div class="research-col-header">Links</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="research-item-row research-item-header-row">'
+                '<span class="research-date research-col-header">Date</span>'
+                '<span class="research-title research-col-header">Type · Title</span>'
+                '</div>',
+                unsafe_allow_html=True
+            )
 
-            for it in _filtered:
-                _c_date, _c_badge, _c_title, _c_links = st.columns(_row_cols_ratio, gap="small")
-                with _c_date:
-                    st.markdown(f'<div class="research-date">{_safe_text(it["date"] or "—")}</div>', unsafe_allow_html=True)
-                with _c_badge:
-                    _badge_cls = {"edinet": "research-type-edinet", "tdnet": "research-type-tdnet",
-                                  "custom": "research-type-custom"}[it["source"]]
-                    st.markdown(
-                        f'<span class="research-type-badge {_badge_cls}">{_safe_text(it["type_label"])}</span>',
-                        unsafe_allow_html=True
-                    )
-                with _c_title:
-                    st.markdown(f'<div class="research-title">{_safe_text(it["title"])}</div>', unsafe_allow_html=True)
-                with _c_links:
+            for _ri, it in enumerate(_filtered):
+                # Date/type/title share one self-wrapping flex row we style
+                # ourselves — see .research-item-row — instead of a 4-way
+                # st.columns() row, which fully stacks to 4 full-width lines
+                # per item on narrow (mobile) viewports.
+                st.markdown(
+                    f'<div class="research-item-row">'
+                    f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>'
+                    f'<span class="research-title">'
+                    f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">{_safe_text(it["type_label"])}</span>'
+                    f'&nbsp; {_safe_text(it["title"])}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                with st.container(key=f"research_item_links_{_ri}"):
+                    st.markdown('<div class="research-item-links">', unsafe_allow_html=True)
                     if it["source"] == "edinet":
                         _doc_id = it["doc_id"]
                         if not _edinet_api_key:
@@ -3054,7 +3070,7 @@ with tab_research:
                             _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" class="summary-link">EN</a>')
                         if it.get("url_jp"):
                             _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" class="summary-link">JP</a>')
-                        st.markdown(" ".join(_tl) or "—", unsafe_allow_html=True)
+                        st.markdown(" &nbsp;·&nbsp; ".join(_tl) or "—", unsafe_allow_html=True)
                     else:  # custom link
                         _lcol1, _lcol2 = st.columns([3, 1], gap="small")
                         with _lcol1:
@@ -3071,6 +3087,7 @@ with tab_research:
                                     else ("warning", f"Removed from view, but not saved: {_msg}")
                                 )
                                 st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Export current list ─────────────────────────────────────────
         if _filtered:
@@ -3220,12 +3237,28 @@ with tab_research:
                             st.session_state.pop(_pick_key(_i), None)
                         st.rerun()
 
-                # ── Grouped by document type ──────────────────────────────
+                # ── Grouped by document type or by period ───────────────────
+                _n_periods = sum(1 for _, _r in _visible if _r.get("period_label"))
+                _group_mode = st.radio(
+                    "Group by:", ["Document type", "Period"], horizontal=True,
+                    key=f"ir_scan_groupby_{_rcode}",
+                ) if _n_periods else "Document type"
+
                 _groups = {}
-                for _i, _r in _visible:
-                    _groups.setdefault(_r["doc_type"], []).append((_i, _r))
-                # Most useful types first; "Other" last since it's the catch-all.
-                _group_order = sorted(_groups, key=lambda t: (t == "Other", t))
+                if _group_mode == "Period":
+                    for _i, _r in _visible:
+                        _groups.setdefault(_r.get("period_label") or "Unknown period", []).append((_i, _r))
+                    _dated = [g for g in _groups if g != "Unknown period"
+                              and any(_r.get("date") for _, _r in _groups[g])]
+                    _dated.sort(key=lambda g: max(_r["date"] for _, _r in _groups[g] if _r.get("date")),
+                                reverse=True)
+                    _undated = sorted(g for g in _groups if g != "Unknown period" and g not in _dated)
+                    _group_order = _dated + _undated + (["Unknown period"] if "Unknown period" in _groups else [])
+                else:
+                    for _i, _r in _visible:
+                        _groups.setdefault(_r["doc_type"], []).append((_i, _r))
+                    # Most useful types first; "Other" last since it's the catch-all.
+                    _group_order = sorted(_groups, key=lambda t: (t == "Other", t))
 
                 with st.container(key="research_scan_results"):
                     for _gname in _group_order:
@@ -3236,15 +3269,15 @@ with tab_research:
                             unsafe_allow_html=True
                         )
                         for _i, _r in _gitems:
-                            _c_pick, _c_meta, _c_open = st.columns([5.5, 0.9, 0.9], gap="small")
+                            _c_pick, _c_open = st.columns([6.4, 0.9], gap="small")
                             with _c_pick:
-                                st.checkbox(_r["title"], key=_pick_key(_i))
-                            with _c_meta:
-                                _kind_txt = (_r.get("ext") or "").upper() or "page"
-                                st.markdown(
-                                    f'<div class="research-scan-ext">{_safe_text(_kind_txt)}</div>',
-                                    unsafe_allow_html=True
-                                )
+                                _meta_bits = []
+                                if _group_mode != "Period" and _r.get("period_label"):
+                                    _meta_bits.append(_r["period_label"])
+                                elif _group_mode == "Period":
+                                    _meta_bits.append(_r["doc_type"])
+                                _meta_bits.append((_r.get("ext") or "").upper() or "page")
+                                st.checkbox(f'{_r["title"]}  ·  {" · ".join(_meta_bits)}', key=_pick_key(_i))
                             with _c_open:
                                 st.markdown(
                                     f'<a href="{_safe_url(_r["url"])}" target="_blank" '
@@ -3307,11 +3340,12 @@ with tab_research:
                     _added, _persisted_all = 0, True
                     for _i, _sr in _picked:
                         _link_entry = {
-                            "title":    _sr["title"],
-                            "url":      _sr["url"],
-                            "doc_type": _sr["doc_type"],
-                            "date":     "",
-                            "added_at": now_local().isoformat(),
+                            "title":        _sr["title"],
+                            "url":          _sr["url"],
+                            "doc_type":     _sr["doc_type"],
+                            "date":         _sr.get("date") or "",
+                            "period_label": _sr.get("period_label") or "",
+                            "added_at":     now_local().isoformat(),
                         }
                         _links_map.setdefault(_rcode, []).append(_link_entry)
                         _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)

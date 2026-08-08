@@ -85,6 +85,70 @@ def _is_nav_label(text: str) -> bool:
     return bool(_NAV_LABEL_RE.match(text.strip()))
 
 
+_MONTH_NAMES = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7, "aug": 8,
+    "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+_EN_QUARTER_WORDS = {
+    "first": 1, "1st": 1, "second": 2, "2nd": 2, "third": 3, "3rd": 3, "fourth": 4, "4th": 4,
+}
+
+# "First Quarter Ended June 30, 2026" / "Fiscal Year Ended March 31, 2026" — a
+# real calendar date, so this is the one case worth converting to ISO.
+_EN_PERIOD_RE = re.compile(
+    r'(?:(?P<q>first|second|third|fourth|1st|2nd|3rd|4th)\s+quarter\s+|fiscal\s+year\s+)?'
+    r'end(?:ed|ing)?\s+(?P<month>[A-Za-z]+)\.?\s+(?P<day>\d{1,2}),?\s+(?P<year>\d{4})',
+    re.IGNORECASE,
+)
+
+# Japanese fiscal-period notation, e.g. "2026年3月期第1四半期" (1Q of the fiscal
+# year ending March 2026) or just "2026年3月期" for the full year. Fiscal
+# year-end days vary by company and aren't derivable from this text alone, so
+# this only ever produces a label, never a fabricated date.
+_JP_PERIOD_RE = re.compile(r'(?P<year>\d{4})年(?P<month>\d{1,2})月期(?:第(?P<q>[1-4１２３４])四半期)?')
+_JP_DIGIT_MAP = {"１": "1", "２": "2", "３": "3", "４": "4"}
+
+
+def extract_period(text: str):
+    """Best-effort fiscal-period detection from a title/context string.
+    Returns {"date": iso_str_or_None, "period_label": str} or None if no
+    period could be detected. English "Quarter Ended <Month> <Day>, <Year>"
+    yields a real ISO date; Japanese "…年…月期" notation yields a label only,
+    since fiscal year-end days vary by company and can't be inferred here."""
+    if not text:
+        return None
+
+    m = _EN_PERIOD_RE.search(text)
+    if m:
+        month = _MONTH_NAMES.get(m.group("month").lower())
+        if month:
+            year, day = int(m.group("year")), int(m.group("day"))
+            try:
+                date_iso = f"{year:04d}-{month:02d}-{day:02d}"
+                import datetime as _dt
+                _dt.date(year, month, day)  # validate real calendar date
+            except ValueError:
+                date_iso = None
+            if date_iso:
+                q_word = m.group("q")
+                qn = _EN_QUARTER_WORDS.get(q_word.lower()) if q_word else None
+                label = f"Q{qn} FY{year}" if qn else f"FY{year}"
+                return {"date": date_iso, "period_label": label}
+
+    m = _JP_PERIOD_RE.search(text)
+    if m:
+        year, month, q = m.group("year"), m.group("month"), m.group("q")
+        label = f"FY{year}/{int(month):02d}"
+        if q:
+            label = f"Q{_JP_DIGIT_MAP.get(q, q)} {label}"
+        return {"date": None, "period_label": label}
+
+    return None
+
+
 def _title_from_url(url: str) -> str:
     name = urlparse(url).path.rsplit("/", 1)[-1]
     name = unquote(name)
@@ -141,7 +205,11 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
     kind is "file" for a direct document download (.pdf/.pptx/…) or "page"
     for an HTML link that merely looks document-related — the caller is
     expected to surface that distinction, since only "file" entries can be
-    downloaded directly.
+    downloaded directly. date/period_label carry a best-effort fiscal period
+    (see extract_period) — undated siblings inherit the most recently seen
+    period for a bounded run, since IR archive pages commonly show one dated
+    "Summary of Consolidated Results for Q1 FY26" line followed by several
+    undated Presentation/Q&A/Transcript links for that same quarter.
 
     Raises on a fetch failure (bad URL, network error, non-2xx status) —
     callers should catch and surface that to the user."""
@@ -155,6 +223,9 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
     seen_urls = set()
     seen_labels = set()
     out = []
+    _CARRY_FORWARD_MAX = 6  # undated siblings after a dated line still inherit its period
+    carried_period = None
+    carry_remaining = 0
     for a in soup.find_all("a", href=True):
         href = a["href"].strip()
         if not href or href.startswith(("#", "mailto:", "tel:", "javascript:")):
@@ -189,6 +260,16 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
                 continue
             seen_labels.add(label_key)
 
+        period = extract_period(context or text)
+        if period:
+            carried_period = period
+            carry_remaining = _CARRY_FORWARD_MAX
+        elif carry_remaining > 0:
+            period = carried_period
+            carry_remaining -= 1
+        else:
+            period = None
+
         seen_urls.add(abs_url)
         out.append({
             "title": title,
@@ -196,6 +277,8 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
             "doc_type": doc_type,
             "kind": "file" if ext else "page",
             "ext": ext,
+            "date": (period or {}).get("date") or "",
+            "period_label": (period or {}).get("period_label") or "",
         })
         if len(out) >= max_results:
             break
