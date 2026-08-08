@@ -3271,11 +3271,13 @@ with tab_research:
                         for _i, _r in _gitems:
                             _c_pick, _c_open = st.columns([6.4, 0.9], gap="small")
                             with _c_pick:
-                                _meta_bits = []
-                                if _group_mode != "Period" and _r.get("period_label"):
-                                    _meta_bits.append(_r["period_label"])
-                                elif _group_mode == "Period":
-                                    _meta_bits.append(_r["doc_type"])
+                                # The period, when detected, is already baked into
+                                # _r["title"] itself (see ir_scanner.py) so it reads
+                                # as part of the document's name rather than a
+                                # separate line the user has to cross-reference —
+                                # only add the doc type here when grouping by period
+                                # (grouping by type already puts that in the header).
+                                _meta_bits = [_r["doc_type"]] if _group_mode == "Period" else []
                                 _meta_bits.append((_r.get("ext") or "").upper() or "page")
                                 st.checkbox(f'{_r["title"]}  ·  {" · ".join(_meta_bits)}', key=_pick_key(_i))
                             with _c_open:
