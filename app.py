@@ -18,7 +18,11 @@ from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
-from ir_scanner import scan_page_for_documents
+from ir_scanner import scan_page_for_documents, build_zip
+
+# Batch ZIP downloads are fetched server-side and held in memory, so cap how
+# many documents one ZIP can contain; the UI tells the user what was skipped.
+_IR_ZIP_MAX_FILES = 25
 from ai_summary_store import load_summaries_from_github, save_summary as save_summary_to_github
 from sentiment import score_all_sectors, flag_high_value_articles
 from jquants import (get_jquants_secret, fetch_earnings_calendar,
@@ -644,9 +648,24 @@ a.summary-link:hover { background: #5C2E00 !important; }
 .research-title { font-size: 0.83rem; line-height: 1.35; padding-top: 0.05rem; }
 .research-col-header {
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-    color: #9B8B7A; border-bottom: 2px solid #D9D3C8; padding-bottom: 0.25rem; margin-bottom: 0.3rem;
+    color: #9B8B7A;
 }
 .research-no-doc { font-size: 0.65rem; color: #B0A798; }
+/* Item rows use their own flexbox (not st.columns' data-testid=stHorizontalBlock,
+   which fully stacks each column to 100% width below Streamlit's internal
+   mobile breakpoint — with 4 columns that meant 4 full-width lines per item).
+   flex-wrap here is deliberate and self-contained: date/badge stay inline,
+   title wraps onto its own line only when the row is too narrow to fit it. */
+.research-item-row {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.2rem 0.6rem;
+    padding: 0.4rem 0; border-bottom: 1px solid #F0EBE3;
+}
+.research-item-header-row {
+    border-bottom: 2px solid #D9D3C8; padding-bottom: 0.3rem; margin-bottom: 0.1rem;
+}
+.research-item-row .research-date { flex: 0 0 auto; padding-top: 0; }
+.research-item-row .research-title { flex: 1 1 220px; min-width: 140px; padding-top: 0; }
+.research-item-links { margin: 0.1rem 0 0.6rem; }
 
 /* Compact buttons/downloads inside the item list only */
 [class*="st-key-research_items_list"] .stButton button,
@@ -667,6 +686,15 @@ a.summary-link:hover { background: #5C2E00 !important; }
    section header rather than a generic centered button. */
 [class*="st-key-research_section_toggle"] button {
     text-align: left !important; justify-content: flex-start !important;
+}
+/* IR-scan results — grouped candidate list */
+.research-scan-group {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.2rem;
+    margin: 0.7rem 0 0.15rem;
+}
+[class*="st-key-research_scan_results"] .stCheckbox label p {
+    font-size: 0.8rem !important; line-height: 1.3 !important;
 }
 
 /* Mobile responsive */
@@ -2931,11 +2959,15 @@ with tab_research:
                 "url_jp":     _f.get("doc_url", ""),
             })
         for _li, _lk in enumerate(_links_map.get(_rcode, [])):
+            _lk_title = _lk.get("title") or _lk.get("url", "")
+            _lk_period = _lk.get("period_label") or ""
+            if _lk_period and _lk_period not in _lk_title:
+                _lk_title = f"{_lk_title} ({_lk_period})"
             _items.append({
                 "date":       _lk.get("date") or "",
                 "type_label": _lk.get("doc_type") or "Other",
                 "source":     "custom",
-                "title":      _lk.get("title") or _lk.get("url", ""),
+                "title":      _lk_title,
                 "url":        _lk.get("url", ""),
                 "link_index": _li,
             })
@@ -2968,33 +3000,34 @@ with tab_research:
             )
 
         _edinet_doc_cache = _get_app_cache().setdefault("edinet_docs", {})
-        _row_cols_ratio = [0.8, 1.3, 4.3, 2.4]
+        _badge_cls_map = {"edinet": "research-type-edinet", "tdnet": "research-type-tdnet",
+                           "custom": "research-type-custom"}
 
         with st.container(key="research_items_list"):
-            _h_date, _h_badge, _h_title, _h_links = st.columns(_row_cols_ratio, gap="small")
-            with _h_date:
-                st.markdown('<div class="research-col-header">Date</div>', unsafe_allow_html=True)
-            with _h_badge:
-                st.markdown('<div class="research-col-header">Type</div>', unsafe_allow_html=True)
-            with _h_title:
-                st.markdown('<div class="research-col-header">Title</div>', unsafe_allow_html=True)
-            with _h_links:
-                st.markdown('<div class="research-col-header">Links</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="research-item-row research-item-header-row">'
+                '<span class="research-date research-col-header">Date</span>'
+                '<span class="research-title research-col-header">Type · Title</span>'
+                '</div>',
+                unsafe_allow_html=True
+            )
 
-            for it in _filtered:
-                _c_date, _c_badge, _c_title, _c_links = st.columns(_row_cols_ratio, gap="small")
-                with _c_date:
-                    st.markdown(f'<div class="research-date">{_safe_text(it["date"] or "—")}</div>', unsafe_allow_html=True)
-                with _c_badge:
-                    _badge_cls = {"edinet": "research-type-edinet", "tdnet": "research-type-tdnet",
-                                  "custom": "research-type-custom"}[it["source"]]
-                    st.markdown(
-                        f'<span class="research-type-badge {_badge_cls}">{_safe_text(it["type_label"])}</span>',
-                        unsafe_allow_html=True
-                    )
-                with _c_title:
-                    st.markdown(f'<div class="research-title">{_safe_text(it["title"])}</div>', unsafe_allow_html=True)
-                with _c_links:
+            for _ri, it in enumerate(_filtered):
+                # Date/type/title share one self-wrapping flex row we style
+                # ourselves — see .research-item-row — instead of a 4-way
+                # st.columns() row, which fully stacks to 4 full-width lines
+                # per item on narrow (mobile) viewports.
+                st.markdown(
+                    f'<div class="research-item-row">'
+                    f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>'
+                    f'<span class="research-title">'
+                    f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">{_safe_text(it["type_label"])}</span>'
+                    f'&nbsp; {_safe_text(it["title"])}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                with st.container(key=f"research_item_links_{_ri}"):
+                    st.markdown('<div class="research-item-links">', unsafe_allow_html=True)
                     if it["source"] == "edinet":
                         _doc_id = it["doc_id"]
                         if not _edinet_api_key:
@@ -3037,7 +3070,7 @@ with tab_research:
                             _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" class="summary-link">EN</a>')
                         if it.get("url_jp"):
                             _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" class="summary-link">JP</a>')
-                        st.markdown(" ".join(_tl) or "—", unsafe_allow_html=True)
+                        st.markdown(" &nbsp;·&nbsp; ".join(_tl) or "—", unsafe_allow_html=True)
                     else:  # custom link
                         _lcol1, _lcol2 = st.columns([3, 1], gap="small")
                         with _lcol1:
@@ -3054,6 +3087,7 @@ with tab_research:
                                     else ("warning", f"Removed from view, but not saved: {_msg}")
                                 )
                                 st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Export current list ─────────────────────────────────────────
         if _filtered:
@@ -3160,45 +3194,167 @@ with tab_research:
 
             _scan_results = st.session_state.get(_scan_key)
             if _scan_results:
+                _pick_key = lambda i: f"ir_scan_pick_{_rcode}_{i}"
+                _n_files = sum(1 for r in _scan_results if r.get("kind") == "file")
+                _n_pages = len(_scan_results) - _n_files
+
+                _sum_col, _opt_col = st.columns([2, 1.4])
+                with _sum_col:
+                    st.markdown(
+                        f'<div style="font-size:0.72rem;color:#9B8B7A;margin:0.3rem 0;">'
+                        f'Found <strong>{_n_files}</strong> downloadable file(s)'
+                        + (f' and {_n_pages} page link(s)' if _n_pages else '')
+                        + '</div>',
+                        unsafe_allow_html=True
+                    )
+                with _opt_col:
+                    _show_pages = st.checkbox(
+                        f"Also show {_n_pages} page link(s)", key=f"ir_scan_showpages_{_rcode}",
+                        help="Links to HTML pages rather than direct document downloads — "
+                             "often an index or sub-page worth scanning separately.",
+                    ) if _n_pages else False
+
+                # Keep the original index as the selection key so grouping is
+                # purely a display concern and checkbox state stays stable.
+                _visible = [(i, r) for i, r in enumerate(_scan_results)
+                            if r.get("kind") == "file" or _show_pages]
+
+                _sel_col1, _sel_col2, _sel_col3 = st.columns([1, 1, 2.4])
+                with _sel_col1:
+                    if st.button("Select all", key=f"ir_scan_all_{_rcode}", use_container_width=True):
+                        for _i, _ in _visible:
+                            st.session_state[_pick_key(_i)] = True
+                        st.rerun()
+                with _sel_col2:
+                    if st.button("Clear", key=f"ir_scan_none_{_rcode}", use_container_width=True):
+                        for _i in range(len(_scan_results)):
+                            st.session_state[_pick_key(_i)] = False
+                        st.rerun()
+                with _sel_col3:
+                    if st.button("Discard results", key=f"ir_scan_clear_{_rcode}", use_container_width=True):
+                        st.session_state.pop(_scan_key, None)
+                        for _i in range(len(_scan_results)):
+                            st.session_state.pop(_pick_key(_i), None)
+                        st.rerun()
+
+                # ── Grouped by document type or by period ───────────────────
+                _n_periods = sum(1 for _, _r in _visible if _r.get("period_label"))
+                _group_mode = st.radio(
+                    "Group by:", ["Document type", "Period"], horizontal=True,
+                    key=f"ir_scan_groupby_{_rcode}",
+                ) if _n_periods else "Document type"
+
+                _groups = {}
+                if _group_mode == "Period":
+                    for _i, _r in _visible:
+                        _groups.setdefault(_r.get("period_label") or "Unknown period", []).append((_i, _r))
+                    _dated = [g for g in _groups if g != "Unknown period"
+                              and any(_r.get("date") for _, _r in _groups[g])]
+                    _dated.sort(key=lambda g: max(_r["date"] for _, _r in _groups[g] if _r.get("date")),
+                                reverse=True)
+                    _undated = sorted(g for g in _groups if g != "Unknown period" and g not in _dated)
+                    _group_order = _dated + _undated + (["Unknown period"] if "Unknown period" in _groups else [])
+                else:
+                    for _i, _r in _visible:
+                        _groups.setdefault(_r["doc_type"], []).append((_i, _r))
+                    # Most useful types first; "Other" last since it's the catch-all.
+                    _group_order = sorted(_groups, key=lambda t: (t == "Other", t))
+
+                with st.container(key="research_scan_results"):
+                    for _gname in _group_order:
+                        _gitems = _groups[_gname]
+                        st.markdown(
+                            f'<div class="research-scan-group">{_safe_text(_gname)} '
+                            f'<span style="font-weight:400;color:#B0A798;">({len(_gitems)})</span></div>',
+                            unsafe_allow_html=True
+                        )
+                        for _i, _r in _gitems:
+                            _c_pick, _c_open = st.columns([6.4, 0.9], gap="small")
+                            with _c_pick:
+                                _meta_bits = []
+                                if _group_mode != "Period" and _r.get("period_label"):
+                                    _meta_bits.append(_r["period_label"])
+                                elif _group_mode == "Period":
+                                    _meta_bits.append(_r["doc_type"])
+                                _meta_bits.append((_r.get("ext") or "").upper() or "page")
+                                st.checkbox(f'{_r["title"]}  ·  {" · ".join(_meta_bits)}', key=_pick_key(_i))
+                            with _c_open:
+                                st.markdown(
+                                    f'<a href="{_safe_url(_r["url"])}" target="_blank" '
+                                    f'class="summary-link">open ↗</a>',
+                                    unsafe_allow_html=True
+                                )
+
+                _picked = [(_i, _r) for _i, _r in _visible if st.session_state.get(_pick_key(_i))]
+                _picked_files = [_r for _i, _r in _picked if _r.get("kind") == "file"]
+
                 st.markdown(
-                    f'<div style="font-size:0.7rem;color:#9B8B7A;margin:0.4rem 0;">'
-                    f'Found {len(_scan_results)} candidate(s) — select the ones worth keeping:</div>',
+                    f'<div style="font-size:0.72rem;color:#9B8B7A;margin:0.5rem 0 0.2rem;">'
+                    f'{len(_picked)} selected'
+                    + (f' ({len(_picked_files)} downloadable)' if len(_picked_files) != len(_picked) else '')
+                    + '</div>',
                     unsafe_allow_html=True
                 )
-                for _si, _sr in enumerate(_scan_results):
-                    st.checkbox(
-                        f'{_sr["title"]}  ·  _{_sr["doc_type"]}_',
-                        key=f"ir_scan_pick_{_rcode}_{_si}",
-                    )
-                _add_col1, _add_col2 = st.columns([1, 3])
-                with _add_col1:
-                    _add_selected = st.button("Add selected", key=f"ir_scan_add_{_rcode}")
-                with _add_col2:
-                    if st.button("Clear results", key=f"ir_scan_clear_{_rcode}"):
-                        st.session_state.pop(_scan_key, None)
-                        for _si in range(len(_scan_results)):
-                            st.session_state.pop(f"ir_scan_pick_{_rcode}_{_si}", None)
-                        st.rerun()
+
+                _act_col1, _act_col2 = st.columns([1.2, 2])
+                with _act_col1:
+                    _add_selected = st.button("➕ Add to library", key=f"ir_scan_add_{_rcode}",
+                                               disabled=not _picked, use_container_width=True)
+                with _act_col2:
+                    _zip_state_key = f"ir_scan_zip_{_rcode}"
+                    if st.button(f"⬇ Download {len(_picked_files)} file(s) as ZIP",
+                                  key=f"ir_scan_zipbtn_{_rcode}",
+                                  disabled=not _picked_files, use_container_width=True):
+                        _batch = _picked_files[:_IR_ZIP_MAX_FILES]
+                        try:
+                            with st.spinner(f"Downloading {len(_batch)} file(s)…"):
+                                _zip_bytes, _zip_ok, _zip_failures = build_zip(_batch)
+                            st.session_state[_zip_state_key] = {
+                                "data": _zip_bytes, "ok": _zip_ok, "failures": _zip_failures,
+                                "skipped": len(_picked_files) - len(_batch),
+                            }
+                        except Exception as _zip_e:
+                            st.session_state.pop(_zip_state_key, None)
+                            st.error(f"Couldn't build the ZIP: {_zip_e}")
+
+                    _zip_state = st.session_state.get(_zip_state_key)
+                    if _zip_state and _zip_state["ok"]:
+                        st.download_button(
+                            f"💾 Save ZIP ({_zip_state['ok']} file(s))",
+                            data=_zip_state["data"],
+                            file_name=f"{_rcode}_ir_documents.zip", mime="application/zip",
+                            key=f"ir_scan_zipsave_{_rcode}", use_container_width=True,
+                        )
+                    if _zip_state:
+                        if _zip_state["skipped"]:
+                            st.info(f"Capped at {_IR_ZIP_MAX_FILES} files per ZIP — "
+                                    f"{_zip_state['skipped']} not included. Download the rest in a second batch.")
+                        if _zip_state["failures"]:
+                            st.warning(
+                                "Couldn't download: "
+                                + "; ".join(f"{_t} ({_e})" for _t, _e in _zip_state["failures"][:5])
+                                + ("…" if len(_zip_state["failures"]) > 5 else "")
+                            )
 
                 if _add_selected:
                     _added, _persisted_all = 0, True
-                    for _si, _sr in enumerate(_scan_results):
-                        if not st.session_state.get(f"ir_scan_pick_{_rcode}_{_si}"):
-                            continue
+                    for _i, _sr in _picked:
                         _link_entry = {
-                            "title":    _sr["title"],
-                            "url":      _sr["url"],
-                            "doc_type": _sr["doc_type"],
-                            "date":     "",
-                            "added_at": now_local().isoformat(),
+                            "title":        _sr["title"],
+                            "url":          _sr["url"],
+                            "doc_type":     _sr["doc_type"],
+                            "date":         _sr.get("date") or "",
+                            "period_label": _sr.get("period_label") or "",
+                            "added_at":     now_local().isoformat(),
                         }
                         _links_map.setdefault(_rcode, []).append(_link_entry)
                         _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)
                         _persisted_all = _persisted_all and _ok
                         _added += 1
-                        st.session_state.pop(f"ir_scan_pick_{_rcode}_{_si}", None)
+                        st.session_state.pop(_pick_key(_i), None)
                     if _added:
                         st.session_state.pop(_scan_key, None)
+                        st.session_state.pop(f"ir_scan_zip_{_rcode}", None)
                         st.session_state.research_flash = (
                             ("success", f"Added {_added} link(s).") if _persisted_all
                             else ("warning", f"Added {_added} link(s) for this session, but at least one wasn't saved permanently (no/invalid GITHUB_TOKEN).")
