@@ -157,7 +157,10 @@ def _normalize_fy(raw: str) -> int:
 def extract_period(text: str):
     """Best-effort period/date detection from a title/context string, tried
     most-specific-first. Returns {"date": iso_str_or_None, "period_label":
-    str} or None if nothing was found.
+    str, "period_sort": str} or None if nothing was found. period_sort is
+    an ordering key only — never displayed, never persisted as a date — so
+    month- and quarter-level periods can still be sorted sensibly without
+    inventing a day that would end up in the saved record.
 
     - English "Quarter/Year Ended <Month> <Day>, <Year>" -> real ISO date.
     - Japanese "…年…月期(第N四半期)" fiscal notation -> label only (fiscal
@@ -180,15 +183,18 @@ def extract_period(text: str):
                 q_word = m.group("q")
                 qn = _EN_QUARTER_WORDS.get(q_word.lower()) if q_word else None
                 label = f"Q{qn} FY{year}" if qn else f"FY{year}"
-                return {"date": date_iso, "period_label": label}
+                return {"date": date_iso, "period_label": label, "period_sort": date_iso}
 
     m = _JP_PERIOD_RE.search(text)
     if m:
         year, month, q = m.group("year"), m.group("month"), m.group("q")
         label = f"FY{year}/{int(month):02d}"
+        sort = f"{year}-{int(month):02d}"
         if q:
-            label = f"Q{_JP_DIGIT_MAP.get(q, q)} {label}"
-        return {"date": None, "period_label": label}
+            qn = _JP_DIGIT_MAP.get(q, q)
+            label = f"Q{qn} {label}"
+            sort = f"{sort}-Q{qn}"
+        return {"date": None, "period_label": label, "period_sort": sort}
 
     m = _FY_Q_RE.search(text)
     if m:
@@ -197,27 +203,19 @@ def extract_period(text: str):
         if fy_raw and qn:
             fy = _normalize_fy(fy_raw)
             if 2000 <= fy <= 2099:
-                return {"date": None, "period_label": f"Q{qn} FY{fy}"}
+                return {"date": None, "period_label": f"Q{qn} FY{fy}", "period_sort": f"{fy}-Q{qn}"}
 
-    m = _JP_DATE_RE.search(text)
-    if m:
-        date_iso, label = _valid_date(int(m.group("year")), int(m.group("month")), int(m.group("day")))
+    for regex, is_en in ((_JP_DATE_RE, False), (_EN_DATE_RE, True), (_ISO_DATE_RE, False)):
+        m = regex.search(text)
+        if not m:
+            continue
+        raw_month = m.group("month")
+        month = _MONTH_NAMES.get(raw_month.lower()) if is_en else int(raw_month)
+        if not month:
+            continue
+        date_iso, label = _valid_date(int(m.group("year")), month, int(m.group("day")))
         if date_iso:
-            return {"date": date_iso, "period_label": label}
-
-    m = _EN_DATE_RE.search(text)
-    if m:
-        month = _MONTH_NAMES.get(m.group("month").lower())
-        if month:
-            date_iso, label = _valid_date(int(m.group("year")), month, int(m.group("day")))
-            if date_iso:
-                return {"date": date_iso, "period_label": label}
-
-    m = _ISO_DATE_RE.search(text)
-    if m:
-        date_iso, label = _valid_date(int(m.group("year")), int(m.group("month")), int(m.group("day")))
-        if date_iso:
-            return {"date": date_iso, "period_label": label}
+            return {"date": date_iso, "period_label": label, "period_sort": date_iso}
 
     return None
 
@@ -227,23 +225,76 @@ _URL_DATE_SEP_RE = re.compile(r'(?<!\d)(?P<year>20\d{2})[-_](?P<month>0?[1-9]|1[
 _URL_YEAR_DIR_RE = re.compile(r'/(?P<year>20\d{2})/')
 
 
+# A quarter marker inside a filename or path segment: "1q", "q1", "4q_" etc.
+# Bounded by non-alphanumerics so "q1" doesn't match inside a random token.
+_URL_QUARTER_RE = re.compile(r'(?<![a-z0-9])(?:(?P<qa>[1-4])q|q(?P<qb>[1-4]))(?![a-z0-9])', re.IGNORECASE)
+# A 4-digit year anywhere in the URL, not just as its own directory.
+_URL_ANY_YEAR_RE = re.compile(r'(?<!\d)(?P<year>20\d{2})(?!\d)')
+# "202508" — year+month with no day. Common in IR filenames; deliberately
+# yields a month-level label and NO date, since inventing a day would put a
+# fabricated value in the saved record's date field.
+_URL_YYYYMM_RE = re.compile(r'(?<!\d)(?P<year>20\d{2})(?P<month>0[1-9]|1[0-2])(?!\d)')
+
+
 def extract_period_from_url(href: str):
-    """Last-resort fallback when no period/date could be found in the link's
-    surrounding text: IR document filenames very often embed a date (e.g.
-    "20260807_qa.pdf") or at least live under a fiscal-year folder
-    (".../presentation/2025/...") even when the page text around them
-    doesn't spell one out."""
+    """Fallback when no period/date could be found in the link's surrounding
+    text: IR document filenames very often embed a date ("20260807_qa.pdf"),
+    a quarter marker ("fy25_1q_results.pdf"), or at least live under a
+    fiscal-year folder (".../presentation/2025/...") even when the page text
+    around them doesn't spell one out.
+
+    Results carry "weak": True when the match pins down a year *or* a quarter
+    but not both. A bare fiscal-year folder is the coarsest possible answer —
+    a company's whole year of quarterly decks sits under /2025/, so calling
+    them all "FY2025" is what made every Casio title look identical — and a
+    bare quarter with no year is similarly partial. Callers prefer a period
+    inherited from a dated neighbour over a weak match, but prefer a strong
+    (self-describing) URL match over any inherited one."""
     if not href:
         return None
+
+    filename = _href_filename(href)
+
     m = _URL_YYYYMMDD_RE.search(href) or _URL_DATE_SEP_RE.search(href)
     if m:
         date_iso, label = _valid_date(int(m.group("year")), int(m.group("month")), int(m.group("day")))
         if date_iso:
-            return {"date": date_iso, "period_label": label}
+            return {"date": date_iso, "period_label": label, "period_sort": date_iso, "weak": False}
+
+    # "fy26q1_deck.pdf" / "1q26_results.pdf" — the filename spells out both
+    # halves itself, so trust it over the directory it happens to sit in.
+    m = _FY_Q_RE.search(filename)
+    if m:
+        fy_raw = m.group("fy1") or m.group("fy2") or m.group("fy3")
+        qn = m.group("q1") or m.group("q2") or m.group("qn")
+        if fy_raw and qn:
+            fy = _normalize_fy(fy_raw)
+            if 2000 <= fy <= 2099:
+                return {"date": None, "period_label": f"Q{qn} FY{fy}",
+                        "period_sort": f"{fy}-Q{qn}", "weak": False}
+
+    # Quarter marker in the filename + whatever year the URL carries — the
+    # single most useful rescue for quarterly documents under a year folder.
+    mq = _URL_QUARTER_RE.search(filename) or _URL_QUARTER_RE.search(href)
+    if mq:
+        qn = mq.group("qa") or mq.group("qb")
+        my = _URL_YEAR_DIR_RE.search(href) or _URL_ANY_YEAR_RE.search(href)
+        if my:
+            year = int(my.group("year"))
+            return {"date": None, "period_label": f"Q{qn} FY{year}",
+                    "period_sort": f"{year}-Q{qn}", "weak": False}
+        return {"date": None, "period_label": f"Q{qn}", "period_sort": f"0000-Q{qn}", "weak": True}
+
+    m = _URL_YYYYMM_RE.search(filename)
+    if m:
+        year, month = int(m.group("year")), int(m.group("month"))
+        return {"date": None, "period_label": f"{_MONTH_ABBR[month]} {year}",
+                "period_sort": f"{year:04d}-{month:02d}", "weak": False}
+
     m = _URL_YEAR_DIR_RE.search(href)
     if m:
         year = int(m.group("year"))
-        return {"date": None, "period_label": f"FY{year}"}
+        return {"date": None, "period_label": f"FY{year}", "period_sort": f"{year}", "weak": True}
     return None
 
 
@@ -416,8 +467,20 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
         # just when the title itself needed it — a link can have a perfectly
         # good own title ("Presentation Material") while the date/quarter it
         # covers still only exists in a sibling cell or nearby heading.
+        #
+        # Precedence, best evidence first:
+        #   1. the document's own surrounding text
+        #   2. a *strong* URL match (filename pins down year and quarter/day)
+        #   3. a period inherited from a recent dated neighbour
+        #   4. a *weak* URL match (bare year folder, or quarter with no year)
+        # 3 must outrank 4: a page listing one dated summary followed by
+        # undated siblings gives those siblings a full "Q1 FY2026" with a
+        # real date, which beats the bare "Q1" their filenames imply.
         period_text = _period_context_text(a, context or text)
-        period = extract_period(period_text) or extract_period_from_url(href)
+        period = extract_period(period_text)
+        url_period = extract_period_from_url(href)
+        if not period and url_period and not url_period.get("weak"):
+            period = url_period
         if period:
             carried_period = period
             carry_remaining = _CARRY_FORWARD_MAX
@@ -425,7 +488,9 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
             period = carried_period
             carry_remaining -= 1
         else:
-            period = None
+            # Weak URL matches apply to this item only — they're too coarse
+            # to be worth propagating onto the items that follow.
+            period = url_period
 
         # The whole point of detecting a period is so the user can tell what
         # a document is *for* without opening it — put it in the name itself
@@ -445,10 +510,47 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
             "ext": ext,
             "date": (period or {}).get("date") or "",
             "period_label": (period or {}).get("period_label") or "",
+            "period_sort": (period or {}).get("period_sort") or "",
         })
         if len(out) >= max_results:
             break
-    return out
+    return disambiguate_titles(out)
+
+
+def disambiguate_titles(results: list) -> list:
+    """Make every title in a scan tell its documents apart.
+
+    Period detection is best-effort, so a page can still end up with several
+    entries reading exactly the same — a company's four quarterly result
+    decks all filed under one /2025/ folder become four identical
+    "FY2025 — Consolidated Financial Results" rows, which is useless for
+    picking the right one. Any title appearing more than once gets a
+    discriminator drawn from its own filename (the part that actually
+    differs), falling back to a counter if even the filenames match.
+
+    Applied to the whole result set at once, so *all* members of a colliding
+    group get a discriminator rather than every copy after the first —
+    otherwise the set reads as one "real" entry plus some annotated
+    duplicates."""
+    counts = {}
+    for r in results:
+        counts[r["title"]] = counts.get(r["title"], 0) + 1
+
+    used = set()
+    for r in results:
+        if counts[r["title"]] < 2:
+            used.add(r["title"])
+            continue
+        stem = _title_from_url(r["url"])
+        candidate = f'{r["title"]} · {stem}' if stem and stem.lower() not in r["title"].lower() else r["title"]
+        if candidate in used:
+            base, n = candidate, 2
+            while candidate in used:
+                candidate = f"{base} ({n})"
+                n += 1
+        r["title"] = candidate
+        used.add(candidate)
+    return results
 
 
 def fetch_document_bytes(doc_url: str, timeout: int = 30, max_bytes: int = 40 * 1024 * 1024):

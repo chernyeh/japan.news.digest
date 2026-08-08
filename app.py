@@ -635,17 +635,28 @@ a.summary-link:hover { background: #5C2E00 !important; }
 
 /* Research tab */
 .research-date {
-    font-size: 0.72rem; color: #9B8B7A; white-space: nowrap; padding-top: 0.2rem;
+    font-size: 0.68rem; color: #9B8B7A; white-space: nowrap; padding-top: 0.2rem;
 }
 .research-type-badge {
-    display: inline-block; font-size: 0.6rem; font-weight: 700;
-    padding: 0.1rem 0.4rem; border-radius: 9px; letter-spacing: 0.02em;
+    display: inline-block; font-size: 0.56rem; font-weight: 700;
+    padding: 0.05rem 0.35rem; border-radius: 9px; letter-spacing: 0.02em;
     white-space: nowrap;
 }
+/* Small outlined chip for in-list links. The app-wide a.summary-link is a
+   solid brown block built for prose callouts — far too heavy when every
+   row in a long document list carries one. */
+a.research-link {
+    display: inline-block; font-size: 0.6rem; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+    color: #8B4513 !important; text-decoration: none !important;
+    border: 1px solid #E0D5C5; border-radius: 3px;
+    padding: 0.05rem 0.35rem; background: #FAF8F5;
+}
+a.research-link:hover { background: #F0EDE8; }
 .research-type-edinet  { background: #F0EDE8; color: #8B4513; border: 1px solid #E0D5C5; }
 .research-type-tdnet   { background: #EBF5FB; color: #1B4F72; border: 1px solid #AED6F1; }
 .research-type-custom  { background: #F1F8E9; color: #33691E; border: 1px solid #C5E1A5; }
-.research-title { font-size: 0.83rem; line-height: 1.35; padding-top: 0.05rem; }
+.research-title { font-size: 0.8rem; line-height: 1.3; padding-top: 0.05rem; }
 .research-col-header {
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #9B8B7A;
@@ -656,38 +667,90 @@ a.summary-link:hover { background: #5C2E00 !important; }
    mobile breakpoint — with 4 columns that meant 4 full-width lines per item).
    flex-wrap here is deliberate and self-contained: date/badge stay inline,
    title wraps onto its own line only when the row is too narrow to fit it. */
-.research-item-row {
-    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.2rem 0.6rem;
-    padding: 0.4rem 0; border-bottom: 1px solid #F0EBE3;
-}
+/* One item = one block of flowing text (date, type badge, title as inline
+   spans) with the action buttons floated to its right. Deliberately NOT a
+   flex row: as a flex item the title's height gets measured against its
+   max-content width, so a title that really needs three lines at the
+   column's true width resolves to a two-line box and its last line spills
+   into the row below. Inline text flowing around a float has no such
+   measurement step, and it also reads better — the title wraps *under* the
+   buttons once it passes them instead of being boxed beside them. */
+.research-item-row { display: block; }
 .research-item-header-row {
-    border-bottom: 2px solid #D9D3C8; padding-bottom: 0.3rem; margin-bottom: 0.1rem;
+    border-bottom: 2px solid #D9D3C8; padding-bottom: 0.25rem; margin-bottom: 0.1rem;
 }
-.research-item-row .research-date { flex: 0 0 auto; padding-top: 0; }
-.research-item-row .research-title { flex: 1 1 220px; min-width: 140px; padding-top: 0; }
+.research-item-row .research-date,
+.research-item-row .research-type-badge,
+.research-item-row .research-title {
+    display: inline; padding-top: 0;
+}
+.research-item-row .research-type-badge { display: inline-block; vertical-align: baseline; }
 
-/* Each item's title + its JP/EN/open/delete buttons live in one container
-   per item (research_item_row_N) — that key lands directly on the
-   stVerticalBlock div itself, not a wrapper around it, so the flex rule
-   targets the keyed element directly rather than a "> stVerticalBlock"
-   child. Turning it into a wrapping flex row lets the title markdown claim
-   a full line (flex-basis 100%) and the buttons that follow flow onto
-   their own line right below it, compact and side by side, instead of
-   each button stretching to its own full-width line the way a 50/50
-   st.columns() split does. */
+/* The actions are taken out of flow and pinned to the row's top-right, with
+   the title reserving a matching right-hand gutter. That is deliberate:
+   while the actions are in flow, Streamlit's own block sizing resolves the
+   row shorter than its content (a three-line title renders ~10px past its
+   own row box, so the separator gets drawn through the last line of text).
+   Out of flow, the row's height depends only on the title block, which
+   measures correctly — and the buttons still land exactly where they should,
+   at the end of the title. min-height keeps a one-line title's row tall
+   enough to contain the buttons. */
 [class*="st-key-research_item_row_"] {
-    display: flex; flex-flow: row wrap; align-items: center; gap: 0.15rem 0.4rem;
-    padding-bottom: 0.45rem; border-bottom: 1px solid #F0EBE3;
+    position: relative; min-height: 1.75rem;
+    padding: 0.3rem 0; border-bottom: 1px solid #F2EDE6;
+    flex: 0 0 auto !important;
 }
-[class*="st-key-research_item_row_"] .research-item-row { border-bottom: none; padding-bottom: 0.15rem; }
-[class*="st-key-research_item_row_"] > .stElementContainer:has(.stMarkdown) { flex: 1 1 100%; }
-[class*="st-key-research_item_row_"] > .stElementContainer:has(.stButton),
-[class*="st-key-research_item_row_"] > .stElementContainer:has(.stDownloadButton) { flex: 0 0 auto; }
+[class*="st-key-research_item_row_"] > div:first-child {
+    position: absolute; top: 0.28rem; right: 0; width: auto !important;
+    display: flex !important; flex-flow: row nowrap; align-items: center; gap: 0.25rem;
+}
+[class*="st-key-research_item_actions_"] {
+    display: flex !important; flex-flow: row nowrap; align-items: center;
+    gap: 0.25rem; width: auto !important; min-width: 0 !important;
+}
+[class*="st-key-research_item_actions_"] .stElementContainer { width: auto !important; }
+/* Right gutter reserved for the pinned actions. Sized for the widest group
+   the row can show (an open-link chip plus a delete button); the JP/EN pair
+   and the save-icon pair both fit inside it. */
+[class*="st-key-research_item_row_"] > .stElementContainer { padding-right: 5.4rem; }
+/* Streamlit wraps markdown in its own display:flex div; nested inside a
+   sized box that makes the text block a flex item measured at its
+   max-content width. Forcing plain blocks makes height follow the wrapped
+   content. Scoped with ">" so it only hits the title — the link chips
+   inside the pinned actions must stay auto-width. */
+[class*="st-key-research_item_row_"] > .stElementContainer .stMarkdown,
+[class*="st-key-research_item_row_"] > .stElementContainer .stMarkdown > div,
+[class*="st-key-research_scan_item_"] > .stElementContainer .stMarkdown,
+[class*="st-key-research_scan_item_"] > .stElementContainer .stMarkdown > div {
+    display: block !important; width: 100% !important;
+}
+/* Streamlit's markdown container carries margin-bottom:-1rem to cancel the
+   1rem margin a markdown <p> would add. This tab's rows render a <div>
+   instead, which has no such margin — so the negative one is left
+   uncancelled and the container reports 16px shorter than the content it
+   holds, drawing each row's separator through the last line of its title.
+   Scoped with ">" to the raw-HTML slots only — item titles, and the column
+   and group headers that sit directly in the list containers. The action
+   chips beside a title are real markdown <p> content, so their negative
+   margin is doing its proper job and zeroing it there would make every row
+   1rem taller. */
+[class*="st-key-research_item_row_"] > .stElementContainer [data-testid="stMarkdownContainer"],
+[class*="st-key-research_scan_item_"] > .stElementContainer [data-testid="stMarkdownContainer"],
+[class*="st-key-research_items_list"] > .stElementContainer [data-testid="stMarkdownContainer"],
+[class*="st-key-research_scan_results"] > .stElementContainer [data-testid="stMarkdownContainer"] {
+    margin-bottom: 0 !important;
+}
 [class*="st-key-research_item_row_"] .stButton button,
 [class*="st-key-research_item_row_"] .stDownloadButton button {
-    font-size: 0.66rem !important; padding: 0.1rem 0.55rem !important;
-    min-height: 1.5rem !important; line-height: 1.1 !important; white-space: nowrap;
+    font-size: 0.6rem !important; padding: 0.03rem 0.4rem !important;
+    min-height: 1.3rem !important; height: 1.3rem !important;
+    line-height: 1.1 !important; white-space: nowrap;
 }
+/* Streamlit's own inter-element gap on a vertical block would add a second
+   source of vertical rhythm on top of each row's padding — zero it out and
+   let the rows themselves do the spacing. */
+[class*="st-key-research_items_list"],
+[class*="st-key-research_scan_results"] { gap: 0 !important; }
 /* Smaller filter-pill text in the type multiselect */
 [class*="st-key-research_filter_row"] [data-baseweb="tag"] {
     font-size: 0.68rem !important; padding: 0.05rem 0.4rem !important; height: 1.5rem !important;
@@ -704,10 +767,27 @@ a.summary-link:hover { background: #5C2E00 !important; }
 }
 /* IR-scan results — grouped candidate list */
 .research-scan-group {
-    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-    color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.2rem;
-    margin: 0.7rem 0 0.15rem;
+    font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.15rem;
+    margin: 0.55rem 0 0.1rem;
 }
+/* One line per candidate: checkbox (grows, wraps its own label text) with
+   the open-link chip pinned at the end. nowrap keeps the chip on the
+   checkbox's line instead of dropping it onto a line of its own, which is
+   what an st.columns() split did on a narrow screen. */
+[class*="st-key-research_scan_item_"] {
+    display: flex; flex-flow: row nowrap; align-items: flex-start; gap: 0.4rem;
+    padding: 0.22rem 0; border-bottom: 1px solid #F5F1EA;
+    flex: 0 0 auto !important;   /* content-sized height — see research_item_row_ */
+}
+[class*="st-key-research_scan_item_"] > .stElementContainer:first-child { flex: 1 1 auto; min-width: 0; }
+/* width:auto matters as much as flex-basis here — Streamlit puts width:100%
+   on every element container, so without it the open chip's box claims the
+   whole row and the checkbox label gets squeezed to one character per line. */
+[class*="st-key-research_scan_item_"] > .stElementContainer:not(:first-child) {
+    flex: 0 0 auto; width: auto !important;
+}
+[class*="st-key-research_scan_item_"] .stCheckbox { min-height: 0; }
 [class*="st-key-research_scan_results"] .stCheckbox label p {
     font-size: 0.8rem !important; line-height: 1.3 !important;
 }
@@ -3030,82 +3110,104 @@ with tab_research:
         with st.container(key="research_items_list"):
             st.markdown(
                 '<div class="research-item-row research-item-header-row">'
-                '<span class="research-date research-col-header">Date</span>'
-                '<span class="research-title research-col-header">Type · Title</span>'
+                '<span class="research-date research-col-header">Date</span>&nbsp; '
+                '<span class="research-col-header">Type · Title</span>'
                 '</div>',
                 unsafe_allow_html=True
             )
 
             for _ri, it in enumerate(_filtered):
-                # Title and its action buttons share one container whose
-                # vertical block is flexed into a wrapping row (see the
-                # research_item_row_ CSS): the title claims a full line,
-                # then JP/EN/open/delete flow directly under it as small,
-                # side-by-side buttons instead of each stretching to its
-                # own full-width line via a 50/50 st.columns() split.
                 with st.container(key=f"research_item_row_{_ri}"):
+                    # Actions first in the DOM, floated right by CSS, so the
+                    # title text that follows wraps around them — that's what
+                    # puts JP/EN at the end of the title instead of on a line
+                    # of their own. Nesting them in one container keeps their
+                    # own left-to-right order (JP then EN) intact.
+                    with st.container(key=f"research_item_actions_{_ri}"):
+                        if it["source"] == "edinet":
+                            _doc_id = it["doc_id"]
+                            if not _edinet_api_key:
+                                st.markdown('<span class="research-no-doc">key required</span>',
+                                            unsafe_allow_html=True)
+                            else:
+                                # EDINET's own englishDocFlag on the list endpoint isn't
+                                # reliable enough to gate on, so both JP and EN are always
+                                # offered as an attempt — a missing document just resolves
+                                # to a calm "not available" note instead of an error.
+                                for _doc_type, _label, _fname_suffix, _mime in (
+                                    (2, "JP", "jp.pdf", "application/pdf"),
+                                    (4, "EN", "en.zip", "application/zip"),
+                                ):
+                                    _cache_key = (_doc_id, _doc_type)
+                                    _unavail_key = (_doc_id, _doc_type, "unavailable")
+                                    _bytes = _edinet_doc_cache.get(_cache_key)
+                                    if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
+                                        if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}"):
+                                            # Outcomes go through the flash + rerun path
+                                            # rather than st.info/st.error here: this
+                                            # container is a narrow floated strip, and a
+                                            # full-width alert box inside it would blow
+                                            # the row's layout apart.
+                                            try:
+                                                _edinet_doc_cache[_cache_key] = fetch_edinet_document_bytes(
+                                                    _doc_id, _doc_type, _edinet_api_key)
+                                            except DocumentNotAvailable:
+                                                _edinet_doc_cache[_unavail_key] = True
+                                                st.session_state.research_flash = (
+                                                    "info", f"No {_label} document available for this filing.")
+                                            except Exception as _dl_e:
+                                                st.session_state.research_flash = (
+                                                    "error", f"Fetch failed: {_dl_e}")
+                                            st.rerun()
+                                    elif _edinet_doc_cache.get(_unavail_key):
+                                        st.markdown(
+                                            f'<span class="research-no-doc">no {_label.lower()}</span>',
+                                            unsafe_allow_html=True)
+                                    if _edinet_doc_cache.get(_cache_key) is not None:
+                                        # Icon-only: the fetched state has to fit the
+                                        # same right-hand gutter as the JP/EN pair it
+                                        # replaces, and the tooltip carries the label.
+                                        st.download_button(
+                                            "💾", data=_edinet_doc_cache[_cache_key],
+                                            file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
+                                            key=f"edinet_save_{_doc_type}_{_doc_id}",
+                                            help=f"Save the {_label} document",
+                                        )
+                        elif it["source"] == "tdnet":
+                            _tl = []
+                            if it.get("url_en"):
+                                _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" '
+                                           f'class="research-link">EN</a>')
+                            if it.get("url_jp"):
+                                _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" '
+                                           f'class="research-link">JP</a>')
+                            if _tl:
+                                st.markdown(" ".join(_tl), unsafe_allow_html=True)
+                        else:  # custom link
+                            st.markdown(
+                                f'<a href="{_safe_url(it["url"])}" target="_blank" '
+                                f'class="research-link">Open ↗</a>',
+                                unsafe_allow_html=True
+                            )
+                            if st.button("🗑", key=f"research_del_{_rcode}_{it['link_index']}",
+                                          help="Remove this link"):
+                                _ok, _msg = delete_link(_ec_repo, _gh_token, _rcode, it["link_index"])
+                                _links_map.get(_rcode, []).pop(it["link_index"])
+                                st.session_state.research_flash = (
+                                    ("success", "Link removed.") if _ok
+                                    else ("warning", f"Removed from view, but not saved: {_msg}")
+                                )
+                                st.rerun()
+
                     st.markdown(
                         f'<div class="research-item-row">'
-                        f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>'
-                        f'<span class="research-title">'
-                        f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">{_safe_text(it["type_label"])}</span>'
-                        f'&nbsp; {_safe_text(it["title"])}</span>'
+                        f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>&nbsp; '
+                        f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">'
+                        f'{_safe_text(it["type_label"])}</span>&nbsp; '
+                        f'<span class="research-title">{_safe_text(it["title"])}</span>'
                         f'</div>',
                         unsafe_allow_html=True
                     )
-                    if it["source"] == "edinet":
-                        _doc_id = it["doc_id"]
-                        if not _edinet_api_key:
-                            st.markdown('<span class="research-no-doc">key required</span>', unsafe_allow_html=True)
-                        else:
-                            # EDINET's own englishDocFlag on the list endpoint isn't
-                            # reliable enough to gate on, so both JP and EN are always
-                            # offered as an attempt — a missing document just resolves
-                            # to a calm "not available" note instead of an error.
-                            for _doc_type, _label, _fname_suffix, _mime in (
-                                (2, "JP", "jp.pdf", "application/pdf"), (4, "EN", "en.zip", "application/zip"),
-                            ):
-                                _cache_key = (_doc_id, _doc_type)
-                                _unavail_key = (_doc_id, _doc_type, "unavailable")
-                                _bytes = _edinet_doc_cache.get(_cache_key)
-                                if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
-                                    if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}"):
-                                        try:
-                                            _bytes = fetch_edinet_document_bytes(_doc_id, _doc_type, _edinet_api_key)
-                                            _edinet_doc_cache[_cache_key] = _bytes
-                                        except DocumentNotAvailable:
-                                            _edinet_doc_cache[_unavail_key] = True
-                                            st.info(f"No {_label} doc available.", icon="ℹ️")
-                                        except Exception as _dl_e:
-                                            st.error(f"Fetch failed: {_dl_e}")
-                                elif _edinet_doc_cache.get(_unavail_key):
-                                    st.markdown(f'<span class="research-no-doc">no {_label.lower()}</span>', unsafe_allow_html=True)
-                                if _edinet_doc_cache.get(_cache_key) is not None:
-                                    st.download_button(
-                                        f"💾 {_label}", data=_edinet_doc_cache[_cache_key],
-                                        file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
-                                        key=f"edinet_save_{_doc_type}_{_doc_id}",
-                                    )
-                    elif it["source"] == "tdnet":
-                        _tl = []
-                        if it.get("url_en"):
-                            _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" class="summary-link">EN</a>')
-                        if it.get("url_jp"):
-                            _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" class="summary-link">JP</a>')
-                        st.markdown(" &nbsp;·&nbsp; ".join(_tl) or "—", unsafe_allow_html=True)
-                    else:  # custom link
-                        st.markdown(
-                            f'<a href="{_safe_url(it["url"])}" target="_blank" class="summary-link">Open ↗</a>',
-                            unsafe_allow_html=True
-                        )
-                        if st.button("🗑", key=f"research_del_{_rcode}_{it['link_index']}", help="Remove this link"):
-                            _ok, _msg = delete_link(_ec_repo, _gh_token, _rcode, it["link_index"])
-                            _links_map.get(_rcode, []).pop(it["link_index"])
-                            st.session_state.research_flash = (
-                                ("success", "Link removed.") if _ok
-                                else ("warning", f"Removed from view, but not saved: {_msg}")
-                            )
-                            st.rerun()
 
         # ── Export current list ─────────────────────────────────────────
         if _filtered:
@@ -3266,12 +3368,17 @@ with tab_research:
                 if _group_mode == "Period":
                     for _i, _r in _visible:
                         _groups.setdefault(_r.get("period_label") or "Unknown period", []).append((_i, _r))
-                    _dated = [g for g in _groups if g != "Unknown period"
-                              and any(_r.get("date") for _, _r in _groups[g])]
-                    _dated.sort(key=lambda g: max(_r["date"] for _, _r in _groups[g] if _r.get("date")),
-                                reverse=True)
-                    _undated = sorted(g for g in _groups if g != "Unknown period" and g not in _dated)
-                    _group_order = _dated + _undated + (["Unknown period"] if "Unknown period" in _groups else [])
+                    # period_sort ("2026-06-30", "2025-Q3", "2025-08", "2025")
+                    # orders quarter- and month-level periods correctly, which
+                    # sorting the display labels alphabetically would not
+                    # ("Aug 2025" before "May 2025"). Newest first; anything
+                    # with no period at all goes last.
+                    def _period_rank(_g):
+                        return max((_r.get("period_sort") or "") for _, _r in _groups[_g])
+                    _group_order = sorted(
+                        (g for g in _groups if g != "Unknown period"),
+                        key=_period_rank, reverse=True,
+                    ) + (["Unknown period"] if "Unknown period" in _groups else [])
                 else:
                     for _i, _r in _visible:
                         _groups.setdefault(_r["doc_type"], []).append((_i, _r))
@@ -3287,8 +3394,10 @@ with tab_research:
                             unsafe_allow_html=True
                         )
                         for _i, _r in _gitems:
-                            _c_pick, _c_open = st.columns([6.4, 0.9], gap="small")
-                            with _c_pick:
+                            # One flex row (see the research_scan_item_ CSS) so the
+                            # open chip sits at the end of the label instead of
+                            # dropping onto a line of its own on a narrow screen.
+                            with st.container(key=f"research_scan_item_{_i}"):
                                 # The period, when detected, is already baked into
                                 # _r["title"] itself (see ir_scanner.py) so it reads
                                 # as part of the document's name rather than a
@@ -3298,10 +3407,9 @@ with tab_research:
                                 _meta_bits = [_r["doc_type"]] if _group_mode == "Period" else []
                                 _meta_bits.append((_r.get("ext") or "").upper() or "page")
                                 st.checkbox(f'{_r["title"]}  ·  {" · ".join(_meta_bits)}', key=_pick_key(_i))
-                            with _c_open:
                                 st.markdown(
                                     f'<a href="{_safe_url(_r["url"])}" target="_blank" '
-                                    f'class="summary-link">open ↗</a>',
+                                    f'class="research-link">open ↗</a>',
                                     unsafe_allow_html=True
                                 )
 
