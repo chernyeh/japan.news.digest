@@ -1,35 +1,101 @@
 SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitDateTime,PeriodStart,PeriodEnd,DocID,EnglishDocFlag,PdfFlag
-5410,E01235,合同製鐵株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 17:02,,,S100YXBC,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,170,訂正半期報告書－第27期(2025/04/01－2026/03/31),Revised Semi-Annual Report - 27th Period (2025/04/01 - 2026/03/31),2026-08-18 17:12,,,S100YXGU,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 17:08,,,S100YXIH,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,236,訂正内部統制報告書－第26期(2024/07/01－2025/03/31),Amended Internal Control Report - 26th period (2024/07/01 - 2025/03/31),2026-08-18 17:07,,,S100YXEJ,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,130,訂正有価証券報告書－第26期(2024/07/01－2025/03/31),Amended Securities Report - 26th period (2024/07/01 - 2025/03/31),2026-08-18 17:06,,,S100YXE2,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,170,訂正半期報告書－第26期(2024/07/01－2025/06/30),Revised Semi-Annual Report - 26th Period (2024/07/01 - 2025/06/30),2026-08-18 17:02,,,S100YXE1,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,236,訂正内部統制報告書－第25期(2023/07/01－2024/06/30),Amended Internal Control Report - 25th period (2023/07/01 - 2024/06/30),2026-08-18 17:01,,,S100YXEI,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 17:00,,,S100YXIE,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,130,訂正有価証券報告書－第25期(2023/07/01－2024/06/30),Amended Securities Report - 25th period (2023/07/01 - 2024/06/30),2026-08-18 16:59,,,S100YXDX,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 16:58,,,S100YXIB,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第25期第3四半期(2024/01/01－2024/03/31),Revised quarterly report - 3rd quarter of the 25th term (2024/01/01 - 2024/03/31),2026-08-18 16:57,,,S100YXDW,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 16:56,,,S100YXI7,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 16:54,,,S100YXHT,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第25期第2四半期(2023/10/01－2023/12/31),Revised Quarterly Report - 25th Term 2nd Quarter (2023/10/01 - 2023/12/31),2026-08-18 16:54,,,S100YXDV,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 16:52,,,S100YXHR,0,1
+5816,E00846,オーナンバ株式会社,180,臨時報告書,extraordinary report,2026-08-18 16:52,,,S100YXGL,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第25期第1四半期(2023/07/01－2023/09/30),Revised quarterly report - 1st quarter of the 25th term (2023/07/01 - 2023/09/30),2026-08-18 16:52,,,S100YXDT,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,130,訂正有価証券報告書－第24期(2022/07/01－2023/06/30),Amended Securities Report - 24th period (2022/07/01 - 2023/06/30),2026-08-18 16:50,,,S100YXDQ,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第24期第3四半期(2023/01/01－2023/03/31),Revised quarterly report - 3rd quarter of the 24th term (2023/01/01 - 2023/03/31),2026-08-18 16:47,,,S100YXDN,0,1
+4074,E36708,株式会社ラキール,180,臨時報告書,extraordinary report,2026-08-18 16:46,,,S100YXGY,0,1
+6254,E01735,野村マイクロ・サイエンス株式会社,190,訂正臨時報告書,Correction extraordinary report,2026-08-18 16:46,,,S100YXH3,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,236,訂正内部統制報告書－第24期(2023/09/27－2023/09/27),Amended Internal Control Report - 24th term (2023/09/27 - 2023/09/27),2026-08-18 16:44,,,S100YXEF,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第24期第2四半期(2022/10/01－2022/12/31),Revised Quarterly Report - 24th Term 2nd Quarter (2022/10/01 - 2022/12/31),2026-08-18 16:44,,,S100YXDL,0,1
+3844,E05678,コムチュア株式会社,180,臨時報告書,extraordinary report,2026-08-18 16:41,,,S100YXHF,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第24期第1四半期(2022/07/01－2022/09/30),Revised quarterly report - 1st quarter of the 24th period (2022/07/01 - 2022/09/30),2026-08-18 16:38,,,S100YXDK,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,236,訂正内部統制報告書－第23期(2021/07/01－2022/06/30),Amended Internal Control Report - 23rd Period (2021/07/01 - 2022/06/30),2026-08-18 16:37,,,S100YXED,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 16:36,,,S100YXHJ,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,130,訂正有価証券報告書－第23期(2021/07/01－2022/06/30),Amended Securities Report - 23rd period (2021/07/01 - 2022/06/30),2026-08-18 16:34,,,S100YXDH,0,1
+9237,E38969,株式会社笑美面,180,臨時報告書,extraordinary report,2026-08-18 16:33,,,S100YXHD,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第23期第3四半期(2022/01/01－2022/03/31),Revised quarterly report - 3rd quarter of the 23rd term (2022/01/01 - 2022/03/31),2026-08-18 16:26,,,S100YXDF,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第23期第2四半期(2021/10/01－2021/12/31),Revised Quarterly Report - 23rd Term 2nd Quarter (2021/10/01 - 2021/12/31),2026-08-18 16:24,,,S100YXDD,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第23期第1四半期(2021/07/01－2021/09/30),Revised quarterly report - 1st quarter of the 23rd period (2021/07/01 - 2021/09/30),2026-08-18 16:19,,,S100YXDC,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,236,訂正内部統制報告書－第22期(2020/07/01－2021/06/30),Amended Internal Control Report - 22nd term (2020/07/01 - 2021/06/30),2026-08-18 16:12,,,S100YXEB,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,135,確認書,confirmation letter,2026-08-18 16:11,,,S100YXH5,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,130,訂正有価証券報告書－第22期(2020/07/01－2021/06/30),Amended Securities Report - 22nd period (2020/07/01 - 2021/06/30),2026-08-18 16:08,,,S100YXD8,0,1
+3402,E00873,東レ株式会社,090,訂正発行登録書,Amended Shelf Registration Statement,2026-08-18 16:06,,,S100YXBO,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第22期第3四半期(2021/01/01－2021/03/31),Revised quarterly report - 3rd quarter of the 22nd term (2021/01/01 - 2021/03/31),2026-08-18 16:04,,,S100YXD7,0,1
+2326,E05303,デジタルアーツ株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-18 16:01,,,S100YXGQ,0,1
+2338,E05315,クオンタムソリューションズ株式会社,040,訂正有価証券届出書（参照方式）,Amended securities registration statement (reference method),2026-08-18 16:01,,,S100YXFU,0,1
+3402,E00873,東レ株式会社,190,訂正臨時報告書,Correction extraordinary report,2026-08-18 16:00,,,S100YXF6,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第22期第2四半期(2020/10/01－2020/12/31),Revised quarterly report – 22nd quarter 2nd quarter (2020/10/01 – 2020/12/31),2026-08-18 15:59,,,S100YXD6,0,1
+3160,E24129,株式会社大光,235,内部統制報告書－第76期(2025/06/01－2026/05/31),Internal Control Report - 76th term (2025/06/01 - 2026/05/31),2026-08-18 15:52,,,S100YX8C,0,1
+3856,E05713,Ａｂａｌａｎｃｅ株式会社,150,訂正四半期報告書－第22期第1四半期(2020/07/01－2020/09/30),Revised quarterly report - 1st quarter of the 22nd term (2020/07/01 - 2020/09/30),2026-08-18 15:50,,,S100YXD3,0,1
+3160,E24129,株式会社大光,135,確認書,confirmation letter,2026-08-18 15:50,,,S100YX89,0,1
+3160,E24129,株式会社大光,120,有価証券報告書－第76期(2025/06/01－2026/05/31),Securities report - 76th term (2025/06/01 - 2026/05/31),2026-08-18 15:49,2025-06-01,2026-05-31,S100YX88,0,1
+2796,E05379,ファーマライズホールディングス株式会社,180,臨時報告書,extraordinary report,2026-08-18 15:40,,,S100YXAD,0,1
+4264,E36859,株式会社セキュア,180,臨時報告書,extraordinary report,2026-08-18 15:33,,,S100YXAT,0,1
+9322,E04317,川西倉庫株式会社,180,臨時報告書,extraordinary report,2026-08-18 15:31,,,S100YXEL,0,1
+7003,E02123,株式会社三井Ｅ＆Ｓ,080,発行登録書（株券､社債券等）,"Shelf registration statement (stock certificates, corporate bonds, etc.)",2026-08-18 15:31,,,S100YROV,0,1
+3306,E00558,日本製麻株式会社,180,臨時報告書,extraordinary report,2026-08-18 15:20,,,S100YXGJ,0,1
+8613,E03760,丸三証券株式会社,190,訂正臨時報告書,Correction extraordinary report,2026-08-18 15:08,,,S100YXG7,0,1
+6444,E01913,サンデン株式会社,040,訂正有価証券届出書（参照方式）,Amended securities registration statement (reference method),2026-08-18 14:30,,,S100YX7E,0,1
+6444,E01913,サンデン株式会社,180,臨時報告書,extraordinary report,2026-08-18 14:00,,,S100YXBD,0,1
+9686,E04857,東洋テック株式会社,135,確認書,confirmation letter,2026-08-18 13:30,,,S100YXF7,0,1
+4350,E05274,株式会社　メディカルシステムネットワーク,135,確認書,confirmation letter,2026-08-18 13:29,,,S100YXF4,0,1
+9686,E04857,東洋テック株式会社,130,訂正有価証券報告書－第62期(2025/04/01－2026/03/31),Amended Securities Report - 62nd term (2025/04/01 - 2026/03/31),2026-08-18 13:25,,,S100YXF2,0,1
+4350,E05274,株式会社　メディカルシステムネットワーク,130,訂正有価証券報告書－第28期(2025/04/01－2026/03/31),Amended Securities Report - 28th period (2025/04/01 - 2026/03/31),2026-08-18 13:18,,,S100YX7Q,0,1
+8031,E02513,三井物産株式会社,080,発行登録書（株券､社債券等）,"Shelf registration statement (stock certificates, corporate bonds, etc.)",2026-08-18 11:30,,,S100YX9F,0,1
+9531,E04514,東京瓦斯株式会社,080,発行登録書（株券､社債券等）,"Shelf registration statement (stock certificates, corporate bonds, etc.)",2026-08-18 11:00,,,S100YX31,0,1
+8306,E03606,株式会社三菱ＵＦＪフィナンシャル・グループ,350,変更報告書（特例対象株券等）,"Change report (stock certificates subject to special regulations, etc.)",2026-08-18 10:53,,,S100YWE0,0,1
+8306,E03606,株式会社三菱ＵＦＪフィナンシャル・グループ,350,変更報告書（特例対象株券等）,"Change report (stock certificates subject to special regulations, etc.)",2026-08-18 10:50,,,S100YWDZ,0,1
+8306,E03606,株式会社三菱ＵＦＪフィナンシャル・グループ,350,変更報告書（特例対象株券等）,"Change report (stock certificates subject to special regulations, etc.)",2026-08-18 10:47,,,S100YWDY,0,1
+8306,E03606,株式会社三菱ＵＦＪフィナンシャル・グループ,350,変更報告書（特例対象株券等）,"Change report (stock certificates subject to special regulations, etc.)",2026-08-18 10:45,,,S100YWDW,0,1
+8306,E03606,株式会社三菱ＵＦＪフィナンシャル・グループ,350,変更報告書（特例対象株券等）,"Change report (stock certificates subject to special regulations, etc.)",2026-08-18 10:41,,,S100YWDV,0,1
+8306,E03606,株式会社三菱ＵＦＪフィナンシャル・グループ,350,大量保有報告書（特例対象株券等）,"Large-scale holding report (stock certificates subject to special regulations, etc.)",2026-08-18 10:33,,,S100YWDT,0,1
+9425,E05481,ＲｅＹｕｕ　Ｊａｐａｎ株式会社,180,臨時報告書,extraordinary report,2026-08-18 09:46,,,S100YXCK,0,1
+8061,E02512,西華産業株式会社,350,変更報告書,change report,2026-08-18 09:15,,,S100YWB8,0,1
+5410,E01235,合同製鐵株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 17:02,,,S100YXBC,0,1
 4582,E24682,シンバイオ製薬株式会社,030,有価証券届出書（参照方式）,Securities registration statement (reference method),2026-08-17 16:53,,,S100YWCL,0,1
-9746,E04807,株式会社　ＴＫＣ,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 16:42,,,S100YXAP,0,1
+9746,E04807,株式会社　ＴＫＣ,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 16:42,,,S100YXAP,0,1
 7814,E30930,株式会社日本創発グループ,180,臨時報告書,extraordinary report,2026-08-17 16:36,,,S100YX8G,0,1
 3905,E31131,データセクション株式会社,090,訂正発行登録書,Amended Shelf Registration Statement,2026-08-17 16:31,,,S100YXAO,0,1
 3905,E31131,データセクション株式会社,180,臨時報告書,extraordinary report,2026-08-17 16:29,,,S100YXAM,0,1
 7238,E02161,曙ブレーキ工業株式会社,190,訂正臨時報告書,Correction extraordinary report,2026-08-17 16:24,,,S100YVJ4,0,1
 3173,E26290,株式会社Ｃｏｍｉｎｉｘ,180,臨時報告書,extraordinary report,2026-08-17 16:08,,,S100YX95,0,1
 4819,E05156,株式会社デジタルガレージ,350,変更報告書,change report,2026-08-17 16:05,,,S100YWZM,0,1
-9435,E04948,株式会社光通信,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 16:02,,,S100YX7N,0,1
-6268,E01726,ナブテスコ株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 16:00,,,S100YX42,0,1
+9435,E04948,株式会社光通信,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 16:02,,,S100YX7N,0,1
+6268,E01726,ナブテスコ株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 16:00,,,S100YX42,0,1
 8804,E03859,東京建物株式会社,080,発行登録書（株券､社債券等）,"Shelf registration statement (stock certificates, corporate bonds, etc.)",2026-08-17 15:42,,,S100YX9X,0,1
 7363,E36431,株式会社ベビーカレンダー,135,確認書,confirmation letter,2026-08-17 15:35,,,S100YXA3,0,1
-6361,E01542,株式会社荏原製作所,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 15:33,,,S100YUTY,0,1
+6361,E01542,株式会社荏原製作所,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 15:33,,,S100YUTY,0,1
 2371,E05350,株式会社カカクコム,300,訂正意見表明報告書,Revised opinion statement report,2026-08-17 15:32,,,S100YX9S,0,1
 8058,E02529,三菱商事株式会社,350,変更報告書（短期大量譲渡）,Change report (short-term large-scale transfer),2026-08-17 15:32,,,S100YQPZ,0,1
 7363,E36431,株式会社ベビーカレンダー,130,訂正有価証券報告書－第35期(2025/01/01－2025/12/31),Amended Securities Report - 35th period (2025/01/01 - 2025/12/31),2026-08-17 15:30,,,S100YX4F,0,1
 4418,E37175,株式会社ＪＤＳＣ,180,臨時報告書,extraordinary report,2026-08-17 15:30,,,S100YX9Y,0,1
-5988,E01438,株式会社パイオラックス,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 15:07,,,S100YX9M,0,1
+5988,E01438,株式会社パイオラックス,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 15:07,,,S100YX9M,0,1
 5632,E01233,三菱製鋼株式会社,180,臨時報告書,extraordinary report,2026-08-17 15:03,,,S100YV8Y,0,1
 5074,E36412,テスホールディングス株式会社,180,臨時報告書,extraordinary report,2026-08-17 15:01,,,S100YX85,0,1
 7564,E03296,株式会社ワークマン,180,臨時報告書,extraordinary report,2026-08-17 14:38,,,S100YX99,0,1
-9436,E04460,沖縄セルラー電話株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 13:31,,,S100YX8V,0,1
+9436,E04460,沖縄セルラー電話株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 13:31,,,S100YX8V,0,1
 8798,E05280,株式会社アドバンスクリエイト,180,臨時報告書,extraordinary report,2026-08-17 12:14,,,S100YX8H,0,1
-6617,E26713,株式会社東光高岳,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 11:39,,,S100YX81,0,1
+6617,E26713,株式会社東光高岳,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 11:39,,,S100YX81,0,1
 4118,E00879,株式会社カネカ,090,訂正発行登録書,Amended Shelf Registration Statement,2026-08-17 11:33,,,S100YX4Q,0,1
 7494,E03259,株式会社コナカ,180,臨時報告書,extraordinary report,2026-08-17 10:53,,,S100YX7J,0,1
-6857,E01950,株式会社アドバンテスト,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 10:24,,,S100YX6F,0,1
-3121,E00545,マーチャント・バンカーズ株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 10:16,,,S100YVRR,0,1
+6857,E01950,株式会社アドバンテスト,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 10:24,,,S100YX6F,0,1
+3121,E00545,マーチャント・バンカーズ株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 10:16,,,S100YVRR,0,1
 8309,E03611,三井住友トラストグループ株式会社,090,訂正発行登録書,Amended Shelf Registration Statement,2026-08-17 09:09,,,S100YWFH,0,1
-6918,E01993,株式会社アバールデータ,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 09:03,,,S100YP9H,0,1
+6918,E01993,株式会社アバールデータ,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-17 09:03,,,S100YP9H,0,1
 4011,E35941,株式会社ヘッドウォータース,135,確認書,confirmation letter,2026-08-17 09:02,,,S100YX60,0,1
 4011,E35941,株式会社ヘッドウォータース,180,臨時報告書,extraordinary report,2026-08-17 09:01,,,S100YX64,0,1
 4011,E35941,株式会社ヘッドウォータース,160,半期報告書－第22期(2026/01/01－2026/12/31),Semi-annual report - 22nd term (2026/01/01 - 2026/12/31),2026-08-17 09:00,2026-01-01,2026-12-31,S100YX6B,0,1
@@ -91,7 +157,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 6721,E02083,ウインテスト株式会社,160,半期報告書－第34期(2026/01/01－2026/12/31),Semi-annual report - 34th term (2026/01/01 - 2026/12/31),2026-08-14 16:22,2026-01-01,2026-12-31,S100YX46,0,1
 3976,E32855,株式会社シャノン,135,確認書,confirmation letter,2026-08-14 16:19,,,S100YX45,0,1
 3775,E05497,株式会社ガイアックス,135,確認書,confirmation letter,2026-08-14 16:19,,,S100YX3U,0,1
-3976,E32855,株式会社シャノン,160,半期報告書－第26期(2026/01/01－2026/06/30),Semi-annual report - 26th period (2026/01/01 - 2026/06/30),2026-08-14 16:18,2026-01-01,2026-06-30,S100YX3Y,0,1
+3976,E32855,株式会社シャノン,160,半期報告書－第26期(2026/01/01－2026/12/31),Semi-annual report - 26th term (2026/01/01 - 2026/12/31),2026-08-14 16:18,2026-01-01,2026-12-31,S100YX3Y,0,1
 2597,E00505,株式会社ユニカフェ,135,確認書,confirmation letter,2026-08-14 16:16,,,S100YX3R,0,1
 7936,E02378,株式会社アシックス,090,訂正発行登録書,Amended Shelf Registration Statement,2026-08-14 16:16,,,S100YWXZ,0,1
 3196,E30898,株式会社ホットランドホールディングス,135,確認書,confirmation letter,2026-08-14 16:15,,,S100YX3V,0,1
@@ -137,7 +203,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 2160,E05712,株式会社ジーエヌアイグループ,135,確認書,confirmation letter,2026-08-14 16:02,,,S100YX2N,0,1
 9246,E36896,株式会社プロジェクトホールディングス,135,確認書,confirmation letter,2026-08-14 16:02,,,S100YWRR,0,1
 4371,E36897,株式会社コアコンセプト・テクノロジー,135,確認書,confirmation letter,2026-08-14 16:02,,,S100YWUO,0,1
-9973,E02775,ＫＯＺＯホールディングス株式会社,160,半期報告書－第59期(2026/01/01－2026/06/30),Semi-annual report - 59th period (2026/01/01 - 2026/06/30),2026-08-14 16:02,2026-01-01,2026-06-30,S100YX0M,0,1
+9973,E02775,ＫＯＺＯホールディングス株式会社,160,半期報告書－第59期(2026/01/01－2026/12/31),Semi-annual report - 59th period (2026/01/01 - 2026/12/31),2026-08-14 16:02,2026-01-01,2026-12-31,S100YX0M,0,1
 8202,E03101,ラオックスホールディングス株式会社,135,確認書,confirmation letter,2026-08-14 16:01,,,S100YWO7,0,1
 2721,E05241,株式会社ジェイホールディングス,160,半期報告書－第35期(2026/01/01－2026/12/31),Semi-annual report - 35th term (2026/01/01 - 2026/12/31),2026-08-14 16:01,2026-01-01,2026-12-31,S100YWDH,0,1
 2160,E05712,株式会社ジーエヌアイグループ,160,半期報告書－第26期(2026/01/01－2026/12/31),Semi-annual report - 26th period (2026/01/01 - 2026/12/31),2026-08-14 16:01,2026-01-01,2026-12-31,S100YX24,0,1
@@ -278,7 +344,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 4450,E35137,株式会社パワーソリューションズ,160,半期報告書－第25期(2026/01/01－2026/12/31),Semi-annual report - 25th term (2026/01/01 - 2026/12/31),2026-08-14 15:30,2026-01-01,2026-12-31,S100YWQ9,0,1
 9213,E37304,株式会社セイファート,160,半期報告書－第37期(2026/01/01－2026/12/31),Semi-annual report - 37th term (2026/01/01 - 2026/12/31),2026-08-14 15:30,2026-01-01,2026-12-31,S100YW74,0,1
 4476,E35117,ＡＩ　ＣＲＯＳＳ株式会社,160,半期報告書－第12期(2026/01/01－2026/12/31),Semi-annual report - 12th term (2026/01/01 - 2026/12/31),2026-08-14 15:30,2026-01-01,2026-12-31,S100YWIU,0,1
-9561,E37979,株式会社グラッドキューブ,160,半期報告書－第20期(2026/01/01－2026/06/30),Semi-annual report - 20th term (2026/01/01 - 2026/06/30),2026-08-14 15:30,2026-01-01,2026-06-30,S100YWYO,0,1
+9561,E37979,株式会社グラッドキューブ,160,半期報告書－第20期(2026/01/01－2026/12/31),Semi-annual report - 20th term (2026/01/01 - 2026/12/31),2026-08-14 15:30,2026-01-01,2026-12-31,S100YWYO,0,1
 4881,E32989,株式会社ファンペップ,160,半期報告書－第14期(2026/01/01－2026/12/31),Semi-annual report - 14th term (2026/01/01 - 2026/12/31),2026-08-14 15:30,2026-01-01,2026-12-31,S100YWZ3,0,1
 9345,E38450,ビズメイツ株式会社,160,半期報告書－第15期(2026/01/01－2026/12/31),Semi-annual report - 15th period (2026/01/01 - 2026/12/31),2026-08-14 15:30,2026-01-01,2026-12-31,S100YWY9,0,1
 7354,E35931,株式会社ダイレクトマーケティングミックス,160,半期報告書－第10期(2026/01/01－2026/12/31),Semi-annual report - 10th term (2026/01/01 - 2026/12/31),2026-08-14 15:30,2026-01-01,2026-12-31,S100YWZO,0,1
@@ -381,7 +447,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 9704,E04538,株式会社アゴーラホスピタリティーグループ,135,確認書,confirmation letter,2026-08-14 11:25,,,S100YVOU,0,1
 9672,E04603,東京都競馬株式会社,135,確認書,confirmation letter,2026-08-14 11:24,,,S100YWQ3,0,1
 3695,E30857,ＧＭＯプロダクトプラットフォーム株式会社,135,確認書,confirmation letter,2026-08-14 11:24,,,S100YW92,0,1
-9704,E04538,株式会社アゴーラホスピタリティーグループ,160,半期報告書－第89期(2026/01/01－2026/06/30),Semi-annual report - 89th term (2026/01/01 - 2026/06/30),2026-08-14 11:23,2026-01-01,2026-06-30,S100YVOO,0,1
+9704,E04538,株式会社アゴーラホスピタリティーグループ,160,半期報告書－第89期(2026/01/01－2026/12/31),Semi-annual report - 89th term (2026/01/01 - 2026/12/31),2026-08-14 11:23,2026-01-01,2026-12-31,S100YVOO,0,1
 9672,E04603,東京都競馬株式会社,160,半期報告書－第103期(2026/01/01－2026/12/31),Semi-annual report - 103rd term (2026/01/01 - 2026/12/31),2026-08-14 11:22,2026-01-01,2026-12-31,S100YWPR,0,1
 3695,E30857,ＧＭＯプロダクトプラットフォーム株式会社,160,半期報告書－第25期(2026/01/01－2026/12/31),Semi-annual report - 25th term (2026/01/01 - 2026/12/31),2026-08-14 11:22,2026-01-01,2026-12-31,S100YW93,0,1
 2331,E05309,ＡＬＳＯＫ株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-14 11:18,,,S100YTKM,0,1
@@ -938,7 +1004,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 7981,E02373,タカラスタンダード株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-10 11:03,,,S100YVN0,0,1
 8165,E03092,株式会社千趣会,135,確認書,confirmation letter,2026-08-10 11:01,,,S100YUYY,0,1
 6337,E02049,株式会社テセック,230,訂正自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Amended treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-10 11:00,,,S100YVN6,0,1
-8165,E03092,株式会社千趣会,160,半期報告書－第82期(2026/01/01－2026/06/30),Semi-annual report - 82nd term (2026/01/01 - 2026/06/30),2026-08-10 11:00,2026-01-01,2026-06-30,S100YUYV,0,1
+8165,E03092,株式会社千趣会,160,半期報告書－第82期(2026/01/01－2026/12/31),Semi-annual report - 82nd term (2026/01/01 - 2026/12/31),2026-08-10 11:00,2026-01-01,2026-12-31,S100YUYV,0,1
 2146,E05698,ＵＴグループ株式会社,180,臨時報告書,extraordinary report,2026-08-10 10:54,,,S100YV7M,0,1
 4095,E00898,日本パーカライジング株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-08-10 10:53,,,S100YVID,0,1
 4985,E01015,アース製薬株式会社,135,確認書,confirmation letter,2026-08-10 10:53,,,S100YV2O,0,1
