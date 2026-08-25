@@ -17,7 +17,8 @@ from urllib.parse import urljoin, urlparse, unquote
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-DOCUMENT_EXTENSIONS = (".pdf", ".ppt", ".pptx", ".xls", ".xlsx", ".doc", ".docx", ".zip")
+DOCUMENT_EXTENSIONS = (".pdf", ".ppt", ".pptx", ".pptm", ".xls", ".xlsx", ".xlsm",
+                       ".doc", ".docx", ".docm", ".csv", ".zip", ".7z")
 
 # (keywords, guessed doc_type) — checked in order, first match wins. Mixes
 # English and Japanese since most IR pages are Japanese-only or bilingual.
@@ -28,6 +29,12 @@ _TYPE_RULES = [
      "Presentation"),
     (["annual report", "integrated report", "統合報告書", "アニュアルレポート", "factbook", "fact book"],
      "Annual Report (IR)"),
+    # Checked after Presentation so "決算説明資料" / "Financial Results Presentation"
+    # still read as decks — these are the tanshin / results release itself.
+    (["financial results", "financial summary", "results summary", "consolidated results",
+      "earnings release", "決算短信", "決算概要", "決算発表"], "Financial Results"),
+    (["financial data", "all financial data", "data book", "databook", "fact sheet",
+      "財務データ", "決算データ", "データブック", "財務ハイライト"], "Financial Data"),
     (["shareholder meeting", "notice of convocation", "annual general meeting", " agm ",
       "招集通知", "株主総会", "議決権行使"], "AGM Materials"),
 ]
@@ -43,10 +50,21 @@ def _href_filename(href: str) -> str:
 
 
 def _file_ext(href: str) -> str:
-    """Document extension without the dot, or "" if this isn't a direct file link."""
-    path = urlparse(href).path.lower()
+    """Document extension without the dot, or "" if this isn't a direct file link.
+
+    Also reads the query string: a fair number of IR sites hand out documents
+    through a download handler (".../download.cgi?f=20260730_qa.pdf") where the
+    path alone gives no clue that the link is a file at all — those used to be
+    dropped from a scan, or kept as an undownloadable "page" link."""
+    parsed = urlparse(href)
+    path = parsed.path.lower()
     for ext in DOCUMENT_EXTENSIONS:
         if path.endswith(ext):
+            return ext.lstrip(".")
+    query = unquote(parsed.query).lower()
+    for ext in DOCUMENT_EXTENSIONS:
+        # Anchored so "?view=pdfviewer" isn't mistaken for a .pdf download.
+        if re.search(re.escape(ext) + r"(?:$|[&;])", query):
             return ext.lstrip(".")
     return ""
 
@@ -310,14 +328,60 @@ def _title_from_url(url: str) -> str:
 # just a file type and/or size ("PDF", "PDF(266KB)", "ダウンロード", "PDF 1.2MB").
 # Very common: the actual description sits in a heading or row label instead.
 _GENERIC_LABEL_RE = re.compile(
-    r'^(pdf|ppt|pptx|xls|xlsx|doc|docx|zip|download|dl|view|詳細|見る|ダウンロード)'
-    r'\s*[\(（]?\s*[\d.,]*\s*[kmg]?b?\s*[\)）]?$',
+    r'^(pdf|ppt[xm]?|xls[xm]?|doc[xm]?|zip|excel|word|powerpoint|'
+    r'download|dl|view|open|詳細|見る|開く|ダウンロード)'
+    r'\s*[\(（\[［]?\s*[\d.,]*\s*[kmg]?i?b?\s*[\)）\]］]?$',
     re.IGNORECASE,
 )
 
 
 def _is_generic_label(text: str) -> bool:
     return not text.strip() or bool(_GENERIC_LABEL_RE.match(text.strip()))
+
+
+# A trailing size badge — "(620KB)", "[86KB]", "(1.40MB)" — and a trailing bare
+# format word, which IR pages glue straight onto the link text.
+_SIZE_BADGE_RE = re.compile(
+    r'\s*[\(（\[［][^)\]）］]*?\d[\d.,]*\s*[kmg]?i?b[^)\]）］]*[\)）\]］]\s*$',
+    re.IGNORECASE,
+)
+_TRAILING_FORMAT_RE = re.compile(
+    r'\s*[\(（\[［]?\s*(?:pdf|ppt[xm]?|xls[xm]?|doc[xm]?|zip|excel|word|powerpoint)'
+    r'\s*[\)）\]］]?\s*$',
+    re.IGNORECASE,
+)
+
+
+def _strip_format_noise(text: str) -> str:
+    """Drop the trailing "PDF (620KB)" / "[86KB]" badge from a link's own text,
+    so "Management PlanPDF (620KB)" reads as "Management Plan". Only ever
+    strips from the end, and never strips a label away entirely — a link whose
+    text is *nothing but* a badge ("Excel [86KB]") is handed back unchanged for
+    _is_generic_label to catch, so the row label is used instead."""
+    out = (text or "").strip()
+    for _ in range(3):
+        before = out
+        out = _SIZE_BADGE_RE.sub("", out).strip()
+        without_format = _TRAILING_FORMAT_RE.sub("", out).strip()
+        if without_format:  # never reduce the label to nothing
+            out = without_format
+        if out == before:
+            break
+    return out or (text or "").strip()
+
+
+# Anything with no letters, digits or kana/kanji in it at all — a lone ")" or
+# "-" left over once the anchors are excluded from a table cell.
+_PUNCT_ONLY_RE = re.compile(r'^[\s\W_]+$', re.UNICODE)
+
+
+def _is_meaningful(text: str) -> bool:
+    """Whether a candidate title fragment actually says something. Guards the
+    residual-text paths: a cell like "<a>PDF (167KB</a>)" leaves ")" behind,
+    which is neither empty nor a recognised format badge and would otherwise
+    sail through as a title."""
+    t = (text or "").strip(" ·-—|/")
+    return len(t) >= 2 and not _PUNCT_ONLY_RE.match(t) and not _is_generic_label(t)
 
 
 def _loose_text(ancestor) -> str:
@@ -350,7 +414,7 @@ def _nearby_context_text(a_tag) -> str:
         if depth >= 4 or ancestor.name in (None, "body", "html"):
             break
         residual = _loose_text(ancestor).strip(" ·-—|/")
-        if residual and 2 < len(residual) <= 120 and not _is_generic_label(residual):
+        if _is_meaningful(residual) and len(residual) <= 120:
             return residual
     try:
         heading = a_tag.find_previous(["h1", "h2", "h3", "h4", "h5", "h6"])
@@ -391,18 +455,214 @@ def _period_context_text(a_tag, text: str) -> str:
     return " ".join(b for b in bits if b)
 
 
-def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20) -> list:
+# ── Table structure ──────────────────────────────────────────────────────
+# The single most common layout for a company IR document library is a matrix
+# table: one row per document kind ("Presentation Material", "Financial
+# Results", "Q&A", "All Financial Data") and one column per reporting period,
+# with each cell holding just a bare "PDF (748KB)" link. Reading such a page
+# link-by-link in DOM order walks *across* periods rather than along one, so
+# neither the row label nor — critically — the column header ever reaches the
+# link, and the undated-sibling carry-forward below actively smears the wrong
+# period across a row. That is what made whole rows go missing from a period:
+# they were scanned, but filed under a neighbour's quarter.
+#
+# So resolve each table into a real grid first and hand every link the row and
+# column headings that actually describe it.
+
+
+def _cell_text(cell) -> str:
+    return re.sub(r"\s+", " ", cell.get_text(" ", strip=True)).strip()
+
+
+def _table_grid(table):
+    """[(tr, [(cell, col_start, col_end), ...]), ...] with colspan/rowspan
+    resolved, so a cell can be lined up with the header above it. Rows
+    belonging to a nested table are skipped — they're that table's problem."""
+    grid = []
+    spans = {}  # (row_idx, col) already taken by a cell spilling down from above
+    rows = [tr for tr in table.find_all("tr") if tr.find_parent("table") is table]
+    for r, tr in enumerate(rows):
+        placed = []
+        col = 0
+        for cell in tr.find_all(["td", "th"], recursive=False):
+            while spans.get((r, col)):
+                col += 1
+
+            def _span(attr):
+                try:
+                    return min(max(1, int(cell.get(attr, 1))), 64)
+                except (TypeError, ValueError):
+                    return 1
+
+            cspan, rspan = _span("colspan"), _span("rowspan")
+            for dr in range(1, rspan):
+                for dc in range(cspan):
+                    spans[(r + dr, col + dc)] = True
+            placed.append((cell, col, col + cspan - 1))
+            col += cspan
+        grid.append((tr, placed))
+    return grid
+
+
+def _header_row_indices(grid) -> set:
+    """Rows that label the columns: whatever is in <thead>, else the leading
+    run of rows made up entirely of <th> cells."""
+    thead = {i for i, (tr, _) in enumerate(grid) if tr.find_parent("thead") is not None}
+    if thead:
+        return thead
+    leading = set()
+    for i, (_, cells) in enumerate(grid):
+        if cells and all(c.name == "th" for c, _, _ in cells):
+            leading.add(i)
+        else:
+            break
+    return leading
+
+
+def _heading_period(label: str):
+    """extract_period() for a table heading, with one extra step: headings very
+    often spell out both the fiscal shorthand and the briefing date —
+    "FY2026 Q1 (July 30, 2026)". extract_period stops at the first (most
+    specific) form it recognises, so the quarter wins and the real date is
+    dropped. Recover it here, where the text is a short page-authored heading
+    rather than a wide blob of surrounding context that could contribute some
+    unrelated date."""
+    period = extract_period(label)
+    if not period or period.get("date"):
+        return period
+    for regex, is_en in ((_JP_DATE_RE, False), (_EN_DATE_RE, True), (_ISO_DATE_RE, False)):
+        m = regex.search(label)
+        if not m:
+            continue
+        raw_month = m.group("month")
+        month = _MONTH_NAMES.get(raw_month.lower()) if is_en else int(raw_month)
+        if not month:
+            continue
+        date_iso, _ = _valid_date(int(m.group("year")), month, int(m.group("day")))
+        if date_iso:
+            return dict(period, date=date_iso)
+    return period
+
+
+def _column_label(grid, header_rows, col_start, col_end) -> str:
+    """Heading text sitting above columns col_start..col_end. Multi-level
+    headers ("FY2026" over "Q1") are joined, and a heading spanning the whole
+    table applies to every column under it."""
+    bits = []
+    for r in sorted(header_rows):
+        for cell, a, b in grid[r][1]:
+            if a <= col_end and b >= col_start:
+                t = _cell_text(cell)
+                if t and t not in bits:
+                    bits.append(t)
+    return " ".join(bits)[:160]
+
+
+def _row_label(cells) -> str:
+    """The row's own heading — its <th>, or a leading plain cell that holds no
+    links (plenty of IR tables use <td> throughout)."""
+    for cell, _, _ in cells:
+        if cell.name == "th":
+            t = _cell_text(cell)
+            if t:
+                return t[:160]
+    if cells:
+        first = cells[0][0]
+        if not first.find("a", href=True):
+            return _cell_text(first)[:160]
+    return ""
+
+
+def build_table_link_context(soup) -> dict:
+    """{id(<a>): {"row", "col", "cell", "mode"}} for every link inside a table.
+
+    mode says which axis carries the reporting period, decided per table by
+    seeing which one actually parses as one:
+      "col" — periods across the top, document kinds down the side (Fuji
+              Electric, Hitachi, Canon and most Japanese IR libraries)
+      "row" — the transpose: one row per period, document kinds across the top
+      ""    — neither; the table is just a layout, so nothing is claimed.
+    An empty mode leaves the existing text/URL/carry-forward heuristics in
+    charge, so tables that aren't period matrices behave exactly as before."""
+    ctx = {}
+    for table in soup.find_all("table"):
+        grid = _table_grid(table)
+        if not grid:
+            continue
+        header_rows = _header_row_indices(grid)
+
+        entries = []          # (link, row_label, col_label, cell_text)
+        col_labels, row_labels = set(), set()
+        for r, (_, cells) in enumerate(grid):
+            if r in header_rows:
+                continue
+            row_lbl = _row_label(cells)
+            for cell, a, b in cells:
+                links = cell.find_all("a", href=True)
+                if not links:
+                    continue
+                col_lbl = _column_label(grid, header_rows, a, b)
+                if col_lbl:
+                    col_labels.add(col_lbl)
+                if row_lbl:
+                    row_labels.add(row_lbl)
+                cell_txt = _loose_text(cell)
+                for link in links:
+                    entries.append((link, row_lbl, col_lbl, cell_txt))
+        if not entries:
+            continue
+
+        n_col_periods = sum(1 for lbl in col_labels if extract_period(lbl))
+        n_row_periods = sum(1 for lbl in row_labels if extract_period(lbl))
+        if n_col_periods and n_col_periods >= n_row_periods:
+            mode = "col"
+        elif n_row_periods:
+            mode = "row"
+        else:
+            mode = ""
+
+        for link, row_lbl, col_lbl, cell_txt in entries:
+            ctx[id(link)] = {"row": row_lbl, "col": col_lbl, "cell": cell_txt, "mode": mode}
+    return ctx
+
+
+# Raising this from 120 mattered: a company that publishes five document kinds
+# per quarter and keeps a few years of history online blows past it easily, and
+# the scan used to stop dead at the cap with no hint that it had — the user
+# just saw a short, arbitrarily-cut list. Scans now report truncation instead.
+MAX_SCAN_RESULTS = 500
+
+
+class ScanResults(list):
+    """The list of result dicts, plus whether the scan hit its cap. A plain
+    list subclass so every existing caller keeps working unchanged."""
+
+    def __init__(self, items=(), truncated=False, limit=MAX_SCAN_RESULTS):
+        super().__init__(items)
+        self.truncated = truncated
+        self.limit = limit
+
+
+def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
+                            timeout: int = 20) -> "ScanResults":
     """Fetch `url` and return up to max_results candidate links as
-    [{"title", "url", "doc_type", "kind", "ext"}, ...], deduped by URL.
+    [{"title", "url", "doc_type", "kind", "ext"}, ...], deduped by URL. The
+    returned list also carries .truncated / .limit so the caller can tell the
+    user the page had more documents than one scan will show.
 
     kind is "file" for a direct document download (.pdf/.pptx/…) or "page"
     for an HTML link that merely looks document-related — the caller is
     expected to surface that distinction, since only "file" entries can be
     downloaded directly. date/period_label carry a best-effort fiscal period
-    (see extract_period) — undated siblings inherit the most recently seen
-    period for a bounded run, since IR archive pages commonly show one dated
-    "Summary of Consolidated Results for Q1 FY26" line followed by several
-    undated Presentation/Q&A/Transcript links for that same quarter.
+    (see extract_period).
+
+    Two layouts are handled separately. In a *matrix table* (see
+    build_table_link_context) each link is described by its row and column
+    headings, which is the whole truth about it. Everywhere else — flat lists
+    of links under dated headings — undated siblings inherit the most recently
+    seen period for a bounded run, since IR archive pages commonly show one
+    dated "Summary of Consolidated Results for Q1 FY26" line followed by
+    several undated Presentation/Q&A/Transcript links for that same quarter.
 
     Raises on a fetch failure (bad URL, network error, non-2xx status) —
     callers should catch and surface that to the user."""
@@ -413,9 +673,12 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.content, "lxml")
 
+    table_ctx = build_table_link_context(soup)
+
     seen_urls = set()
     seen_labels = set()
     out = []
+    truncated = False
     _CARRY_FORWARD_MAX = 6  # undated siblings after a dated line still inherit its period
     carried_period = None
     carry_remaining = 0
@@ -438,21 +701,62 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
         if not ext and _is_nav_label(text):
             continue
 
+        if len(out) >= max_results:
+            truncated = True
+            break
+
+        # ── What this table cell's row and column say about the link ──────
+        tctx = table_ctx.get(id(a)) or {}
+        mode = tctx.get("mode", "")
+        row_lbl, col_lbl = tctx.get("row", ""), tctx.get("col", "")
+        if mode == "col":
+            table_period, label = _heading_period(col_lbl), row_lbl
+        elif mode == "row":
+            table_period, label = _heading_period(row_lbl), col_lbl
+        else:
+            table_period, label = None, (row_lbl or col_lbl)
+        if not _is_meaningful(label):
+            label = ""
+
         # A link's own text is very often just "PDF" or "PDF(266KB)" — the
         # real description sits in a nearby heading or row label instead.
-        context = _nearby_context_text(a) if _is_generic_label(text) else ""
-        # If there's no useful nearby context either, a generic own label
-        # ("Download", "PDF") is a worse title than one derived from the
-        # filename itself (e.g. "fy26q1_transcript.pdf" -> "fy26q1
-        # transcript") — only fall back to showing the generic label verbatim
-        # if even that comes up empty.
-        if context:
-            title = context
-        elif not _is_generic_label(text):
-            title = text
+        own = _strip_format_noise(text)
+        if not _is_meaningful(own):
+            own = ""
+        cell_text = tctx.get("cell", "")
+        if not _is_meaningful(cell_text):
+            cell_text = ""
+        detail = own or cell_text
+
+        # The row/column heading names the document kind; the link's own text
+        # tells apart several links sharing one cell ("Opening remarks by the
+        # COO" vs "Management Plan"). Keep both when both say something.
+        if label and detail:
+            if label.lower() in detail.lower():
+                title = detail
+            elif detail.lower() in label.lower():
+                title = label
+            else:
+                title = f"{label} — {detail}"
         else:
-            title = _title_from_url(abs_url) or text
-        doc_type = _guess_doc_type(context or text, href)
+            title = label or detail
+
+        context = ""
+        if not title:
+            # Not in a table (or a table that told us nothing): fall back to
+            # the surrounding row/heading text, then to the filename — a
+            # generic own label ("Download", "PDF") is a worse title than
+            # "fy26q1_transcript.pdf" turned into "fy26q1 transcript".
+            context = _nearby_context_text(a) if _is_generic_label(text) else ""
+            if context:
+                title = context
+            elif not _is_generic_label(text):
+                title = text
+            else:
+                title = _title_from_url(abs_url) or text
+
+        doc_type = _guess_doc_type(
+            " ".join(t for t in (label, cell_text, own or context or text) if t), href)
 
         # Archive pages often repeat the same section link many times; a
         # same-title same-type *page* link adds nothing. Files are kept even
@@ -469,19 +773,26 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
         # covers still only exists in a sibling cell or nearby heading.
         #
         # Precedence, best evidence first:
-        #   1. the document's own surrounding text
-        #   2. a *strong* URL match (filename pins down year and quarter/day)
-        #   3. a period inherited from a recent dated neighbour
-        #   4. a *weak* URL match (bare year folder, or quarter with no year)
-        # 3 must outrank 4: a page listing one dated summary followed by
+        #   1. the heading of the table row/column this cell sits in
+        #   2. the document's own surrounding text
+        #   3. a *strong* URL match (filename pins down year and quarter/day)
+        #   4. a period inherited from a recent dated neighbour
+        #   5. a *weak* URL match (bare year folder, or quarter with no year)
+        # 4 must outrank 5: a page listing one dated summary followed by
         # undated siblings gives those siblings a full "Q1 FY2026" with a
         # real date, which beats the bare "Q1" their filenames imply.
-        period_text = _period_context_text(a, context or text)
-        period = extract_period(period_text)
+        period = table_period or extract_period(_period_context_text(a, detail or text))
         url_period = extract_period_from_url(href)
         if not period and url_period and not url_period.get("weak"):
             period = url_period
-        if period:
+        if mode:
+            # A table that labels its periods has already said which one this
+            # cell belongs to; a neighbour's period is not evidence about it,
+            # it's the cell next door. Carry-forward would put the Financial
+            # Results row under whatever quarter the row above ended on.
+            period = period or url_period
+            carried_period, carry_remaining = None, 0
+        elif period:
             carried_period = period
             carry_remaining = _CARRY_FORWARD_MAX
         elif carry_remaining > 0:
@@ -512,9 +823,7 @@ def scan_page_for_documents(url: str, max_results: int = 120, timeout: int = 20)
             "period_label": (period or {}).get("period_label") or "",
             "period_sort": (period or {}).get("period_sort") or "",
         })
-        if len(out) >= max_results:
-            break
-    return disambiguate_titles(out)
+    return ScanResults(disambiguate_titles(out), truncated=truncated, limit=max_results)
 
 
 def disambiguate_titles(results: list) -> list:
