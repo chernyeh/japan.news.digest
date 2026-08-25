@@ -3234,39 +3234,7 @@ with tab_research:
                     st.rerun()  # so the arrow reflects the new state immediately, not one click late
             return st.session_state[state_key]
 
-        # ── Add a custom link ────────────────────────────────────────────
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
-        if _toggle_section("➕ Add a link (IR page, presentation, transcript…)", "research_addlink_open"):
-            with st.form(key=f"research_add_form_{_rcode}", clear_on_submit=True):
-                _af1, _af2 = st.columns([2, 1])
-                with _af1:
-                    _new_title = st.text_input("Title", placeholder="e.g. FY26 Q1 Earnings Call Transcript")
-                with _af2:
-                    _new_type = st.selectbox("Type", options=RESEARCH_DOC_TYPES)
-                _af3, _af4 = st.columns([3, 1])
-                with _af3:
-                    _new_url = st.text_input("URL", placeholder="https://…")
-                with _af4:
-                    _new_date = st.text_input("Date (optional)", placeholder="YYYY-MM-DD")
-                _submitted = st.form_submit_button("Add link")
-                if _submitted:
-                    if not _new_url.strip().startswith("http"):
-                        st.error("Please enter a valid URL starting with http(s)://")
-                    else:
-                        _link_entry = {
-                            "title":   _new_title.strip() or _new_url.strip(),
-                            "url":     _new_url.strip(),
-                            "doc_type": _new_type,
-                            "date":    _new_date.strip(),
-                            "added_at": now_local().isoformat(),
-                        }
-                        _links_map.setdefault(_rcode, []).append(_link_entry)
-                        _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)
-                        st.session_state.research_flash = (
-                            ("success", "Link added and saved.") if _ok
-                            else ("warning", f"Link added for this session, but not saved permanently: {_msg}")
-                        )
-                        st.rerun()
 
         # ── Pull documents from an IR page ────────────────────────────────
         # EDINET/TDnet only carry statutory filings — transcripts, Q&A notes,
@@ -3276,9 +3244,8 @@ with tab_research:
         # and some are JS-rendered SPAs this can't see at all.
         _scan_key = f"ir_scan_results_{_rcode}"
         # If a plain "IR Page" bookmark is already saved for this company (via
-        # "Add a link" above), it's a different action from scanning it — pre-fill
-        # the scanner with that URL so the two features read as connected rather
-        # than two unrelated ways to add an IR page.
+        # the bookmark section below), pre-fill the scanner with that URL — that
+        # is the whole point of saving it, and it makes a repeat scan one click.
         _saved_ir_pages = [l["url"] for l in _links_map.get(_rcode, []) if l.get("doc_type") == "IR Page" and l.get("url")]
         _scan_url_default = _saved_ir_pages[-1] if _saved_ir_pages else ""
         if _toggle_section("🔍 Pull documents from an IR page", "research_irscan_open"):
@@ -3286,7 +3253,7 @@ with tab_research:
                 '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
                 'Paste an IR page URL (or an IR document-library sub-page) to scan it for '
                 'transcripts, Q&A notes, presentations, and similar investor documents — then '
-                'pick which ones to add. This is separate from bookmarking the page itself above: '
+                'pick which ones to add. Different from bookmarking the page itself (below): '
                 'that just saves the link, this reads the page and finds individual documents on it. '
                 'Best-effort: not every site can be read this way, and guessed titles/types are worth '
                 'a quick check before saving.</div>',
@@ -3538,6 +3505,55 @@ with tab_research:
                     else:
                         st.session_state.research_flash = ("warning", "No items were checked — nothing added.")
                     st.rerun()
+
+        # ── Bookmark the IR page / add a document by hand ─────────────────
+        # Sits *below* the scanner deliberately: scanning is the everyday
+        # action, and this is the two jobs the scanner can't do for itself —
+        # remembering which page to scan, and covering what it can't read.
+        st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
+        if _toggle_section("➕ Bookmark this company's IR page (or add a document by hand)",
+                            "research_addlink_open"):
+            st.markdown(
+                '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
+                'Two uses. <strong>Save the IR page URL once</strong> (type <em>IR Page</em>) and every '
+                'later scan starts pre-filled with it — no hunting down the link again. Or '
+                '<strong>add a single document by hand</strong> when the scanner can&rsquo;t reach it: '
+                'JS-rendered IR sites return nothing to a scan, and a deck or transcript you were '
+                'sent directly never appears on the library page at all.</div>',
+                unsafe_allow_html=True
+            )
+            with st.form(key=f"research_add_form_{_rcode}", clear_on_submit=True):
+                _af1, _af2 = st.columns([2, 1])
+                with _af1:
+                    _new_title = st.text_input(
+                        "Title", placeholder="e.g. IR library — results & presentations")
+                with _af2:
+                    _new_type = st.selectbox("Type", options=RESEARCH_DOC_TYPES,
+                                              index=RESEARCH_DOC_TYPES.index("IR Page"))
+                _af3, _af4 = st.columns([3, 1])
+                with _af3:
+                    _new_url = st.text_input("URL", placeholder="https://…")
+                with _af4:
+                    _new_date = st.text_input("Date (optional)", placeholder="YYYY-MM-DD")
+                _submitted = st.form_submit_button("Add link")
+                if _submitted:
+                    if not _new_url.strip().startswith("http"):
+                        st.error("Please enter a valid URL starting with http(s)://")
+                    else:
+                        _link_entry = {
+                            "title":   _new_title.strip() or _new_url.strip(),
+                            "url":     _new_url.strip(),
+                            "doc_type": _new_type,
+                            "date":    _new_date.strip(),
+                            "added_at": now_local().isoformat(),
+                        }
+                        _links_map.setdefault(_rcode, []).append(_link_entry)
+                        _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)
+                        st.session_state.research_flash = (
+                            ("success", "Link added and saved.") if _ok
+                            else ("warning", f"Link added for this session, but not saved permanently: {_msg}")
+                        )
+                        st.rerun()
 
 # TAB 4 — SENTIMENT
 # ════════════════════════════════════════════════════════════
