@@ -18,11 +18,15 @@ import json
 LINKS_PATH = "data/research_links.json"
 _UA = "japan-news-digest-research-tab"
 
+# Also the vocabulary ir_scanner.py guesses from, so a scanned document and a
+# hand-added one for the same thing land under the same type.
 DOC_TYPES = [
     "IR Page",
     "Presentation",
     "Transcript",
     "Q&A",
+    "Financial Results",
+    "Financial Data",
     "Annual Report (IR)",
     "AGM Materials",
     "Other",

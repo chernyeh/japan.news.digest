@@ -3323,16 +3323,28 @@ with tab_research:
                     st.markdown(
                         f'<div style="font-size:0.72rem;color:#9B8B7A;margin:0.3rem 0;">'
                         f'Found <strong>{_n_files}</strong> downloadable file(s)'
-                        + (f' and {_n_pages} page link(s)' if _n_pages else '')
+                        + (f' and <strong>{_n_pages}</strong> link(s) to other pages '
+                           f'&mdash; not files, they open another page on the site'
+                           if _n_pages else '')
                         + '</div>',
                         unsafe_allow_html=True
                     )
                 with _opt_col:
                     _show_pages = st.checkbox(
-                        f"Also show {_n_pages} page link(s)", key=f"ir_scan_showpages_{_rcode}",
-                        help="Links to HTML pages rather than direct document downloads — "
-                             "often an index or sub-page worth scanning separately.",
+                        f"Also show {_n_pages} link(s) to other pages", key=f"ir_scan_showpages_{_rcode}",
+                        help="Links that open another HTML page instead of downloading a document — "
+                             "usually an index, an archive, or a per-quarter landing page. They can't be "
+                             "put in a ZIP; the useful move is to open one and scan that URL in turn.",
                     ) if _n_pages else False
+
+                # A scan that stopped at the cap is an *incomplete* answer, and
+                # silently returning a short list reads as "that's all there is".
+                if getattr(_scan_results, "truncated", False):
+                    st.warning(
+                        f"Stopped after {getattr(_scan_results, 'limit', len(_scan_results))} links — this page "
+                        "lists more than one scan shows. If documents you expected are missing, scan a narrower "
+                        "sub-page (a single fiscal year or document type) rather than the whole library index."
+                    )
 
                 # Keep the original index as the selection key so grouping is
                 # purely a display concern and checkbox state stays stable.
@@ -3356,6 +3368,51 @@ with tab_research:
                         for _i in range(len(_scan_results)):
                             st.session_state.pop(_pick_key(_i), None)
                         st.rerun()
+
+                # Read the checkbox state up front rather than after the list is
+                # drawn: the action row is rendered both above and below the
+                # results (a long scan is a lot of scrolling to reach a button),
+                # and the top copy has to know the selection before the
+                # checkboxes for this run exist. Streamlit keeps widget values in
+                # session_state across reruns and a checkbox toggle triggers a
+                # rerun, so reading them early is exact, not one click stale.
+                _picked = [(_i, _r) for _i, _r in _visible if st.session_state.get(_pick_key(_i))]
+                _picked_files = [_r for _i, _r in _picked if _r.get("kind") == "file"]
+                _zip_state_key = f"ir_scan_zip_{_rcode}"
+                # Filled in after both rows exist, so a ZIP requested from either
+                # one hands back its "Save" button in both. Deliberately *not*
+                # an st.rerun(): reruns trigger Streamlit's widget-state GC, and
+                # a run that ends before the result checkboxes are drawn drops
+                # every one of them — i.e. clicking Download would silently
+                # clear the whole selection.
+                _zip_slots, _zip_requested = [], []
+
+                def _render_scan_actions(slot: str) -> bool:
+                    """Draw the selection count + the two actions. Returns whether
+                    "Add to library" was clicked in this copy of the row. Rendered
+                    above *and* below the results — a scan of a big IR library is
+                    a long scroll to reach a button at one end."""
+                    st.markdown(
+                        f'<div style="font-size:0.72rem;color:#9B8B7A;margin:0.5rem 0 0.2rem;">'
+                        f'{len(_picked)} selected'
+                        + (f' ({len(_picked_files)} downloadable)' if len(_picked_files) != len(_picked) else '')
+                        + '</div>',
+                        unsafe_allow_html=True
+                    )
+                    _a_col1, _a_col2 = st.columns([1.2, 2])
+                    with _a_col1:
+                        _clicked_add = st.button(
+                            "➕ Add to library", key=f"ir_scan_add_{slot}_{_rcode}",
+                            disabled=not _picked, use_container_width=True)
+                    with _a_col2:
+                        if st.button(f"⬇ Download {len(_picked_files)} file(s) as ZIP",
+                                      key=f"ir_scan_zipbtn_{slot}_{_rcode}",
+                                      disabled=not _picked_files, use_container_width=True):
+                            _zip_requested.append(slot)
+                        _zip_slots.append(st.container())
+                    return _clicked_add
+
+                _add_top = _render_scan_actions("top")
 
                 # ── Grouped by document type or by period ───────────────────
                 _n_periods = sum(1 for _, _r in _visible if _r.get("period_label"))
@@ -3405,7 +3462,7 @@ with tab_research:
                                 # only add the doc type here when grouping by period
                                 # (grouping by type already puts that in the header).
                                 _meta_bits = [_r["doc_type"]] if _group_mode == "Period" else []
-                                _meta_bits.append((_r.get("ext") or "").upper() or "page")
+                                _meta_bits.append((_r.get("ext") or "").upper() or "web page")
                                 st.checkbox(f'{_r["title"]}  ·  {" · ".join(_meta_bits)}', key=_pick_key(_i))
                                 st.markdown(
                                     f'<a href="{_safe_url(_r["url"])}" target="_blank" '
@@ -3413,58 +3470,49 @@ with tab_research:
                                     unsafe_allow_html=True
                                 )
 
-                _picked = [(_i, _r) for _i, _r in _visible if st.session_state.get(_pick_key(_i))]
-                _picked_files = [_r for _i, _r in _picked if _r.get("kind") == "file"]
+                _add_bottom = _render_scan_actions("bottom")
 
-                st.markdown(
-                    f'<div style="font-size:0.72rem;color:#9B8B7A;margin:0.5rem 0 0.2rem;">'
-                    f'{len(_picked)} selected'
-                    + (f' ({len(_picked_files)} downloadable)' if len(_picked_files) != len(_picked) else '')
-                    + '</div>',
-                    unsafe_allow_html=True
-                )
+                if _zip_requested:
+                    _batch = _picked_files[:_IR_ZIP_MAX_FILES]
+                    try:
+                        with st.spinner(f"Downloading {len(_batch)} file(s)…"):
+                            _zip_bytes, _zip_ok, _zip_failures = build_zip(_batch)
+                        st.session_state[_zip_state_key] = {
+                            "data": _zip_bytes, "ok": _zip_ok, "failures": _zip_failures,
+                            "skipped": len(_picked_files) - len(_batch), "error": "",
+                        }
+                    except Exception as _zip_e:
+                        st.session_state[_zip_state_key] = {
+                            "data": b"", "ok": 0, "failures": [], "skipped": 0,
+                            "error": f"Couldn't build the ZIP: {_zip_e}",
+                        }
 
-                _act_col1, _act_col2 = st.columns([1.2, 2])
-                with _act_col1:
-                    _add_selected = st.button("➕ Add to library", key=f"ir_scan_add_{_rcode}",
-                                               disabled=not _picked, use_container_width=True)
-                with _act_col2:
-                    _zip_state_key = f"ir_scan_zip_{_rcode}"
-                    if st.button(f"⬇ Download {len(_picked_files)} file(s) as ZIP",
-                                  key=f"ir_scan_zipbtn_{_rcode}",
-                                  disabled=not _picked_files, use_container_width=True):
-                        _batch = _picked_files[:_IR_ZIP_MAX_FILES]
-                        try:
-                            with st.spinner(f"Downloading {len(_batch)} file(s)…"):
-                                _zip_bytes, _zip_ok, _zip_failures = build_zip(_batch)
-                            st.session_state[_zip_state_key] = {
-                                "data": _zip_bytes, "ok": _zip_ok, "failures": _zip_failures,
-                                "skipped": len(_picked_files) - len(_batch),
-                            }
-                        except Exception as _zip_e:
-                            st.session_state.pop(_zip_state_key, None)
-                            st.error(f"Couldn't build the ZIP: {_zip_e}")
-
-                    _zip_state = st.session_state.get(_zip_state_key)
-                    if _zip_state and _zip_state["ok"]:
-                        st.download_button(
-                            f"💾 Save ZIP ({_zip_state['ok']} file(s))",
-                            data=_zip_state["data"],
-                            file_name=f"{_rcode}_ir_documents.zip", mime="application/zip",
-                            key=f"ir_scan_zipsave_{_rcode}", use_container_width=True,
-                        )
-                    if _zip_state:
-                        if _zip_state["skipped"]:
-                            st.info(f"Capped at {_IR_ZIP_MAX_FILES} files per ZIP — "
-                                    f"{_zip_state['skipped']} not included. Download the rest in a second batch.")
-                        if _zip_state["failures"]:
-                            st.warning(
-                                "Couldn't download: "
-                                + "; ".join(f"{_t} ({_e})" for _t, _e in _zip_state["failures"][:5])
-                                + ("…" if len(_zip_state["failures"]) > 5 else "")
+                _zip_state = st.session_state.get(_zip_state_key)
+                if _zip_state and _zip_state["ok"]:
+                    for _slot_i, _slot in enumerate(_zip_slots):
+                        with _slot:
+                            st.download_button(
+                                f"💾 Save ZIP ({_zip_state['ok']} file(s))",
+                                data=_zip_state["data"],
+                                file_name=f"{_rcode}_ir_documents.zip", mime="application/zip",
+                                key=f"ir_scan_zipsave_{_slot_i}_{_rcode}", use_container_width=True,
                             )
 
-                if _add_selected:
+                # Reported once, under the lower action row, rather than in both.
+                if _zip_state:
+                    if _zip_state.get("error"):
+                        st.error(_zip_state["error"])
+                    if _zip_state["skipped"]:
+                        st.info(f"Capped at {_IR_ZIP_MAX_FILES} files per ZIP — "
+                                f"{_zip_state['skipped']} not included. Download the rest in a second batch.")
+                    if _zip_state["failures"]:
+                        st.warning(
+                            "Couldn't download: "
+                            + "; ".join(f"{_t} ({_e})" for _t, _e in _zip_state["failures"][:5])
+                            + ("…" if len(_zip_state["failures"]) > 5 else "")
+                        )
+
+                if _add_top or _add_bottom:
                     _added, _persisted_all = 0, True
                     for _i, _sr in _picked:
                         _link_entry = {
@@ -3482,7 +3530,7 @@ with tab_research:
                         st.session_state.pop(_pick_key(_i), None)
                     if _added:
                         st.session_state.pop(_scan_key, None)
-                        st.session_state.pop(f"ir_scan_zip_{_rcode}", None)
+                        st.session_state.pop(_zip_state_key, None)
                         st.session_state.research_flash = (
                             ("success", f"Added {_added} link(s).") if _persisted_all
                             else ("warning", f"Added {_added} link(s) for this session, but at least one wasn't saved permanently (no/invalid GITHUB_TOKEN).")
