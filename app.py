@@ -20,6 +20,7 @@ from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdn
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
 from ir_scanner import scan_page_for_documents, build_zip
 import fundamentals as fund
+import consensus_vision
 
 # Batch ZIP downloads are fetched server-side and held in memory, so cap how
 # many documents one ZIP can contain; the UI tells the user what was skipped.
@@ -3200,6 +3201,138 @@ with tab_research:
                     'These are raw numbers, not the formatted figures above, so the sheet can '
                     'compute on them.</div>', unsafe_allow_html=True)
 
+        def _fc_screenshots(_rcode, _rname, _years):
+            """Attach terminal screenshots, have them read, review, then save.
+
+            The whole flow exists because Koyfin and its peers have no API and
+            their vendor licence bars exporting estimates — but nothing stops
+            you reading your own screen. See consensus_vision.py."""
+            st.markdown(
+                '<div class="fc-note">Terminals like Koyfin have no API, and estimates are the one '
+                'data class their vendor licence keeps out of exports. Screenshot what you see '
+                'instead. Attach as many captures as it takes — they are read <strong>together</strong> '
+                'in one pass, so a header in one and the figures in another still join up.</div>',
+                unsafe_allow_html=True)
+
+            _files = st.file_uploader(
+                "Screenshots", type=["png", "jpg", "jpeg", "webp", "gif"],
+                accept_multiple_files=True, key=f"fc_shots_{_rcode}",
+                label_visibility="collapsed",
+                help="PNG, JPG, WebP or GIF. Up to 8 images, 5MB each.")
+
+            _parse_key = f"fc_parse_{_rcode}"
+            _api_key = get_secret("ANTHROPIC_API_KEY")
+
+            _c1, _c2 = st.columns([1.4, 2])
+            with _c1:
+                _go = st.button(f"🔎 Read {len(_files or [])} screenshot(s)",
+                                 key=f"fc_readbtn_{_rcode}",
+                                 disabled=not _files, use_container_width=True)
+            with _c2:
+                if not _api_key:
+                    st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
+                                'Secrets, so screenshots cannot be read. You can still type values '
+                                'into the grid below once something has been parsed.</div>',
+                                unsafe_allow_html=True)
+
+            if _go:
+                if not _api_key:
+                    st.error("ANTHROPIC_API_KEY not found in Streamlit Secrets.")
+                else:
+                    _images = [{"name": f.name, "media_type": f.type, "data": f.getvalue()}
+                               for f in _files]
+                    try:
+                        with st.spinner(f"Reading {len(_images)} screenshot(s)…"):
+                            st.session_state[_parse_key] = consensus_vision.extract_from_images(
+                                _images, _api_key, code=_rcode, name=_rname)
+                    except Exception as _ve:
+                        st.session_state.pop(_parse_key, None)
+                        st.error(f"Couldn't read those screenshots: {_ve}")
+
+            _parsed = st.session_state.get(_parse_key)
+            if not _parsed:
+                return
+
+            _cells = _parsed.get("cells") or []
+            if _cells:
+                st.markdown(
+                    f'<div class="fc-note"><strong>Review before saving.</strong> '
+                    f'{len(_cells)} value(s) read. Correct anything wrong, untick anything you '
+                    'do not want — nothing is stored until you save.</div>',
+                    unsafe_allow_html=True)
+                _editor_rows = [{
+                    "save": True,
+                    "metric": c["metric"],
+                    "fiscal_year": c["fiscal_year"],
+                    "basis": c["basis"],
+                    # Shown in the units the panel uses, so a wrong order of
+                    # magnitude is obvious against the rows above.
+                    "value_bn_or_yen": (c["value"] if c["metric"] in ("eps", "dps")
+                                        else c["value"] / 1e9),
+                    "printed_unit": c.get("printed_unit", ""),
+                    "analysts": c.get("n_analysts"),
+                    "from_image": c.get("from_image", ""),
+                } for c in _cells]
+                _edited = st.data_editor(
+                    _editor_rows, key=f"fc_editor_{_rcode}", hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "save": st.column_config.CheckboxColumn("Save", width="small"),
+                        "value_bn_or_yen": st.column_config.NumberColumn(
+                            "Value (¥bn, or ¥ for per-share)", format="%.2f"),
+                        "fiscal_year": st.column_config.TextColumn("FY", width="small"),
+                        "basis": st.column_config.SelectboxColumn(
+                            "Basis", options=["consensus", "company"], width="small"),
+                        "printed_unit": st.column_config.TextColumn("As printed", disabled=True),
+                        "from_image": st.column_config.TextColumn("From", disabled=True),
+                    },
+                )
+            else:
+                _edited = []
+                st.markdown('<div class="fc-note">No values could be read from those '
+                            'screenshots.</div>', unsafe_allow_html=True)
+
+            for _note in (_parsed.get("unreadable") or []):
+                st.warning(f"Not read: {_note}")
+
+            _s1, _s2 = st.columns([1.4, 2])
+            with _s1:
+                _save = st.button("💾 Save as overrides", key=f"fc_save_{_rcode}",
+                                   disabled=not _edited, use_container_width=True)
+            with _s2:
+                if st.button("Discard", key=f"fc_discard_{_rcode}", use_container_width=True):
+                    st.session_state.pop(_parse_key, None)
+                    st.rerun()
+
+            if _save:
+                _shot_names = ",".join(sorted({r.get("from_image", "") for r in _edited
+                                               if r.get("from_image")})) or "screenshot"
+                _entries = {}
+                for _r in _edited:
+                    if not _r.get("save"):
+                        continue
+                    _m, _fy = _r.get("metric"), str(_r.get("fiscal_year") or "").strip()
+                    _v = _r.get("value_bn_or_yen")
+                    if not _m or not _fy or _v is None:
+                        continue
+                    _yen = float(_v) if _m in ("eps", "dps") else float(_v) * 1e9
+                    _entries[fund.manual_key(_m, _fy, _r.get("basis") or "consensus")] = {
+                        "value": _yen,
+                        "unit": "jpy" if _m in ("eps", "dps") else "jpy_abs",
+                        "source": f"screenshot:{_shot_names}",
+                        "as_of": now_local().date().isoformat(),
+                    }
+                if not _entries:
+                    st.session_state.research_flash = ("warning", "Nothing ticked — nothing saved.")
+                else:
+                    st.session_state.consensus_manual_map.setdefault(_rcode, {}).update(_entries)
+                    _ok, _msg = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode, _entries)
+                    st.session_state.research_flash = (
+                        ("success", f"Saved {len(_entries)} override(s).") if _ok
+                        else ("warning", f"Applied for this session, but not saved: {_msg}"))
+                    st.session_state.pop(_parse_key, None)
+                st.rerun()
+
         # ── Panel ─────────────────────────────────────────────────────────
         if not st.session_state.consensus_load_attempted:
             st.session_state.consensus_load_attempted = True
@@ -3265,6 +3398,9 @@ with tab_research:
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
                     })
                     _fc_exports(_rcode, _rname, _fc_map)
+                    st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
+                                unsafe_allow_html=True)
+                    _fc_screenshots(_rcode, _rname, _years)
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []

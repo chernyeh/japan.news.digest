@@ -345,6 +345,63 @@ def apply_manual_overrides(auto: dict, manual_for_code: dict) -> dict:
     return merged
 
 
+# ── Manual overrides (GitHub-backed, same pattern as research_links.py) ──
+
+def manual_key(metric: str, fy: str, basis: str) -> str:
+    """Flat "metric|fy|basis" so the store stays plain JSON — tuple keys do not
+    survive a round trip."""
+    return f"{metric}|{fy}|{basis}"
+
+
+def save_manual_overrides(repo: str, token: str, sec_code: str, entries: dict) -> tuple:
+    """Merge `entries` into sec_code's block of data/consensus_manual.json,
+    committed straight to main (matching how the scheduled data jobs already
+    commit data/ updates). Returns (ok, message). Retries once on a 409, where
+    the sha moved under us because another session wrote first."""
+    import base64
+    import requests
+
+    if not token:
+        return False, "No GITHUB_TOKEN configured — overrides kept for this session only."
+
+    api_url = f"https://api.github.com/repos/{repo}/contents/{MANUAL_PATH}"
+    headers = {"User-Agent": _UA, "Authorization": f"token {token}",
+               "Accept": "application/vnd.github+json"}
+
+    for attempt in range(2):
+        r = requests.get(api_url, headers=headers, timeout=15)
+        if r.status_code == 404:
+            sha, data = None, {}
+        elif r.status_code == 200:
+            payload = r.json()
+            sha = payload.get("sha")
+            try:
+                data = json.loads(base64.b64decode(payload.get("content", "")).decode("utf-8"))
+            except Exception:
+                data = {}
+        else:
+            return False, f"GitHub read error: HTTP {r.status_code}"
+
+        data.setdefault(sec_code, {}).update(entries)
+        body = {
+            "message": f"chore: consensus overrides for {sec_code} [skip ci]",
+            "content": base64.b64encode(
+                json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+            ).decode("ascii"),
+            "branch": "main",
+        }
+        if sha:
+            body["sha"] = sha
+        put = requests.put(api_url, headers=headers, json=body, timeout=15)
+        if put.status_code in (200, 201):
+            return True, f"Saved {len(entries)} override(s)."
+        if put.status_code == 409 and attempt == 0:
+            continue
+        return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:160]}"
+
+    return False, "GitHub write failed after retry (concurrent edit)."
+
+
 # ── Spreadsheet export ───────────────────────────────────────────────────
 
 EXPORT_COLUMNS = ["code", "name", "metric", "fy", "basis", "value",
