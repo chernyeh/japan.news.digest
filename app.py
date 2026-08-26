@@ -49,10 +49,39 @@ def load_metadata_brain():
             shares  = df.set_index("Code")["Shares"].to_dict()
             names   = df.set_index("Code")["Name"].to_dict()
             sectors = df.set_index("Code")["Sector"].to_dict() if "Sector" in df.columns else {}
-            return shares, names, sectors
+            return shares, names, _augment_with_jpx400(names, sectors)
         except Exception as e:
             print(f"Error loading metadata.csv: {e}")
     return {}, {}, {}
+
+
+def _augment_with_jpx400(names: dict, sectors: dict) -> dict:
+    """metadata.csv is built from a hardcoded ticker list and misses 17 of the
+    JPX-Nikkei 400 — Marubeni, Sekisui House, Yamaha Motor, Chiba Bank and Keio
+    among them — so those companies cannot be found in the Research search at
+    all. The constituent list carries their names, so fold them in here rather
+    than leaving index members unsearchable. `names` is mutated in place; only
+    `sectors` is returned because that is the one this sits inside.
+
+    They get no Shares or Sector entry, which the lookups already treat as
+    absent, so only the affected valuation cells stay blank."""
+    path = os.path.join("data", "jpxnikkei400.csv")
+    if not os.path.exists(path):
+        return sectors
+    try:
+        import csv as _csv
+        with open(path, newline="", encoding="utf-8") as fh:
+            added = 0
+            for row in _csv.DictReader(fh):
+                code = (row.get("Code") or "").strip()
+                if code and code not in names and row.get("Name"):
+                    names[code] = row["Name"].strip()
+                    added += 1
+        if added:
+            print(f"Metadata: added {added} JPX-Nikkei 400 name(s) missing from metadata.csv")
+    except Exception as e:
+        print(f"Error loading jpxnikkei400.csv: {e}")
+    return sectors
 
 SHARES_LOOKUP, NAMES_LOOKUP, SECTOR_LOOKUP = load_metadata_brain()
 
