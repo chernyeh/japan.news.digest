@@ -1,20 +1,14 @@
 {
   "attempted": 400,
-  "companies_with_consensus": 399,
-  "companies_with_guidance": 64,
-  "consensus_rows": 1570,
-  "guidance_rows": 316,
-  "jquants_failures": 333,
+  "companies_with_consensus": 400,
+  "companies_with_guidance": 385,
+  "consensus_rows": 1574,
+  "guidance_rows": 2010,
+  "jquants_failures": 0,
   "jquants_key_present": true,
   "jquants_key_rejected": false,
   "ran_at": "2026-08-27",
-  "sample_errors": [
-    "1928: jquants: HTTP 429: {\"message\": \"Rate limit exceeded. Please try again later.\"}",
-    "3769: jquants: HTTP 429: {\"message\": \"Rate limit exceeded. Please try again later.\"}",
-    "3774: jquants: HTTP 429: {\"message\": \"Rate limit exceeded. Please try again later.\"}",
-    "1944: jquants: HTTP 429: {\"message\": \"Rate limit exceeded. Please try again later.\"}",
-    "3923: jquants: HTTP 429: {\"message\": \"Rate limit exceeded. Please try again later.\"}"
-  ],
+  "sample_errors": [],
   "universe": 400,
   "yahoo_failures": 0
 }
