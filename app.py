@@ -65,22 +65,23 @@ def _augment_with_jpx400(names: dict, sectors: dict) -> dict:
 
     They get no Shares or Sector entry, which the lookups already treat as
     absent, so only the affected valuation cells stay blank."""
-    path = os.path.join("data", "jpxnikkei400.csv")
-    if not os.path.exists(path):
-        return sectors
-    try:
-        import csv as _csv
-        with open(path, newline="", encoding="utf-8") as fh:
-            added = 0
-            for row in _csv.DictReader(fh):
-                code = (row.get("Code") or "").strip()
-                if code and code not in names and row.get("Name"):
-                    names[code] = row["Name"].strip()
-                    added += 1
-        if added:
-            print(f"Metadata: added {added} JPX-Nikkei 400 name(s) missing from metadata.csv")
-    except Exception as e:
-        print(f"Error loading jpxnikkei400.csv: {e}")
+    added = 0
+    for filename in ("universe.csv", "jpxnikkei400.csv"):
+        path = os.path.join("data", filename)
+        if not os.path.exists(path):
+            continue
+        try:
+            import csv as _csv
+            with open(path, newline="", encoding="utf-8") as fh:
+                for row in _csv.DictReader(fh):
+                    code = (row.get("Code") or "").strip()
+                    if code and code not in names and row.get("Name"):
+                        names[code] = row["Name"].strip()
+                        added += 1
+        except Exception as e:
+            print(f"Error loading {filename}: {e}")
+    if added:
+        print(f"Metadata: added {added} index constituent name(s) missing from metadata.csv")
     return sectors
 
 SHARES_LOOKUP, NAMES_LOOKUP, SECTOR_LOOKUP = load_metadata_brain()
@@ -846,12 +847,18 @@ a.research-link:hover { background: #F0EDE8; }
              box-shadow: 1px 0 0 #E8E3DC; }
 .fc-h.fc-metric { background: #F0EDE8; z-index: 3; box-shadow: 1px 0 0 #D9D3C8; }
 .fc-span2 { grid-row: span 2; display: flex; align-items: flex-end; }
-/* The fiscal year once, spanning its own columns, centred over them. */
-.fc-yhead { text-align: center; border-left: 1px solid #E0DAD1; }
+/* The fiscal year once, spanning its own columns, centred over them, with the
+   same rule carried down the body so the year boundaries stay visible. */
+.fc-yhead, .fc-ystart { border-left: 1px solid #E0DAD1; }
+.fc-yhead { text-align: center; }
 .fc-sub { font-size: 0.58rem; letter-spacing: 0.03em; }
 .fc-grp { color: #8B4513; font-size: 0.66rem; }
 .fc-num { font-family: monospace; }
 .fc-cons { background: #F9F5F0; }
+/* Reported, not forecast — set apart so the eye does not read it as another
+   estimate sitting next to two of them. */
+.fc-actual { color: #5C4033; }
+.fc-h.fc-actual-h { color: #5C4033; }
 .fc-na { color: #B0A798; }
 /* Interim guidance: one line, only where the company actually files it. */
 .fc-h1strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px;
@@ -3238,10 +3245,17 @@ with tab_research:
         def _fc_render(ctx: dict):
             _years, _get, _src = ctx["years"], ctx["get"], ctx["src"]
             _vals, _fundrow = ctx["vals"], ctx["fundrow"]
-            _y1 = _years[0] if _years else ""
-            _y2 = _years[1] if len(_years) > 1 else ""
-            _y3 = _years[2] if len(_years) > 2 else ""
-            _shown = [y for y in (_y1, _y2, _y3) if y]
+            # The reported year sits to the left of the forecasts, as its own
+            # single column: what the company actually did is the thing every
+            # forecast beside it is judged against, and it is filed, not
+            # estimated, so it has no company/street split to make.
+            _shown = list(_years)
+            _actual_years = {_y for _y in _shown
+                             if any(_get(_m, _y, "actual") is not None for _m, *_ in _FC_ROWS)}
+            _fc_years = [_y for _y in _shown if _y not in _actual_years]
+            _y1 = _fc_years[0] if _fc_years else ""
+            _y2 = _fc_years[1] if len(_fc_years) > 1 else ""
+            _y3 = _fc_years[2] if len(_fc_years) > 2 else ""
 
             # Which month each column's fiscal year closes in. Most Japanese
             # issuers close in March, but December and February closes are
@@ -3254,11 +3268,12 @@ with tab_research:
             # Japanese issuers guide one year at a time, so in practice that is
             # the first column; the years beyond it are the street's alone,
             # which is exactly what makes room for a third of them.
-            _cols = {_y: (["company", "consensus"]
-                          if any(_get(_m, _y, "company") is not None for _m, *_ in _FC_ROWS)
-                          else ["consensus"])
+            _cols = {_y: [_b for _b in ("actual", "company", "consensus")
+                           if any(_get(_m, _y, _b) is not None for _m, *_ in _FC_ROWS)]
                      for _y in _shown}
-            _basis_label = {"company": "Co.", "consensus": "Street"}
+            _cols = {_y: _c for _y, _c in _cols.items() if _c}
+            _shown = [_y for _y in _shown if _y in _cols]
+            _basis_label = {"actual": "Actual", "company": "Co.", "consensus": "Street"}
 
             # Two header rows: the fiscal year once, spanning its own columns,
             # with company/street beneath. Repeating "FY2027" on every column
@@ -3270,20 +3285,25 @@ with tab_research:
                              f'style="grid-column:span {len(_cols[_y])};" '
                              f'title="{_safe_text(_y)}">{_safe_text(_short)}</div>')
             for _y in _shown:
-                for _b in _cols[_y]:
+                for _i, _b in enumerate(_cols[_y]):
                     cells.append(f'<div class="fc-cell fc-h fc-sub'
-                                 f'{" fc-cons" if _b == "consensus" else ""}">'
+                                 f'{" fc-cons" if _b == "consensus" else ""}'
+                                 f'{" fc-ystart" if _i == 0 else ""}">'
                                  f'{_basis_label[_b]}</div>')
 
             for _m, _label, _scale, _dp in _FC_ROWS:
                 cells.append(f'<div class="fc-cell fc-metric">{_safe_text(_label)}</div>')
                 for _y in _shown:
                     _co, _cs = _get(_m, _y, "company"), _get(_m, _y, "consensus")
-                    for _b in _cols[_y]:
-                        if _b == "company":
-                            cells.append('<div class="fc-cell fc-num">'
-                                         + _fnum(_co, _dp, "", _scale)
-                                         + _src_mark(_src(_m, _y, "company")) + '</div>')
+                    for _i, _b in enumerate(_cols[_y]):
+                        # A rule where each fiscal year starts, so three
+                        # shaded street columns in a row do not read as one.
+                        _edge = " fc-ystart" if _i == 0 else ""
+                        if _b != "consensus":
+                            cells.append(f'<div class="fc-cell fc-num{_edge}'
+                                         f'{" fc-actual" if _b == "actual" else ""}">'
+                                         + _fnum(_get(_m, _y, _b), _dp, "", _scale)
+                                         + _src_mark(_src(_m, _y, _b)) + '</div>')
                             continue
                         # The gap chip fires only past 5% — consensus sitting on
                         # top of guidance is the normal case and not worth
@@ -3293,7 +3313,7 @@ with tab_research:
                         _chip = ('' if _gap is None else
                                  f'<span class="fc-delta {"u" if _gap > 0 else "d"}">'
                                  f'{_gap * 100:+.0f}%</span>')
-                        cells.append('<div class="fc-cell fc-num fc-cons">'
+                        cells.append(f'<div class="fc-cell fc-num fc-cons{_edge}">'
                                      + _fnum(_cs, _dp, "", _scale)
                                      + _src_mark(_src(_m, _y, "consensus")) + _chip + '</div>')
 
@@ -3626,12 +3646,24 @@ with tab_research:
                     # has to match what the filing actually said. Three because
                     # the street, and the terminals a screenshot comes from,
                     # routinely reach a year further than the company does.
-                    _years = sorted({k[1] for k in _fc_map if k[1]})[:3]
+                    # The reported year plus the forecast years, earliest
+                    # first, taken from the data rather than today's date — a
+                    # company mid-year and one that has just reported are on
+                    # different calendars, and the label has to match what the
+                    # filing actually said.
+                    _years = sorted({k[1] for k in _fc_map if k[1]})[:4]
                     _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
                     _src = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("source", "")
 
+                    # fy1 is the first year still being *forecast*: the
+                    # multiples are about what you are paying for the year
+                    # ahead, not the one that has closed.
+                    _actual_yrs = {_y for _y in _years
+                                   if any(_get(_m, _y, "actual") is not None
+                                          for _m in fund.METRICS)}
                     _slots = {}
-                    for _slot, _y in zip(("fy1", "fy2", "fy3"), _years):
+                    for _slot, _y in zip(("fy1", "fy2", "fy3"),
+                                         [_y for _y in _years if _y not in _actual_yrs]):
                         for _b in ("company", "consensus"):
                             for _m in fund.METRICS:
                                 _v = _get(_m, _y, _b)

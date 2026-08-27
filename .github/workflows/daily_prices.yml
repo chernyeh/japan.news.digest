@@ -95,22 +95,27 @@ jobs:
           # batches, before any rate-limiting bites. The range loop also cannot
           # emit the alphanumeric codes the TSE has issued since 2024 (417A,
           # 547A) — reading the list is the only way those are fetched at all.
-          jpx400 = []
-          if os.path.exists("data/jpxnikkei400.csv"):
-              with open("data/jpxnikkei400.csv", encoding="utf-8") as f:
-                  jpx400 = [str(r.get("Code","")).strip() for r in csv.DictReader(f)
+          panel = []
+          for path in ("data/universe.csv", "data/jpxnikkei400.csv"):
+              if not os.path.exists(path):
+                  continue
+              with open(path, encoding="utf-8") as f:
+                  panel += [str(r.get("Code","")).strip() for r in csv.DictReader(f)
                             if str(r.get("Code","")).strip()]
-              print(f"JPX-Nikkei 400 codes queued first: {len(jpx400)}")
+              print(f"{path}: queued first")
+          panel = list(dict.fromkeys(panel))
+          if panel:
+              print(f"Forecast-panel codes queued first: {len(panel)}")
           else:
-              print("WARNING: data/jpxnikkei400.csv not found; "
-                    "forecast-panel coverage will be whatever the sweep happens to hit")
+              print("WARNING: no universe file found; forecast-panel coverage "
+                    "will be whatever the sweep happens to hit")
 
           # Always fetch TOPIX ETFs first so they're available for the benchmark
           TOPIX_MUST = ["1308", "1306"]
           codes = [str(i).zfill(4) for i in range(1300, 9999)]
           codes = [c for c in dict.fromkeys(codes) if c not in TOPIX_MUST]
           random.shuffle(codes)
-          codes = list(dict.fromkeys(TOPIX_MUST + jpx400 + codes))
+          codes = list(dict.fromkeys(TOPIX_MUST + panel + codes))
           tickers = [c + ".T" for c in codes]
           print(f"Fetching prices for {len(tickers)} tickers...")
 

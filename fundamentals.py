@@ -30,7 +30,11 @@ import os
 CONSENSUS_PATH = "data/consensus.csv"
 FUNDAMENTALS_PATH = "data/fundamentals.csv"
 MANUAL_PATH = "data/consensus_manual.json"
-UNIVERSE_PATH = "data/jpxnikkei400.csv"
+# The list of companies the forecast panel collects for. build_universe.py
+# writes it from J-Quants' own scale categories (TOPIX 1000 by default); the
+# JPX-Nikkei 400 file is the fallback for a checkout that predates it.
+UNIVERSE_PATH = "data/universe.csv"
+UNIVERSE_FALLBACK_PATH = "data/jpxnikkei400.csv"
 RUN_MANIFEST_PATH = "data/consensus_run.json"
 
 _UA = "japan-news-digest-fundamentals"
@@ -83,7 +87,7 @@ def dps_annual(pick, prefix: str = "f_"):
     total, _ = pick(f"{prefix}dps")
     if total is not None:
         return total
-    parts = [pick(f"{prefix}{q}")[0] for q in DIV_QUARTERS]
+    parts = [pick(f"{prefix}{q}")[0] for q in DIV_QUARTERS]  # "" prefix = the actuals
     present = [p for p in parts if p is not None]
     return sum(present) if present else None
 
@@ -102,27 +106,32 @@ def fy_end_short(fy_end: str, fallback: str = "") -> str:
 def fy_end_dates(fy_labels, fy_end: str, fy_end_next: str) -> dict:
     """{fy_label: iso_date} for the columns on screen.
 
+    Anchored by label, not by position: a filed year end dated 2027-03-31 is
+    FY2027's, wherever FY2027 happens to sit among the columns. Positional
+    anchoring broke the moment a reported year was added to the left of the
+    forecasts and every column's year end shifted by one.
+
     Only two year ends are ever filed — the year guided and the one after it.
-    A third column exists because the street, or a screenshot of a terminal,
-    reaches further than the company does, and its close is projected from the
-    filed ones by keeping the month and day. Projecting the *month* is what
-    would be unsafe, and that never happens here."""
-    known = [d for d in (fy_end, fy_end_next) if d]
+    Other columns exist because the street, or a screenshot of a terminal,
+    reaches further than the company does, and because the year just reported
+    sits alongside. Their closes are projected from a filed one by keeping the
+    month and day. Projecting the *month* is what would be unsafe, and that
+    never happens here."""
     out = {}
-    if not known:
+    anchors = [d for d in (fy_end, fy_end_next) if d and len(d) >= 10]
+    for date in anchors:
+        out[f"FY{date[:4]}"] = date
+    if not anchors:
         return out
-    anchor_date = known[-1]
-    anchor_label = sorted(fy_labels)[len(known) - 1] if len(fy_labels) >= len(known) else None
-    for i, label in enumerate(sorted(fy_labels)):
-        if i < len(known):
-            out[label] = known[i]
-        elif anchor_label:
-            try:
-                step = int(label[2:]) - int(anchor_label[2:])
-            except ValueError:
-                continue
-            if step > 0:
-                out[label] = f"{int(anchor_date[:4]) + step}{anchor_date[4:]}"
+    base = anchors[-1]
+    for label in fy_labels:
+        if label in out or not label.startswith("FY"):
+            continue
+        try:
+            step = int(label[2:]) - int(base[:4])
+        except ValueError:
+            continue
+        out[label] = f"{int(base[:4]) + step:04d}{base[4:]}"
     return out
 
 
@@ -367,11 +376,16 @@ def guidance_gap(company, consensus, threshold: float = 0.05):
 # ── CSV / JSON persistence ───────────────────────────────────────────────
 
 def read_universe(path: str = UNIVERSE_PATH) -> list:
-    """[{"Code","MarketDiv","Name","AppliedOn"}, ...] — empty if not built yet."""
-    if not os.path.exists(path):
-        return []
-    with open(path, newline="", encoding="utf-8") as fh:
-        return list(csv.DictReader(fh))
+    """[{"Code","MarketDiv","Name", ...}, ...] — empty if neither file exists.
+
+    Falls back to the JPX-Nikkei 400 list so a checkout made before the wider
+    universe was built still collects something, rather than reporting an
+    empty universe and writing nothing."""
+    for candidate in (path, UNIVERSE_FALLBACK_PATH):
+        if candidate and os.path.exists(candidate):
+            with open(candidate, newline="", encoding="utf-8") as fh:
+                return list(csv.DictReader(fh))
+    return []
 
 
 def read_rows(path: str, columns: list) -> list:
@@ -464,9 +478,11 @@ def load_fundamentals_from_github(repo: str, token: str = None) -> dict:
 
 
 def load_universe_from_github(repo: str, token: str = None) -> dict:
-    """{code: {"name", "market_div"}} for the JPX-Nikkei 400."""
-    return {r["Code"]: {"name": r.get("Name", ""), "market_div": r.get("MarketDiv", "")}
-            for r in _raw_csv(repo, UNIVERSE_PATH, token) if r.get("Code")}
+    """{code: {"name", "market_div", "scale"}} for the collected universe."""
+    rows = _raw_csv(repo, UNIVERSE_PATH, token) or _raw_csv(repo, UNIVERSE_FALLBACK_PATH, token)
+    return {r["Code"]: {"name": r.get("Name", ""), "market_div": r.get("MarketDiv", ""),
+                        "scale": r.get("ScaleCategory", "")}
+            for r in rows if r.get("Code")}
 
 
 def load_manual_from_github(repo: str, token: str = None) -> dict:

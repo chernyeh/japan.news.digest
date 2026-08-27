@@ -32,10 +32,20 @@ on:
         description: 'Print J-Quants field names for one code and stop (e.g. 6504)'
         required: false
         default: ''
+      scope:
+        description: 'Universe to collect'
+        required: false
+        default: 'topix1000'
+        type: choice
+        options: ['topix1000', 'topix500', 'topix100', 'topix']
 
 jobs:
   fetch-consensus:
     runs-on: ubuntu-latest
+    # ~1000 companies x (one J-Quants call + one Yahoo call + a 0.6s pace) is
+    # roughly 40 minutes; the cap is generous so a slow Yahoo does not truncate
+    # the run, and short of the 6h default so a hang fails visibly.
+    timeout-minutes: 120
     permissions:
       contents: write
 
@@ -61,6 +71,19 @@ jobs:
           JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
         run: python collect_consensus.py --probe "${{ github.event.inputs.probe }}"
 
+      # The universe is derived from JPX's own scale categories rather than
+      # kept as a hand-maintained list, so the annual index review is picked up
+      # without anyone remembering to do it. build_universe.py refuses to write
+      # a short list, and this step is allowed to fail: a J-Quants hiccup here
+      # must not stop the collection, which falls back to the file already in
+      # the repo.
+      - name: Refresh the universe
+        if: ${{ github.event.inputs.probe == '' }}
+        continue-on-error: true
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+        run: python build_universe.py --scope "${{ github.event.inputs.scope || 'topix1000' }}"
+
       - name: Collect consensus and fundamentals
         if: ${{ github.event.inputs.probe == '' }}
         env:
@@ -73,7 +96,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/consensus.csv data/fundamentals.csv data/consensus_run.json
+          git add data/consensus.csv data/fundamentals.csv data/consensus_run.json data/universe.csv
           if git diff --staged --quiet; then
             echo "No changes"
           else

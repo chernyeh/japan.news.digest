@@ -192,6 +192,45 @@ def _plus_one_year(iso: str) -> str:
         return ""
 
 
+def company_actuals(records: list) -> tuple:
+    """({(metric, fy_label, "actual"): value}, fy_label, as_of) for the most
+    recent *completed* fiscal year.
+
+    Taken only from a full-year filing. A quarterly tanshin also carries
+    Sales/OP/NP, but those are the year to date — three months of it, in a Q1 —
+    and putting them in a column headed by a fiscal year would read as a full
+    year's trading. Where no full-year filing is in range there is simply no
+    actual column."""
+    fy_records = [r for r in records
+                  if F.jq_pick_str(r, "period_type")[0].upper().startswith("FY")]
+    if not fy_records:
+        return {}, "", ""
+    latest = fy_records[-1]
+    fy_end = F.jq_pick_str(latest, "fy_end")[0][:10]
+    label = fy_label(fy_end)
+    if not label:
+        return {}, "", ""
+
+    # Same across-filings read as the guidance side: a full-year tanshin and
+    # the amended one filed a week later carry different subsets.
+    same_fy = [r for r in reversed(fy_records)
+               if F.jq_pick_str(r, "fy_end")[0][:10] == fy_end]
+
+    def newest(concept):
+        for rec in same_fy:
+            val, key = F.jq_pick(rec, concept)
+            if val is not None:
+                return val, key
+        return None, ""
+
+    out = {}
+    for metric in F.METRICS:
+        val = F.dps_annual(newest, "") if metric == "dps" else newest(metric)[0]
+        if val is not None:
+            out[(metric, label, "actual")] = val
+    return out, label, F.jq_pick_str(latest, "disc_date")[0][:10]
+
+
 def company_guidance(records: list) -> tuple:
     """({(metric, fy_label, "company"): value}, fundamentals_dict, as_of, fy1_label).
 
@@ -406,7 +445,7 @@ def build_rows(code: str, name: str, guide: dict, cons: dict,
                jq_as_of: str, y_as_of: str) -> list:
     rows = []
     for (metric, fy, basis), value in list(guide.items()) + list(cons.items()):
-        filed = basis.startswith("company")     # "company" and "company_h1"
+        filed = basis.startswith("company") or basis == "actual"
         rows.append({
             "code": code, "name": name, "metric": metric, "fy": fy, "basis": basis,
             "value": value,
@@ -472,6 +511,7 @@ def coverage_report(cons_rows: list, fund_rows: list, universe_n: int) -> str:
         f"  company DPS guidance         {n_metric('dps', 'company')}",
         f"  company ordinary profit      {n_metric('ordinary_profit', 'company')}",
         f"  company interim (H1)         {n_metric('net_sales', 'company_h1')}",
+        f"  prior-year actuals           {n_metric('net_sales', 'actual')}",
         f"  book value (P/B)             {have('bps')}",
         f"  debt (EV)                    {have('debt')}",
         f"  cash (EV)                    {have('cash')}",
@@ -608,10 +648,12 @@ def main() -> int:
     auth_failed = False
     for i, row in enumerate(universe, 1):
         code, name = row["Code"], row.get("Name", "")
-        guide, jq_fund, jq_as_of, fy1 = {}, {}, "", ""
+        guide, actual, jq_fund, jq_as_of, fy1 = {}, {}, {}, "", ""
         if api_key:
             try:
-                guide, jq_fund, jq_as_of, fy1 = company_guidance(fetch_jq_summary(api_key, code))
+                _records = fetch_jq_summary(api_key, code)
+                guide, jq_fund, jq_as_of, fy1 = company_guidance(_records)
+                actual, _fy0, _ = company_actuals(_records)
             except JQuantsAuthError as exc:
                 # Stop asking. Every remaining company would fail the same way,
                 # and burying one configuration error under 400 identical
@@ -632,7 +674,8 @@ def main() -> int:
             failures.append((code, f"yahoo: {exc}"))
             cons, y_fund, y_as_of = {}, {}, date.today().isoformat()
 
-        cons_rows.extend(build_rows(code, name, guide, cons, jq_as_of, y_as_of))
+        cons_rows.extend(build_rows(code, name, {**actual, **guide}, cons,
+                                    jq_as_of, y_as_of))
         fund_rows.append(merge_fundamentals(code, name, jq_fund, y_fund,
                                             jq_as_of or y_as_of))
         print(f"  [{i}/{len(universe)}] {code} {name[:36]:36} "
