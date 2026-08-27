@@ -1,0 +1,14 @@
+{
+  "attempted": 20,
+  "companies_with_consensus": 20,
+  "companies_with_guidance": 20,
+  "consensus_rows": 76,
+  "guidance_rows": 164,
+  "jquants_failures": 0,
+  "jquants_key_present": true,
+  "jquants_key_rejected": false,
+  "ran_at": "2026-08-27",
+  "sample_errors": [],
+  "universe": 20,
+  "yahoo_failures": 0
+}
