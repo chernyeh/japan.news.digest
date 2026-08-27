@@ -480,6 +480,21 @@ def main() -> int:
                   f"{str(rec.get('CurPerType', '?')):4} {str(rec.get('DocType', ''))[:34]:34} "
                   f"FY-forecast fields set: {filled or 'none'}")
 
+        # Dividends and interim guidance are filed under their own families of
+        # keys — per quarter, per half, consolidated and non-consolidated — and
+        # an issuer that files only the quarterly split has no annual total for
+        # an "annual DPS" alias to match. Print the family whole.
+        for title, needles in (("Dividend", ("div", "haitou")),
+                               ("Interim / quarterly", ("2q", "1q", "3q", "half",
+                                                        "interim", "cumulative"))):
+            hits = sorted(k for k in latest
+                          if any(n in k.lower() for n in needles))
+            print(f"\n{title} fields on the newest record:")
+            for k in hits:
+                print(f"  {k:22} {str(latest[k])[:28]!r}")
+            if not hits:
+                print("  (none)")
+
         print("\nMatched concept -> key:")
         for concept, key in sorted(F.jq_field_report(latest).items()):
             print(f"  {concept:22} {key or '·· NO MATCH — add the real key to _JQ_ALIASES'}")

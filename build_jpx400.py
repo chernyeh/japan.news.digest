@@ -33,7 +33,17 @@ _ENTRY_RE = re.compile(rf"({_CODE})([PSG])(.+?)(?=(?:{_CODE})[PSG]|\n|$)")
 # CJK-range glyph substitution, so it survives as a run of unrelated kanji
 # rather than readable ASCII, and would otherwise be swallowed into the last
 # issue name on each page.
-_HEADING_RE = re.compile(r"JPX-Nikkei Index 400 Constituents.*?reserved", re.S)
+# The page heading, with or without the copyright line that follows it. The
+# copyright is glyph-substituted on some pages and survives as unrelated kanji
+# rather than the word "reserved" — requiring that word made the whole match
+# fail on those pages, and the heading was then swallowed into the preceding
+# issue name ("TOEI ANIMATION CO.,LTD.JPX-Nikkei Index 400 Constituents…").
+_HEADING_RE = re.compile(
+    r"JPX-Nikkei Index 400 Constituents"
+    r"(?:\s*\(applied on [A-Z][a-z]+ \d{1,2}, \d{4}\))?"
+    r"(?:.*?reserved)?",
+    re.S,
+)
 _COLUMN_HDR = "CodeMarket DivisionIssue"
 _GLYPH_JUNK_RE = re.compile(r"[　-鿿＀-￯]{6,}.*$", re.S)
 

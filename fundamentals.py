@@ -287,10 +287,21 @@ def consensus_key(row: dict) -> tuple:
 
 
 def merge_consensus(existing: list, fresh: list) -> list:
-    """Fresh rows replace matching (code, metric, fy, basis); everything else
-    is kept. A run that fails halfway therefore degrades to a partial refresh
-    rather than deleting the companies it never reached."""
-    merged = {consensus_key(r): r for r in existing}
+    """A fresh run replaces everything it covers, per (code, basis), and leaves
+    the rest alone. A run that fails halfway therefore degrades to a partial
+    refresh rather than deleting the companies it never reached.
+
+    Replacing by (code, basis) rather than by the full row key is what stops a
+    run that got the fiscal labels wrong from leaving its rows behind forever.
+    When the J-Quants key was rejected, the labels fell back to Yahoo's own
+    year end and slipped a year, so consensus went in under FY2027/FY2028; the
+    corrected run then wrote FY2026/FY2027 and the FY2028 rows survived as
+    duplicates of FY2027, a whole phantom year of estimates. Guidance and
+    consensus are scoped separately so a Yahoo-only refresh cannot wipe filed
+    company numbers, and vice versa."""
+    refreshed = {(r.get("code", ""), r.get("basis", "")) for r in fresh}
+    merged = {consensus_key(r): r for r in existing
+              if (r.get("code", ""), r.get("basis", "")) not in refreshed}
     for row in fresh:
         merged[consensus_key(row)] = row
     return sorted(merged.values(),
