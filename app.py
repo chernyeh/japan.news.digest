@@ -3165,17 +3165,19 @@ with tab_research:
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
-        def _toggle_section(label: str, state_key: str, default_open: bool = False) -> bool:
+        def _toggle_section(label: str, state_key: str) -> bool:
             """Collapsible section header using a plain-character arrow instead
             of st.expander's built-in icon font — that font silently falls back
             to raw ligature text (e.g. "keyboard_arrow_right") if it fails to
             load client-side, which isn't something this app controls. Returns
             whether the section's body should render.
 
-            default_open is for the tab's primary content: it should still fold
-            away, but starting folded would leave the reader looking at nothing
-            but section headers on first paint."""
-            st.session_state.setdefault(state_key, default_open)
+            Every section starts closed. Opening one is a choice about the
+            company on screen — a long EDINET history is worth unfolding for
+            some names and not others — and the state key is shared across
+            companies, so a section left open silently reopens on the next
+            search."""
+            st.session_state.setdefault(state_key, False)
             with st.container(key=f"research_section_toggle_{state_key}"):
                 _arrow = "▾" if st.session_state[state_key] else "▸"
                 if st.button(f"{_arrow}  {label}", key=f"{state_key}_btn", use_container_width=True):
@@ -3706,7 +3708,7 @@ with tab_research:
         # EDINET history this list runs to hundreds of rows, and it should not
         # be the thing standing between the reader and the sections below it.
         if _toggle_section(f"📄 Filings & saved links ({len(_items)})",
-                           "research_filings_open", default_open=True):
+                           "research_filings_open"):
             # ── Sort / filter / show-limit controls ──────────────────────────
             with st.container(key="research_filter_row"):
                 _fc1, _fc2, _fc3 = st.columns([1.2, 1.6, 0.9])
@@ -4028,17 +4030,35 @@ with tab_research:
                 if _group_mode == "Period":
                     for _i, _r in _visible:
                         _groups.setdefault(_r.get("period_label") or "Unknown period", []).append((_i, _r))
-                    # period_sort ("2026-06-30", "2025-Q3", "2025-08", "2025")
-                    # orders quarter- and month-level periods correctly, which
-                    # sorting the display labels alphabetically would not
-                    # ("Aug 2025" before "May 2025"). Newest first; anything
-                    # with no period at all goes last.
-                    def _period_rank(_g):
-                        return max((_r.get("period_sort") or "") for _, _r in _groups[_g])
-                    _group_order = sorted(
-                        (g for g in _groups if g != "Unknown period"),
-                        key=_period_rank, reverse=True,
-                    ) + (["Unknown period"] if "Unknown period" in _groups else [])
+                    _page_order = getattr(_scan_results, "page_order", "")
+                    if _page_order:
+                        # The page lists its documents in period order, so
+                        # follow it. Period arithmetic and page order disagree
+                        # on exactly one thing, and the page is right about it:
+                        # a plan for a year that has not started yet sorts
+                        # above every result by period end, while the company
+                        # published it alongside the results it sits next to.
+                        def _page_rank(_g):
+                            return min(_r.get("page_index", 0) for _, _r in _groups[_g])
+                        _group_order = sorted(
+                            (g for g in _groups if g != "Unknown period"),
+                            key=_page_rank, reverse=(_page_order == "asc"),
+                        )
+                    else:
+                        # No order to follow — a matrix table read in DOM order
+                        # walks across periods, not along them — so sort by the
+                        # period itself. period_sort is a uniform "YYYY-MM" for
+                        # every fiscal period and a full date for the rest, so
+                        # the two compare directly; the display labels would
+                        # not ("Aug 2025" before "May 2025").
+                        def _period_rank(_g):
+                            return max((_r.get("period_sort") or "") for _, _r in _groups[_g])
+                        _group_order = sorted(
+                            (g for g in _groups if g != "Unknown period"),
+                            key=_period_rank, reverse=True,
+                        )
+                    # Anything with no period at all goes last either way.
+                    _group_order += ["Unknown period"] if "Unknown period" in _groups else []
                 else:
                     for _i, _r in _visible:
                         _groups.setdefault(_r["doc_type"], []).append((_i, _r))

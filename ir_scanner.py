@@ -648,30 +648,52 @@ def _period_context_text(a_tag, text: str) -> str:
     return " ".join(b for b in bits if b)
 
 
-def _best_text_period(own, context):
-    """Pick between the period the document's own title states and the one its
-    surroundings state.
+# What a link's period can be read from, best evidence first. The ordering is
+# by how specifically each source describes *this* document:
+#
+#   4  the heading of the table row/column the cell sits in — written about it
+#   3  the document's own title
+#   2  a strong URL match: the filename pins a year and a quarter or a day
+#   1  the surrounding text, or the section heading above it
+#   0  a period inherited from a recent dated neighbour
+#  -1  a weak URL match: a bare year folder, or a quarter with no year
+#
+# The rung that matters is 2 above 1. A section heading describes a whole year
+# and applies to everything beneath it; a filename dated 20240523 describes one
+# document. Ranking the heading higher put every document under Fuji Electric's
+# "FY2026" heading into FY2026 — including a briefing from May 2024 — and threw
+# its real date away. Coarse evidence about a group never beats specific
+# evidence about the item.
+_CONF_TABLE, _CONF_OWN, _CONF_URL, _CONF_NEAR, _CONF_CARRY, _CONF_WEAK = 4, 3, 2, 1, 0, -1
 
-    The document's own words win, with one exception: a *fiscal* period always
-    beats a bare calendar date, whichever pool it came from. That is already
-    extract_period's internal precedence — a quarter is what the document
-    covers, a loose date is usually just when it was posted — applied across
-    the two pools instead of within one.
 
-    Ranking them this way, rather than parsing one wide blob, is what stops a
-    flat list of documents from pairing one item's fiscal year with the next
-    item's quarter: on a page where every title reads "FY2025 Third Quarter
-    Consolidated Business Results", the surrounding <ul> holds eight of those
-    at once."""
-    if not own:
-        return context
-    if not context:
-        return own
-    if context.get("fiscal") and not own.get("fiscal"):
-        # Keep the document's own date — the context knows the period, the
-        # title knows the day, and the two are answering different questions.
-        return dict(context, date=context.get("date") or own.get("date") or "")
-    return own
+def _resolve_period(candidates):
+    """(period, confidence) from [(confidence, period), ...] in rank order.
+
+    Highest rank wins, with one exception: a bare calendar date is not a
+    period. Where the winner is only a date and some lower-ranked candidate
+    names an actual fiscal period, the fiscal one is taken and the date is
+    carried onto it — the two answer different questions, and a document
+    covering Q1 that happens to be dated 30 July belongs under Q1."""
+    ranked = [(conf, p) for conf, p in candidates if p]
+    if not ranked:
+        return None, _CONF_WEAK
+    conf, best = ranked[0]
+    if not best.get("fiscal"):
+        for f_conf, cand in ranked[1:]:
+            if cand.get("fiscal") and _covers_less_than_a_year(cand):
+                return dict(cand, date=cand.get("date") or best.get("date") or ""), f_conf
+    return best, conf
+
+
+def _covers_less_than_a_year(period) -> bool:
+    """Whether a period names a slice of a fiscal year rather than the whole of
+    one. The distinction decides whether a fiscal period is allowed to displace
+    a real date: "Q1 FY2026" tells you more about a document than "30 July
+    2026" does, but "FY2026" tells you less than "23 May 2024" does."""
+    if period.get("month_end"):
+        return True
+    return period.get("span") in ("quarter", "half", "nine_months")
 
 
 # ── Table structure ──────────────────────────────────────────────────────
@@ -919,12 +941,24 @@ def build_table_link_context(soup) -> dict:
             year = _year_from_links(cells_by_col.get(lbl, []))
             if year:
                 axis_period[lbl] = {"date": None, "period_label": f"Q{qn} FY{year}",
-                                    "period_sort": f"{year}-Q{qn}"}
+                                    "period_sort": f"{year}-Q{qn}", "fiscal": True,
+                                    # Carried so normalise_periods can fold this
+                                    # onto the same calendar as every other
+                                    # period on the page. Without them a matrix
+                                    # table's quarters kept a "2026-Q1" sort key
+                                    # while the rest of the page moved to
+                                    # "2026-06", and the two sort against each
+                                    # other as strings — which is most of why a
+                                    # page mixing the two layouts came out
+                                    # jumbled.
+                                    "fy": int(year), "quarter": int(qn),
+                                    "span": "quarter"}
             else:
                 # Honest and partial beats confident and wrong: a bare "Q1" is
                 # far better than a neighbouring column's date.
                 axis_period[lbl] = {"date": None, "period_label": f"Q{qn}",
-                                    "period_sort": f"0000-Q{qn}"}
+                                    "period_sort": f"0000-Q{qn}", "fiscal": True,
+                                    "quarter": int(qn), "span": "quarter"}
 
         # Any table with headings is a grid, and reading a grid in DOM order
         # walks across periods. Carry-forward must stay off for every link in
@@ -1134,6 +1168,42 @@ def normalise_periods(entries, fy_end_month=None) -> tuple:
     return fye, offset, source
 
 
+def detect_page_order(entries) -> str:
+    """"desc", "asc" or "" — whether the page lists documents in period order.
+
+    Worth knowing because period arithmetic and page order disagree in one
+    specific, common case: a document about a year that has not happened yet.
+    Toshiba Tec's "FY2026 Management Policy" covers the year to March 2027, so
+    it sorts above every result on the page — while the page itself lists it
+    just after the Q1 results, because that is when it was published. The page
+    is right and the arithmetic is not: a mid-term plan is not newer than the
+    quarter that came out after it.
+
+    A matrix table gives no such signal — reading it in DOM order walks across
+    periods rather than along them — so the test has to be able to say "no
+    order here", and does: alternating periods produce no verdict and the
+    caller falls back to sorting by period."""
+    seq = [e["period_sort"] for e in sorted(entries, key=lambda e: e.get("page_index", 0))
+           if e.get("period_sort")]
+    down = sum(1 for a, b in zip(seq, seq[1:]) if b < a)
+    up = sum(1 for a, b in zip(seq, seq[1:]) if b > a)
+    # Ties (documents sharing a period) are neither, and are the majority of
+    # adjacent pairs on a well-organised page, so they are simply not counted.
+    if down + up < 4:
+        return ""
+    # Two to one, not three to one: a page that is plainly newest-first still
+    # steps back up at every section boundary — each fiscal year's block
+    # restarts, and a forward-looking plan sits above the quarter it was
+    # published with. Those are the inversions this is meant to tolerate. A
+    # matrix table, read across its columns, alternates instead, and lands
+    # near one to one.
+    if down >= 2 * up:
+        return "desc"
+    if up >= 2 * down:
+        return "asc"
+    return ""
+
+
 MAX_SCAN_RESULTS = 500
 
 
@@ -1142,7 +1212,8 @@ class ScanResults(list):
     list subclass so every existing caller keeps working unchanged."""
 
     def __init__(self, items=(), truncated=False, limit=MAX_SCAN_RESULTS,
-                 fy_end_month=None, fy_offset=0, fy_calendar_source="default"):
+                 fy_end_month=None, fy_offset=0, fy_calendar_source="default",
+                 page_order=""):
         super().__init__(items)
         self.truncated = truncated
         self.limit = limit
@@ -1154,6 +1225,10 @@ class ScanResults(list):
         self.fy_end_month = fy_end_month
         self.fy_offset = fy_offset
         self.fy_calendar_source = fy_calendar_source
+        # "desc", "asc" or "" — whether the page lists its documents in period
+        # order, so the caller can sequence groups the way the page does
+        # instead of by period arithmetic. See detect_page_order.
+        self.page_order = page_order
 
 
 def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
@@ -1313,20 +1388,18 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
         # just "PDF(737KB)" and the document's real name — the thing that
         # carries "FY2025 Third Quarter" — was recovered into `title` above.
         own_text = title or detail or text
-        text_period = _best_text_period(
-            extract_period(own_text),
-            extract_period(_period_context_text(a, own_text)))
-        text_period = _apply_section(text_period, section_period, own_text)
-        if table_period:
-            period, period_conf = table_period, 5
-        elif text_period:
-            period, period_conf = text_period, 4
-        elif section_period:
-            period, period_conf = dict(section_period, from_section=True), 3
-        elif url_period and not url_period.get("weak"):
-            period, period_conf = url_period, 2
-        else:
-            period, period_conf = None, -1
+        own_period = extract_period(own_text)
+        # The wider pool and the section heading are the same class of
+        # evidence: something written near this link rather than about it.
+        near_period = extract_period(_period_context_text(a, own_text)) or section_period
+        strong_url = url_period if (url_period and not url_period.get("weak")) else None
+        period, period_conf = _resolve_period([
+            (_CONF_TABLE, table_period),
+            (_CONF_OWN, own_period),
+            (_CONF_URL, strong_url),
+            (_CONF_NEAR, near_period),
+        ])
+        period = _apply_section(period, section_period, own_text)
 
         if structured:
             # Every table with headings is a grid, and reading a grid in DOM
@@ -1334,21 +1407,28 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
             # is not evidence about this cell, it is the cell next door — this
             # is what put 2Q documents and a whole-table Excel under 1Q's date.
             if period is None:
-                period, period_conf = url_period, (0 if url_period else -1)
+                period, period_conf = url_period, (_CONF_WEAK if url_period is None
+                                                   else _CONF_CARRY)
             carried_period, carry_remaining = None, 0
         elif period is not None:
             carried_period = period
             carry_remaining = _CARRY_FORWARD_MAX
         elif carry_remaining > 0:
-            period, period_conf = carried_period, 1
+            period, period_conf = carried_period, _CONF_CARRY
             carry_remaining -= 1
         else:
             # Weak URL matches apply to this item only — they're too coarse
             # to be worth propagating onto the items that follow.
-            period, period_conf = url_period, (0 if url_period else -1)
+            period, period_conf = url_period, (_CONF_WEAK if url_period is None
+                                               else _CONF_CARRY)
 
         entry = {
             "title": title,
+            # Where this link sat on the page. IR libraries are written in an
+            # order — almost always newest first — and where that order holds,
+            # it is better evidence of how to sequence the results than any
+            # period arithmetic: it is what the company itself decided.
+            "page_index": len(out),
             "url": abs_url,
             "doc_type": doc_type,
             "kind": "file" if ext else "page",
@@ -1386,6 +1466,7 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
     # baking the label in per-occurrence would stamp a losing period onto a
     # title that a later listing then replaced.
     fye, offset, cal_source = normalise_periods(out, fy_end_month)
+    page_order = detect_page_order(out)
     for entry in out:
         label = entry.get("period_label") or ""
         if label and label not in entry["title"]:
@@ -1394,7 +1475,8 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
                     "_quarter", "_span", "_quarter_override", "_section_fy"):
             entry.pop(key, None)
     return ScanResults(disambiguate_titles(out), truncated=truncated, limit=max_results,
-                       fy_end_month=fye, fy_offset=offset, fy_calendar_source=cal_source)
+                       fy_end_month=fye, fy_offset=offset, fy_calendar_source=cal_source,
+                       page_order=page_order)
 
 
 def _merge_occurrence(prior: dict, other: dict):
