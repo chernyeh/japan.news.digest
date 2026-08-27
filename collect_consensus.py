@@ -302,6 +302,9 @@ def main() -> int:
     ap.add_argument("--universe", default=F.UNIVERSE_PATH)
     ap.add_argument("--out-consensus", default=F.CONSENSUS_PATH)
     ap.add_argument("--out-fundamentals", default=F.FUNDAMENTALS_PATH)
+    ap.add_argument("--out-manifest", default=F.RUN_MANIFEST_PATH,
+                    help="where the run manifest is written; overridable so a "
+                         "test run cannot write into the repo's data directory")
     ap.add_argument("--limit", type=int, default=0, help="first N companies only")
     ap.add_argument("--only", default="", help="comma-separated codes")
     ap.add_argument("--probe", default="", help="print J-Quants' matched field names for one code and exit")
@@ -414,13 +417,13 @@ def main() -> int:
                  sorted(by_code.values(), key=lambda r: r["code"]))
 
     import json
-    os.makedirs(os.path.dirname(F.RUN_MANIFEST_PATH) or ".", exist_ok=True)
-    with open(F.RUN_MANIFEST_PATH, "w", encoding="utf-8") as fh:
+    os.makedirs(os.path.dirname(args.out_manifest) or ".", exist_ok=True)
+    with open(args.out_manifest, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2, sort_keys=True)
 
     print(f"\nWrote {len(merged)} consensus rows -> {args.out_consensus}")
     print(f"Wrote {len(by_code)} fundamentals rows -> {args.out_fundamentals}")
-    print(f"Wrote run manifest -> {F.RUN_MANIFEST_PATH}")
+    print(f"Wrote run manifest -> {args.out_manifest}")
     return 0
 
 
