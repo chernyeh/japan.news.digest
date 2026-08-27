@@ -26,6 +26,7 @@ import csv
 import json
 import math
 import os
+import re
 
 CONSENSUS_PATH = "data/consensus.csv"
 FUNDAMENTALS_PATH = "data/fundamentals.csv"
@@ -542,11 +543,95 @@ def manual_key(metric: str, fy: str, basis: str) -> str:
     return f"{metric}|{fy}|{basis}"
 
 
-def save_manual_overrides(repo: str, token: str, sec_code: str, entries: dict) -> tuple:
-    """Merge `entries` into sec_code's block of data/consensus_manual.json,
-    committed straight to main (matching how the scheduled data jobs already
-    commit data/ updates). Returns (ok, message). Retries once on a 409, where
-    the sha moved under us because another session wrote first."""
+TYPED_BASES = ("actual", "company", "consensus", "company_h1")
+
+
+def plan_typed_overrides(edited: list, seed_keys, current: dict, manual_keys,
+                         as_of: str) -> tuple:
+    """Turn the Research tab's typed grid into (entries, remove, notes).
+
+    Pure on purpose: unit conversion, year validation, change detection and
+    what a deleted row means are the whole substance of typed entry, and none
+    of it is testable while it lives inside a Streamlit callback.
+
+    `edited` rows carry metric/fy/basis already mapped back to their stored
+    codes, and a value in the units the panel prints — yen for per-share
+    metrics, ¥bn for everything else. `current` is the merged map the grid was
+    seeded from, so a row that comes back untouched produces no entry: without
+    that check every save would rewrite every collected row as an override and
+    freeze the panel against future collector runs."""
+    entries, remove, notes = {}, [], []
+    kept = set()
+
+    for row in edited or ():
+        metric = (row.get("metric") or "").strip()
+        fy = str(row.get("fiscal_year") or "").strip().upper()
+        basis = (row.get("basis") or "").strip()
+        value = to_num(row.get("value"))
+        if metric not in METRICS or basis not in TYPED_BASES:
+            continue
+        # A mislabelled year is worse than a missing one: it lands the number
+        # in a column that looks right and is a year out.
+        if not re.fullmatch(r"FY\d{4}", fy):
+            notes.append(f"\u201c{row.get('fiscal_year')}\u201d is not a fiscal year label "
+                         "(expected e.g. FY2027) \u2014 that row was skipped.")
+            continue
+        if value is None:
+            notes.append(f"{metric} {fy} has no value \u2014 that row was skipped.")
+            continue
+        kept.add((metric, fy, basis))
+        yen = value if metric in _PER_SHARE else value * 1e9
+        shown = (current.get((metric, fy, basis)) or {}).get("value")
+        # The trip through ¥bn is lossy in the last bits, so an untouched row
+        # must not read as an edit.
+        if shown is not None and abs(yen - shown) <= max(abs(shown), 1.0) * 1e-9:
+            continue
+        entries[manual_key(metric, fy, basis)] = {
+            "value": yen,
+            "unit": "jpy" if metric in _PER_SHARE else "jpy_abs",
+            "source": "typed",
+            "as_of": as_of,
+        }
+
+    # A deleted row drops its override so the collected number shows through.
+    # Where there was no override, there is nothing to delete and the row comes
+    # back on the next paint — say so rather than letting it look like a bug.
+    undeletable = 0
+    for key in seed_keys:
+        if tuple(key) in kept:
+            continue
+        flat = manual_key(*key)
+        if flat in (manual_keys or ()):
+            remove.append(flat)
+        else:
+            undeletable += 1
+    if undeletable:
+        notes.append(f"{undeletable} deleted row(s) are collected data, not overrides "
+                     "\u2014 they cannot be removed here and will reappear.")
+    return entries, remove, notes
+
+
+def _saved_message(n_saved: int, n_removed: int) -> str:
+    parts = []
+    if n_saved:
+        parts.append(f"Saved {n_saved} override(s).")
+    if n_removed:
+        parts.append(f"Cleared {n_removed} back to collected values.")
+    return " ".join(parts) or "Nothing to save."
+
+
+def save_manual_overrides(repo: str, token: str, sec_code: str, entries: dict,
+                          remove=()) -> tuple:
+    """Merge `entries` into sec_code's block of data/consensus_manual.json, and
+    drop any key in `remove`, committed straight to main (matching how the
+    scheduled data jobs already commit data/ updates). Returns (ok, message).
+    Retries once on a 409, where the sha moved under us because another session
+    wrote first.
+
+    `remove` is what makes a typed value undoable: deleting an override is not
+    storing a blank, it is taking the key out so the collected number shows
+    through again. Writing None instead would leave a key that
+    apply_manual_overrides silently skips — indistinguishable from a bug."""
     import base64
     import requests
 
@@ -571,7 +656,12 @@ def save_manual_overrides(repo: str, token: str, sec_code: str, entries: dict) -
         else:
             return False, f"GitHub read error: HTTP {r.status_code}"
 
-        data.setdefault(sec_code, {}).update(entries)
+        block = data.setdefault(sec_code, {})
+        block.update(entries)
+        for key in remove or ():
+            block.pop(key, None)
+        if not block:
+            data.pop(sec_code, None)
         body = {
             "message": f"chore: consensus overrides for {sec_code} [skip ci]",
             "content": base64.b64encode(
@@ -583,7 +673,7 @@ def save_manual_overrides(repo: str, token: str, sec_code: str, entries: dict) -
             body["sha"] = sha
         put = requests.put(api_url, headers=headers, json=body, timeout=15)
         if put.status_code in (200, 201):
-            return True, f"Saved {len(entries)} override(s)."
+            return True, _saved_message(len(entries), len(remove or ()))
         if put.status_code == 409 and attempt == 0:
             continue
         return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:160]}"
