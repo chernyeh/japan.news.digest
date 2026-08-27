@@ -40,20 +40,20 @@ code,name,metric,fy,basis,value,unit,source,as_of
 1518,"MITSUI MATSUSHIMA HOLDINGS CO.,LTD.",operating_profit,FY2027,company,9700000000.0,jpy_abs,jquants,2026-05-13
 1518,"MITSUI MATSUSHIMA HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
 1605,INPEX CORPORATION,dps,FY2026,company,108.0,jpy,jquants,2026-05-13
-1605,INPEX CORPORATION,eps,FY2026,consensus,443.53168,jpy,yfinance,2026-08-27
-1605,INPEX CORPORATION,net_sales,FY2026,consensus,2254834444440.0,jpy_abs,yfinance,2026-08-27
-1605,INPEX CORPORATION,eps,FY2027,consensus,415.40115,jpy,yfinance,2026-08-27
-1605,INPEX CORPORATION,net_sales,FY2027,consensus,2284914600000.0,jpy_abs,yfinance,2026-08-27
+1605,INPEX CORPORATION,eps,FY2026,consensus,447.94833,jpy,yfinance,2026-08-27
+1605,INPEX CORPORATION,net_sales,FY2026,consensus,2221501111110.0,jpy_abs,yfinance,2026-08-27
+1605,INPEX CORPORATION,eps,FY2027,consensus,417.28116,jpy,yfinance,2026-08-27
+1605,INPEX CORPORATION,net_sales,FY2027,consensus,2257914600000.0,jpy_abs,yfinance,2026-08-27
 1662,"Japan Petroleum Exploration Co.,Ltd.",dps,FY2026,company,40.0,jpy,jquants,2026-05-13
 1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2026,company,175.82,jpy,jquants,2026-05-13
-1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2026,consensus,272.9,jpy,yfinance,2026-08-27
+1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2026,consensus,287.3,jpy,yfinance,2026-08-27
 1662,"Japan Petroleum Exploration Co.,Ltd.",net_profit,FY2026,company,45000000000.0,jpy_abs,jquants,2026-05-13
 1662,"Japan Petroleum Exploration Co.,Ltd.",net_sales,FY2026,company,347000000000.0,jpy_abs,jquants,2026-05-13
-1662,"Japan Petroleum Exploration Co.,Ltd.",net_sales,FY2026,consensus,387660000000.0,jpy_abs,yfinance,2026-08-27
+1662,"Japan Petroleum Exploration Co.,Ltd.",net_sales,FY2026,consensus,379660000000.0,jpy_abs,yfinance,2026-08-27
 1662,"Japan Petroleum Exploration Co.,Ltd.",operating_profit,FY2026,company,39000000000.0,jpy_abs,jquants,2026-05-13
 1662,"Japan Petroleum Exploration Co.,Ltd.",dps,FY2027,company,45.0,jpy,jquants,2026-05-13
 1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2027,company,234.38,jpy,jquants,2026-05-13
-1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2027,consensus,196.496,jpy,yfinance,2026-08-27
+1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2027,consensus,192.596,jpy,yfinance,2026-08-27
 1662,"Japan Petroleum Exploration Co.,Ltd.",net_profit,FY2027,company,60000000000.0,jpy_abs,jquants,2026-05-13
 1662,"Japan Petroleum Exploration Co.,Ltd.",net_sales,FY2027,company,303000000000.0,jpy_abs,jquants,2026-05-13
 1662,"Japan Petroleum Exploration Co.,Ltd.",net_sales,FY2027,consensus,407140000000.0,jpy_abs,yfinance,2026-08-27
@@ -78,113 +78,113 @@ code,name,metric,fy,basis,value,unit,source,as_of
 1719,HAZAMA ANDO CORPORATION,net_sales,FY2028,consensus,488300000000.0,jpy_abs,yfinance,2026-08-27
 1721,COMSYS Holdings Corporation,dps,FY2026,company,120.0,jpy,jquants,2026-05-12
 1721,COMSYS Holdings Corporation,eps,FY2026,company,263.39,jpy,jquants,2026-05-12
-1721,COMSYS Holdings Corporation,eps,FY2026,consensus,345.09,jpy,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,eps,FY2026,consensus,349.55,jpy,yfinance,2026-08-27
 1721,COMSYS Holdings Corporation,net_profit,FY2026,company,31000000000.0,jpy_abs,jquants,2026-05-12
 1721,COMSYS Holdings Corporation,net_sales,FY2026,company,620000000000.0,jpy_abs,jquants,2026-05-12
-1721,COMSYS Holdings Corporation,net_sales,FY2026,consensus,669560000000.0,jpy_abs,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,net_sales,FY2026,consensus,671560000000.0,jpy_abs,yfinance,2026-08-27
 1721,COMSYS Holdings Corporation,operating_profit,FY2026,company,45000000000.0,jpy_abs,jquants,2026-05-12
 1721,COMSYS Holdings Corporation,dps,FY2027,company,135.0,jpy,jquants,2026-05-12
 1721,COMSYS Holdings Corporation,eps,FY2027,company,327.22,jpy,jquants,2026-05-12
-1721,COMSYS Holdings Corporation,eps,FY2027,consensus,366.03,jpy,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,eps,FY2027,consensus,370.65,jpy,yfinance,2026-08-27
 1721,COMSYS Holdings Corporation,net_profit,FY2027,company,37860000000.0,jpy_abs,jquants,2026-05-12
 1721,COMSYS Holdings Corporation,net_sales,FY2027,company,670000000000.0,jpy_abs,jquants,2026-05-12
-1721,COMSYS Holdings Corporation,net_sales,FY2027,consensus,695960000000.0,jpy_abs,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,net_sales,FY2027,consensus,699960000000.0,jpy_abs,yfinance,2026-08-27
 1721,COMSYS Holdings Corporation,operating_profit,FY2027,company,54000000000.0,jpy_abs,jquants,2026-05-12
 1721,COMSYS Holdings Corporation,eps,FY2028,consensus,366.03,jpy,yfinance,2026-08-27
 1721,COMSYS Holdings Corporation,net_sales,FY2028,consensus,695960000000.0,jpy_abs,yfinance,2026-08-27
 1801,TAISEI CORPORATION,dps,FY2026,company,310.0,jpy,jquants,2026-05-14
 1801,TAISEI CORPORATION,eps,FY2026,company,1007.41,jpy,jquants,2026-05-14
-1801,TAISEI CORPORATION,eps,FY2026,consensus,1024.3457,jpy,yfinance,2026-08-27
+1801,TAISEI CORPORATION,eps,FY2026,consensus,1032.1042,jpy,yfinance,2026-08-27
 1801,TAISEI CORPORATION,net_profit,FY2026,company,167000000000.0,jpy_abs,jquants,2026-05-14
 1801,TAISEI CORPORATION,net_sales,FY2026,company,2090000000000.0,jpy_abs,jquants,2026-05-14
-1801,TAISEI CORPORATION,net_sales,FY2026,consensus,2420979304290.0,jpy_abs,yfinance,2026-08-27
+1801,TAISEI CORPORATION,net_sales,FY2026,consensus,2420927250000.0,jpy_abs,yfinance,2026-08-27
 1801,TAISEI CORPORATION,operating_profit,FY2026,company,184000000000.0,jpy_abs,jquants,2026-05-14
 1801,TAISEI CORPORATION,dps,FY2027,company,380.0,jpy,jquants,2026-05-14
 1801,TAISEI CORPORATION,eps,FY2027,company,926.33,jpy,jquants,2026-05-14
-1801,TAISEI CORPORATION,eps,FY2027,consensus,1002.6043,jpy,yfinance,2026-08-27
+1801,TAISEI CORPORATION,eps,FY2027,consensus,1004.73285,jpy,yfinance,2026-08-27
 1801,TAISEI CORPORATION,net_profit,FY2027,company,151000000000.0,jpy_abs,jquants,2026-05-14
 1801,TAISEI CORPORATION,net_sales,FY2027,company,2420000000000.0,jpy_abs,jquants,2026-05-14
-1801,TAISEI CORPORATION,net_sales,FY2027,consensus,2488551167700.0,jpy_abs,yfinance,2026-08-27
+1801,TAISEI CORPORATION,net_sales,FY2027,consensus,2488497507500.0,jpy_abs,yfinance,2026-08-27
 1801,TAISEI CORPORATION,operating_profit,FY2027,company,188000000000.0,jpy_abs,jquants,2026-05-14
 1801,TAISEI CORPORATION,eps,FY2028,consensus,1002.6043,jpy,yfinance,2026-08-27
 1801,TAISEI CORPORATION,net_sales,FY2028,consensus,2488551167700.0,jpy_abs,yfinance,2026-08-27
 1802,OBAYASHI CORPORATION,dps,FY2026,company,87.0,jpy,jquants,2026-05-13
 1802,OBAYASHI CORPORATION,eps,FY2026,company,244.03,jpy,jquants,2026-05-13
-1802,OBAYASHI CORPORATION,eps,FY2026,consensus,237.04375,jpy,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,eps,FY2026,consensus,237.47626,jpy,yfinance,2026-08-27
 1802,OBAYASHI CORPORATION,net_profit,FY2026,company,170000000000.0,jpy_abs,jquants,2026-05-13
 1802,OBAYASHI CORPORATION,net_sales,FY2026,company,2570000000000.0,jpy_abs,jquants,2026-05-13
-1802,OBAYASHI CORPORATION,net_sales,FY2026,consensus,2947033022860.0,jpy_abs,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,net_sales,FY2026,consensus,2947273336240.0,jpy_abs,yfinance,2026-08-27
 1802,OBAYASHI CORPORATION,operating_profit,FY2026,company,195000000000.0,jpy_abs,jquants,2026-05-13
 1802,OBAYASHI CORPORATION,dps,FY2027,company,94.0,jpy,jquants,2026-05-13
 1802,OBAYASHI CORPORATION,eps,FY2027,company,228.39,jpy,jquants,2026-05-13
-1802,OBAYASHI CORPORATION,eps,FY2027,consensus,243.70375,jpy,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,eps,FY2027,consensus,243.90875,jpy,yfinance,2026-08-27
 1802,OBAYASHI CORPORATION,net_profit,FY2027,company,157000000000.0,jpy_abs,jquants,2026-05-13
 1802,OBAYASHI CORPORATION,net_sales,FY2027,company,2945000000000.0,jpy_abs,jquants,2026-05-13
-1802,OBAYASHI CORPORATION,net_sales,FY2027,consensus,3013919727630.0,jpy_abs,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,net_sales,FY2027,consensus,3014144141240.0,jpy_abs,yfinance,2026-08-27
 1802,OBAYASHI CORPORATION,operating_profit,FY2027,company,180000000000.0,jpy_abs,jquants,2026-05-13
 1802,OBAYASHI CORPORATION,eps,FY2028,consensus,243.70375,jpy,yfinance,2026-08-27
 1802,OBAYASHI CORPORATION,net_sales,FY2028,consensus,3013919727630.0,jpy_abs,yfinance,2026-08-27
 1803,SHIMIZU CORPORATION,dps,FY2026,company,72.0,jpy,jquants,2026-05-12
 1803,SHIMIZU CORPORATION,eps,FY2026,company,186.66,jpy,jquants,2026-05-12
-1803,SHIMIZU CORPORATION,eps,FY2026,consensus,241.02,jpy,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,eps,FY2026,consensus,241.79167,jpy,yfinance,2026-08-27
 1803,SHIMIZU CORPORATION,net_profit,FY2026,company,126600000000.0,jpy_abs,jquants,2026-05-12
 1803,SHIMIZU CORPORATION,net_sales,FY2026,company,2057800000000.0,jpy_abs,jquants,2026-05-12
-1803,SHIMIZU CORPORATION,net_sales,FY2026,consensus,2292248090000.0,jpy_abs,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,net_sales,FY2026,consensus,2292436142860.0,jpy_abs,yfinance,2026-08-27
 1803,SHIMIZU CORPORATION,operating_profit,FY2026,company,118600000000.0,jpy_abs,jquants,2026-05-12
 1803,SHIMIZU CORPORATION,dps,FY2027,company,77.0,jpy,jquants,2026-05-12
 1803,SHIMIZU CORPORATION,eps,FY2027,company,191.4,jpy,jquants,2026-05-12
-1803,SHIMIZU CORPORATION,eps,FY2027,consensus,195.62286,jpy,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,eps,FY2027,consensus,195.58714,jpy,yfinance,2026-08-27
 1803,SHIMIZU CORPORATION,net_profit,FY2027,company,130000000000.0,jpy_abs,jquants,2026-05-12
 1803,SHIMIZU CORPORATION,net_sales,FY2027,company,2310000000000.0,jpy_abs,jquants,2026-05-12
-1803,SHIMIZU CORPORATION,net_sales,FY2027,consensus,2308152230010.0,jpy_abs,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,net_sales,FY2027,consensus,2308346000000.0,jpy_abs,yfinance,2026-08-27
 1803,SHIMIZU CORPORATION,operating_profit,FY2027,company,153000000000.0,jpy_abs,jquants,2026-05-12
 1803,SHIMIZU CORPORATION,eps,FY2028,consensus,195.62286,jpy,yfinance,2026-08-27
 1803,SHIMIZU CORPORATION,net_sales,FY2028,consensus,2308152230010.0,jpy_abs,yfinance,2026-08-27
 1808,HASEKO Corporation,dps,FY2026,company,90.0,jpy,jquants,2026-05-15
 1808,HASEKO Corporation,eps,FY2026,company,219.15,jpy,jquants,2026-05-15
-1808,HASEKO Corporation,eps,FY2026,consensus,261.9,jpy,yfinance,2026-08-27
+1808,HASEKO Corporation,eps,FY2026,consensus,265.19223,jpy,yfinance,2026-08-27
 1808,HASEKO Corporation,net_profit,FY2026,company,58000000000.0,jpy_abs,jquants,2026-05-15
 1808,HASEKO Corporation,net_sales,FY2026,company,1240000000000.0,jpy_abs,jquants,2026-05-15
-1808,HASEKO Corporation,net_sales,FY2026,consensus,1377373045730.0,jpy_abs,yfinance,2026-08-27
+1808,HASEKO Corporation,net_sales,FY2026,consensus,1377363958500.0,jpy_abs,yfinance,2026-08-27
 1808,HASEKO Corporation,operating_profit,FY2026,company,97000000000.0,jpy_abs,jquants,2026-05-15
 1808,HASEKO Corporation,dps,FY2027,company,100.0,jpy,jquants,2026-05-15
 1808,HASEKO Corporation,eps,FY2027,company,249.39,jpy,jquants,2026-05-15
-1808,HASEKO Corporation,eps,FY2027,consensus,292.58777,jpy,yfinance,2026-08-27
+1808,HASEKO Corporation,eps,FY2027,consensus,294.21445,jpy,yfinance,2026-08-27
 1808,HASEKO Corporation,net_profit,FY2027,company,66000000000.0,jpy_abs,jquants,2026-05-15
 1808,HASEKO Corporation,net_sales,FY2027,company,1380000000000.0,jpy_abs,jquants,2026-05-15
-1808,HASEKO Corporation,net_sales,FY2027,consensus,1445883004360.0,jpy_abs,yfinance,2026-08-27
+1808,HASEKO Corporation,net_sales,FY2027,consensus,1444762393290.0,jpy_abs,yfinance,2026-08-27
 1808,HASEKO Corporation,operating_profit,FY2027,company,110000000000.0,jpy_abs,jquants,2026-05-15
 1808,HASEKO Corporation,eps,FY2028,consensus,292.58777,jpy,yfinance,2026-08-27
 1808,HASEKO Corporation,net_sales,FY2028,consensus,1445883004360.0,jpy_abs,yfinance,2026-08-27
 1812,KAJIMA CORPORATION,dps,FY2026,company,132.0,jpy,jquants,2026-05-14
 1812,KAJIMA CORPORATION,eps,FY2026,company,364.11,jpy,jquants,2026-05-14
-1812,KAJIMA CORPORATION,eps,FY2026,consensus,397.275,jpy,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,eps,FY2026,consensus,396.90167,jpy,yfinance,2026-08-27
 1812,KAJIMA CORPORATION,net_profit,FY2026,company,170000000000.0,jpy_abs,jquants,2026-05-14
 1812,KAJIMA CORPORATION,net_sales,FY2026,company,3030000000000.0,jpy_abs,jquants,2026-05-14
-1812,KAJIMA CORPORATION,net_sales,FY2026,consensus,2954449835710.0,jpy_abs,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,net_sales,FY2026,consensus,2954457571430.0,jpy_abs,yfinance,2026-08-27
 1812,KAJIMA CORPORATION,operating_profit,FY2026,company,228000000000.0,jpy_abs,jquants,2026-05-14
 1812,KAJIMA CORPORATION,dps,FY2027,company,146.0,jpy,jquants,2026-05-14
 1812,KAJIMA CORPORATION,eps,FY2027,company,364.85,jpy,jquants,2026-05-14
-1812,KAJIMA CORPORATION,eps,FY2027,consensus,430.6357,jpy,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,eps,FY2027,consensus,431.53857,jpy,yfinance,2026-08-27
 1812,KAJIMA CORPORATION,net_profit,FY2027,company,170000000000.0,jpy_abs,jquants,2026-05-14
 1812,KAJIMA CORPORATION,net_sales,FY2027,company,2900000000000.0,jpy_abs,jquants,2026-05-14
-1812,KAJIMA CORPORATION,net_sales,FY2027,consensus,3162035455070.0,jpy_abs,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,net_sales,FY2027,consensus,3162042857140.0,jpy_abs,yfinance,2026-08-27
 1812,KAJIMA CORPORATION,operating_profit,FY2027,company,200000000000.0,jpy_abs,jquants,2026-05-14
 1812,KAJIMA CORPORATION,eps,FY2028,consensus,430.6357,jpy,yfinance,2026-08-27
 1812,KAJIMA CORPORATION,net_sales,FY2028,consensus,3162035455070.0,jpy_abs,yfinance,2026-08-27
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",dps,FY2026,company,74.6,jpy,jquants,2026-05-26
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2026,company,286.0,jpy,jquants,2026-05-26
-1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2026,consensus,333.77588,jpy,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2026,consensus,333.66586,jpy,yfinance,2026-08-27
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_profit,FY2026,company,95000000000.0,jpy_abs,jquants,2026-05-26
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2026,company,1980000000000.0,jpy_abs,jquants,2026-05-26
-1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2026,consensus,2060238633750.0,jpy_abs,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2026,consensus,2058974952290.0,jpy_abs,yfinance,2026-08-27
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",operating_profit,FY2026,company,135000000000.0,jpy_abs,jquants,2026-05-26
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",dps,FY2027,company,163.0,jpy,jquants,2026-05-26
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2027,company,326.0,jpy,jquants,2026-05-26
-1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2027,consensus,324.62912,jpy,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2027,consensus,326.1204,jpy,yfinance,2026-08-27
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_profit,FY2027,company,108000000000.0,jpy_abs,jquants,2026-05-26
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2027,company,2050000000000.0,jpy_abs,jquants,2026-05-26
-1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2027,consensus,2131857269310.0,jpy_abs,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2027,consensus,2128864646319.0,jpy_abs,yfinance,2026-08-27
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",operating_profit,FY2027,company,142000000000.0,jpy_abs,jquants,2026-05-26
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2028,consensus,324.62912,jpy,yfinance,2026-08-27
 1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2028,consensus,2131857269310.0,jpy_abs,yfinance,2026-08-27
@@ -231,17 +231,17 @@ code,name,metric,fy,basis,value,unit,source,as_of
 1911,"Sumitomo Forestry Co.,Ltd.",net_sales,FY2027,consensus,3200800000000.0,jpy_abs,yfinance,2026-08-27
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",dps,FY2026,company,175.0,jpy,jquants,2026-05-13
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2026,company,468.6,jpy,jquants,2026-05-13
-1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2026,consensus,442.53116,jpy,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2026,consensus,444.25104,jpy,yfinance,2026-08-27
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_profit,FY2026,company,290000000000.0,jpy_abs,jquants,2026-05-13
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2026,company,5600000000000.0,jpy_abs,jquants,2026-05-13
-1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2026,consensus,5929746154290.0,jpy_abs,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2026,consensus,5937238761240.0,jpy_abs,yfinance,2026-08-27
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",operating_profit,FY2026,company,510000000000.0,jpy_abs,jquants,2026-05-13
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",dps,FY2027,company,45.0,jpy,jquants,2026-05-13
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2027,company,183.26,jpy,jquants,2026-05-13
-1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2027,consensus,508.94107,jpy,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2027,consensus,511.9044,jpy,yfinance,2026-08-27
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_profit,FY2027,company,227000000000.0,jpy_abs,jquants,2026-05-13
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2027,company,5800000000000.0,jpy_abs,jquants,2026-05-13
-1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2027,consensus,6183519807660.0,jpy_abs,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2027,consensus,6178845986970.0,jpy_abs,yfinance,2026-08-27
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",operating_profit,FY2027,company,400000000000.0,jpy_abs,jquants,2026-05-13
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2028,consensus,508.94107,jpy,yfinance,2026-08-27
 1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2028,consensus,6183519807660.0,jpy_abs,yfinance,2026-08-27
@@ -288,17 +288,17 @@ code,name,metric,fy,basis,value,unit,source,as_of
 1944,KINDEN CORPORATION,net_sales,FY2028,consensus,871000000000.0,jpy_abs,yfinance,2026-08-27
 1951,"EXEO Group,Inc.",dps,FY2026,company,66.0,jpy,jquants,2026-05-13
 1951,"EXEO Group,Inc.",eps,FY2026,company,155.86,jpy,jquants,2026-05-13
-1951,"EXEO Group,Inc.",eps,FY2026,consensus,178.2725,jpy,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",eps,FY2026,consensus,185.438,jpy,yfinance,2026-08-27
 1951,"EXEO Group,Inc.",net_profit,FY2026,company,32000000000.0,jpy_abs,jquants,2026-05-13
 1951,"EXEO Group,Inc.",net_sales,FY2026,company,760000000000.0,jpy_abs,jquants,2026-05-13
-1951,"EXEO Group,Inc.",net_sales,FY2026,consensus,748000000000.0,jpy_abs,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",net_sales,FY2026,consensus,756200000000.0,jpy_abs,yfinance,2026-08-27
 1951,"EXEO Group,Inc.",operating_profit,FY2026,company,53000000000.0,jpy_abs,jquants,2026-05-13
 1951,"EXEO Group,Inc.",dps,FY2027,company,80.0,jpy,jquants,2026-05-13
 1951,"EXEO Group,Inc.",eps,FY2027,company,174.82,jpy,jquants,2026-05-13
-1951,"EXEO Group,Inc.",eps,FY2027,consensus,190.59,jpy,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",eps,FY2027,consensus,195.95,jpy,yfinance,2026-08-27
 1951,"EXEO Group,Inc.",net_profit,FY2027,company,35500000000.0,jpy_abs,jquants,2026-05-13
 1951,"EXEO Group,Inc.",net_sales,FY2027,company,750000000000.0,jpy_abs,jquants,2026-05-13
-1951,"EXEO Group,Inc.",net_sales,FY2027,consensus,767700000000.0,jpy_abs,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",net_sales,FY2027,consensus,775700000000.0,jpy_abs,yfinance,2026-08-27
 1951,"EXEO Group,Inc.",operating_profit,FY2027,company,56000000000.0,jpy_abs,jquants,2026-05-13
 1951,"EXEO Group,Inc.",eps,FY2028,consensus,190.59,jpy,yfinance,2026-08-27
 1951,"EXEO Group,Inc.",net_sales,FY2028,consensus,767700000000.0,jpy_abs,yfinance,2026-08-27
@@ -336,14 +336,14 @@ code,name,metric,fy,basis,value,unit,source,as_of
 1961,"SANKI ENGINEERING CO.,LTD.",net_sales,FY2028,consensus,287500000000.0,jpy_abs,yfinance,2026-08-27
 1969,"Takasago Thermal Engineering Co.,Ltd.",dps,FY2026,company,72.0,jpy,jquants,2026-05-12
 1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2026,company,278.15,jpy,jquants,2026-05-12
-1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2026,consensus,322.38666,jpy,yfinance,2026-08-27
+1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2026,consensus,323.65332,jpy,yfinance,2026-08-27
 1969,"Takasago Thermal Engineering Co.,Ltd.",net_profit,FY2026,company,36500000000.0,jpy_abs,jquants,2026-05-12
 1969,"Takasago Thermal Engineering Co.,Ltd.",net_sales,FY2026,company,421000000000.0,jpy_abs,jquants,2026-05-12
 1969,"Takasago Thermal Engineering Co.,Ltd.",net_sales,FY2026,consensus,446666666670.0,jpy_abs,yfinance,2026-08-27
 1969,"Takasago Thermal Engineering Co.,Ltd.",operating_profit,FY2026,company,47100000000.0,jpy_abs,jquants,2026-05-12
 1969,"Takasago Thermal Engineering Co.,Ltd.",dps,FY2027,company,123.0,jpy,jquants,2026-05-12
 1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2027,company,305.02,jpy,jquants,2026-05-12
-1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2027,consensus,349.72668,jpy,yfinance,2026-08-27
+1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2027,consensus,350.36,jpy,yfinance,2026-08-27
 1969,"Takasago Thermal Engineering Co.,Ltd.",net_profit,FY2027,company,40000000000.0,jpy_abs,jquants,2026-05-12
 1969,"Takasago Thermal Engineering Co.,Ltd.",net_sales,FY2027,company,440000000000.0,jpy_abs,jquants,2026-05-12
 1969,"Takasago Thermal Engineering Co.,Ltd.",net_sales,FY2027,consensus,481333333330.0,jpy_abs,yfinance,2026-08-27
@@ -509,17 +509,17 @@ code,name,metric,fy,basis,value,unit,source,as_of
 2267,"YAKULT HONSHA CO.,LTD.",net_sales,FY2028,consensus,521700589310.0,jpy_abs,yfinance,2026-08-27
 2269,"Meiji Holdings Co.,Ltd.",dps,FY2026,company,105.0,jpy,jquants,2026-05-14
 2269,"Meiji Holdings Co.,Ltd.",eps,FY2026,company,134.68,jpy,jquants,2026-05-14
-2269,"Meiji Holdings Co.,Ltd.",eps,FY2026,consensus,234.93268,jpy,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",eps,FY2026,consensus,236.33868,jpy,yfinance,2026-08-27
 2269,"Meiji Holdings Co.,Ltd.",net_profit,FY2026,company,36500000000.0,jpy_abs,jquants,2026-05-14
 2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2026,company,1177000000000.0,jpy_abs,jquants,2026-05-14
-2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2026,consensus,1214849365450.0,jpy_abs,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2026,consensus,1217349365450.0,jpy_abs,yfinance,2026-08-27
 2269,"Meiji Holdings Co.,Ltd.",operating_profit,FY2026,company,91000000000.0,jpy_abs,jquants,2026-05-14
 2269,"Meiji Holdings Co.,Ltd.",dps,FY2027,company,110.0,jpy,jquants,2026-05-14
 2269,"Meiji Holdings Co.,Ltd.",eps,FY2027,company,230.61,jpy,jquants,2026-05-14
-2269,"Meiji Holdings Co.,Ltd.",eps,FY2027,consensus,260.02948,jpy,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",eps,FY2027,consensus,262.48148,jpy,yfinance,2026-08-27
 2269,"Meiji Holdings Co.,Ltd.",net_profit,FY2027,company,62500000000.0,jpy_abs,jquants,2026-05-14
 2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2027,company,1212000000000.0,jpy_abs,jquants,2026-05-14
-2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2027,consensus,1238619867450.0,jpy_abs,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2027,consensus,1242319867450.0,jpy_abs,yfinance,2026-08-27
 2269,"Meiji Holdings Co.,Ltd.",operating_profit,FY2027,company,100000000000.0,jpy_abs,jquants,2026-05-14
 2269,"Meiji Holdings Co.,Ltd.",eps,FY2028,consensus,260.02948,jpy,yfinance,2026-08-27
 2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2028,consensus,1238619867450.0,jpy_abs,yfinance,2026-08-27
@@ -624,12 +624,12 @@ code,name,metric,fy,basis,value,unit,source,as_of
 2413,"M3,Inc.",net_sales,FY2028,consensus,426012112170.0,jpy_abs,yfinance,2026-08-27
 2503,"Kirin Holdings Company,Limited",dps,FY2026,company,76.0,jpy,jquants,2026-05-14
 2503,"Kirin Holdings Company,Limited",eps,FY2026,company,193.0,jpy,jquants,2026-05-14
-2503,"Kirin Holdings Company,Limited",eps,FY2026,consensus,214.83679,jpy,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",eps,FY2026,consensus,215.00833,jpy,yfinance,2026-08-27
 2503,"Kirin Holdings Company,Limited",net_profit,FY2026,company,156000000000.0,jpy_abs,jquants,2026-05-14
 2503,"Kirin Holdings Company,Limited",net_sales,FY2026,company,2480000000000.0,jpy_abs,jquants,2026-05-14
-2503,"Kirin Holdings Company,Limited",net_sales,FY2026,consensus,2527415067380.0,jpy_abs,yfinance,2026-08-27
-2503,"Kirin Holdings Company,Limited",eps,FY2027,consensus,224.58043,jpy,yfinance,2026-08-27
-2503,"Kirin Holdings Company,Limited",net_sales,FY2027,consensus,2557877574560.0,jpy_abs,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",net_sales,FY2026,consensus,2530040067380.0,jpy_abs,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",eps,FY2027,consensus,224.84473,jpy,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",net_sales,FY2027,consensus,2568520431700.0,jpy_abs,yfinance,2026-08-27
 2587,Suntory Beverage & Food Limited,dps,FY2026,company,120.0,jpy,jquants,2026-05-13
 2587,Suntory Beverage & Food Limited,eps,FY2026,company,288.03,jpy,jquants,2026-05-13
 2587,Suntory Beverage & Food Limited,eps,FY2026,consensus,287.94568,jpy,yfinance,2026-08-27
@@ -725,12 +725,12 @@ code,name,metric,fy,basis,value,unit,source,as_of
 2767,TSUBURAYA FIELDS HOLDINGS INC.,net_sales,FY2028,consensus,186350000000.0,jpy_abs,yfinance,2026-08-27
 2768,Sojitz Corporation,dps,FY2026,company,165.0,jpy,jquants,2026-05-01
 2768,Sojitz Corporation,eps,FY2026,company,551.23,jpy,jquants,2026-05-01
-2768,Sojitz Corporation,eps,FY2026,consensus,619.05707,jpy,yfinance,2026-08-27
+2768,Sojitz Corporation,eps,FY2026,consensus,622.66956,jpy,yfinance,2026-08-27
 2768,Sojitz Corporation,net_profit,FY2026,company,115000000000.0,jpy_abs,jquants,2026-05-01
 2768,Sojitz Corporation,net_sales,FY2026,consensus,3086733333330.0,jpy_abs,yfinance,2026-08-27
 2768,Sojitz Corporation,dps,FY2027,company,180.0,jpy,jquants,2026-05-01
 2768,Sojitz Corporation,eps,FY2027,company,622.55,jpy,jquants,2026-05-01
-2768,Sojitz Corporation,eps,FY2027,consensus,658.4938,jpy,yfinance,2026-08-27
+2768,Sojitz Corporation,eps,FY2027,consensus,660.9313,jpy,yfinance,2026-08-27
 2768,Sojitz Corporation,net_profit,FY2027,company,130000000000.0,jpy_abs,jquants,2026-05-01
 2768,Sojitz Corporation,net_sales,FY2027,consensus,3190759789880.0,jpy_abs,yfinance,2026-08-27
 2768,Sojitz Corporation,eps,FY2028,consensus,658.4938,jpy,yfinance,2026-08-27
@@ -934,23 +934,23 @@ code,name,metric,fy,basis,value,unit,source,as_of
 3107,"Daiwabo Holdings Co.,Ltd.",eps,FY2028,consensus,315.25,jpy,yfinance,2026-08-27
 3107,"Daiwabo Holdings Co.,Ltd.",net_sales,FY2028,consensus,1278000000000.0,jpy_abs,yfinance,2026-08-27
 3110,"NITTO BOSEKI CO.,LTD.",dps,FY2027,company,28.0,jpy,jquants,2026-05-25
-3110,"NITTO BOSEKI CO.,LTD.",eps,FY2027,consensus,107.86938,jpy,yfinance,2026-08-27
-3110,"NITTO BOSEKI CO.,LTD.",net_sales,FY2027,consensus,140310000000.0,jpy_abs,yfinance,2026-08-27
-3110,"NITTO BOSEKI CO.,LTD.",eps,FY2028,consensus,144.25018,jpy,yfinance,2026-08-27
-3110,"NITTO BOSEKI CO.,LTD.",net_sales,FY2028,consensus,161133333330.0,jpy_abs,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",eps,FY2027,consensus,112.17594,jpy,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",net_sales,FY2027,consensus,140435000000.0,jpy_abs,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",eps,FY2028,consensus,144.63618,jpy,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",net_sales,FY2028,consensus,161355555560.0,jpy_abs,yfinance,2026-08-27
 3116,TOYOTA BOSHOKU CORPORATION,dps,FY2026,company,86.0,jpy,jquants,2026-04-28
 3116,TOYOTA BOSHOKU CORPORATION,eps,FY2026,company,251.97,jpy,jquants,2026-04-28
-3116,TOYOTA BOSHOKU CORPORATION,eps,FY2026,consensus,271.454,jpy,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,eps,FY2026,consensus,261.12833,jpy,yfinance,2026-08-27
 3116,TOYOTA BOSHOKU CORPORATION,net_profit,FY2026,company,45000000000.0,jpy_abs,jquants,2026-04-28
 3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2026,company,1980000000000.0,jpy_abs,jquants,2026-04-28
-3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2026,consensus,2120446166670.0,jpy_abs,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2026,consensus,2113277827579.0,jpy_abs,yfinance,2026-08-27
 3116,TOYOTA BOSHOKU CORPORATION,operating_profit,FY2026,company,75000000000.0,jpy_abs,jquants,2026-04-28
 3116,TOYOTA BOSHOKU CORPORATION,dps,FY2027,company,86.0,jpy,jquants,2026-04-28
 3116,TOYOTA BOSHOKU CORPORATION,eps,FY2027,company,268.77,jpy,jquants,2026-04-28
-3116,TOYOTA BOSHOKU CORPORATION,eps,FY2027,consensus,291.79996,jpy,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,eps,FY2027,consensus,292.67145,jpy,yfinance,2026-08-27
 3116,TOYOTA BOSHOKU CORPORATION,net_profit,FY2027,company,48000000000.0,jpy_abs,jquants,2026-04-28
 3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2027,company,2120000000000.0,jpy_abs,jquants,2026-04-28
-3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2027,consensus,2145874907000.0,jpy_abs,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2027,consensus,2149559332060.0,jpy_abs,yfinance,2026-08-27
 3116,TOYOTA BOSHOKU CORPORATION,operating_profit,FY2027,company,80000000000.0,jpy_abs,jquants,2026-04-28
 3116,TOYOTA BOSHOKU CORPORATION,eps,FY2028,consensus,291.79996,jpy,yfinance,2026-08-27
 3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2028,consensus,2145874907000.0,jpy_abs,yfinance,2026-08-27
@@ -1005,42 +1005,42 @@ code,name,metric,fy,basis,value,unit,source,as_of
 3231,"Nomura Real Estate Holdings,Inc.",net_sales,FY2028,consensus,1086392952229.0,jpy_abs,yfinance,2026-08-27
 3288,"Open House Group Co.,Ltd.",dps,FY2026,company,200.0,jpy,jquants,2026-05-11
 3288,"Open House Group Co.,Ltd.",eps,FY2026,company,1029.93,jpy,jquants,2026-05-11
-3288,"Open House Group Co.,Ltd.",eps,FY2026,consensus,1072.854,jpy,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",eps,FY2026,consensus,1071.954,jpy,yfinance,2026-08-27
 3288,"Open House Group Co.,Ltd.",net_profit,FY2026,company,115500000000.0,jpy_abs,jquants,2026-05-11
 3288,"Open House Group Co.,Ltd.",net_sales,FY2026,company,1485000000000.0,jpy_abs,jquants,2026-05-11
-3288,"Open House Group Co.,Ltd.",net_sales,FY2026,consensus,1495700000000.0,jpy_abs,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",net_sales,FY2026,consensus,1494225000000.0,jpy_abs,yfinance,2026-08-27
 3288,"Open House Group Co.,Ltd.",operating_profit,FY2026,company,174500000000.0,jpy_abs,jquants,2026-05-11
-3288,"Open House Group Co.,Ltd.",eps,FY2027,consensus,1136.118,jpy,yfinance,2026-08-27
-3288,"Open House Group Co.,Ltd.",net_sales,FY2027,consensus,1635482463730.0,jpy_abs,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",eps,FY2027,consensus,1136.678,jpy,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",net_sales,FY2027,consensus,1635732463730.0,jpy_abs,yfinance,2026-08-27
 3289,Tokyu Fudosan Holdings Corporation,dps,FY2026,company,44.5,jpy,jquants,2026-05-11
 3289,Tokyu Fudosan Holdings Corporation,eps,FY2026,company,126.07,jpy,jquants,2026-05-11
-3289,Tokyu Fudosan Holdings Corporation,eps,FY2026,consensus,145.3212,jpy,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,eps,FY2026,consensus,145.35419,jpy,yfinance,2026-08-27
 3289,Tokyu Fudosan Holdings Corporation,net_profit,FY2026,company,90000000000.0,jpy_abs,jquants,2026-05-11
 3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2026,company,1300000000000.0,jpy_abs,jquants,2026-05-11
-3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2026,consensus,1406263348090.0,jpy_abs,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2026,consensus,1406418752670.0,jpy_abs,yfinance,2026-08-27
 3289,Tokyu Fudosan Holdings Corporation,operating_profit,FY2026,company,160000000000.0,jpy_abs,jquants,2026-05-11
 3289,Tokyu Fudosan Holdings Corporation,dps,FY2027,company,50.0,jpy,jquants,2026-05-11
 3289,Tokyu Fudosan Holdings Corporation,eps,FY2027,company,140.02,jpy,jquants,2026-05-11
-3289,Tokyu Fudosan Holdings Corporation,eps,FY2027,consensus,151.47505,jpy,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,eps,FY2027,consensus,151.68304,jpy,yfinance,2026-08-27
 3289,Tokyu Fudosan Holdings Corporation,net_profit,FY2027,company,100000000000.0,jpy_abs,jquants,2026-05-11
 3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2027,company,1400000000000.0,jpy_abs,jquants,2026-05-11
-3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2027,consensus,1419581332670.0,jpy_abs,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2027,consensus,1419891309110.0,jpy_abs,yfinance,2026-08-27
 3289,Tokyu Fudosan Holdings Corporation,operating_profit,FY2027,company,190000000000.0,jpy_abs,jquants,2026-05-11
 3289,Tokyu Fudosan Holdings Corporation,eps,FY2028,consensus,151.47505,jpy,yfinance,2026-08-27
 3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2028,consensus,1419581332670.0,jpy_abs,yfinance,2026-08-27
 3291,"Iida Group Holdings Co.,Ltd.",dps,FY2026,company,100.0,jpy,jquants,2026-05-15
 3291,"Iida Group Holdings Co.,Ltd.",eps,FY2026,company,209.89,jpy,jquants,2026-05-15
-3291,"Iida Group Holdings Co.,Ltd.",eps,FY2026,consensus,245.786,jpy,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",eps,FY2026,consensus,253.606,jpy,yfinance,2026-08-27
 3291,"Iida Group Holdings Co.,Ltd.",net_profit,FY2026,company,58000000000.0,jpy_abs,jquants,2026-05-15
 3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2026,company,1530000000000.0,jpy_abs,jquants,2026-05-15
-3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2026,consensus,1648540000000.0,jpy_abs,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2026,consensus,1652540000000.0,jpy_abs,yfinance,2026-08-27
 3291,"Iida Group Holdings Co.,Ltd.",operating_profit,FY2026,company,93000000000.0,jpy_abs,jquants,2026-05-15
 3291,"Iida Group Holdings Co.,Ltd.",dps,FY2027,company,92.0,jpy,jquants,2026-05-15
 3291,"Iida Group Holdings Co.,Ltd.",eps,FY2027,company,237.04,jpy,jquants,2026-05-15
-3291,"Iida Group Holdings Co.,Ltd.",eps,FY2027,consensus,255.142,jpy,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",eps,FY2027,consensus,262.902,jpy,yfinance,2026-08-27
 3291,"Iida Group Holdings Co.,Ltd.",net_profit,FY2027,company,65500000000.0,jpy_abs,jquants,2026-05-15
 3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2027,company,1663000000000.0,jpy_abs,jquants,2026-05-15
-3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2027,consensus,1708140000000.0,jpy_abs,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2027,consensus,1719020000000.0,jpy_abs,yfinance,2026-08-27
 3291,"Iida Group Holdings Co.,Ltd.",operating_profit,FY2027,company,103600000000.0,jpy_abs,jquants,2026-05-15
 3291,"Iida Group Holdings Co.,Ltd.",eps,FY2028,consensus,255.142,jpy,yfinance,2026-08-27
 3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2028,consensus,1708140000000.0,jpy_abs,yfinance,2026-08-27
@@ -1057,17 +1057,17 @@ code,name,metric,fy,basis,value,unit,source,as_of
 3349,COSMOS Pharmaceutical Corporation,net_sales,FY2028,consensus,1273308300000.0,jpy_abs,yfinance,2026-08-27
 3382,"Seven & i Holdings Co.,Ltd.",dps,FY2026,company,50.0,jpy,jquants,2026-04-09
 3382,"Seven & i Holdings Co.,Ltd.",eps,FY2026,company,109.57,jpy,jquants,2026-04-09
-3382,"Seven & i Holdings Co.,Ltd.",eps,FY2026,consensus,120.3523,jpy,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",eps,FY2026,consensus,120.94968,jpy,yfinance,2026-08-27
 3382,"Seven & i Holdings Co.,Ltd.",net_profit,FY2026,company,270000000000.0,jpy_abs,jquants,2026-04-09
 3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2026,company,10560000000000.0,jpy_abs,jquants,2026-04-09
-3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2026,consensus,10445061269750.0,jpy_abs,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2026,consensus,10457727936410.0,jpy_abs,yfinance,2026-08-27
 3382,"Seven & i Holdings Co.,Ltd.",operating_profit,FY2026,company,404000000000.0,jpy_abs,jquants,2026-04-09
 3382,"Seven & i Holdings Co.,Ltd.",dps,FY2027,company,60.0,jpy,jquants,2026-04-09
 3382,"Seven & i Holdings Co.,Ltd.",eps,FY2027,company,117.42,jpy,jquants,2026-04-09
-3382,"Seven & i Holdings Co.,Ltd.",eps,FY2027,consensus,121.10806,jpy,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",eps,FY2027,consensus,121.23616,jpy,yfinance,2026-08-27
 3382,"Seven & i Holdings Co.,Ltd.",net_profit,FY2027,company,270000000000.0,jpy_abs,jquants,2026-04-09
 3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2027,company,9448000000000.0,jpy_abs,jquants,2026-04-09
-3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2027,consensus,10346136177700.0,jpy_abs,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2027,consensus,10354736177700.0,jpy_abs,yfinance,2026-08-27
 3382,"Seven & i Holdings Co.,Ltd.",operating_profit,FY2027,company,405000000000.0,jpy_abs,jquants,2026-04-09
 3382,"Seven & i Holdings Co.,Ltd.",eps,FY2028,consensus,121.10806,jpy,yfinance,2026-08-27
 3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2028,consensus,10346136177700.0,jpy_abs,yfinance,2026-08-27
@@ -1133,23 +1133,23 @@ code,name,metric,fy,basis,value,unit,source,as_of
 3563,FOOD & LIFE COMPANIES LTD.,eps,FY2026,consensus,143.88556,jpy,yfinance,2026-08-27
 3563,FOOD & LIFE COMPANIES LTD.,net_profit,FY2026,company,30000000000.0,jpy_abs,jquants,2026-05-08
 3563,FOOD & LIFE COMPANIES LTD.,net_sales,FY2026,company,505000000000.0,jpy_abs,jquants,2026-05-08
-3563,FOOD & LIFE COMPANIES LTD.,net_sales,FY2026,consensus,519589499040.0,jpy_abs,yfinance,2026-08-27
+3563,FOOD & LIFE COMPANIES LTD.,net_sales,FY2026,consensus,520342665810.0,jpy_abs,yfinance,2026-08-27
 3563,FOOD & LIFE COMPANIES LTD.,operating_profit,FY2026,company,48500000000.0,jpy_abs,jquants,2026-05-08
 3563,FOOD & LIFE COMPANIES LTD.,eps,FY2027,consensus,176.62764,jpy,yfinance,2026-08-27
-3563,FOOD & LIFE COMPANIES LTD.,net_sales,FY2027,consensus,610457988340.0,jpy_abs,yfinance,2026-08-27
+3563,FOOD & LIFE COMPANIES LTD.,net_sales,FY2027,consensus,610777989800.0,jpy_abs,yfinance,2026-08-27
 3626,TISI Inc.,dps,FY2026,company,76.0,jpy,jquants,2026-05-08
 3626,TISI Inc.,eps,FY2026,company,220.7,jpy,jquants,2026-05-08
-3626,TISI Inc.,eps,FY2026,consensus,269.78583,jpy,yfinance,2026-08-27
+3626,TISI Inc.,eps,FY2026,consensus,271.34488,jpy,yfinance,2026-08-27
 3626,TISI Inc.,net_profit,FY2026,company,50000000000.0,jpy_abs,jquants,2026-05-08
 3626,TISI Inc.,net_sales,FY2026,company,588000000000.0,jpy_abs,jquants,2026-05-08
-3626,TISI Inc.,net_sales,FY2026,consensus,623604000000.0,jpy_abs,yfinance,2026-08-27
+3626,TISI Inc.,net_sales,FY2026,consensus,624754000000.0,jpy_abs,yfinance,2026-08-27
 3626,TISI Inc.,operating_profit,FY2026,company,75000000000.0,jpy_abs,jquants,2026-05-08
 3626,TISI Inc.,dps,FY2027,company,90.0,jpy,jquants,2026-05-08
 3626,TISI Inc.,eps,FY2027,company,271.7,jpy,jquants,2026-05-08
-3626,TISI Inc.,eps,FY2027,consensus,280.52063,jpy,yfinance,2026-08-27
+3626,TISI Inc.,eps,FY2027,consensus,281.35376,jpy,yfinance,2026-08-27
 3626,TISI Inc.,net_profit,FY2027,company,57000000000.0,jpy_abs,jquants,2026-05-08
 3626,TISI Inc.,net_sales,FY2027,company,620000000000.0,jpy_abs,jquants,2026-05-08
-3626,TISI Inc.,net_sales,FY2027,consensus,649800916670.0,jpy_abs,yfinance,2026-08-27
+3626,TISI Inc.,net_sales,FY2027,consensus,650875916670.0,jpy_abs,yfinance,2026-08-27
 3626,TISI Inc.,operating_profit,FY2027,company,81000000000.0,jpy_abs,jquants,2026-05-08
 3626,TISI Inc.,eps,FY2028,consensus,280.52063,jpy,yfinance,2026-08-27
 3626,TISI Inc.,net_sales,FY2028,consensus,649800916670.0,jpy_abs,yfinance,2026-08-27
@@ -1170,10 +1170,10 @@ code,name,metric,fy,basis,value,unit,source,as_of
 3635,"KOEI TECMO HOLDINGS CO.,LTD.",eps,FY2028,consensus,113.32523,jpy,yfinance,2026-08-27
 3635,"KOEI TECMO HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,92602025780.0,jpy_abs,yfinance,2026-08-27
 3659,"NEXON Co.,Ltd.",dps,FY2026,company,60.0,jpy,jquants,2026-05-14
-3659,"NEXON Co.,Ltd.",eps,FY2026,consensus,150.39172,jpy,yfinance,2026-08-27
-3659,"NEXON Co.,Ltd.",net_sales,FY2026,consensus,509932259750.0,jpy_abs,yfinance,2026-08-27
-3659,"NEXON Co.,Ltd.",eps,FY2027,consensus,143.2301,jpy,yfinance,2026-08-27
-3659,"NEXON Co.,Ltd.",net_sales,FY2027,consensus,520425718760.0,jpy_abs,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",eps,FY2026,consensus,149.29173,jpy,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",net_sales,FY2026,consensus,509726759750.0,jpy_abs,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",eps,FY2027,consensus,142.90788,jpy,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",net_sales,FY2027,consensus,522008929280.0,jpy_abs,yfinance,2026-08-27
 3697,SHIFT Inc.,dps,FY2026,company,0.0,jpy,jquants,2026-04-14
 3697,SHIFT Inc.,eps,FY2026,company,43.67,jpy,jquants,2026-04-14
 3697,SHIFT Inc.,eps,FY2026,consensus,34.13298,jpy,yfinance,2026-08-27
@@ -1192,33 +1192,33 @@ code,name,metric,fy,basis,value,unit,source,as_of
 3769,"GMO Payment Gateway,Inc.",net_sales,FY2027,consensus,110730965480.0,jpy_abs,yfinance,2026-08-27
 3774,Internet Initiative Japan Inc.,dps,FY2026,company,39.0,jpy,jquants,2026-05-14
 3774,Internet Initiative Japan Inc.,eps,FY2026,company,130.0,jpy,jquants,2026-05-14
-3774,Internet Initiative Japan Inc.,eps,FY2026,consensus,143.94188,jpy,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,eps,FY2026,consensus,143.87988,jpy,yfinance,2026-08-27
 3774,Internet Initiative Japan Inc.,net_profit,FY2026,company,23000000000.0,jpy_abs,jquants,2026-05-14
 3774,Internet Initiative Japan Inc.,net_sales,FY2026,company,340000000000.0,jpy_abs,jquants,2026-05-14
-3774,Internet Initiative Japan Inc.,net_sales,FY2026,consensus,387564871330.0,jpy_abs,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,net_sales,FY2026,consensus,392172649110.0,jpy_abs,yfinance,2026-08-27
 3774,Internet Initiative Japan Inc.,operating_profit,FY2026,company,36500000000.0,jpy_abs,jquants,2026-05-14
 3774,Internet Initiative Japan Inc.,dps,FY2027,company,43.0,jpy,jquants,2026-05-14
 3774,Internet Initiative Japan Inc.,eps,FY2027,company,141.03,jpy,jquants,2026-05-14
-3774,Internet Initiative Japan Inc.,eps,FY2027,consensus,163.58607,jpy,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,eps,FY2027,consensus,164.08408,jpy,yfinance,2026-08-27
 3774,Internet Initiative Japan Inc.,net_profit,FY2027,company,25000000000.0,jpy_abs,jquants,2026-05-14
 3774,Internet Initiative Japan Inc.,net_sales,FY2027,company,385000000000.0,jpy_abs,jquants,2026-05-14
-3774,Internet Initiative Japan Inc.,net_sales,FY2027,consensus,419049398900.0,jpy_abs,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,net_sales,FY2027,consensus,422749398900.0,jpy_abs,yfinance,2026-08-27
 3774,Internet Initiative Japan Inc.,operating_profit,FY2027,company,38500000000.0,jpy_abs,jquants,2026-05-14
 3774,Internet Initiative Japan Inc.,eps,FY2028,consensus,163.58607,jpy,yfinance,2026-08-27
 3774,Internet Initiative Japan Inc.,net_sales,FY2028,consensus,419049398900.0,jpy_abs,yfinance,2026-08-27
 3923,"RAKUS Co.,Ltd.",dps,FY2026,company,7.0,jpy,jquants,2026-05-14
 3923,"RAKUS Co.,Ltd.",eps,FY2026,company,36.91,jpy,jquants,2026-05-14
-3923,"RAKUS Co.,Ltd.",eps,FY2026,consensus,74.84288,jpy,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",eps,FY2026,consensus,74.62859,jpy,yfinance,2026-08-27
 3923,"RAKUS Co.,Ltd.",net_profit,FY2026,company,13293000000.0,jpy_abs,jquants,2026-05-14
 3923,"RAKUS Co.,Ltd.",net_sales,FY2026,company,60286000000.0,jpy_abs,jquants,2026-05-14
-3923,"RAKUS Co.,Ltd.",net_sales,FY2026,consensus,60444440530.0,jpy_abs,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",net_sales,FY2026,consensus,60446011960.0,jpy_abs,yfinance,2026-08-27
 3923,"RAKUS Co.,Ltd.",operating_profit,FY2026,company,17345000000.0,jpy_abs,jquants,2026-05-14
 3923,"RAKUS Co.,Ltd.",dps,FY2027,company,8.0,jpy,jquants,2026-05-14
 3923,"RAKUS Co.,Ltd.",eps,FY2027,company,71.16,jpy,jquants,2026-05-14
-3923,"RAKUS Co.,Ltd.",eps,FY2027,consensus,52.73927,jpy,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",eps,FY2027,consensus,52.82498,jpy,yfinance,2026-08-27
 3923,"RAKUS Co.,Ltd.",net_profit,FY2027,company,25200000000.0,jpy_abs,jquants,2026-05-14
 3923,"RAKUS Co.,Ltd.",net_sales,FY2027,company,59700000000.0,jpy_abs,jquants,2026-05-14
-3923,"RAKUS Co.,Ltd.",net_sales,FY2027,consensus,69617341430.0,jpy_abs,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",net_sales,FY2027,consensus,69680055710.0,jpy_abs,yfinance,2026-08-27
 3923,"RAKUS Co.,Ltd.",operating_profit,FY2027,company,20500000000.0,jpy_abs,jquants,2026-05-14
 3923,"RAKUS Co.,Ltd.",eps,FY2028,consensus,52.73927,jpy,yfinance,2026-08-27
 3923,"RAKUS Co.,Ltd.",net_sales,FY2028,consensus,69617341430.0,jpy_abs,yfinance,2026-08-27
@@ -2165,32 +2165,32 @@ code,name,metric,fy,basis,value,unit,source,as_of
 547A,Muninova Holdings Inc.,net_sales,FY2028,consensus,253688454350.0,jpy_abs,yfinance,2026-08-27
 5706,"Mitsui Kinzoku Company,Limited",dps,FY2026,company,240.0,jpy,jquants,2026-05-13
 5706,"Mitsui Kinzoku Company,Limited",eps,FY2026,company,1346.19,jpy,jquants,2026-05-13
-5706,"Mitsui Kinzoku Company,Limited",eps,FY2026,consensus,1526.9413,jpy,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",eps,FY2026,consensus,1533.4962,jpy,yfinance,2026-08-27
 5706,"Mitsui Kinzoku Company,Limited",net_profit,FY2026,company,77000000000.0,jpy_abs,jquants,2026-05-13
 5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2026,company,750000000000.0,jpy_abs,jquants,2026-05-13
-5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2026,consensus,837691808890.0,jpy_abs,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2026,consensus,840887031110.0,jpy_abs,yfinance,2026-08-27
 5706,"Mitsui Kinzoku Company,Limited",operating_profit,FY2026,company,117000000000.0,jpy_abs,jquants,2026-05-13
 5706,"Mitsui Kinzoku Company,Limited",dps,FY2027,company,280.0,jpy,jquants,2026-05-13
 5706,"Mitsui Kinzoku Company,Limited",eps,FY2027,company,1311.14,jpy,jquants,2026-05-13
-5706,"Mitsui Kinzoku Company,Limited",eps,FY2027,consensus,1805.9889,jpy,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",eps,FY2027,consensus,1797.2478,jpy,yfinance,2026-08-27
 5706,"Mitsui Kinzoku Company,Limited",net_profit,FY2027,company,75000000000.0,jpy_abs,jquants,2026-05-13
 5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2027,company,830000000000.0,jpy_abs,jquants,2026-05-13
-5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2027,consensus,885659792000.0,jpy_abs,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2027,consensus,887139792000.0,jpy_abs,yfinance,2026-08-27
 5706,"Mitsui Kinzoku Company,Limited",operating_profit,FY2027,company,91000000000.0,jpy_abs,jquants,2026-05-13
 5706,"Mitsui Kinzoku Company,Limited",eps,FY2028,consensus,1805.9889,jpy,yfinance,2026-08-27
 5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2028,consensus,885659792000.0,jpy_abs,yfinance,2026-08-27
 5713,"Sumitomo Metal Mining Co.,Ltd.",dps,FY2026,company,183.0,jpy,jquants,2026-05-11
 5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2026,company,515.83,jpy,jquants,2026-05-11
-5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2026,consensus,855.6157,jpy,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2026,consensus,858.3348,jpy,yfinance,2026-08-27
 5713,"Sumitomo Metal Mining Co.,Ltd.",net_profit,FY2026,company,140000000000.0,jpy_abs,jquants,2026-05-11
 5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2026,company,1697000000000.0,jpy_abs,jquants,2026-05-11
-5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2026,consensus,2045619384000.0,jpy_abs,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2026,consensus,2075382835500.0,jpy_abs,yfinance,2026-08-27
 5713,"Sumitomo Metal Mining Co.,Ltd.",dps,FY2027,company,207.0,jpy,jquants,2026-05-11
 5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2027,company,518.08,jpy,jquants,2026-05-11
-5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2027,consensus,844.47076,jpy,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2027,consensus,844.8657,jpy,yfinance,2026-08-27
 5713,"Sumitomo Metal Mining Co.,Ltd.",net_profit,FY2027,company,139000000000.0,jpy_abs,jquants,2026-05-11
 5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2027,company,1883000000000.0,jpy_abs,jquants,2026-05-11
-5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2027,consensus,2088195342000.0,jpy_abs,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2027,consensus,2086820342000.0,jpy_abs,yfinance,2026-08-27
 5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2028,consensus,844.47076,jpy,yfinance,2026-08-27
 5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2028,consensus,2088195342000.0,jpy_abs,yfinance,2026-08-27
 5714,"DOWA HOLDINGS CO.,LTD.",dps,FY2026,company,318.0,jpy,jquants,2026-05-14
@@ -2230,14 +2230,14 @@ code,name,metric,fy,basis,value,unit,source,as_of
 5801,"Furukawa Electric Co.,Ltd.",eps,FY2026,consensus,154.792,jpy,yfinance,2026-08-27
 5801,"Furukawa Electric Co.,Ltd.",net_profit,FY2026,company,54000000000.0,jpy_abs,jquants,2026-05-12
 5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2026,company,1300000000000.0,jpy_abs,jquants,2026-05-12
-5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2026,consensus,1498909932220.0,jpy_abs,yfinance,2026-08-27
+5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2026,consensus,1504148625000.0,jpy_abs,yfinance,2026-08-27
 5801,"Furukawa Electric Co.,Ltd.",operating_profit,FY2026,company,56000000000.0,jpy_abs,jquants,2026-05-12
 5801,"Furukawa Electric Co.,Ltd.",dps,FY2027,company,22.0,jpy,jquants,2026-05-12
 5801,"Furukawa Electric Co.,Ltd.",eps,FY2027,company,116.56,jpy,jquants,2026-05-12
-5801,"Furukawa Electric Co.,Ltd.",eps,FY2027,consensus,196.14212,jpy,yfinance,2026-08-27
+5801,"Furukawa Electric Co.,Ltd.",eps,FY2027,consensus,201.875,jpy,yfinance,2026-08-27
 5801,"Furukawa Electric Co.,Ltd.",net_profit,FY2027,company,82000000000.0,jpy_abs,jquants,2026-05-12
 5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2027,company,1460000000000.0,jpy_abs,jquants,2026-05-12
-5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2027,consensus,1703123997780.0,jpy_abs,yfinance,2026-08-27
+5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2027,consensus,1719889500000.0,jpy_abs,yfinance,2026-08-27
 5801,"Furukawa Electric Co.,Ltd.",operating_profit,FY2027,company,95000000000.0,jpy_abs,jquants,2026-05-12
 5801,"Furukawa Electric Co.,Ltd.",eps,FY2028,consensus,196.14212,jpy,yfinance,2026-08-27
 5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2028,consensus,1703123997780.0,jpy_abs,yfinance,2026-08-27
@@ -2305,14 +2305,14 @@ code,name,metric,fy,basis,value,unit,source,as_of
 5838,"Rakuten Bank,Ltd.",net_sales,FY2028,consensus,201000000000000.0,jpy_abs,yfinance,2026-08-27
 5857,"ARE Holdings,Inc.",dps,FY2026,company,125.0,jpy,jquants,2026-05-01
 5857,"ARE Holdings,Inc.",eps,FY2026,company,311.9,jpy,jquants,2026-05-01
-5857,"ARE Holdings,Inc.",eps,FY2026,consensus,359.6,jpy,yfinance,2026-08-27
+5857,"ARE Holdings,Inc.",eps,FY2026,consensus,371.23334,jpy,yfinance,2026-08-27
 5857,"ARE Holdings,Inc.",net_profit,FY2026,company,23900000000.0,jpy_abs,jquants,2026-05-01
 5857,"ARE Holdings,Inc.",net_sales,FY2026,company,585000000000.0,jpy_abs,jquants,2026-05-01
 5857,"ARE Holdings,Inc.",net_sales,FY2026,consensus,744333333330.0,jpy_abs,yfinance,2026-08-27
 5857,"ARE Holdings,Inc.",operating_profit,FY2026,company,35000000000.0,jpy_abs,jquants,2026-05-01
 5857,"ARE Holdings,Inc.",dps,FY2027,company,135.0,jpy,jquants,2026-05-01
 5857,"ARE Holdings,Inc.",eps,FY2027,company,337.43,jpy,jquants,2026-05-01
-5857,"ARE Holdings,Inc.",eps,FY2027,consensus,373.13333,jpy,yfinance,2026-08-27
+5857,"ARE Holdings,Inc.",eps,FY2027,consensus,385.13333,jpy,yfinance,2026-08-27
 5857,"ARE Holdings,Inc.",net_profit,FY2027,company,29000000000.0,jpy_abs,jquants,2026-05-01
 5857,"ARE Holdings,Inc.",net_sales,FY2027,company,680000000000.0,jpy_abs,jquants,2026-05-01
 5857,"ARE Holdings,Inc.",net_sales,FY2027,consensus,788100000000.0,jpy_abs,yfinance,2026-08-27
@@ -2321,33 +2321,33 @@ code,name,metric,fy,basis,value,unit,source,as_of
 5857,"ARE Holdings,Inc.",net_sales,FY2028,consensus,788100000000.0,jpy_abs,yfinance,2026-08-27
 5929,Sanwa Holdings Corporation,dps,FY2026,company,124.0,jpy,jquants,2026-05-14
 5929,Sanwa Holdings Corporation,eps,FY2026,company,270.7,jpy,jquants,2026-05-14
-5929,Sanwa Holdings Corporation,eps,FY2026,consensus,281.45178,jpy,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,eps,FY2026,consensus,282.77142,jpy,yfinance,2026-08-27
 5929,Sanwa Holdings Corporation,net_profit,FY2026,company,58000000000.0,jpy_abs,jquants,2026-05-14
 5929,Sanwa Holdings Corporation,net_sales,FY2026,company,654000000000.0,jpy_abs,jquants,2026-05-14
-5929,Sanwa Holdings Corporation,net_sales,FY2026,consensus,680325877500.0,jpy_abs,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,net_sales,FY2026,consensus,682285714290.0,jpy_abs,yfinance,2026-08-27
 5929,Sanwa Holdings Corporation,operating_profit,FY2026,company,81000000000.0,jpy_abs,jquants,2026-05-14
 5929,Sanwa Holdings Corporation,dps,FY2027,company,146.0,jpy,jquants,2026-05-14
 5929,Sanwa Holdings Corporation,eps,FY2027,company,288.08,jpy,jquants,2026-05-14
-5929,Sanwa Holdings Corporation,eps,FY2027,consensus,299.8864,jpy,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,eps,FY2027,consensus,301.03668,jpy,yfinance,2026-08-27
 5929,Sanwa Holdings Corporation,net_profit,FY2027,company,60000000000.0,jpy_abs,jquants,2026-05-14
 5929,Sanwa Holdings Corporation,net_sales,FY2027,company,677000000000.0,jpy_abs,jquants,2026-05-14
-5929,Sanwa Holdings Corporation,net_sales,FY2027,consensus,703655684290.0,jpy_abs,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,net_sales,FY2027,consensus,705750000000.0,jpy_abs,yfinance,2026-08-27
 5929,Sanwa Holdings Corporation,operating_profit,FY2027,company,81000000000.0,jpy_abs,jquants,2026-05-14
 5929,Sanwa Holdings Corporation,eps,FY2028,consensus,299.8864,jpy,yfinance,2026-08-27
 5929,Sanwa Holdings Corporation,net_sales,FY2028,consensus,703655684290.0,jpy_abs,yfinance,2026-08-27
 5947,RINNAI CORPORATION,dps,FY2026,company,100.0,jpy,jquants,2026-05-12
 5947,RINNAI CORPORATION,eps,FY2026,company,237.24,jpy,jquants,2026-05-12
-5947,RINNAI CORPORATION,eps,FY2026,consensus,260.25626,jpy,yfinance,2026-08-27
+5947,RINNAI CORPORATION,eps,FY2026,consensus,260.05624,jpy,yfinance,2026-08-27
 5947,RINNAI CORPORATION,net_profit,FY2026,company,33000000000.0,jpy_abs,jquants,2026-05-12
 5947,RINNAI CORPORATION,net_sales,FY2026,company,470000000000.0,jpy_abs,jquants,2026-05-12
-5947,RINNAI CORPORATION,net_sales,FY2026,consensus,502037500000.0,jpy_abs,yfinance,2026-08-27
+5947,RINNAI CORPORATION,net_sales,FY2026,consensus,503787500000.0,jpy_abs,yfinance,2026-08-27
 5947,RINNAI CORPORATION,operating_profit,FY2026,company,50000000000.0,jpy_abs,jquants,2026-05-12
 5947,RINNAI CORPORATION,dps,FY2027,company,106.0,jpy,jquants,2026-05-12
 5947,RINNAI CORPORATION,eps,FY2027,company,262.91,jpy,jquants,2026-05-12
-5947,RINNAI CORPORATION,eps,FY2027,consensus,271.64142,jpy,yfinance,2026-08-27
+5947,RINNAI CORPORATION,eps,FY2027,consensus,272.42715,jpy,yfinance,2026-08-27
 5947,RINNAI CORPORATION,net_profit,FY2027,company,36300000000.0,jpy_abs,jquants,2026-05-12
 5947,RINNAI CORPORATION,net_sales,FY2027,company,500000000000.0,jpy_abs,jquants,2026-05-12
-5947,RINNAI CORPORATION,net_sales,FY2027,consensus,517971428570.0,jpy_abs,yfinance,2026-08-27
+5947,RINNAI CORPORATION,net_sales,FY2027,consensus,521542857140.0,jpy_abs,yfinance,2026-08-27
 5947,RINNAI CORPORATION,operating_profit,FY2027,company,50500000000.0,jpy_abs,jquants,2026-05-12
 5947,RINNAI CORPORATION,eps,FY2028,consensus,271.64142,jpy,yfinance,2026-08-27
 5947,RINNAI CORPORATION,net_sales,FY2028,consensus,517971428570.0,jpy_abs,yfinance,2026-08-27
@@ -2385,17 +2385,17 @@ code,name,metric,fy,basis,value,unit,source,as_of
 6005,"MIURA CO.,LTD.",net_sales,FY2028,consensus,297790000000.0,jpy_abs,yfinance,2026-08-27
 6098,"Recruit Holdings Co.,Ltd.",dps,FY2026,company,25.0,jpy,jquants,2026-05-15
 6098,"Recruit Holdings Co.,Ltd.",eps,FY2026,company,335.0,jpy,jquants,2026-05-15
-6098,"Recruit Holdings Co.,Ltd.",eps,FY2026,consensus,526.48816,jpy,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",eps,FY2026,consensus,534.57275,jpy,yfinance,2026-08-27
 6098,"Recruit Holdings Co.,Ltd.",net_profit,FY2026,company,480900000000.0,jpy_abs,jquants,2026-05-15
 6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2026,company,3664700000000.0,jpy_abs,jquants,2026-05-15
-6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2026,consensus,4170767699930.0,jpy_abs,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2026,consensus,4178191229340.0,jpy_abs,yfinance,2026-08-27
 6098,"Recruit Holdings Co.,Ltd.",operating_profit,FY2026,company,590600000000.0,jpy_abs,jquants,2026-05-15
 6098,"Recruit Holdings Co.,Ltd.",dps,FY2027,company,26.0,jpy,jquants,2026-05-15
 6098,"Recruit Holdings Co.,Ltd.",eps,FY2027,company,447.0,jpy,jquants,2026-05-15
-6098,"Recruit Holdings Co.,Ltd.",eps,FY2027,consensus,634.71967,jpy,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",eps,FY2027,consensus,644.0197,jpy,yfinance,2026-08-27
 6098,"Recruit Holdings Co.,Ltd.",net_profit,FY2027,company,623000000000.0,jpy_abs,jquants,2026-05-15
 6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2027,company,4030000000000.0,jpy_abs,jquants,2026-05-15
-6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2027,consensus,4529785878680.0,jpy_abs,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2027,consensus,4542979996330.0,jpy_abs,yfinance,2026-08-27
 6098,"Recruit Holdings Co.,Ltd.",operating_profit,FY2027,company,787000000000.0,jpy_abs,jquants,2026-05-15
 6098,"Recruit Holdings Co.,Ltd.",eps,FY2028,consensus,634.71967,jpy,yfinance,2026-08-27
 6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2028,consensus,4529785878680.0,jpy_abs,yfinance,2026-08-27
@@ -3005,15 +3005,15 @@ code,name,metric,fy,basis,value,unit,source,as_of
 6752,Panasonic Holdings Corporation,eps,FY2028,consensus,250.27562,jpy,yfinance,2026-08-27
 6752,Panasonic Holdings Corporation,net_sales,FY2028,consensus,8344173396420.0,jpy_abs,yfinance,2026-08-27
 6758,SONY GROUP CORPORATION,dps,FY2026,company,25.0,jpy,jquants,2026-05-08
-6758,SONY GROUP CORPORATION,eps,FY2026,consensus,216.36452,jpy,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,eps,FY2026,consensus,215.64381,jpy,yfinance,2026-08-27
 6758,SONY GROUP CORPORATION,net_sales,FY2026,company,12300000000000.0,jpy_abs,jquants,2026-05-08
-6758,SONY GROUP CORPORATION,net_sales,FY2026,consensus,12878178521790.0,jpy_abs,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,net_sales,FY2026,consensus,12864282260930.0,jpy_abs,yfinance,2026-08-27
 6758,SONY GROUP CORPORATION,operating_profit,FY2026,company,1540000000000.0,jpy_abs,jquants,2026-05-08
 6758,SONY GROUP CORPORATION,dps,FY2027,company,35.0,jpy,jquants,2026-05-08
-6758,SONY GROUP CORPORATION,eps,FY2027,consensus,229.38618,jpy,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,eps,FY2027,consensus,229.07758,jpy,yfinance,2026-08-27
 6758,SONY GROUP CORPORATION,net_profit,FY2027,company,1160000000000.0,jpy_abs,jquants,2026-05-08
 6758,SONY GROUP CORPORATION,net_sales,FY2027,company,12300000000000.0,jpy_abs,jquants,2026-05-08
-6758,SONY GROUP CORPORATION,net_sales,FY2027,consensus,12799462000060.0,jpy_abs,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,net_sales,FY2027,consensus,12812301181890.0,jpy_abs,yfinance,2026-08-27
 6758,SONY GROUP CORPORATION,operating_profit,FY2027,company,1600000000000.0,jpy_abs,jquants,2026-05-08
 6758,SONY GROUP CORPORATION,eps,FY2028,consensus,229.38618,jpy,yfinance,2026-08-27
 6758,SONY GROUP CORPORATION,net_sales,FY2028,consensus,12799462000060.0,jpy_abs,yfinance,2026-08-27
@@ -3412,17 +3412,17 @@ code,name,metric,fy,basis,value,unit,source,as_of
 7202,ISUZU MOTORS LIMITED,net_sales,FY2028,consensus,3921550442550.0,jpy_abs,yfinance,2026-08-27
 7203,TOYOTA MOTOR CORPORATION,dps,FY2026,company,95.0,jpy,jquants,2026-05-08
 7203,TOYOTA MOTOR CORPORATION,eps,FY2026,company,273.91,jpy,jquants,2026-05-08
-7203,TOYOTA MOTOR CORPORATION,eps,FY2026,consensus,309.06668,jpy,yfinance,2026-08-27
+7203,TOYOTA MOTOR CORPORATION,eps,FY2026,consensus,310.08054,jpy,yfinance,2026-08-27
 7203,TOYOTA MOTOR CORPORATION,net_profit,FY2026,company,3570000000000.0,jpy_abs,jquants,2026-05-08
 7203,TOYOTA MOTOR CORPORATION,net_sales,FY2026,company,50000000000000.0,jpy_abs,jquants,2026-05-08
 7203,TOYOTA MOTOR CORPORATION,net_sales,FY2026,consensus,53890748619140.0,jpy_abs,yfinance,2026-08-27
 7203,TOYOTA MOTOR CORPORATION,operating_profit,FY2026,company,3800000000000.0,jpy_abs,jquants,2026-05-08
 7203,TOYOTA MOTOR CORPORATION,dps,FY2027,company,100.0,jpy,jquants,2026-05-08
 7203,TOYOTA MOTOR CORPORATION,eps,FY2027,company,251.25,jpy,jquants,2026-05-08
-7203,TOYOTA MOTOR CORPORATION,eps,FY2027,consensus,348.52686,jpy,yfinance,2026-08-27
+7203,TOYOTA MOTOR CORPORATION,eps,FY2027,consensus,346.18597,jpy,yfinance,2026-08-27
 7203,TOYOTA MOTOR CORPORATION,net_profit,FY2027,company,3000000000000.0,jpy_abs,jquants,2026-05-08
 7203,TOYOTA MOTOR CORPORATION,net_sales,FY2027,company,51000000000000.0,jpy_abs,jquants,2026-05-08
-7203,TOYOTA MOTOR CORPORATION,net_sales,FY2027,consensus,55435252249890.0,jpy_abs,yfinance,2026-08-27
+7203,TOYOTA MOTOR CORPORATION,net_sales,FY2027,consensus,55461830183880.0,jpy_abs,yfinance,2026-08-27
 7203,TOYOTA MOTOR CORPORATION,operating_profit,FY2027,company,3000000000000.0,jpy_abs,jquants,2026-05-08
 7203,TOYOTA MOTOR CORPORATION,eps,FY2028,consensus,348.52686,jpy,yfinance,2026-08-27
 7203,TOYOTA MOTOR CORPORATION,net_sales,FY2028,consensus,55435252249890.0,jpy_abs,yfinance,2026-08-27
@@ -3844,14 +3844,14 @@ code,name,metric,fy,basis,value,unit,source,as_of
 7974,"Nintendo Co.,Ltd.",eps,FY2026,consensus,374.8852,jpy,yfinance,2026-08-27
 7974,"Nintendo Co.,Ltd.",net_profit,FY2026,company,350000000000.0,jpy_abs,jquants,2026-05-08
 7974,"Nintendo Co.,Ltd.",net_sales,FY2026,company,2250000000000.0,jpy_abs,jquants,2026-05-08
-7974,"Nintendo Co.,Ltd.",net_sales,FY2026,consensus,2345924242100.0,jpy_abs,yfinance,2026-08-27
+7974,"Nintendo Co.,Ltd.",net_sales,FY2026,consensus,2347109427280.0,jpy_abs,yfinance,2026-08-27
 7974,"Nintendo Co.,Ltd.",operating_profit,FY2026,company,370000000000.0,jpy_abs,jquants,2026-05-08
 7974,"Nintendo Co.,Ltd.",dps,FY2027,company,162.0,jpy,jquants,2026-05-08
 7974,"Nintendo Co.,Ltd.",eps,FY2027,company,268.9,jpy,jquants,2026-05-08
 7974,"Nintendo Co.,Ltd.",eps,FY2027,consensus,417.44653,jpy,yfinance,2026-08-27
 7974,"Nintendo Co.,Ltd.",net_profit,FY2027,company,310000000000.0,jpy_abs,jquants,2026-05-08
 7974,"Nintendo Co.,Ltd.",net_sales,FY2027,company,2050000000000.0,jpy_abs,jquants,2026-05-08
-7974,"Nintendo Co.,Ltd.",net_sales,FY2027,consensus,2582173576540.0,jpy_abs,yfinance,2026-08-27
+7974,"Nintendo Co.,Ltd.",net_sales,FY2027,consensus,2585904345770.0,jpy_abs,yfinance,2026-08-27
 7974,"Nintendo Co.,Ltd.",operating_profit,FY2027,company,370000000000.0,jpy_abs,jquants,2026-05-08
 7974,"Nintendo Co.,Ltd.",eps,FY2028,consensus,417.44653,jpy,yfinance,2026-08-27
 7974,"Nintendo Co.,Ltd.",net_sales,FY2028,consensus,2582173576540.0,jpy_abs,yfinance,2026-08-27
@@ -5066,17 +5066,17 @@ code,name,metric,fy,basis,value,unit,source,as_of
 9432,"NTT,Inc.",net_sales,FY2028,consensus,15620342180540.0,jpy_abs,yfinance,2026-08-27
 9434,SoftBank Corp.,dps,FY2026,company,8.6,jpy,jquants,2026-05-11
 9434,SoftBank Corp.,eps,FY2026,company,11.28,jpy,jquants,2026-05-11
-9434,SoftBank Corp.,eps,FY2026,consensus,12.06268,jpy,yfinance,2026-08-27
+9434,SoftBank Corp.,eps,FY2026,consensus,12.18697,jpy,yfinance,2026-08-27
 9434,SoftBank Corp.,net_profit,FY2026,company,543000000000.0,jpy_abs,jquants,2026-05-11
 9434,SoftBank Corp.,net_sales,FY2026,company,6950000000000.0,jpy_abs,jquants,2026-05-11
-9434,SoftBank Corp.,net_sales,FY2026,consensus,7570120268300.0,jpy_abs,yfinance,2026-08-27
+9434,SoftBank Corp.,net_sales,FY2026,consensus,7599334554020.0,jpy_abs,yfinance,2026-08-27
 9434,SoftBank Corp.,operating_profit,FY2026,company,1020000000000.0,jpy_abs,jquants,2026-05-11
 9434,SoftBank Corp.,dps,FY2027,company,8.8,jpy,jquants,2026-05-11
 9434,SoftBank Corp.,eps,FY2027,company,11.54,jpy,jquants,2026-05-11
-9434,SoftBank Corp.,eps,FY2027,consensus,13.09634,jpy,yfinance,2026-08-27
+9434,SoftBank Corp.,eps,FY2027,consensus,13.17562,jpy,yfinance,2026-08-27
 9434,SoftBank Corp.,net_profit,FY2027,company,560000000000.0,jpy_abs,jquants,2026-05-11
 9434,SoftBank Corp.,net_sales,FY2027,company,7500000000000.0,jpy_abs,jquants,2026-05-11
-9434,SoftBank Corp.,net_sales,FY2027,consensus,8009422869420.0,jpy_abs,yfinance,2026-08-27
+9434,SoftBank Corp.,net_sales,FY2027,consensus,8040208583700.0,jpy_abs,yfinance,2026-08-27
 9434,SoftBank Corp.,operating_profit,FY2027,company,1100000000000.0,jpy_abs,jquants,2026-05-11
 9434,SoftBank Corp.,eps,FY2028,consensus,13.09634,jpy,yfinance,2026-08-27
 9434,SoftBank Corp.,net_sales,FY2028,consensus,8009422869420.0,jpy_abs,yfinance,2026-08-27
@@ -5482,11 +5482,11 @@ code,name,metric,fy,basis,value,unit,source,as_of
 9983,"FAST RETAILING CO.,LTD.",eps,FY2027,consensus,1887.1532,jpy,yfinance,2026-08-27
 9983,"FAST RETAILING CO.,LTD.",net_sales,FY2027,consensus,4417843488640.0,jpy_abs,yfinance,2026-08-27
 9984,SoftBank Group Corp.,dps,FY2026,company,5.5,jpy,jquants,2026-05-15
-9984,SoftBank Group Corp.,eps,FY2026,consensus,188.07187,jpy,yfinance,2026-08-27
-9984,SoftBank Group Corp.,net_sales,FY2026,consensus,8461481003270.0,jpy_abs,yfinance,2026-08-27
+9984,SoftBank Group Corp.,eps,FY2026,consensus,192.20963,jpy,yfinance,2026-08-27
+9984,SoftBank Group Corp.,net_sales,FY2026,consensus,8467579736819.0,jpy_abs,yfinance,2026-08-27
 9984,SoftBank Group Corp.,dps,FY2027,company,11.0,jpy,jquants,2026-05-15
-9984,SoftBank Group Corp.,eps,FY2027,consensus,117.96302,jpy,yfinance,2026-08-27
-9984,SoftBank Group Corp.,net_sales,FY2027,consensus,9064817068490.0,jpy_abs,yfinance,2026-08-27
+9984,SoftBank Group Corp.,eps,FY2027,consensus,115.09542,jpy,yfinance,2026-08-27
+9984,SoftBank Group Corp.,net_sales,FY2027,consensus,9077138206390.0,jpy_abs,yfinance,2026-08-27
 9984,SoftBank Group Corp.,eps,FY2028,consensus,117.96302,jpy,yfinance,2026-08-27
 9984,SoftBank Group Corp.,net_sales,FY2028,consensus,9064817068490.0,jpy_abs,yfinance,2026-08-27
 9989,"SUNDRUG CO.,LTD.",dps,FY2026,company,131.0,jpy,jquants,2026-05-15
