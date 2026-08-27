@@ -199,6 +199,13 @@ def company_guidance(records: list) -> tuple:
             out[(metric, fy2, "company")] = nxt
 
     fund = {}
+    # The dates the two forecast years actually close on. NxtFYEn is filed
+    # alongside next-year guidance rather than computed, so a company changing
+    # its year end is reported, not smoothed over.
+    for concept, field in (("fy_end", "fy_end"), ("nx_fy_end", "fy_end_next")):
+        val = F.jq_pick_str(latest, concept)[0]
+        if val:
+            fund[field] = val[:10]
     for concept in ("equity", "total_assets", "bps", "cash", "debt", "dep_amort"):
         val, key = newest(concept)
         if val is not None:
@@ -339,6 +346,9 @@ def merge_fundamentals(code: str, name: str, jq: dict, yh: dict, as_of: str) -> 
     """J-Quants wins per field — it is the filed number. Yahoo fills the legs
     J-Quants does not carry."""
     out = {"code": code, "name": name, "as_of": as_of}
+    for field in ("fy_end", "fy_end_next"):
+        if jq.get(field):
+            out[field] = jq[field]
     srcs = {}
     for concept in ("shares", "bps", "equity", "total_assets", "debt",
                     "cash", "ebitda", "dep_amort", "op_actual"):
@@ -386,8 +396,26 @@ def coverage_report(cons_rows: list, fund_rows: list, universe_n: int) -> str:
         f"  debt (EV)                    {have('debt')}",
         f"  cash (EV)                    {have('cash')}",
         f"  EBITDA (EV/EBITDA)           {have('ebitda')}",
+        f"  fiscal year end filed        {have('fy_end')}",
+        "",
+        "  fiscal year ends " + (_fy_end_spread(fund_rows) or "(none filed)"),
         "─" * 60,
     ])
+
+
+def _fy_end_spread(fund_rows: list) -> str:
+    """"Mar 371 · Dec 18 · Feb 6" — how the universe's year ends are spread.
+
+    Worth printing: the panel labels a column FY2027, and what that column
+    covers depends entirely on this. A month appearing here that the app has
+    not been told about is a column of forecasts silently off by a quarter."""
+    counts = {}
+    for row in fund_rows:
+        month = F.fy_end_month(row.get("fy_end"))
+        if month:
+            counts[month] = counts.get(month, 0) + 1
+    return " · ".join(f"{F._MONTH_ABBR[m]} {n}"
+                      for m, n in sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
 def main() -> int:
