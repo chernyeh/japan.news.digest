@@ -168,12 +168,30 @@ def company_guidance(records: list) -> tuple:
     fy1 = fy_label(F.jq_pick_str(latest, "fy_end")[0])
     fy2 = next_fy_label(fy1)
 
+    # Read newest-first across every filing for the *same* fiscal year, taking
+    # the first non-empty value per concept, rather than only the newest record.
+    # J-Quants filing types carry different subsets — a dividend revision
+    # restates only the dividend fields and leaves the rest blank — so reading
+    # one record wholesale silently discards guidance that is present a filing
+    # or two back. Restricting to the same CurFYEn is what stops it reaching
+    # back far enough to pick up last year's forecast and label it as this
+    # year's.
+    same_fy = [r for r in reversed(records)
+               if fy_label(F.jq_pick_str(r, "fy_end")[0]) == fy1] or [latest]
+
+    def newest(concept):
+        for rec in same_fy:
+            val, key = F.jq_pick(rec, concept)
+            if val is not None:
+                return val, key
+        return None, ""
+
     out = {}
     for metric in F.METRICS:
-        cur, _ = F.jq_pick(latest, f"f_{metric}")
+        cur, _ = newest(f"f_{metric}")
         if cur is not None and fy1:
             out[(metric, fy1, "company")] = cur
-        nxt, _ = F.jq_pick(latest, f"nx_{metric}")
+        nxt, _ = newest(f"nx_{metric}")
         # Next-year guidance is only filed alongside full-year results, so this
         # is populated for a few months a year and blank the rest. That is the
         # disclosure calendar, not a gap in the fetch.
@@ -182,11 +200,11 @@ def company_guidance(records: list) -> tuple:
 
     fund = {}
     for concept in ("equity", "total_assets", "bps", "cash", "debt", "dep_amort"):
-        val, key = F.jq_pick(latest, concept)
+        val, key = newest(concept)
         if val is not None:
             fund[concept] = val
             fund.setdefault("_sources", {})[concept] = f"jquants:{key}"
-    op, _ = F.jq_pick(latest, "operating_profit")
+    op, _ = newest("operating_profit")
     if op is not None:
         fund["op_actual"] = op
     return out, fund, as_of, fy1
@@ -415,7 +433,26 @@ def main() -> int:
             return 1
         latest = records[-1]
         print(f"{len(records)} record(s); newest has {len(latest)} keys.\n")
-        print("Matched concept -> key:")
+        # Key names alone were not enough: the first probe showed every
+        # current-year forecast unmatched, which reads as "wrong alias" but can
+        # equally mean "right alias, empty on this record". Print the values.
+        print("Newest record identity:")
+        for k in ("Code", "DocType", "CurPerType", "CurFYSt", "CurFYEn",
+                  "NxtFYSt", "NxtFYEn", "DiscDate"):
+            if k in latest:
+                print(f"  {k:12} {latest[k]!r}")
+        print("\nForecast fields on the newest record (blank = present but empty):")
+        for k in sorted(k for k in latest if k.startswith(("F", "Nx"))):
+            print(f"  {k:18} {str(latest[k])[:28]!r}")
+        print("\nSame fields across all records, newest first "
+              "(which filing actually carries the guidance):")
+        for rec in reversed(records):
+            filled = [k for k in ("FSales", "FOP", "FNP", "FEPS") if str(rec.get(k, "")).strip()]
+            print(f"  {F.jq_pick_str(rec, 'disc_date')[0][:10]}  "
+                  f"{str(rec.get('CurPerType', '?')):4} {str(rec.get('DocType', ''))[:34]:34} "
+                  f"FY-forecast fields set: {filled or 'none'}")
+
+        print("\nMatched concept -> key:")
         for concept, key in sorted(F.jq_field_report(latest).items()):
             print(f"  {concept:22} {key or '·· NO MATCH — add the real key to _JQ_ALIASES'}")
         unmatched = set(latest) - {k for c in F._JQ_ALIASES.values() for k in c}

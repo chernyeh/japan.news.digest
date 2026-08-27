@@ -64,22 +64,28 @@ _JQ_ALIASES = {
     "eps":              ("EPS", "EarningsPerShare"),
     "dps":              ("DivAnn", "ResultDividendPerShareAnnual"),
     # Current-year company forecast
-    "f_net_sales":        ("FSales", "ForecastNetSales"),
-    "f_operating_profit": ("FOP", "ForecastOperatingProfit"),
-    "f_net_profit":       ("FNP", "ForecastProfit"),
-    "f_eps":              ("FEPS", "ForecastEarningsPerShare"),
-    "f_dps":              ("FDivAnn", "ForecastDividendPerShareAnnual"),
+    "f_net_sales":        ("FSales", "ForecastNetSales", "FNCSales"),
+    "f_operating_profit": ("FOP", "ForecastOperatingProfit", "FNCOP"),
+    "f_net_profit":       ("FNP", "ForecastProfit", "FNCNP"),
+    "f_eps":              ("FEPS", "ForecastEarningsPerShare", "FNCEPS"),
+    "f_dps":              ("FDivAnn", "FDivTotalAnn", "FDivFY",
+                           "ForecastDividendPerShareAnnual"),
     # Next-year company forecast (only filed alongside full-year results)
-    "nx_net_sales":        ("NxFSales", "NextYearForecastNetSales"),
-    "nx_operating_profit": ("NxFOP", "NextYearForecastOperatingProfit"),
-    "nx_net_profit":       ("NxFNP", "NextYearForecastProfit"),
-    "nx_eps":              ("NxFEPS", "NextYearForecastEarningsPerShare"),
-    "nx_dps":              ("NxFDivAnn", "NextYearForecastDividendPerShareAnnual"),
+    "nx_net_sales":        ("NxFSales", "NextYearForecastNetSales", "NxFNCSales"),
+    "nx_operating_profit": ("NxFOP", "NextYearForecastOperatingProfit", "NxFNCOP"),
+    # NxFNp, not NxFNP — the V2 response really does use that casing.
+    "nx_net_profit":       ("NxFNP", "NxFNp", "NextYearForecastProfit", "NxFNCNP"),
+    "nx_eps":              ("NxFEPS", "NextYearForecastEarningsPerShare", "NxFNCEPS"),
+    "nx_dps":              ("NxFDivAnn", "NxFDivTotalAnn", "NxFDivFY",
+                           "NextYearForecastDividendPerShareAnnual"),
     # Balance sheet
     "equity":       ("Eq", "Equity", "NetAssets", "TotalNetAssets"),
     "total_assets": ("TA", "TotalAssets"),
     "bps":          ("BPS", "BookValuePerShare"),
-    "cash":         ("Cash", "CashAndEquivalents", "CashAndCashEquivalents"),
+    "cash":         ("CashEq", "Cash", "CashAndEquivalents", "CashAndCashEquivalents"),
+    # Confirmed absent from the V2 /fins/summary response — it carries no
+    # interest-bearing debt and no depreciation line, so enterprise value and
+    # EBITDA keep coming from Yahoo. Kept here so a future field is picked up.
     "debt":         ("IBD", "InterestBearingDebt", "Borrowings", "TotalDebt"),
     "dep_amort":    ("Dep", "Depreciation", "DepreciationAndAmortization"),
     # Period metadata
