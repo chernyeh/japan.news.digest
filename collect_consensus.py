@@ -156,28 +156,64 @@ def next_fy_label(label: str) -> str:
         return ""
 
 
+def forecast_horizon(latest: dict) -> tuple:
+    """(fy_label, fy_end_date, key_prefix) for the fiscal year the company's
+    live guidance actually covers, plus the field family it is filed under.
+
+    This is not the same as the year the filing reports on, and conflating the
+    two put a whole column out by a year. A Japanese full-year tanshin reports
+    the year that has just closed — CurFYEn is that closed year — and carries
+    guidance for the year now starting, under the NextYearForecast (NxF*)
+    family. A quarterly tanshin reports the year in progress and carries
+    guidance for that same year, under Forecast (F*).
+
+    Reading CurFYEn as the guidance year therefore labelled Fuji Electric's
+    live forecast FY2026 when it covers the year to March 2027, and Yahoo's
+    "current year" estimate — which is that same year to March 2027 — was
+    filed against the label one year earlier. The company and consensus halves
+    of a row were describing different years."""
+    period = F.jq_pick_str(latest, "period_type")[0].upper()
+    cur_end = F.jq_pick_str(latest, "fy_end")[0][:10]
+    nxt_end = F.jq_pick_str(latest, "nx_fy_end")[0][:10]
+    if period.startswith("FY"):
+        end = nxt_end or _plus_one_year(cur_end)
+        return fy_label(end), end, "nx_"
+    return fy_label(cur_end), cur_end, "f_"
+
+
+def _plus_one_year(iso: str) -> str:
+    """Fallback only, for a full-year filing that carries no NxtFYEn. Keeps the
+    month and day, so a February or December close is not quietly moved."""
+    if not iso or len(iso) < 10:
+        return ""
+    try:
+        return f"{int(iso[:4]) + 1}{iso[4:]}"
+    except ValueError:
+        return ""
+
+
 def company_guidance(records: list) -> tuple:
     """({(metric, fy_label, "company"): value}, fundamentals_dict, as_of, fy1_label).
 
-    Reads only the newest record — guidance is restated in full at every
-    quarter, so older ones are superseded rather than additive."""
+    Companies guide one year at a time, so there is one forecast column here,
+    aligned to forecast_horizon() above. The second column the panel shows is
+    the street's, not the company's."""
     if not records:
         return {}, {}, "", ""
     latest = records[-1]
     as_of = F.jq_pick_str(latest, "disc_date")[0][:10]
-    fy1 = fy_label(F.jq_pick_str(latest, "fy_end")[0])
-    fy2 = next_fy_label(fy1)
+    cur_end = F.jq_pick_str(latest, "fy_end")[0][:10]
+    fy1, fy1_end, prefix = forecast_horizon(latest)
 
-    # Read newest-first across every filing for the *same* fiscal year, taking
-    # the first non-empty value per concept, rather than only the newest record.
-    # J-Quants filing types carry different subsets — a dividend revision
-    # restates only the dividend fields and leaves the rest blank — so reading
-    # one record wholesale silently discards guidance that is present a filing
-    # or two back. Restricting to the same CurFYEn is what stops it reaching
-    # back far enough to pick up last year's forecast and label it as this
-    # year's.
+    # Read newest-first across every filing for the *same* reported fiscal year,
+    # taking the first non-empty value per concept, rather than only the newest
+    # record. J-Quants filing types carry different subsets — a dividend
+    # revision restates only the dividend fields and leaves the rest blank — so
+    # reading one record wholesale silently discards guidance that is present a
+    # filing or two back. Restricting to that one CurFYEn is what stops it
+    # reaching back far enough to pick up a superseded year's forecast.
     same_fy = [r for r in reversed(records)
-               if fy_label(F.jq_pick_str(r, "fy_end")[0]) == fy1] or [latest]
+               if F.jq_pick_str(r, "fy_end")[0][:10] == cur_end] or [latest]
 
     def newest(concept):
         for rec in same_fy:
@@ -186,27 +222,65 @@ def company_guidance(records: list) -> tuple:
                 return val, key
         return None, ""
 
+    # A full-year tanshin whose next-year family is empty is a company that has
+    # not guided yet — 未定 is a normal thing to file. Its Forecast (F*) fields,
+    # if any, describe the year that has just closed, so showing them as a
+    # forecast would present last year's superseded number as this year's plan.
+    # fy1 still stands: it is the year now running, which is what the street's
+    # "current year" estimate covers whether the company has guided or not.
+    if prefix == "nx_" and not any(newest(f"nx_{m}")[0] is not None for m in F.METRICS):
+        fy1_has_guidance = False
+    else:
+        fy1_has_guidance = True
+
     out = {}
-    for metric in F.METRICS:
-        cur, _ = newest(f"f_{metric}")
-        if cur is not None and fy1:
-            out[(metric, fy1, "company")] = cur
-        nxt, _ = newest(f"nx_{metric}")
-        # Next-year guidance is only filed alongside full-year results, so this
-        # is populated for a few months a year and blank the rest. That is the
-        # disclosure calendar, not a gap in the fetch.
-        if nxt is not None and fy2:
-            out[(metric, fy2, "company")] = nxt
+    if fy1 and fy1_has_guidance:
+        for metric in F.METRICS:
+            if metric == "dps":
+                # No annual total is filed for a next year, only the four
+                # instalments — see fundamentals.dps_annual.
+                val = F.dps_annual(newest, prefix)
+            else:
+                val, _ = newest(f"{prefix}{metric}")
+            if val is not None:
+                out[(metric, fy1, "company")] = val
+
+        # Interim guidance, where the company files it. Many do: the first-half
+        # forecast is its own row in the tanshin, and it is the number a
+        # mid-year result gets judged against.
+        interim_prefix = "nx2q_" if prefix == "nx_" else "f2q_"
+        for metric in F.INTERIM_METRICS:
+            val, _ = newest(f"{interim_prefix}{metric}")
+            if val is not None:
+                out[(metric, fy1, "company_h1")] = val
+
+    # A quarterly filing occasionally carries next-year fields too. Where it
+    # does, that is a genuine second company year and worth keeping.
+    if prefix == "f_" and fy1:
+        fy2 = next_fy_label(fy1)
+        for metric in F.METRICS:
+            val = (F.dps_annual(newest, "nx_") if metric == "dps"
+                   else newest(f"nx_{metric}")[0])
+            if val is not None and fy2:
+                out[(metric, fy2, "company")] = val
 
     fund = {}
-    # The dates the two forecast years actually close on. NxtFYEn is filed
-    # alongside next-year guidance rather than computed, so a company changing
-    # its year end is reported, not smoothed over.
-    for concept, field in (("fy_end", "fy_end"), ("nx_fy_end", "fy_end_next")):
-        val = F.jq_pick_str(latest, concept)[0]
-        if val:
-            fund[field] = val[:10]
-    for concept in ("equity", "total_assets", "bps", "cash", "debt", "dep_amort"):
+    # The date the guidance year closes, filed rather than derived, so a
+    # December or February close — or a company changing its year end — is
+    # reported rather than smoothed over.
+    if fy1_end:
+        fund["fy_end"] = fy1_end
+    nxt = F.jq_pick_str(latest, "nx_fy_end")[0][:10]
+    if prefix == "nx_":
+        # The next-year end is already the guidance year; the one after it is
+        # not filed anywhere, so the panel derives it only for a column the
+        # street (or a screenshot) fills.
+        fund["fy_end_next"] = _plus_one_year(fy1_end)
+    elif nxt:
+        fund["fy_end_next"] = nxt
+
+    for concept in ("equity", "total_assets", "bps", "cash", "debt", "dep_amort",
+                    "shares", "cfo"):
         val, key = newest(concept)
         if val is not None:
             fund[concept] = val
@@ -332,12 +406,13 @@ def build_rows(code: str, name: str, guide: dict, cons: dict,
                jq_as_of: str, y_as_of: str) -> list:
     rows = []
     for (metric, fy, basis), value in list(guide.items()) + list(cons.items()):
+        filed = basis.startswith("company")     # "company" and "company_h1"
         rows.append({
             "code": code, "name": name, "metric": metric, "fy": fy, "basis": basis,
             "value": value,
             "unit": "jpy" if metric in ("eps", "dps") else "jpy_abs",
-            "source": "jquants" if basis == "company" else "yfinance",
-            "as_of": jq_as_of if basis == "company" else y_as_of,
+            "source": "jquants" if filed else "yfinance",
+            "as_of": jq_as_of if filed else y_as_of,
         })
     return rows
 
@@ -383,6 +458,8 @@ def coverage_report(cons_rows: list, fund_rows: list, universe_n: int) -> str:
                 seen.setdefault(r["code"], set()).add(r["fy"])
         return sum(1 for fys in seen.values() if len(fys) > fy_index)
     have = lambda field: sum(1 for r in fund_rows if r.get(field) not in (None, ""))
+    n_metric = lambda metric, basis: len({r["code"] for r in cons_rows
+                                          if r["metric"] == metric and r["basis"] == basis})
     return "\n".join([
         "",
         "── Coverage " + "─" * 48,
@@ -392,6 +469,9 @@ def coverage_report(cons_rows: list, fund_rows: list, universe_n: int) -> str:
         f"  company EPS guidance (FY2)   {n_with('company', 1)}",
         f"  consensus EPS (FY1)          {n_with('consensus', 0)}",
         f"  consensus EPS (FY1+FY2)      {n_with('consensus', 1)}",
+        f"  company DPS guidance         {n_metric('dps', 'company')}",
+        f"  company ordinary profit      {n_metric('ordinary_profit', 'company')}",
+        f"  company interim (H1)         {n_metric('net_sales', 'company_h1')}",
         f"  book value (P/B)             {have('bps')}",
         f"  debt (EV)                    {have('debt')}",
         f"  cash (EV)                    {have('cash')}",

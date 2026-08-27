@@ -239,7 +239,12 @@ span[data-testid="stIconMaterial"], [data-testid*="stIconMaterial"],
 /* Streamlit advertises its server-wide 200MB limit here, which is not the
    limit that applies — the vision request caps each image far lower. Hide it
    and state the real one in the caption below the widget. */
-[data-testid="stFileUploaderDropzoneInstructions"] small {
+/* Streamlit has moved this text between a <small> and a <span> across
+   versions, so target the block's secondary line however it is marked up —
+   the first child carries the "Drag and drop" prompt and is worth keeping. */
+[data-testid="stFileUploaderDropzoneInstructions"] small,
+[data-testid="stFileUploaderDropzoneInstructions"] > div > span:last-child,
+[data-testid="stFileUploaderDropzoneInstructions"] > div > *:not(:first-child) {
     display: none !important;
 }
 
@@ -822,24 +827,44 @@ a.research-link:hover { background: #F0EDE8; }
 }
 /* IR-scan results — grouped candidate list */
 /* ── Forecast / consensus / valuation panel (Research tab) ───────────── */
+/* Capped rather than full-bleed: six numbers spread over 1800px of a desktop
+   is not a table anyone reads across. */
 .fc-tablewrap { overflow-x: auto; border: 1px solid #D9D3C8; border-radius: 5px;
-                background: #FDFAF7; margin-top: 0.4rem; }
-.fc-table { display: grid; min-width: 560px; font-size: 0.78rem; }
-.fc-cell { padding: 6px 11px; text-align: right; border-bottom: 1px solid #E8E3DC;
+                background: #FDFAF7; margin-top: 0.4rem; max-width: 760px; }
+.fc-table { display: grid; min-width: 340px; font-size: 0.76rem;
+            grid-template-columns: minmax(88px, 1.1fr)
+                                   repeat(var(--fc-cols, 2), minmax(72px, 1fr)); }
+.fc-cell { padding: 5px 8px; text-align: right; border-bottom: 1px solid #E8E3DC;
            font-variant-numeric: tabular-nums; }
-.fc-h { font-size: 0.63rem; letter-spacing: 0.05em; text-transform: uppercase;
+.fc-h { font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase;
         color: #9B8B7A; font-weight: 600; background: #F0EDE8;
         border-bottom: 1px solid #D9D3C8; white-space: nowrap; }
-.fc-metric { text-align: left; font-weight: 600; color: #1A1A1A; white-space: nowrap; }
-.fc-grp { color: #8B4513; }
-/* The month the column's fiscal year actually closes in, under the FY label.
-   Second line rather than inline so the header stays one short row wide. */
-.fc-fyend { display: block; font-size: 0.58rem; font-weight: 500; letter-spacing: 0;
-            text-transform: none; color: #9B8B7A; margin-top: 1px; }
+/* The metric name stays put while the years scroll past it. Without this a
+   phone shows a column of numbers with no way to tell which row is which. */
+.fc-metric { text-align: left; font-weight: 600; color: #1A1A1A; white-space: nowrap;
+             position: sticky; left: 0; z-index: 2; background: #FDFAF7;
+             box-shadow: 1px 0 0 #E8E3DC; }
+.fc-h.fc-metric { background: #F0EDE8; z-index: 3; box-shadow: 1px 0 0 #D9D3C8; }
+.fc-span2 { grid-row: span 2; display: flex; align-items: flex-end; }
+/* The fiscal year once, spanning its own columns, centred over them. */
+.fc-yhead { text-align: center; border-left: 1px solid #E0DAD1; }
+.fc-sub { font-size: 0.58rem; letter-spacing: 0.03em; }
+.fc-grp { color: #8B4513; font-size: 0.66rem; }
 .fc-num { font-family: monospace; }
 .fc-cons { background: #F9F5F0; }
 .fc-na { color: #B0A798; }
-.fc-delta { font-family: monospace; font-size: 0.66rem; font-weight: 700; margin-left: 0.35em; }
+/* Interim guidance: one line, only where the company actually files it. */
+.fc-h1strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px;
+              font-size: 0.7rem; color: #5C4033; background: #F7F3EC;
+              border: 1px solid #E8E3DC; border-radius: 5px;
+              padding: 6px 10px; margin-top: 6px; }
+.fc-h1k { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
+          color: #9B8B7A; font-weight: 700; }
+.fc-h1v { font-family: monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fc-h1v b { color: #1A1A1A; }
+/* nowrap: "+10.4%" was breaking between the number and the sign on a phone. */
+.fc-delta { font-family: monospace; font-size: 0.64rem; font-weight: 700;
+            margin-left: 0.3em; white-space: nowrap; }
 .fc-delta.u { color: #2E7D32; }
 .fc-delta.d { color: #C62828; }
 .fc-src { font-family: monospace; font-size: 0.56rem; vertical-align: super;
@@ -853,15 +878,19 @@ a.research-link:hover { background: #F0EDE8; }
            padding: 6px 10px; margin: 8px 0; background: #FDFAF7; }
 .fc-note.fc-warn { border-left-color: #E65100; color: #7A4A22; background: #FDF4EE; }
 .fc-note code { font-family: monospace; font-size: 0.95em; }
-.fc-vgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
-            gap: 1px; background: #D9D3C8; border: 1px solid #D9D3C8;
-            border-radius: 5px; overflow: hidden; margin-top: 0.6rem; }
-.fc-vcell { background: #FDFAF7; padding: 8px 10px; }
+/* Separators drawn inside the cells rather than as a 1px grid gap over a dark
+   background: an unfilled slot at the end of the last row used to show that
+   background through as a grey slab. */
+.fc-vgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+            border: 1px solid #D9D3C8; border-radius: 5px; overflow: hidden;
+            margin-top: 0.6rem; background: #FDFAF7; max-width: 760px; }
+.fc-vcell { background: #FDFAF7; padding: 8px 10px;
+            box-shadow: inset -1px 0 0 #E8E3DC, inset 0 -1px 0 #E8E3DC; }
 .fc-k { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
         color: #9B8B7A; font-weight: 600; display: block; }
 .fc-v { font-family: monospace; font-size: 1.02rem; font-weight: 700;
         font-variant-numeric: tabular-nums; display: block; color: #1A1A1A; }
-.fc-sub { font-size: 0.62rem; color: #9B8B7A; font-family: monospace; }
+.fc-vsub { font-size: 0.6rem; color: #9B8B7A; font-family: monospace; }
 .research-scan-group {
     font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.15rem;
@@ -895,6 +924,27 @@ a.research-link:hover { background: #F0EDE8; }
     .ticker-price { font-size: 0.78rem; }
     .media-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
     .stTabs [data-baseweb="tab"] { font-size: 0.58rem; padding: 0.25rem 0.35rem; }
+
+    /* Forecast panel on a phone. The table keeps its shape and scrolls
+       sideways under a pinned metric column — turning it into stacked cards
+       would cost the side-by-side comparison the table exists for — while
+       everything around it stops assuming a desktop's width. */
+    .fc-table { font-size: 0.7rem; min-width: 280px;
+                grid-template-columns: minmax(70px, 1fr)
+                                       repeat(var(--fc-cols, 2), minmax(56px, 1fr)); }
+    .fc-cell { padding: 5px 5px; }
+    .fc-h { font-size: 0.57rem; letter-spacing: 0.02em; }
+    .fc-sub { font-size: 0.54rem; }
+    .fc-delta { font-size: 0.58rem; margin-left: 0.2em; }
+    .fc-src { font-size: 0.5rem; }
+    /* Two tiles across, not three-and-a-bit: a 118px minimum left the last
+       row half-empty and squeezed "1,679.6B" onto two lines. */
+    .fc-vgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fc-v { font-size: 0.92rem; }
+    .fc-vcell { padding: 6px 8px; }
+    .fc-note { font-size: 0.68rem; padding: 5px 8px; margin: 6px 0; }
+    .fc-legend { gap: 9px; font-size: 0.62rem; }
+    .fc-h1strip { gap: 3px 10px; font-size: 0.66rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3149,6 +3199,11 @@ with tab_research:
             except (TypeError, ValueError):
                 return '<span class="fc-na">—</span>'
 
+        def _yy(fy_label: str) -> str:
+            """"FY2027" -> "27". The tiles are 118px wide; the century is not
+            what anyone is reading them for."""
+            return fy_label[-2:] if fy_label else "—"
+
         def _pct(val, dp=1):
             return '<span class="fc-na">—</span>' if val is None else f"{val * 100:,.{dp}f}%"
 
@@ -3169,8 +3224,11 @@ with tab_research:
             return (f'<span class="fc-src fc-src-{cls}" '
                     f'title="{_safe_text(title)}">{letter}</span>')
 
+        # Short labels on purpose: the column headers already cost width, and
+        # these read the same at a glance on a phone.
         _FC_ROWS = [("net_sales", "Net sales", 1e9, 1),
-                    ("operating_profit", "Operating profit", 1e9, 1),
+                    ("operating_profit", "Op. profit", 1e9, 1),
+                    ("ordinary_profit", "Ord. profit", 1e9, 1),
                     ("net_profit", "Net profit", 1e9, 1),
                     ("eps", "EPS ¥", 1.0, 1),
                     ("dps", "DPS ¥", 1.0, 1)]
@@ -3180,50 +3238,94 @@ with tab_research:
             _vals, _fundrow = ctx["vals"], ctx["fundrow"]
             _y1 = _years[0] if _years else ""
             _y2 = _years[1] if len(_years) > 1 else ""
-            _shown = [y for y in (_y1, _y2) if y]
+            _y3 = _years[2] if len(_years) > 2 else ""
+            _shown = [y for y in (_y1, _y2, _y3) if y]
 
-            # Which month each forecast year actually closes in. Most Japanese
+            # Which month each column's fiscal year closes in. Most Japanese
             # issuers close in March, but December and February closes are
-            # common enough that "FY2027" on its own is ambiguous — and the
-            # dates are filed (CurFYEn / NxtFYEn), so there is nothing to guess.
-            _fy_ends = {_y1: _fundrow.get("fy_end", ""),
-                        _y2: _fundrow.get("fy_end_next", "")}
+            # common enough that "FY2027" alone is ambiguous — and the dates are
+            # filed (CurFYEn / NxtFYEn), so there is nothing to guess.
+            _fy_ends = fund.fy_end_dates(_shown, _fundrow.get("fy_end", ""),
+                                         _fundrow.get("fy_end_next", ""))
 
-            cells = ['<div class="fc-cell fc-h fc-metric">Metric</div>']
+            # A year earns a company column only if the company has guided it.
+            # Japanese issuers guide one year at a time, so in practice that is
+            # the first column; the years beyond it are the street's alone,
+            # which is exactly what makes room for a third of them.
+            _cols = {_y: (["company", "consensus"]
+                          if any(_get(_m, _y, "company") is not None for _m, *_ in _FC_ROWS)
+                          else ["consensus"])
+                     for _y in _shown}
+            _basis_label = {"company": "Co.", "consensus": "Street"}
+
+            # Two header rows: the fiscal year once, spanning its own columns,
+            # with company/street beneath. Repeating "FY2027" on every column
+            # is what made the header wide enough to run off a phone.
+            cells = ['<div class="fc-cell fc-h fc-metric fc-span2">Metric</div>']
             for _y in _shown:
-                _note = fund.fy_end_note(_fy_ends.get(_y))
-                _sub = (f'<span class="fc-fyend">{_safe_text(_note)}</span>'
-                        if _note else '')
-                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} '
-                             f'company{_sub}</div>')
-                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} '
-                             f'consensus{_sub}</div>')
+                _short = fund.fy_end_short(_fy_ends.get(_y, ""), _safe_text(_y))
+                cells.append(f'<div class="fc-cell fc-h fc-grp fc-yhead" '
+                             f'style="grid-column:span {len(_cols[_y])};" '
+                             f'title="{_safe_text(_y)}">{_safe_text(_short)}</div>')
+            for _y in _shown:
+                for _b in _cols[_y]:
+                    cells.append(f'<div class="fc-cell fc-h fc-sub'
+                                 f'{" fc-cons" if _b == "consensus" else ""}">'
+                                 f'{_basis_label[_b]}</div>')
 
             for _m, _label, _scale, _dp in _FC_ROWS:
                 cells.append(f'<div class="fc-cell fc-metric">{_safe_text(_label)}</div>')
                 for _y in _shown:
                     _co, _cs = _get(_m, _y, "company"), _get(_m, _y, "consensus")
-                    cells.append('<div class="fc-cell fc-num">' + _fnum(_co, _dp, "", _scale)
-                                 + _src_mark(_src(_m, _y, "company")) + '</div>')
-                    # The gap chip fires only past 5% — consensus sitting on top
-                    # of guidance is the normal case and not worth marking.
-                    _gap = fund.guidance_gap(_co, _cs)
-                    _chip = ('' if _gap is None else
-                             f'<span class="fc-delta {"u" if _gap > 0 else "d"}">{_gap * 100:+.1f}%</span>')
-                    cells.append('<div class="fc-cell fc-num fc-cons">' + _fnum(_cs, _dp, "", _scale)
-                                 + _src_mark(_src(_m, _y, "consensus")) + _chip + '</div>')
+                    for _b in _cols[_y]:
+                        if _b == "company":
+                            cells.append('<div class="fc-cell fc-num">'
+                                         + _fnum(_co, _dp, "", _scale)
+                                         + _src_mark(_src(_m, _y, "company")) + '</div>')
+                            continue
+                        # The gap chip fires only past 5% — consensus sitting on
+                        # top of guidance is the normal case and not worth
+                        # marking — and only where there is guidance to differ
+                        # from, which is the first column.
+                        _gap = fund.guidance_gap(_co, _cs)
+                        _chip = ('' if _gap is None else
+                                 f'<span class="fc-delta {"u" if _gap > 0 else "d"}">'
+                                 f'{_gap * 100:+.0f}%</span>')
+                        cells.append('<div class="fc-cell fc-num fc-cons">'
+                                     + _fnum(_cs, _dp, "", _scale)
+                                     + _src_mark(_src(_m, _y, "consensus")) + _chip + '</div>')
 
+            # The column count travels as a custom property rather than a
+            # complete inline template, so the media query can narrow the
+            # minimums for a phone without rebuilding the whole track list.
+            _ncols = sum(len(_cols[_y]) for _y in _shown)
             st.markdown(
                 '<div class="fc-tablewrap"><div class="fc-table" '
-                f'style="grid-template-columns:minmax(150px,1.4fr) '
-                f'repeat({2 * len(_shown)},minmax(104px,1fr));">'
+                f'style="--fc-cols:{_ncols};">'
                 + "".join(cells) + '</div></div>'
                 '<div class="fc-legend">'
                 '<span><b class="fc-src fc-src-a">A</b> auto</span>'
-                '<span><b class="fc-src fc-src-s">S</b> your screenshot</span>'
+                '<span><b class="fc-src fc-src-s">S</b> screenshot</span>'
                 '<span><b class="fc-src fc-src-t">T</b> typed</span>'
                 '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
                 unsafe_allow_html=True)
+
+            # Interim guidance, where the company files it. Its own strip
+            # rather than more columns: it belongs to one fiscal year, and
+            # widening the table for it would undo the point of the two-level
+            # header above.
+            _h1 = [(lbl, _get(m, _y1, "company_h1"), sc, dp)
+                   for m, lbl, sc, dp in _FC_ROWS
+                   if _get(m, _y1, "company_h1") is not None]
+            if _h1:
+                st.markdown(
+                    f'<div class="fc-h1strip"><span class="fc-h1k">First half of '
+                    f'{_safe_text(fund.fy_end_short(_fy_ends.get(_y1, ""), _y1))}, '
+                    f'guided</span>' + "".join(
+                        f'<span class="fc-h1v">{_safe_text(lbl)} '
+                        f'<b>{_fnum(v, dp, "", sc)}</b></span>'
+                        for lbl, v, sc, dp in _h1) + '</div>',
+                    unsafe_allow_html=True)
 
             # Three different things produce an empty company column, and the
             # user cannot tell them apart from dashes alone. Say which it is.
@@ -3253,12 +3355,15 @@ with tab_research:
                     f'other companies have it ({_run["companies_with_guidance"]} of '
                     f'{_run.get("universe", "?")}). Its filing may not be in J-Quants yet.</div>',
                     unsafe_allow_html=True)
-            elif _y2 and all(_get(m, _y2, "company") is None for m, *_ in _FC_ROWS):
+            elif len(_shown) > 1:
+                # Not a gap to apologise for — it is how Japanese disclosure
+                # works, and saying so once stops the reader hunting for a
+                # company column that was never going to exist.
                 st.markdown(
-                    f'<div class="fc-note">No company guidance for {_safe_text(_y2)} yet. Japanese '
-                    'issuers publish next-year guidance only alongside full-year results, so that '
-                    'column fills in after the Q4 filing and is empty the rest of the year — for a '
-                    'second year the street is usually the only forecast there is.</div>',
+                    '<div class="fc-note">Japanese issuers guide one year at a time, so there is a '
+                    f'single company column ({_safe_text(_y1)}). The years beyond it are the '
+                    'street\'s — and the street\'s own second year comes from a screenshot, since '
+                    'Yahoo publishes only the current year and the next.</div>',
                     unsafe_allow_html=True)
 
             # Yahoo's estimate frames carry EPS and revenue only, so operating
@@ -3274,21 +3379,25 @@ with tab_research:
             _tiles = [
                 ("Price", _fnum(ctx["price"], 0), "close"),
                 ("Market cap", _fnum(ctx["mcap"], 1, "B", 1e9), "¥"),
-                (f"P/E {_y1} co.", _fnum(_vals.get("pe_fy1_company"), 1, "×"), "guidance EPS"),
-                (f"P/E {_y1} cons.", _fnum(_vals.get("pe_fy1_consensus"), 1, "×"), "consensus EPS"),
-                (f"P/E {_y2 or '—'} cons.", _fnum(_vals.get("pe_fy2_consensus"), 1, "×"), "consensus EPS"),
+                (f"P/E {_yy(_y1)} co.", _fnum(_vals.get("pe_fy1_company"), 1, "×"), "guidance EPS"),
+                (f"P/E {_yy(_y1)} st.", _fnum(_vals.get("pe_fy1_consensus"), 1, "×"), "street EPS"),
+                (f"P/E {_yy(_y2)} st.", _fnum(_vals.get("pe_fy2_consensus"), 1, "×"), "street EPS"),
+            ] + ([
+                (f"P/E {_yy(_y3)} st.", _fnum(_vals.get("pe_fy3_consensus"), 1, "×"), "street EPS"),
+            ] if _y3 else []) + [
                 ("P/B", _fnum(_vals.get("pb"), 2, "×"),
                  "BPS " + (f"{_vals['bps']:,.0f}" if _vals.get("bps") else "—")),
                 ("EV/EBITDA", _fnum(_vals.get("ev_ebitda"), 1, "×"),
                  _fundrow.get("ebitda_basis") or "no EBITDA"),
                 ("Net debt", _fnum(_vals.get("net_debt"), 1, "B", 1e9), "¥ debt − cash"),
                 ("Div yield", _pct(_vals.get("yield_fy1_company"), 2), "guidance DPS"),
-                ("EPS growth", _pct(_vals.get("eps_growth")), "FY1→FY2"),
+                ("EPS growth", _pct(_vals.get("eps_growth")),
+                 f"{_yy(_y1)}→{_yy(_y2)}"),
                 ("PEG", _fnum(_vals.get("peg"), 2), "cons. P/E ÷ growth"),
             ]
             st.markdown('<div class="fc-vgrid">' + "".join(
                 f'<div class="fc-vcell"><span class="fc-k">{_safe_text(k)}</span>'
-                f'<span class="fc-v">{v}</span><span class="fc-sub">{_safe_text(sub)}</span></div>'
+                f'<span class="fc-v">{v}</span><span class="fc-vsub">{_safe_text(sub)}</span></div>'
                 for k, v, sub in _tiles) + '</div>', unsafe_allow_html=True)
 
         def _fc_exports(_rcode, _rname, _fc_map):
@@ -3332,12 +3441,8 @@ with tab_research:
                 "Screenshots", type=["png", "jpg", "jpeg", "webp", "gif"],
                 accept_multiple_files=True, key=f"fc_shots_{_rcode}",
                 label_visibility="collapsed",
-                help="PNG, JPG, WebP or GIF. Up to 8 images, 5MB each.")
-            st.markdown(
-                f'<div class="fc-note">Up to {consensus_vision.MAX_IMAGES} images, '
-                f'{consensus_vision.MAX_IMAGE_BYTES // (1024 * 1024)}MB each · '
-                'PNG, JPG, WebP or GIF.</div>',
-                unsafe_allow_html=True)
+                help=f"PNG, JPG, WebP or GIF. Up to {consensus_vision.MAX_IMAGES} "
+                     f"images, {consensus_vision.MAX_IMAGE_BYTES // (1024 * 1024)}MB each.")
 
             _parse_key = f"fc_parse_{_rcode}"
             _api_key = get_secret("ANTHROPIC_API_KEY")
@@ -3513,12 +3618,18 @@ with tab_research:
                     # rather than today's date — a company mid-year and one that
                     # has just reported are on different calendars, and the label
                     # has to match what the filing actually said.
-                    _years = sorted({k[1] for k in _fc_map if k[1]})[:2]
+                    # Three years, earliest first, taken from the data rather
+                    # than today's date — a company mid-year and one that has
+                    # just reported are on different calendars, and the label
+                    # has to match what the filing actually said. Three because
+                    # the street, and the terminals a screenshot comes from,
+                    # routinely reach a year further than the company does.
+                    _years = sorted({k[1] for k in _fc_map if k[1]})[:3]
                     _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
                     _src = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("source", "")
 
                     _slots = {}
-                    for _slot, _y in zip(("fy1", "fy2"), _years):
+                    for _slot, _y in zip(("fy1", "fy2", "fy3"), _years):
                         for _b in ("company", "consensus"):
                             for _m in fund.METRICS:
                                 _v = _get(_m, _y, _b)

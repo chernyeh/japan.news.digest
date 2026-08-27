@@ -47,10 +47,83 @@ FUNDAMENTALS_COLUMNS = ["code", "name", "shares", "bps", "equity", "total_assets
                         "debt", "cash", "ebitda", "dep_amort", "op_actual",
                         "fy_end", "fy_end_next", "ebitda_basis", "sources", "as_of"]
 
-METRICS = ("net_sales", "operating_profit", "net_profit", "eps", "dps")
+# Ordinary (recurring) profit sits between operating and net profit in every
+# Japanese earnings table and is the line the market quotes; /fins/summary has
+# carried it as OdP / FOdP / NxFOdP all along.
+METRICS = ("net_sales", "operating_profit", "ordinary_profit", "net_profit", "eps", "dps")
+
+# Interim guidance. Japanese issuers forecast the first half separately from
+# the year, and /fins/summary files it under its own 2Q family of keys.
+INTERIM_METRICS = ("net_sales", "operating_profit", "ordinary_profit",
+                   "net_profit", "eps")
+
+# The four instalments an annual dividend forecast is filed as. There is a
+# FDivTotalAnn for the current year but *no* NxFDivTotalAnn, so a next-year
+# annual dividend only exists as the sum of these — which is why the DPS row
+# was empty for the companies that file no current-year total either.
+DIV_QUARTERS = ("div_q1", "div_q2", "div_q3", "div_fy")
 
 _MONTH_ABBR = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def dps_annual(pick, prefix: str = "f_"):
+    """Annual dividend per share for one forecast horizon, or None.
+
+    `pick` is a callable taking a concept name and returning (value, key) —
+    normally the caller's newest-across-filings reader, so a dividend revision
+    filed after the results is still picked up.
+
+    The filed annual total is used where there is one. Where there is not, the
+    four instalments are summed: /fins/summary has no next-year annual total at
+    all, only NxFDiv1Q…NxFDivFY, so a company's next-year dividend forecast is
+    invisible unless it is added up. A partial set still sums — a company
+    paying nothing at Q1 and Q3 files those as 0, not as blanks — but a set
+    that is entirely empty returns None rather than a spurious zero."""
+    total, _ = pick(f"{prefix}dps")
+    if total is not None:
+        return total
+    parts = [pick(f"{prefix}{q}")[0] for q in DIV_QUARTERS]
+    present = [p for p in parts if p is not None]
+    return sum(present) if present else None
+
+
+def fy_end_short(fy_end: str, fallback: str = "") -> str:
+    """"2027-03-31" -> "FYE 3/27". The compact form of the same fact the long
+    note spells out: which March (or December, or February) a column's fiscal
+    year closes in. `fallback` is shown when no date is known — normally the
+    plain FY label."""
+    month = fy_end_month(fy_end)
+    if not month:
+        return fallback
+    return f"FYE {month}/{str(fy_end)[2:4]}"
+
+
+def fy_end_dates(fy_labels, fy_end: str, fy_end_next: str) -> dict:
+    """{fy_label: iso_date} for the columns on screen.
+
+    Only two year ends are ever filed — the year guided and the one after it.
+    A third column exists because the street, or a screenshot of a terminal,
+    reaches further than the company does, and its close is projected from the
+    filed ones by keeping the month and day. Projecting the *month* is what
+    would be unsafe, and that never happens here."""
+    known = [d for d in (fy_end, fy_end_next) if d]
+    out = {}
+    if not known:
+        return out
+    anchor_date = known[-1]
+    anchor_label = sorted(fy_labels)[len(known) - 1] if len(fy_labels) >= len(known) else None
+    for i, label in enumerate(sorted(fy_labels)):
+        if i < len(known):
+            out[label] = known[i]
+        elif anchor_label:
+            try:
+                step = int(label[2:]) - int(anchor_label[2:])
+            except ValueError:
+                continue
+            if step > 0:
+                out[label] = f"{int(anchor_date[:4]) + step}{anchor_date[4:]}"
+    return out
 
 
 def fy_end_month(fy_end: str):
@@ -87,22 +160,55 @@ _JQ_ALIASES = {
     "operating_profit": ("OP", "OperatingProfit"),
     "net_profit":       ("NP", "Profit", "NetProfit"),
     "eps":              ("EPS", "EarningsPerShare"),
-    "dps":              ("DivAnn", "ResultDividendPerShareAnnual"),
+    "dps":              ("DivAnn", "DivTotalAnn", "ResultDividendPerShareAnnual"),
+    "ordinary_profit":  ("OdP", "OrdinaryProfit", "NCOdP"),
+    "div_q1":           ("Div1Q",),
+    "div_q2":           ("Div2Q",),
+    "div_q3":           ("Div3Q",),
+    "div_fy":           ("DivFY",),
     # Current-year company forecast
     "f_net_sales":        ("FSales", "ForecastNetSales", "FNCSales"),
     "f_operating_profit": ("FOP", "ForecastOperatingProfit", "FNCOP"),
     "f_net_profit":       ("FNP", "ForecastProfit", "FNCNP"),
     "f_eps":              ("FEPS", "ForecastEarningsPerShare", "FNCEPS"),
-    "f_dps":              ("FDivAnn", "FDivTotalAnn", "FDivFY",
+    "f_ordinary_profit":  ("FOdP", "ForecastOrdinaryProfit", "FNCOdP"),
+    # FDivFY is deliberately NOT here: it is the year-end instalment alone, and
+    # treating it as the annual figure silently under-reports a company that
+    # pays an interim dividend. Where no total is filed the instalments are
+    # summed instead (see dps_annual).
+    "f_dps":              ("FDivTotalAnn", "FDivAnn",
                            "ForecastDividendPerShareAnnual"),
+    "f_div_q1":           ("FDiv1Q",),
+    "f_div_q2":           ("FDiv2Q",),
+    "f_div_q3":           ("FDiv3Q",),
+    "f_div_fy":           ("FDivFY",),
+    # Interim (first-half) forecast, current year
+    "f2q_net_sales":        ("FSales2Q", "FNCSales2Q"),
+    "f2q_operating_profit": ("FOP2Q", "FNCOP2Q"),
+    "f2q_ordinary_profit":  ("FOdP2Q", "FNCOdP2Q"),
+    "f2q_net_profit":       ("FNP2Q", "FNCNP2Q"),
+    "f2q_eps":              ("FEPS2Q", "FNCEPS2Q"),
     # Next-year company forecast (only filed alongside full-year results)
     "nx_net_sales":        ("NxFSales", "NextYearForecastNetSales", "NxFNCSales"),
     "nx_operating_profit": ("NxFOP", "NextYearForecastOperatingProfit", "NxFNCOP"),
     # NxFNp, not NxFNP — the V2 response really does use that casing.
     "nx_net_profit":       ("NxFNP", "NxFNp", "NextYearForecastProfit", "NxFNCNP"),
     "nx_eps":              ("NxFEPS", "NextYearForecastEarningsPerShare", "NxFNCEPS"),
-    "nx_dps":              ("NxFDivAnn", "NxFDivTotalAnn", "NxFDivFY",
+    "nx_ordinary_profit":  ("NxFOdP", "NextYearForecastOrdinaryProfit", "NxFNCOdP"),
+    # No NxFDivTotalAnn exists in the response; the annual figure is only ever
+    # the sum of the four instalments below.
+    "nx_dps":              ("NxFDivAnn", "NxFDivTotalAnn",
                            "NextYearForecastDividendPerShareAnnual"),
+    "nx_div_q1":           ("NxFDiv1Q",),
+    "nx_div_q2":           ("NxFDiv2Q",),
+    "nx_div_q3":           ("NxFDiv3Q",),
+    "nx_div_fy":           ("NxFDivFY",),
+    # Interim (first-half) forecast, next year
+    "nx2q_net_sales":        ("NxFSales2Q", "NxFNCSales2Q"),
+    "nx2q_operating_profit": ("NxFOP2Q", "NxFNCOP2Q"),
+    "nx2q_ordinary_profit":  ("NxFOdP2Q", "NxFNCOdP2Q"),
+    "nx2q_net_profit":       ("NxFNp2Q", "NxFNP2Q", "NxFNCNP2Q"),
+    "nx2q_eps":              ("NxFEPS2Q", "NxFNCEPS2Q"),
     # Balance sheet
     "equity":       ("Eq", "Equity", "NetAssets", "TotalNetAssets"),
     "total_assets": ("TA", "TotalAssets"),
@@ -113,6 +219,9 @@ _JQ_ALIASES = {
     # EBITDA keep coming from Yahoo. Kept here so a future field is picked up.
     "debt":         ("IBD", "InterestBearingDebt", "Borrowings", "TotalDebt"),
     "dep_amort":    ("Dep", "Depreciation", "DepreciationAndAmortization"),
+    "shares":       ("ShOutFY", "NumberOfIssuedShares"),
+    "treasury":     ("TrShFY", "NumberOfTreasuryStock"),
+    "cfo":          ("CFO", "CashFlowsFromOperatingActivities"),
     # Period metadata
     "period_type":  ("CurPerType", "TypeOfCurrentPeriod"),
     "fy_end":       ("CurFYEn", "CurrentFiscalYearEndDate"),
@@ -221,7 +330,7 @@ def compute_valuations(price, shares, market_cap, fund: dict, forecasts: dict) -
                        else (fund.get("debt") or 0) - (fund.get("cash") or 0))
     out["ev_ebitda"] = _ratio(ev, fund.get("ebitda"))
 
-    for fy_key in ("fy1", "fy2"):
+    for fy_key in ("fy1", "fy2", "fy3"):
         for basis in ("company", "consensus"):
             eps = forecasts.get(("eps", fy_key, basis))
             sales = forecasts.get(("net_sales", fy_key, basis))
