@@ -3384,8 +3384,8 @@ with tab_research:
                 st.markdown(
                     '<div class="fc-note">Japanese issuers guide one year at a time, so there is a '
                     f'single company column ({_safe_text(_y1)}). The years beyond it are the '
-                    'street\'s — and the street\'s own second year comes from a screenshot, since '
-                    'Yahoo publishes only the current year and the next.</div>',
+                    'street\'s — and the street\'s own second year is typed or screenshotted in, '
+                    'since Yahoo publishes only the current year and the next.</div>',
                     unsafe_allow_html=True)
 
             # Yahoo's estimate frames carry EPS and revenue only, so operating
@@ -3393,9 +3393,10 @@ with tab_research:
             # once beats three rows of unexplained dashes.
             if any(_get(m, y, "consensus") is not None for m in ("eps", "net_sales") for y in _shown):
                 st.markdown(
-                    '<div class="fc-note">Consensus covers EPS and net sales only — Yahoo publishes '
-                    'no street estimate for operating profit, net profit or DPS on Japanese names. '
-                    'Those come from company guidance, or from a screenshot below.</div>',
+                    '<div class="fc-note">Consensus covers EPS and net sales only — those are the '
+                    'two estimate frames Yahoo carries, so there is no street operating profit, net '
+                    'profit or DPS to collect for Japanese names. Those come from company guidance, '
+                    'or from what you type or screenshot in below.</div>',
                     unsafe_allow_html=True)
 
             _tiles = [
@@ -3446,6 +3447,117 @@ with tab_research:
                     'These are raw numbers, not the formatted figures above, so the sheet can '
                     'compute on them.</div>', unsafe_allow_html=True)
 
+        def _fc_typed(_rcode, _rname, _years, _fc_map):
+            """Type any cell in the table by hand, or correct a collected one.
+
+            The screenshot reader below covers the terminal case; this covers
+            the rest of them — a broker PDF, a number off a call, a figure the
+            street has that Yahoo does not publish at all (operating profit,
+            net profit and DPS have no consensus side on Japanese names). It
+            writes to the same override store, so a typed value and a read one
+            behave identically everywhere downstream.
+
+            Deleting a row does not blank the cell: it drops the override so
+            the collected number shows through again. A row with nothing
+            collected behind it simply disappears."""
+            _label_of = {m: lbl for m, lbl, *_ in _FC_ROWS}
+            _metric_of = {lbl: m for m, lbl in _label_of.items()}
+            # company_h1 is in the store for 760-odd rows (it feeds the interim
+            # strip under the table), so it needs an option of its own —
+            # seeding a selectbox with a value outside its options is what
+            # would silently blank those rows on the first edit.
+            _basis_label = {"actual": "Actual (reported)", "company": "Company guidance",
+                            "consensus": "Street consensus",
+                            "company_h1": "Company guidance (H1)"}
+            _basis_of = {v: k for k, v in _basis_label.items()}
+            _manual_now = st.session_state.consensus_manual_map.get(_rcode, {})
+
+            st.markdown(
+                '<div class="fc-note">Type a value straight into the grid, or correct one that '
+                'was collected. Add a row with the <strong>+</strong> at the bottom, delete one to '
+                'put the collected number back. Absolute figures are in <strong>¥bn</strong> '
+                '(so 153.4 means ¥153.4bn); EPS and DPS are in yen per share. Nothing is stored '
+                'until you save.</div>', unsafe_allow_html=True)
+
+            # Seeded from what the table is showing, not from the override store
+            # alone — the point is to edit the panel you are looking at, and a
+            # collected value you retype has to start from the collected number.
+            _order = {m: i for i, (m, *_) in enumerate(_FC_ROWS)}
+            _seed_keys = sorted(
+                (k for k in _fc_map
+                 if len(k) == 3 and k[0] in _order and k[2] in _basis_label),
+                key=lambda k: (k[1], _order[k[0]],
+                               list(_basis_label).index(k[2])
+                               if k[2] in _basis_label else 9))
+            _rows = [{
+                "metric": _label_of[_m],
+                "fiscal_year": _y,
+                "basis": _basis_label.get(_b, _b),
+                "value_bn_or_yen": (_fc_map[(_m, _y, _b)]["value"] if _m in ("eps", "dps")
+                                    else _fc_map[(_m, _y, _b)]["value"] / 1e9),
+                "source": _fc_map[(_m, _y, _b)].get("source", ""),
+            } for _m, _y, _b in _seed_keys]
+
+            _nonce = st.session_state.get(f"fc_typed_nonce_{_rcode}", 0)
+            _edited = st.data_editor(
+                _rows, key=f"fc_typed_{_rcode}_{_nonce}", hide_index=True,
+                num_rows="dynamic", use_container_width=True,
+                column_config={
+                    "metric": st.column_config.SelectboxColumn(
+                        "Metric", options=[lbl for _, lbl, *_ in _FC_ROWS], required=True),
+                    "fiscal_year": st.column_config.TextColumn(
+                        "FY", width="small", required=True,
+                        help="The fiscal year as the panel labels it, e.g. FY2027."),
+                    "basis": st.column_config.SelectboxColumn(
+                        "Basis", options=list(_basis_label.values()), required=True),
+                    "value_bn_or_yen": st.column_config.NumberColumn(
+                        "Value (¥bn, or ¥ for per-share)", format="%.2f"),
+                    "source": st.column_config.TextColumn("Source", disabled=True, width="small"),
+                })
+
+            _t1, _t2 = st.columns([1.4, 2])
+            with _t1:
+                _save = st.button("💾 Save typed values", key=f"fc_typedsave_{_rcode}",
+                                  use_container_width=True)
+            with _t2:
+                if st.button("Reset grid", key=f"fc_typedreset_{_rcode}",
+                             use_container_width=True):
+                    st.session_state[f"fc_typed_nonce_{_rcode}"] = _nonce + 1
+                    st.rerun()
+
+            if not _save:
+                return
+
+            # Rows come back in the grid's own vocabulary; the planner works in
+            # the store's. See fundamentals.plan_typed_overrides — the logic
+            # lives there so it can be tested without a browser.
+            _entries, _removed, _bad = fund.plan_typed_overrides(
+                [{"metric": _metric_of.get(_r.get("metric"), ""),
+                  "fiscal_year": _r.get("fiscal_year"),
+                  "basis": _basis_of.get(_r.get("basis"), ""),
+                  "value": _r.get("value_bn_or_yen")} for _r in _edited],
+                _seed_keys, _fc_map, _manual_now, now_local().date().isoformat())
+
+            # Every exit below reruns, which throws away anything drawn now, so
+            # the notes travel in the flash the top of the tab already renders.
+            def _flash(_level, _msg):
+                st.session_state.research_flash = (
+                    _level, " ".join([_msg] + _bad) if _bad else _msg)
+                st.session_state[f"fc_typed_nonce_{_rcode}"] = _nonce + 1
+                st.rerun()
+
+            if not _entries and not _removed:
+                _flash("warning" if _bad else "info", "No changes to save.")
+
+            _block = st.session_state.consensus_manual_map.setdefault(_rcode, {})
+            _block.update({_k: dict(_v) for _k, _v in _entries.items()})
+            for _k in _removed:
+                _block.pop(_k, None)
+            _ok, _msg = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode,
+                                                   _entries, remove=_removed)
+            _flash("success" if _ok and not _bad else "warning",
+                   _msg if _ok else f"Applied for this session, but not saved: {_msg}")
+
         def _fc_screenshots(_rcode, _rname, _years):
             """Attach terminal screenshots, have them read, review, then save.
 
@@ -3492,8 +3604,9 @@ with tab_research:
             with _c2:
                 if not _api_key:
                     st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
-                                'Secrets, so screenshots cannot be read. You can still type values '
-                                'into the grid below once something has been parsed.</div>',
+                                'Secrets, so screenshots cannot be read. Use the '
+                                '<strong>Type or correct values</strong> tab instead — it needs no '
+                                'API key and writes to the same place.</div>',
                                 unsafe_allow_html=True)
 
             if _go:
@@ -3678,7 +3791,16 @@ with tab_research:
                     _fc_exports(_rcode, _rname, _fc_map)
                     st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
                                 unsafe_allow_html=True)
-                    _fc_screenshots(_rcode, _rname, _years)
+                    # Two ways into the same override store. Typing is first
+                    # because it always works — the screenshot reader needs an
+                    # API key, and half of what is missing here is a single
+                    # figure that is faster typed than captured.
+                    _tab_type, _tab_shot = st.tabs(["✏️ Type or correct values",
+                                                    "📸 Read a screenshot"])
+                    with _tab_type:
+                        _fc_typed(_rcode, _rname, _years, _fc_map)
+                    with _tab_shot:
+                        _fc_screenshots(_rcode, _rname, _years)
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []
