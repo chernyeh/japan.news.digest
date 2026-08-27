@@ -1,0 +1,40 @@
+{
+  "6504": {
+    "eps|FY2027|consensus": {
+      "as_of": "2026-08-27",
+      "source": "screenshot:IMG_6407.png",
+      "unit": "jpy",
+      "value": 763.13
+    },
+    "eps|FY2028|consensus": {
+      "as_of": "2026-08-27",
+      "source": "screenshot:IMG_6407.png",
+      "unit": "jpy",
+      "value": 828.38
+    },
+    "net_sales|FY2027|consensus": {
+      "as_of": "2026-08-27",
+      "source": "screenshot:IMG_6407.png",
+      "unit": "jpy_abs",
+      "value": 1300000000000.0
+    },
+    "net_sales|FY2028|consensus": {
+      "as_of": "2026-08-27",
+      "source": "screenshot:IMG_6407.png",
+      "unit": "jpy_abs",
+      "value": 1400000000000.0
+    },
+    "operating_profit|FY2027|consensus": {
+      "as_of": "2026-08-27",
+      "source": "screenshot:IMG_6407.png",
+      "unit": "jpy_abs",
+      "value": 153400000000.0
+    },
+    "operating_profit|FY2028|consensus": {
+      "as_of": "2026-08-27",
+      "source": "screenshot:IMG_6407.png",
+      "unit": "jpy_abs",
+      "value": 170600000000.0
+    }
+  }
+}
