@@ -19,6 +19,8 @@ from edinet import (load_edinet_filings_from_github, doc_type_label,
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
 from ir_scanner import scan_page_for_documents, build_zip
+import fundamentals as fund
+import consensus_vision
 
 # Batch ZIP downloads are fetched server-side and held in memory, so cap how
 # many documents one ZIP can contain; the UI tells the user what was skipped.
@@ -47,10 +49,39 @@ def load_metadata_brain():
             shares  = df.set_index("Code")["Shares"].to_dict()
             names   = df.set_index("Code")["Name"].to_dict()
             sectors = df.set_index("Code")["Sector"].to_dict() if "Sector" in df.columns else {}
-            return shares, names, sectors
+            return shares, names, _augment_with_jpx400(names, sectors)
         except Exception as e:
             print(f"Error loading metadata.csv: {e}")
     return {}, {}, {}
+
+
+def _augment_with_jpx400(names: dict, sectors: dict) -> dict:
+    """metadata.csv is built from a hardcoded ticker list and misses 17 of the
+    JPX-Nikkei 400 — Marubeni, Sekisui House, Yamaha Motor, Chiba Bank and Keio
+    among them — so those companies cannot be found in the Research search at
+    all. The constituent list carries their names, so fold them in here rather
+    than leaving index members unsearchable. `names` is mutated in place; only
+    `sectors` is returned because that is the one this sits inside.
+
+    They get no Shares or Sector entry, which the lookups already treat as
+    absent, so only the affected valuation cells stay blank."""
+    path = os.path.join("data", "jpxnikkei400.csv")
+    if not os.path.exists(path):
+        return sectors
+    try:
+        import csv as _csv
+        with open(path, newline="", encoding="utf-8") as fh:
+            added = 0
+            for row in _csv.DictReader(fh):
+                code = (row.get("Code") or "").strip()
+                if code and code not in names and row.get("Name"):
+                    names[code] = row["Name"].strip()
+                    added += 1
+        if added:
+            print(f"Metadata: added {added} JPX-Nikkei 400 name(s) missing from metadata.csv")
+    except Exception as e:
+        print(f"Error loading jpxnikkei400.csv: {e}")
+    return sectors
 
 SHARES_LOOKUP, NAMES_LOOKUP, SECTOR_LOOKUP = load_metadata_brain()
 
@@ -766,6 +797,41 @@ a.research-link:hover { background: #F0EDE8; }
     text-align: left !important; justify-content: flex-start !important;
 }
 /* IR-scan results — grouped candidate list */
+/* ── Forecast / consensus / valuation panel (Research tab) ───────────── */
+.fc-tablewrap { overflow-x: auto; border: 1px solid #D9D3C8; border-radius: 5px;
+                background: #FDFAF7; margin-top: 0.4rem; }
+.fc-table { display: grid; min-width: 560px; font-size: 0.78rem; }
+.fc-cell { padding: 6px 11px; text-align: right; border-bottom: 1px solid #E8E3DC;
+           font-variant-numeric: tabular-nums; }
+.fc-h { font-size: 0.63rem; letter-spacing: 0.05em; text-transform: uppercase;
+        color: #9B8B7A; font-weight: 600; background: #F0EDE8;
+        border-bottom: 1px solid #D9D3C8; white-space: nowrap; }
+.fc-metric { text-align: left; font-weight: 600; color: #1A1A1A; white-space: nowrap; }
+.fc-grp { color: #8B4513; }
+.fc-num { font-family: monospace; }
+.fc-cons { background: #F9F5F0; }
+.fc-na { color: #B0A798; }
+.fc-delta { font-family: monospace; font-size: 0.66rem; font-weight: 700; margin-left: 0.35em; }
+.fc-delta.u { color: #2E7D32; }
+.fc-delta.d { color: #C62828; }
+.fc-src { font-family: monospace; font-size: 0.56rem; vertical-align: super;
+          margin-left: 0.18em; font-weight: 700; cursor: help; }
+.fc-src-a { color: #9B8B7A; }
+.fc-src-s { color: #E65100; }
+.fc-src-t { color: #8B4513; }
+.fc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.68rem;
+             color: #9B8B7A; margin: 6px 0 2px; }
+.fc-note { font-size: 0.72rem; color: #9B8B7A; border-left: 3px solid #D9D3C8;
+           padding: 6px 10px; margin: 8px 0; background: #FDFAF7; }
+.fc-vgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+            gap: 1px; background: #D9D3C8; border: 1px solid #D9D3C8;
+            border-radius: 5px; overflow: hidden; margin-top: 0.6rem; }
+.fc-vcell { background: #FDFAF7; padding: 8px 10px; }
+.fc-k { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
+        color: #9B8B7A; font-weight: 600; display: block; }
+.fc-v { font-family: monospace; font-size: 1.02rem; font-weight: 700;
+        font-variant-numeric: tabular-nums; display: block; color: #1A1A1A; }
+.fc-sub { font-size: 0.62rem; color: #9B8B7A; font-family: monospace; }
 .research-scan-group {
     font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.15rem;
@@ -838,6 +904,12 @@ for key, default in [
     ("perf_3m_map", {}), ("perf_3m_loaded_ts", None),
     ("earnings_auto_loaded", False),
     ("earnings_perf", {}), ("fin_summary_cache", {}),
+    # Research tab forecast panel (consensus / guidance / valuation)
+    ("consensus_map", {}), ("fundamentals_map", {}), ("jpx400_map", {}),
+    ("consensus_manual_map", {}), ("consensus_loaded_ts", None),
+    ("consensus_load_attempted", False),
+    ("research_prices_map", {}), ("research_prices_attempted", False),
+    ("consensus_shot_parse", None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -3012,6 +3084,353 @@ with tab_research:
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
+        def _toggle_section(label: str, state_key: str) -> bool:
+            """Collapsible section header using a plain-character arrow instead
+            of st.expander's built-in icon font — that font silently falls back
+            to raw ligature text (e.g. "keyboard_arrow_right") if it fails to
+            load client-side, which isn't something this app controls. Returns
+            whether the section's body should render."""
+            st.session_state.setdefault(state_key, False)
+            with st.container(key=f"research_section_toggle_{state_key}"):
+                _arrow = "▾" if st.session_state[state_key] else "▸"
+                if st.button(f"{_arrow}  {label}", key=f"{state_key}_btn", use_container_width=True):
+                    st.session_state[state_key] = not st.session_state[state_key]
+                    st.rerun()  # so the arrow reflects the new state immediately, not one click late
+            return st.session_state[state_key]
+
+        # ── Forecasts, consensus & valuation ──────────────────────────────
+        # Company guidance (J-Quants, filed) beside street consensus (yfinance,
+        # weekly job), with multiples recomputed here against the daily close so
+        # they stay current between collector runs. Sources: fundamentals.py,
+        # collect_consensus.py, .github/workflows/weekly_consensus.yml.
+
+        def _fnum(val, dp=1, suffix="", scale=1.0):
+            """Display formatting only. Never feed these strings into an export —
+            a spreadsheet needs the raw number (see fundamentals.export_rows)."""
+            if val is None:
+                return '<span class="fc-na">—</span>'
+            try:
+                return f"{val / scale:,.{dp}f}{suffix}"
+            except (TypeError, ValueError):
+                return '<span class="fc-na">—</span>'
+
+        def _pct(val, dp=1):
+            return '<span class="fc-na">—</span>' if val is None else f"{val * 100:,.{dp}f}%"
+
+        _SRC_TAG = {"jquants": ("A", "auto — J-Quants filing"),
+                    "yfinance": ("A", "auto — Yahoo/LSEG consensus"),
+                    "typed": ("T", "typed by you"), "manual": ("T", "typed by you")}
+
+        def _src_mark(source: str) -> str:
+            """A one-letter provenance mark, so a number's origin is visible in
+            the table rather than buried in a column nobody reads."""
+            if not source:
+                return ""
+            if source.startswith("screenshot"):
+                letter, title = "S", f"from your screenshot ({source.split(':', 1)[-1]})"
+            else:
+                letter, title = _SRC_TAG.get(source, ("A", source))
+            cls = {"A": "a", "S": "s", "T": "t"}[letter]
+            return (f'<span class="fc-src fc-src-{cls}" '
+                    f'title="{_safe_text(title)}">{letter}</span>')
+
+        _FC_ROWS = [("net_sales", "Net sales", 1e9, 1),
+                    ("operating_profit", "Operating profit", 1e9, 1),
+                    ("net_profit", "Net profit", 1e9, 1),
+                    ("eps", "EPS ¥", 1.0, 1),
+                    ("dps", "DPS ¥", 1.0, 1)]
+
+        def _fc_render(ctx: dict):
+            _years, _get, _src = ctx["years"], ctx["get"], ctx["src"]
+            _vals, _fundrow = ctx["vals"], ctx["fundrow"]
+            _y1 = _years[0] if _years else ""
+            _y2 = _years[1] if len(_years) > 1 else ""
+            _shown = [y for y in (_y1, _y2) if y]
+
+            cells = ['<div class="fc-cell fc-h fc-metric">Metric</div>']
+            for _y in _shown:
+                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} company</div>')
+                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} consensus</div>')
+
+            for _m, _label, _scale, _dp in _FC_ROWS:
+                cells.append(f'<div class="fc-cell fc-metric">{_safe_text(_label)}</div>')
+                for _y in _shown:
+                    _co, _cs = _get(_m, _y, "company"), _get(_m, _y, "consensus")
+                    cells.append('<div class="fc-cell fc-num">' + _fnum(_co, _dp, "", _scale)
+                                 + _src_mark(_src(_m, _y, "company")) + '</div>')
+                    # The gap chip fires only past 5% — consensus sitting on top
+                    # of guidance is the normal case and not worth marking.
+                    _gap = fund.guidance_gap(_co, _cs)
+                    _chip = ('' if _gap is None else
+                             f'<span class="fc-delta {"u" if _gap > 0 else "d"}">{_gap * 100:+.1f}%</span>')
+                    cells.append('<div class="fc-cell fc-num fc-cons">' + _fnum(_cs, _dp, "", _scale)
+                                 + _src_mark(_src(_m, _y, "consensus")) + _chip + '</div>')
+
+            st.markdown(
+                '<div class="fc-tablewrap"><div class="fc-table" '
+                f'style="grid-template-columns:minmax(150px,1.4fr) '
+                f'repeat({2 * len(_shown)},minmax(104px,1fr));">'
+                + "".join(cells) + '</div></div>'
+                '<div class="fc-legend">'
+                '<span><b class="fc-src fc-src-a">A</b> auto</span>'
+                '<span><b class="fc-src fc-src-s">S</b> your screenshot</span>'
+                '<span><b class="fc-src fc-src-t">T</b> typed</span>'
+                '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
+                unsafe_allow_html=True)
+
+            if _y2 and all(_get(m, _y2, "company") is None for m, *_ in _FC_ROWS):
+                st.markdown(
+                    f'<div class="fc-note">No company guidance for {_safe_text(_y2)} yet. Japanese '
+                    'issuers publish next-year guidance only alongside full-year results, so that '
+                    'column fills in after the Q4 filing and is empty the rest of the year — for a '
+                    'second year the street is usually the only forecast there is.</div>',
+                    unsafe_allow_html=True)
+
+            _tiles = [
+                ("Price", _fnum(ctx["price"], 0), "close"),
+                ("Market cap", _fnum(ctx["mcap"], 1, "B", 1e9), "¥"),
+                (f"P/E {_y1} co.", _fnum(_vals.get("pe_fy1_company"), 1, "×"), "guidance EPS"),
+                (f"P/E {_y1} cons.", _fnum(_vals.get("pe_fy1_consensus"), 1, "×"), "consensus EPS"),
+                (f"P/E {_y2 or '—'} cons.", _fnum(_vals.get("pe_fy2_consensus"), 1, "×"), "consensus EPS"),
+                ("P/B", _fnum(_vals.get("pb"), 2, "×"),
+                 "BPS " + (f"{_vals['bps']:,.0f}" if _vals.get("bps") else "—")),
+                ("EV/EBITDA", _fnum(_vals.get("ev_ebitda"), 1, "×"),
+                 _fundrow.get("ebitda_basis") or "no EBITDA"),
+                ("Net debt", _fnum(_vals.get("net_debt"), 1, "B", 1e9), "¥ debt − cash"),
+                ("Div yield", _pct(_vals.get("yield_fy1_company"), 2), "guidance DPS"),
+                ("EPS growth", _pct(_vals.get("eps_growth")), "FY1→FY2"),
+                ("PEG", _fnum(_vals.get("peg"), 2), "cons. P/E ÷ growth"),
+            ]
+            st.markdown('<div class="fc-vgrid">' + "".join(
+                f'<div class="fc-vcell"><span class="fc-k">{_safe_text(k)}</span>'
+                f'<span class="fc-v">{v}</span><span class="fc-sub">{_safe_text(sub)}</span></div>'
+                for k, v, sub in _tiles) + '</div>', unsafe_allow_html=True)
+
+        def _fc_exports(_rcode, _rname, _fc_map):
+            _rows = fund.export_rows(_rcode, _rname, _fc_map)
+            _e1, _e2, _e3 = st.columns([1.6, 1, 1])
+            with _e1:
+                _show = st.toggle("📋 Copy for spreadsheet", key=f"fc_tsv_{_rcode}")
+            with _e2:
+                st.download_button("⬇ CSV", data=fund.to_csv_bytes(_rows),
+                                    file_name=f"{_rcode}_consensus.csv", mime="text/csv",
+                                    key=f"fc_csv_{_rcode}", use_container_width=True)
+            with _e3:
+                st.download_button("⬇ Excel", data=fund.to_xlsx_bytes(_rows),
+                                    file_name=f"{_rcode}_consensus.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument."
+                                         "spreadsheetml.sheet",
+                                    key=f"fc_xlsx_{_rcode}", use_container_width=True)
+            if _show:
+                # st.code ships its own copy button, and tab-separated text
+                # pastes into Sheets/Excel as columns with no import dialog.
+                st.code(fund.to_tsv(_rows), language=None)
+                st.markdown(
+                    '<div class="fc-note">Copy, then paste straight into Google Sheets or Excel. '
+                    'These are raw numbers, not the formatted figures above, so the sheet can '
+                    'compute on them.</div>', unsafe_allow_html=True)
+
+        def _fc_screenshots(_rcode, _rname, _years):
+            """Attach terminal screenshots, have them read, review, then save.
+
+            The whole flow exists because Koyfin and its peers have no API and
+            their vendor licence bars exporting estimates — but nothing stops
+            you reading your own screen. See consensus_vision.py."""
+            st.markdown(
+                '<div class="fc-note">Terminals like Koyfin have no API, and estimates are the one '
+                'data class their vendor licence keeps out of exports. Screenshot what you see '
+                'instead. Attach as many captures as it takes — they are read <strong>together</strong> '
+                'in one pass, so a header in one and the figures in another still join up.</div>',
+                unsafe_allow_html=True)
+
+            _files = st.file_uploader(
+                "Screenshots", type=["png", "jpg", "jpeg", "webp", "gif"],
+                accept_multiple_files=True, key=f"fc_shots_{_rcode}",
+                label_visibility="collapsed",
+                help="PNG, JPG, WebP or GIF. Up to 8 images, 5MB each.")
+
+            _parse_key = f"fc_parse_{_rcode}"
+            _api_key = get_secret("ANTHROPIC_API_KEY")
+
+            _c1, _c2 = st.columns([1.4, 2])
+            with _c1:
+                _go = st.button(f"🔎 Read {len(_files or [])} screenshot(s)",
+                                 key=f"fc_readbtn_{_rcode}",
+                                 disabled=not _files, use_container_width=True)
+            with _c2:
+                if not _api_key:
+                    st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
+                                'Secrets, so screenshots cannot be read. You can still type values '
+                                'into the grid below once something has been parsed.</div>',
+                                unsafe_allow_html=True)
+
+            if _go:
+                if not _api_key:
+                    st.error("ANTHROPIC_API_KEY not found in Streamlit Secrets.")
+                else:
+                    _images = [{"name": f.name, "media_type": f.type, "data": f.getvalue()}
+                               for f in _files]
+                    try:
+                        with st.spinner(f"Reading {len(_images)} screenshot(s)…"):
+                            st.session_state[_parse_key] = consensus_vision.extract_from_images(
+                                _images, _api_key, code=_rcode, name=_rname)
+                    except Exception as _ve:
+                        st.session_state.pop(_parse_key, None)
+                        st.error(f"Couldn't read those screenshots: {_ve}")
+
+            _parsed = st.session_state.get(_parse_key)
+            if not _parsed:
+                return
+
+            _cells = _parsed.get("cells") or []
+            if _cells:
+                st.markdown(
+                    f'<div class="fc-note"><strong>Review before saving.</strong> '
+                    f'{len(_cells)} value(s) read. Correct anything wrong, untick anything you '
+                    'do not want — nothing is stored until you save.</div>',
+                    unsafe_allow_html=True)
+                _editor_rows = [{
+                    "save": True,
+                    "metric": c["metric"],
+                    "fiscal_year": c["fiscal_year"],
+                    "basis": c["basis"],
+                    # Shown in the units the panel uses, so a wrong order of
+                    # magnitude is obvious against the rows above.
+                    "value_bn_or_yen": (c["value"] if c["metric"] in ("eps", "dps")
+                                        else c["value"] / 1e9),
+                    "printed_unit": c.get("printed_unit", ""),
+                    "analysts": c.get("n_analysts"),
+                    "from_image": c.get("from_image", ""),
+                } for c in _cells]
+                _edited = st.data_editor(
+                    _editor_rows, key=f"fc_editor_{_rcode}", hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "save": st.column_config.CheckboxColumn("Save", width="small"),
+                        "value_bn_or_yen": st.column_config.NumberColumn(
+                            "Value (¥bn, or ¥ for per-share)", format="%.2f"),
+                        "fiscal_year": st.column_config.TextColumn("FY", width="small"),
+                        "basis": st.column_config.SelectboxColumn(
+                            "Basis", options=["consensus", "company"], width="small"),
+                        "printed_unit": st.column_config.TextColumn("As printed", disabled=True),
+                        "from_image": st.column_config.TextColumn("From", disabled=True),
+                    },
+                )
+            else:
+                _edited = []
+                st.markdown('<div class="fc-note">No values could be read from those '
+                            'screenshots.</div>', unsafe_allow_html=True)
+
+            for _note in (_parsed.get("unreadable") or []):
+                st.warning(f"Not read: {_note}")
+
+            _s1, _s2 = st.columns([1.4, 2])
+            with _s1:
+                _save = st.button("💾 Save as overrides", key=f"fc_save_{_rcode}",
+                                   disabled=not _edited, use_container_width=True)
+            with _s2:
+                if st.button("Discard", key=f"fc_discard_{_rcode}", use_container_width=True):
+                    st.session_state.pop(_parse_key, None)
+                    st.rerun()
+
+            if _save:
+                _shot_names = ",".join(sorted({r.get("from_image", "") for r in _edited
+                                               if r.get("from_image")})) or "screenshot"
+                _entries = {}
+                for _r in _edited:
+                    if not _r.get("save"):
+                        continue
+                    _m, _fy = _r.get("metric"), str(_r.get("fiscal_year") or "").strip()
+                    _v = _r.get("value_bn_or_yen")
+                    if not _m or not _fy or _v is None:
+                        continue
+                    _yen = float(_v) if _m in ("eps", "dps") else float(_v) * 1e9
+                    _entries[fund.manual_key(_m, _fy, _r.get("basis") or "consensus")] = {
+                        "value": _yen,
+                        "unit": "jpy" if _m in ("eps", "dps") else "jpy_abs",
+                        "source": f"screenshot:{_shot_names}",
+                        "as_of": now_local().date().isoformat(),
+                    }
+                if not _entries:
+                    st.session_state.research_flash = ("warning", "Nothing ticked — nothing saved.")
+                else:
+                    st.session_state.consensus_manual_map.setdefault(_rcode, {}).update(_entries)
+                    _ok, _msg = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode, _entries)
+                    st.session_state.research_flash = (
+                        ("success", f"Saved {len(_entries)} override(s).") if _ok
+                        else ("warning", f"Applied for this session, but not saved: {_msg}"))
+                    st.session_state.pop(_parse_key, None)
+                st.rerun()
+
+        # ── Panel ─────────────────────────────────────────────────────────
+        if not st.session_state.consensus_load_attempted:
+            st.session_state.consensus_load_attempted = True
+            try:
+                st.session_state.consensus_map        = fund.load_consensus_from_github(_ec_repo, _gh_token)
+                st.session_state.fundamentals_map     = fund.load_fundamentals_from_github(_ec_repo, _gh_token)
+                st.session_state.jpx400_map           = fund.load_universe_from_github(_ec_repo, _gh_token)
+                st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
+                st.session_state.consensus_loaded_ts  = now_local()
+            except Exception as _ce:
+                print(f"Consensus load error: {_ce}")
+
+        # The Screener tab owns the price map but renders *after* this one, so on
+        # a first paint it is still empty. Load it here behind its own sentinel
+        # rather than reordering the tabs.
+        if not st.session_state.research_prices_map and not st.session_state.research_prices_attempted:
+            st.session_state.research_prices_attempted = True
+            try:
+                st.session_state.research_prices_map = load_prices_from_github(_ec_repo, _gh_token)
+            except Exception as _pe:
+                print(f"Research price load error: {_pe}")
+
+        _fc_map = fund.apply_manual_overrides(
+            st.session_state.consensus_map.get(_rcode, {}),
+            st.session_state.consensus_manual_map.get(_rcode, {}))
+        _fundrow = st.session_state.fundamentals_map.get(_rcode, {})
+        _in_400 = _rcode in (st.session_state.jpx400_map or {})
+
+        if _fc_map or _in_400:
+            if _toggle_section("📈 Forecasts, consensus & valuation", "research_forecast_open"):
+                if not _fc_map:
+                    st.markdown(
+                        '<div class="empty-state">In the JPX-Nikkei 400, but no forecast data '
+                        'collected yet — run the <strong>Weekly Consensus and Fundamentals</strong> '
+                        'action (it needs a JQUANTS_API_KEY repo secret).</div>',
+                        unsafe_allow_html=True)
+                else:
+                    _price = (st.session_state.research_prices_map or {}).get(_rcode)
+                    _shares = SHARES_LOOKUP.get(_rcode) or _fundrow.get("shares")
+                    # mktcap_map is ¥bn; fundamentals.py works in yen throughout.
+                    _mcap = (_rmcap * 1e9) if _rmcap else (
+                        _price * _shares if (_price and _shares) else None)
+
+                    # Two fiscal years, earliest first, taken from the data
+                    # rather than today's date — a company mid-year and one that
+                    # has just reported are on different calendars, and the label
+                    # has to match what the filing actually said.
+                    _years = sorted({k[1] for k in _fc_map if k[1]})[:2]
+                    _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
+                    _src = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("source", "")
+
+                    _slots = {}
+                    for _slot, _y in zip(("fy1", "fy2"), _years):
+                        for _b in ("company", "consensus"):
+                            for _m in fund.METRICS:
+                                _v = _get(_m, _y, _b)
+                                if _v is not None:
+                                    _slots[(_m, _slot, _b)] = _v
+
+                    _fc_render({
+                        "years": _years, "get": _get, "src": _src,
+                        "vals": fund.compute_valuations(_price, _shares, _mcap, _fundrow, _slots),
+                        "fundrow": _fundrow, "price": _price, "mcap": _mcap,
+                    })
+                    _fc_exports(_rcode, _rname, _fc_map)
+                    st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
+                                unsafe_allow_html=True)
+                    _fc_screenshots(_rcode, _rname, _years)
+
         # ── Assemble the unified item list ──────────────────────────────
         _items = []
         for _f in _edinet_idx.get(_rcode, []):
@@ -3219,20 +3638,6 @@ with tab_research:
                 file_name=f"{_rcode}_research_links.md", mime="text/markdown",
                 key=f"research_export_{_rcode}",
             )
-
-        def _toggle_section(label: str, state_key: str) -> bool:
-            """Collapsible section header using a plain-character arrow instead
-            of st.expander's built-in icon font — that font silently falls back
-            to raw ligature text (e.g. "keyboard_arrow_right") if it fails to
-            load client-side, which isn't something this app controls. Returns
-            whether the section's body should render."""
-            st.session_state.setdefault(state_key, False)
-            with st.container(key=f"research_section_toggle_{state_key}"):
-                _arrow = "▾" if st.session_state[state_key] else "▸"
-                if st.button(f"{_arrow}  {label}", key=f"{state_key}_btn", use_container_width=True):
-                    st.session_state[state_key] = not st.session_state[state_key]
-                    st.rerun()  # so the arrow reflects the new state immediately, not one click late
-            return st.session_state[state_key]
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
 

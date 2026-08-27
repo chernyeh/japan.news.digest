@@ -1,0 +1,82 @@
+# .github/workflows/weekly_consensus.yml
+# Rebuilds data/consensus.csv (company guidance + street consensus, long
+# format) and data/fundamentals.csv (balance-sheet snapshot for P/B and
+# EV/EBITDA) across the JPX-Nikkei 400, for the Research tab's forecast panel.
+#
+# Weekly rather than daily on purpose: consensus barely moves between broker
+# revisions, and 400 sequential Yahoo lookups every night is a lot of traffic
+# for data that changes a few times a quarter. Valuation multiples stay current
+# regardless — the app recomputes them against the daily close price, so only
+# the forecasts themselves are on this cadence.
+#
+# Requires a JQUANTS_API_KEY repo secret for the company-guidance half. Without
+# it the run still completes and collects consensus, and the coverage report
+# will show the guidance rows missing.
+#
+# Read the coverage report in the run log. It is the honest measure of how much
+# of the panel is actually populated — Yahoo's estimate coverage of Japanese
+# mid-caps is not guaranteed, and the report says exactly where the holes are.
+
+name: Weekly Consensus and Fundamentals
+
+on:
+  schedule:
+    - cron: '0 20 * * 6'    # 20:00 UTC Sat = 05:00 JST Sun, well clear of the daily jobs
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Only the first N companies (0 = all 400)'
+        required: false
+        default: '0'
+      probe:
+        description: 'Print J-Quants field names for one code and stop (e.g. 6504)'
+        required: false
+        default: ''
+
+jobs:
+  fetch-consensus:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests yfinance pandas openpyxl
+
+      # Schema discovery. J-Quants V2 abbreviates its response columns and
+      # fundamentals.py resolves them through an alias table; this prints which
+      # key actually matched, plus any response key no alias claims. Run it
+      # from the Actions tab whenever a concept comes back empty.
+      - name: Probe J-Quants schema
+        if: ${{ github.event.inputs.probe != '' }}
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+        run: python collect_consensus.py --probe "${{ github.event.inputs.probe }}"
+
+      - name: Collect consensus and fundamentals
+        if: ${{ github.event.inputs.probe == '' }}
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+        run: |
+          python collect_consensus.py --limit "${{ github.event.inputs.limit || 0 }}"
+
+      - name: Commit and push
+        if: ${{ github.event.inputs.probe == '' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/consensus.csv data/fundamentals.csv
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: update consensus and fundamentals [skip ci]"
+            git push
+          fi

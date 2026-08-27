@@ -87,12 +87,30 @@ jobs:
           # (3172 unique companies vs only 228 in shares_map).
           # Market cap is still computed only for companies in shares_map.
           import random
+          # The JPX-Nikkei 400 backs the Research tab's forecast panel, whose
+          # valuation columns are blank without a close price. The sweep below
+          # is shuffled and most of the 1300-9998 range is not a listed company,
+          # so leaving these to chance covered only 86 of the 400. Queue them
+          # immediately after the benchmark ETFs instead: they land in the first
+          # batches, before any rate-limiting bites. The range loop also cannot
+          # emit the alphanumeric codes the TSE has issued since 2024 (417A,
+          # 547A) — reading the list is the only way those are fetched at all.
+          jpx400 = []
+          if os.path.exists("data/jpxnikkei400.csv"):
+              with open("data/jpxnikkei400.csv", encoding="utf-8") as f:
+                  jpx400 = [str(r.get("Code","")).strip() for r in csv.DictReader(f)
+                            if str(r.get("Code","")).strip()]
+              print(f"JPX-Nikkei 400 codes queued first: {len(jpx400)}")
+          else:
+              print("WARNING: data/jpxnikkei400.csv not found; "
+                    "forecast-panel coverage will be whatever the sweep happens to hit")
+
           # Always fetch TOPIX ETFs first so they're available for the benchmark
           TOPIX_MUST = ["1308", "1306"]
           codes = [str(i).zfill(4) for i in range(1300, 9999)]
           codes = [c for c in dict.fromkeys(codes) if c not in TOPIX_MUST]
           random.shuffle(codes)
-          codes = TOPIX_MUST + codes
+          codes = list(dict.fromkeys(TOPIX_MUST + jpx400 + codes))
           tickers = [c + ".T" for c in codes]
           print(f"Fetching prices for {len(tickers)} tickers...")
 
