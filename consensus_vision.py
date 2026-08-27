@@ -32,6 +32,102 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024
 # on a handful of screenshots is irrelevant next to that.
 MODEL = "claude-opus-5"
 
+# ── What a screenshot costs to read ──────────────────────────────────────
+# Claude bills an image by area, not by file size: it is cut into 28×28-pixel
+# patches and each patch is one visual token, so an image costs
+# ceil(w/28) × ceil(h/28) input tokens. Claude 4.7 and later read at high
+# resolution — a longer edge and roughly three times the patch budget of
+# earlier models — and anything over either ceiling is downscaled first,
+# preserving aspect ratio, which caps what a single image can ever cost.
+#
+# Rates and limits: platform.claude.com/docs/en/build-with-claude/vision
+# and claude.com/pricing. Both change; they are constants here so a stale
+# figure is visible in one place rather than buried in an f-string.
+PATCH_PX = 28
+MAX_LONG_EDGE = 2576          # high-resolution tier (Claude 4.7 and later)
+MAX_VISUAL_TOKENS = 4784
+INPUT_USD_PER_MTOK = 5.00     # claude-opus-5
+OUTPUT_USD_PER_MTOK = 25.00
+
+# The instructions above travel with every request, and a filled-in review grid
+# comes back as JSON preceded by the model's reasoning, which bills as output.
+# Both are small next to the images but not zero, and quoting an image-only
+# figure would understate the bill. The reply figure is a rough average — it
+# scales with how many cells are actually readable — so the estimate is
+# presented as "about", and the visual-token count beside it is exact.
+_PROMPT_TOKENS = 700
+_REPLY_TOKENS = 1500
+
+
+def image_tokens(width: int, height: int) -> int:
+    """Visual tokens one image costs, after the downscaling the API applies to
+    anything past the resolution ceiling."""
+    import math
+    if not width or not height:
+        return 0
+    scale = min(1.0, MAX_LONG_EDGE / max(width, height))
+    w, h = width * scale, height * scale
+    tokens = math.ceil(w / PATCH_PX) * math.ceil(h / PATCH_PX)
+    if tokens > MAX_VISUAL_TOKENS:
+        # Area-match the budget, then step down until the patch grid actually
+        # fits: rounding up to whole patches on both edges can put a
+        # perfectly area-sized image back over the ceiling.
+        scale *= math.sqrt(MAX_VISUAL_TOKENS * PATCH_PX ** 2 / (w * h))
+        for _ in range(24):
+            w, h = width * scale, height * scale
+            tokens = math.ceil(w / PATCH_PX) * math.ceil(h / PATCH_PX)
+            if tokens <= MAX_VISUAL_TOKENS:
+                break
+            scale *= 0.995
+    return tokens
+
+
+def image_size(data: bytes):
+    """(width, height) read from the file header. Pillow arrives with
+    Streamlit, but this is not worth failing a parse over, so an unreadable
+    header returns (0, 0) and the estimate simply omits that image."""
+    try:
+        import io
+        from PIL import Image
+        with Image.open(io.BytesIO(data)) as img:
+            return img.size
+    except Exception:
+        return (0, 0)
+
+
+def estimate_cost(images: list) -> dict:
+    """{"visual_tokens", "input_tokens", "output_tokens", "usd", "measured"}
+    for one parse of these screenshots.
+
+    All the images go in one request, so this is the cost of the whole parse,
+    not of each capture."""
+    visual = 0
+    measured = 0
+    for img in images:
+        w, h = image_size(img.get("data") or b"")
+        if w and h:
+            measured += 1
+            visual += image_tokens(w, h)
+    inp = visual + _PROMPT_TOKENS
+    usd = (inp * INPUT_USD_PER_MTOK + _REPLY_TOKENS * OUTPUT_USD_PER_MTOK) / 1_000_000
+    return {"visual_tokens": visual, "input_tokens": inp,
+            "output_tokens": _REPLY_TOKENS, "usd": usd, "measured": measured}
+
+
+def format_cost(est: dict) -> str:
+    """A one-line "about 0.4 cents" for the UI. Fractions of a cent are the
+    honest scale here and rounding them to $0.00 would read as "free"."""
+    if not est.get("measured"):
+        # Nothing whose dimensions could be read, so the image side of the
+        # bill is unknown — saying "4 cents" here would be a floor dressed up
+        # as an estimate.
+        return f"a few cents, read by {MODEL}"
+    usd = est.get("usd") or 0.0
+    amount = f"{usd * 100:.1f}¢" if usd < 0.10 else f"${usd:.2f}"
+    return (f"about {amount} — {est['visual_tokens']:,} visual tokens "
+            f"+ prompt, read by {MODEL}")
+
+
 _METRICS = ["net_sales", "operating_profit", "net_profit", "eps", "dps"]
 _UNITS = ["jpy", "thousand_jpy", "million_jpy", "billion_jpy", "trillion_jpy", "percent"]
 

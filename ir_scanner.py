@@ -29,10 +29,21 @@ _TYPE_RULES = [
      "Presentation"),
     (["annual report", "integrated report", "統合報告書", "アニュアルレポート", "factbook", "fact book"],
      "Annual Report (IR)"),
+    # Before Financial Results: a mid-term plan or a strategy briefing is about
+    # the years ahead, not the quarter just closed, and filing it under
+    # "Financial Results" buries it among sixty tanshin.
+    (["mid-term business plan", "mid term business plan", "medium-term",
+      "medium term management", "management policy", "business strategy",
+      "growth strategy", "capital allocation", "capital policy",
+      "中期経営計画", "中期計画", "経営方針", "経営計画", "成長戦略", "資本政策"],
+     "Strategy / Plan"),
     # Checked after Presentation so "決算説明資料" / "Financial Results Presentation"
     # still read as decks — these are the tanshin / results release itself.
+    # "Statement of Accounts" and "Consolidated Business Results" are the
+    # English titles Toshiba Tec and others give the tanshin and its deck.
     (["financial results", "financial summary", "results summary", "consolidated results",
-      "earnings release", "決算短信", "決算概要", "決算発表"], "Financial Results"),
+      "business results", "statement of accounts", "earnings release",
+      "決算短信", "決算概要", "決算発表"], "Financial Results"),
     (["financial data", "all financial data", "data book", "databook", "fact sheet",
       "財務データ", "決算データ", "データブック", "財務ハイライト"], "Financial Data"),
     (["shareholder meeting", "notice of convocation", "annual general meeting", " agm ",
@@ -156,6 +167,107 @@ _FY_Q_RE = re.compile(
     re.IGNORECASE,
 )
 
+# ── The period spelled out in the document's own title ──────────────────────
+# Japanese IR sites overwhelmingly *name* their materials after the period:
+# "FY2025 First Quarter Consolidated Business Results", "Statement of Accounts
+# (2025.12)", "2026年度 第2四半期". None of the rules above catch those — there
+# is no "ended <date>" wording, and no "Q1" shorthand — which is how a page
+# like Toshiba Tec's, where every single document is titled this way, ends up
+# with all 89 of them under "Unknown period".
+
+# "FY2025", "FY25", "fiscal year 2025", "2025年度".
+_FY_TOKEN_RE = re.compile(
+    r"(?:FY|fiscal\s+year|fiscal)\s*['\u2019]?(?P<fy>\d{4}|\d{2})(?!\d)"
+    r"|(?P<fy_jp>\d{4})\s*年度",
+    re.IGNORECASE,
+)
+
+# Which slice of the fiscal year a title names, and the quarter it runs to.
+# Deliberately does NOT include "mid-term"/"中期": on these pages that is a
+# *plan* horizon ("Mid-Term Business Plan"), not an interim reporting period.
+_SPAN_PHRASES = [
+    (r"(?:first|1st)\s+quarter|第\s*1\s*四半期", ("quarter", 1)),
+    (r"(?:second|2nd)\s+quarter|第\s*2\s*四半期", ("quarter", 2)),
+    (r"(?:third|3rd)\s+quarter|第\s*3\s*四半期", ("quarter", 3)),
+    (r"(?:fourth|4th)\s+quarter|第\s*4\s*四半期", ("quarter", 4)),
+    (r"first\s+six\s+months|(?:first|1st)\s+half|half[\s-]?year|interim\s+"
+     r"(?:results|report|period)|上期|中間期", ("half", 2)),
+    (r"(?:first\s+)?nine\s+months|third\s+quarter\s+cumulative", ("nine_months", 3)),
+    (r"full[\s-]?year|通期", ("year", 4)),
+]
+_SPAN_RE = [(re.compile(pat, re.IGNORECASE), kind) for pat, kind in _SPAN_PHRASES]
+
+# Ordering slot within a fiscal year, so Q1 < H1 < 9M < FY sort in sequence.
+_SPAN_SLOT = {"quarter": lambda n: n, "half": lambda n: 2,
+              "nine_months": lambda n: 3, "year": lambda n: 4}
+
+# "Statement of Accounts (2026.3)" / "（2025.12）" — a period *end* month in
+# brackets. Brackets are required: an unbracketed "2026.3" is far more often a
+# version number or a decimal than a fiscal period.
+_MONTH_PERIOD_RE = re.compile(
+    r"[(\uff08]\s*(?P<year>20\d{2})\s*[./\uff0f\u5e74]\s*(?P<month>1[0-2]|[1-9])\s*"
+    r"\u6708?\s*(?:\u671f)?\s*[)\uff09]"
+)
+
+
+def _fy_token(text: str):
+    """The fiscal year a title prints, as printed. Never renumbered — pages
+    disagree about whether FY2025 is the year starting or ending in 2025, and
+    guessing here would split one period across two groups."""
+    m = _FY_TOKEN_RE.search(text)
+    if not m:
+        return None
+    raw = m.group("fy") or m.group("fy_jp")
+    fy = _normalize_fy(raw)
+    return fy if 2000 <= fy <= 2099 else None
+
+
+def _span_phrase(text: str):
+    """(kind, quarter) for the slice of a fiscal year a title names, earliest
+    phrase first so "FY2025 First Quarter … (Revised: Q3)" reads as Q1."""
+    best = None
+    for regex, kind in _SPAN_RE:
+        m = regex.search(text)
+        if m and (best is None or m.start() < best[0]):
+            best = (m.start(), kind)
+    return best[1] if best else None
+
+
+def _bare_date(text: str):
+    """The first plain calendar date in `text`, or "". Used to keep the
+    announcement date visible on a document whose *period* came from its
+    fiscal wording — the two answer different questions and the Date column
+    would otherwise be empty for every item on a page like Toshiba Tec's."""
+    for regex, is_en in ((_JP_DATE_RE, False), (_EN_DATE_RE, True), (_ISO_DATE_RE, False)):
+        m = regex.search(text)
+        if not m:
+            continue
+        raw_month = m.group("month")
+        month = _MONTH_NAMES.get(raw_month.lower()) if is_en else int(raw_month)
+        if not month:
+            continue
+        date_iso, _ = _valid_date(int(m.group("year")), month, int(m.group("day")))
+        if date_iso:
+            return date_iso
+    return ""
+
+
+def _fiscal_period(fy: int, span, text: str) -> dict:
+    """A period expressed in a page's own fiscal numbering. `span` is None when
+    the title names a year but no slice of it — "FY2025 Consolidated Business
+    Results" — which on a Japanese IR page means the full year, since the
+    quarterly editions all say so explicitly."""
+    if span:
+        kind, qn = span
+    else:
+        kind, qn = "year", 4
+    label = {"quarter": f"Q{qn} FY{fy}", "half": f"H1 FY{fy}",
+             "nine_months": f"9M FY{fy}", "year": f"FY{fy}"}[kind]
+    return {"date": _bare_date(text), "period_label": label,
+            "period_sort": f"{fy}-S{_SPAN_SLOT[kind](qn)}", "fiscal": True,
+            "fy": fy, "span": kind, "quarter": qn, "span_named": bool(span)}
+
+
 # A bare calendar date with no fiscal-period wording at all — usually the
 # document's upload/announcement date rather than the period it covers, but
 # that's still exactly the kind of date-when info the user wants surfaced.
@@ -201,7 +313,9 @@ def extract_period(text: str):
                 q_word = m.group("q")
                 qn = _EN_QUARTER_WORDS.get(q_word.lower()) if q_word else None
                 label = f"Q{qn} FY{year}" if qn else f"FY{year}"
-                return {"date": date_iso, "period_label": label, "period_sort": date_iso}
+                return {"date": date_iso, "period_label": label, "period_sort": date_iso,
+                        "fiscal": True, "fy": int(year), "quarter": qn or 4,
+                        "span": "quarter" if qn else "year"}
 
     m = _JP_PERIOD_RE.search(text)
     if m:
@@ -212,7 +326,8 @@ def extract_period(text: str):
             qn = _JP_DIGIT_MAP.get(q, q)
             label = f"Q{qn} {label}"
             sort = f"{sort}-Q{qn}"
-        return {"date": None, "period_label": label, "period_sort": sort}
+        return {"date": None, "period_label": label, "period_sort": sort, "fiscal": True,
+                "month_end": (int(year), int(month)), "quarter": int(qn) if q else None}
 
     m = _FY_Q_RE.search(text)
     if m:
@@ -221,7 +336,26 @@ def extract_period(text: str):
         if fy_raw and qn:
             fy = _normalize_fy(fy_raw)
             if 2000 <= fy <= 2099:
-                return {"date": None, "period_label": f"Q{qn} FY{fy}", "period_sort": f"{fy}-Q{qn}"}
+                return dict(_fiscal_period(fy, ("quarter", int(qn)), text),
+                            period_sort=f"{fy}-Q{qn}")
+
+    # "FY2025 First Quarter Consolidated Business Results" / "FY2025
+    # Consolidated Business Results" — the fiscal year in the title, with the
+    # slice of it spelled out in words or not named at all.
+    fy = _fy_token(text)
+    if fy is not None:
+        return _fiscal_period(fy, _span_phrase(text), text)
+
+    # "Statement of Accounts (2026.3)" — the period's end month, with nothing
+    # saying which fiscal year that is. Stays month-level here; normalise_periods
+    # folds it onto the page's own calendar once the year end is known.
+    m = _MONTH_PERIOD_RE.search(text)
+    if m:
+        year, month = int(m.group("year")), int(m.group("month"))
+        return {"date": _bare_date(text),
+                "period_label": f"FY{year}/{month:02d}",
+                "period_sort": f"{year}-{month:02d}",
+                "fiscal": True, "month_end": (year, month)}
 
     for regex, is_en in ((_JP_DATE_RE, False), (_EN_DATE_RE, True), (_ISO_DATE_RE, False)):
         m = regex.search(text)
@@ -514,6 +648,32 @@ def _period_context_text(a_tag, text: str) -> str:
     return " ".join(b for b in bits if b)
 
 
+def _best_text_period(own, context):
+    """Pick between the period the document's own title states and the one its
+    surroundings state.
+
+    The document's own words win, with one exception: a *fiscal* period always
+    beats a bare calendar date, whichever pool it came from. That is already
+    extract_period's internal precedence — a quarter is what the document
+    covers, a loose date is usually just when it was posted — applied across
+    the two pools instead of within one.
+
+    Ranking them this way, rather than parsing one wide blob, is what stops a
+    flat list of documents from pairing one item's fiscal year with the next
+    item's quarter: on a page where every title reads "FY2025 Third Quarter
+    Consolidated Business Results", the surrounding <ul> holds eight of those
+    at once."""
+    if not own:
+        return context
+    if not context:
+        return own
+    if context.get("fiscal") and not own.get("fiscal"):
+        # Keep the document's own date — the context knows the period, the
+        # title knows the day, and the two are answering different questions.
+        return dict(context, date=context.get("date") or own.get("date") or "")
+    return own
+
+
 # ── Table structure ──────────────────────────────────────────────────────
 # The single most common layout for a company IR document library is a matrix
 # table: one row per document kind ("Presentation Material", "Financial
@@ -782,6 +942,198 @@ def build_table_link_context(soup) -> dict:
 # per quarter and keeps a few years of history online blows past it easily, and
 # the scan used to stop dead at the cap with no hint that it had — the user
 # just saw a short, arbitrarily-cut list. Scans now report truncation instead.
+# ── Section headings ─────────────────────────────────────────────────────
+# The other half of how an IR library is organised. A matrix table puts the
+# period in a column header; a *list* page puts it in a heading above the run
+# of links it covers — "FY2025" over eight documents, then "FY2024" over the
+# next eight. Reading link-by-link, that heading never reaches the links, so a
+# page whose documents are perfectly ordered by period looks unordered.
+#
+# Scoping by heading also settles something no single title can: which fiscal
+# year a period *end* belongs to. "Statement of Accounts (2026.3)" sitting
+# under a "FY2025" heading is the page telling us, in its own numbering, that
+# its fiscal 2025 ends in March 2026 — evidence, not a guess.
+
+_SECTION_TAGS = ("h1", "h2", "h3", "h4", "h5", "h6", "summary", "caption", "legend", "dt")
+_HEADING_LEVEL = {f"h{n}": n for n in range(1, 7)}
+_SUB_HEADING_LEVEL = 7          # <summary>/<dt>/<caption> sit below any <h*>
+
+
+def build_section_periods(soup) -> dict:
+    """{id(<a>): period} — the period named by the heading each link sits under.
+
+    Headings nest, so this tracks one period per level: a "Financial Results"
+    sub-heading under "FY2025" clears its own level without discarding the year
+    above it. The deepest level that still names a period wins, which is what
+    makes "FY2025 › 2Q › <links>" resolve to 2Q rather than the whole year."""
+    per_level = {}
+    out = {}
+    for el in soup.find_all(_SECTION_TAGS + ("a",)):
+        if el.name == "a":
+            if el.has_attr("href"):
+                current = [per_level[k] for k in sorted(per_level) if per_level[k]]
+                if current:
+                    out[id(el)] = current[-1]
+            continue
+        level = _HEADING_LEVEL.get(el.name, _SUB_HEADING_LEVEL)
+        text = el.get_text(" ", strip=True)[:120]
+        # A heading whose text is itself a link is a nav item, not a section
+        # label; taking it would scope the whole page under a sidebar year.
+        period = None if el.find("a", href=True) else _heading_period(text)
+        per_level[level] = period
+        for deeper in [k for k in per_level if k > level]:
+            per_level.pop(deeper)
+    return out
+
+
+def _apply_section(period, section, own_text=""):
+    """Fold what the section heading knows into what the link itself knows.
+
+    The section never overrules a link that already named its own period — it
+    fills the gaps: the fiscal year for a bare "2Q", and the year a period-end
+    month belongs to."""
+    if not section:
+        return period
+    # "第2四半期" / "2Q" as the whole of a link's label, under a heading that
+    # names the year: the item states the quarter, the section states which
+    # year's. Carried as an override rather than resolved here, because which
+    # fiscal year the section's own period-end month belongs to is not settled
+    # until the page's calendar is (see normalise_periods).
+    base = period or dict(section, from_section=True)
+    quarter = _axis_quarter(own_text)
+    if quarter and not base.get("quarter"):
+        base = dict(base, quarter_override=int(quarter))
+    period = base
+    if period.get("month_end") and section.get("fy") and not period.get("fy"):
+        return dict(period, fy=section["fy"])
+    if period.get("quarter") and not period.get("fy") and not period.get("month_end") \
+            and section.get("fy"):
+        fy, qn = section["fy"], period["quarter"]
+        return dict(period, fy=fy, period_label=f"Q{qn} FY{fy}", period_sort=f"{fy}-S{qn}")
+    return period
+
+
+# ── One calendar per page ────────────────────────────────────────────────
+# A single IR page routinely states the same period three ways: "FY2025",
+# "FY2025 First Six Months", "Statement of Accounts (2025.9)". Grouped
+# literally that is three groups for one quarter. Folding them together needs
+# two facts, and a page that lists several complete years supplies both:
+#
+#   fy_end_month — the month a fiscal year closes in. Within one fiscal-year
+#       section the *latest* period end IS the year end, so a section headed
+#       FY2025 holding 2025.6 / 2025.9 / 2025.12 / 2026.3 closes in March.
+#   fy_offset    — whether the page numbers a fiscal year by the calendar year
+#       it starts in (Toshiba Tec's FY2025 = the year to March 2026, offset 1)
+#       or the one it ends in (offset 0). Japanese issuers use both.
+#
+# Where the page shows neither, the caller's fy_end_month (from the company's
+# own filings, see fundamentals.py) is used, and failing that the March year
+# end that most of the market runs on.
+
+_DEFAULT_FY_END_MONTH = 3
+
+
+def _fy_end_year(cal_year: int, cal_month: int, fye: int) -> int:
+    """Calendar year in which the fiscal year containing (cal_year, cal_month)
+    closes. A March year end puts June 2026 in the year closing March 2027."""
+    return cal_year if cal_month <= fye else cal_year + 1
+
+
+def _quarter_of(cal_month: int, fye: int) -> int:
+    """1-4 for a period end month, counting from the month after the year end."""
+    return ((cal_month - fye - 1) % 12) // 3 + 1
+
+
+def _quarter_end(fy_end_year: int, fye: int, quarter: int):
+    """(year, month) that quarter `quarter` of the year closing (fy_end_year,
+    fye) ends in."""
+    months_back = 3 * (4 - quarter)
+    idx = (fye - 1) - months_back
+    return fy_end_year + (idx // 12), (idx % 12) + 1
+
+
+def infer_fiscal_calendar(observations, fy_end_month=None):
+    """(fy_end_month, fy_offset, source) from the page's own evidence, falling
+    back to the caller's value and then to a March year end. `source` is
+    "page", "filings" or "default", so the UI can say how the calendar under
+    these labels was arrived at rather than presenting a guess as a fact.
+
+    `observations` is [(section_fy_or_None, (year, month)), ...] — one entry
+    per period-end month the page states, tagged with the fiscal year its
+    section heading claims it for."""
+    by_section = {}
+    for section_fy, month_end in observations:
+        if section_fy and month_end:
+            by_section.setdefault(section_fy, set()).add(month_end)
+
+    votes = {}
+    for section_fy, ends in by_section.items():
+        # One lone period end in a section is as likely to be the first quarter
+        # of a year still in progress as the close of a finished one.
+        if len(ends) < 2:
+            continue
+        year, month = max(ends)
+        votes[(month, year - section_fy)] = votes.get((month, year - section_fy), 0) + 1
+    if votes:
+        (month, offset), _ = max(votes.items(), key=lambda kv: (kv[1], -kv[0][0]))
+        if 0 <= offset <= 1:
+            return month, offset, "page"
+
+    fye = fy_end_month or _DEFAULT_FY_END_MONTH
+    # A year closing early in the calendar year spans two of them, and issuers
+    # name it after the one it starts in; a December close needs no such
+    # distinction. This is the convention, not a fact about any one company —
+    # the section-heading evidence above overrides it whenever the page has any.
+    return fye, (1 if fye <= 6 else 0), ("filings" if fy_end_month else "default")
+
+
+_QUARTER_LABEL = {1: "Q1", 2: "Q2", 3: "Q3"}
+
+
+def normalise_periods(entries, fy_end_month=None) -> tuple:
+    """Rewrite every fiscal period onto one calendar, in place.
+
+    Same period, one label, one sort key — so "FY2025 First Six Months
+    Consolidated Business Results" and "Statement of Accounts (2025.9)" land in
+    the same group instead of two. Quarter 4 is rendered as the fiscal year
+    itself: Japanese issuers close the year rather than reporting a standalone
+    Q4, so the year-end tanshin and the full-year deck are one period.
+
+    Returns (fy_end_month, fy_offset, source) so the caller can say which
+    calendar it used. Entries carrying only a plain date are left alone — a
+    date is not a period and pretending otherwise would invent a quarter."""
+    observations = [(e.get("_section_fy"), e["_month_end"])
+                    for e in entries if e.get("_month_end")]
+    fye, offset, source = infer_fiscal_calendar(observations, fy_end_month)
+
+    for e in entries:
+        month_end, fy, quarter = e.get("_month_end"), e.get("_fy"), e.get("_quarter")
+        span = e.get("_span")
+        if month_end:
+            year, month = month_end
+            end_year = _fy_end_year(year, month, fye)
+            printed = e.get("_section_fy") or (end_year - offset)
+            quarter = e.get("_quarter_override") or _quarter_of(month, fye)
+            if e.get("_quarter_override"):
+                year, month = _quarter_end(end_year, fye, quarter)
+        elif fy is not None:
+            printed = fy
+            end_year = fy + offset
+            # A first half is the second quarter's cumulative report and a
+            # nine-month report is the third's; they are the same period, and
+            # splitting them off would put one quarter in two groups.
+            quarter = {"quarter": quarter, "half": 2, "nine_months": 3,
+                       "year": 4}.get(span, quarter or 4)
+            year, month = _quarter_end(end_year, fye, quarter)
+        else:
+            continue
+        e["period_label"] = (f"{_QUARTER_LABEL[quarter]} FY{printed}"
+                             if quarter in _QUARTER_LABEL else f"FY{printed}")
+        e["period_sort"] = f"{year:04d}-{month:02d}"
+        e["period_note"] = f"to {_MONTH_ABBR[month]} {year}"
+    return fye, offset, source
+
+
 MAX_SCAN_RESULTS = 500
 
 
@@ -789,14 +1141,23 @@ class ScanResults(list):
     """The list of result dicts, plus whether the scan hit its cap. A plain
     list subclass so every existing caller keeps working unchanged."""
 
-    def __init__(self, items=(), truncated=False, limit=MAX_SCAN_RESULTS):
+    def __init__(self, items=(), truncated=False, limit=MAX_SCAN_RESULTS,
+                 fy_end_month=None, fy_offset=0, fy_calendar_source="default"):
         super().__init__(items)
         self.truncated = truncated
         self.limit = limit
+        # Which fiscal calendar the period labels were folded onto, so the UI
+        # can say "fiscal year to March" rather than leaving the reader to
+        # work out whether FY2025 means the year starting or ending in 2025,
+        # and can say whether that came off the page, out of the company's
+        # filings, or out of the March-year-end assumption.
+        self.fy_end_month = fy_end_month
+        self.fy_offset = fy_offset
+        self.fy_calendar_source = fy_calendar_source
 
 
 def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
-                            timeout: int = 20) -> "ScanResults":
+                            timeout: int = 20, fy_end_month: int = None) -> "ScanResults":
     """Fetch `url` and return up to max_results candidate links as
     [{"title", "url", "doc_type", "kind", "ext"}, ...], deduped by URL. The
     returned list also carries .truncated / .limit so the caller can tell the
@@ -826,6 +1187,7 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
     soup = BeautifulSoup(resp.content, "lxml")
 
     table_ctx = build_table_link_context(soup)
+    section_ctx = build_section_periods(soup)
 
     seen_urls = set()
     seen_labels = set()
@@ -945,12 +1307,22 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
         # 4 must outrank 5: a page listing one dated summary followed by
         # undated siblings gives those siblings a full "Q1 FY2026" with a
         # real date, which beats the bare "Q1" their filenames imply.
+        section_period = section_ctx.get(id(a))
         url_period = extract_period_from_url(href)
-        text_period = extract_period(_period_context_text(a, detail or text))
+        # `title`, not `detail`: on a list-shaped page the link's own text is
+        # just "PDF(737KB)" and the document's real name — the thing that
+        # carries "FY2025 Third Quarter" — was recovered into `title` above.
+        own_text = title or detail or text
+        text_period = _best_text_period(
+            extract_period(own_text),
+            extract_period(_period_context_text(a, own_text)))
+        text_period = _apply_section(text_period, section_period, own_text)
         if table_period:
-            period, period_conf = table_period, 4
+            period, period_conf = table_period, 5
         elif text_period:
-            period, period_conf = text_period, 3
+            period, period_conf = text_period, 4
+        elif section_period:
+            period, period_conf = dict(section_period, from_section=True), 3
         elif url_period and not url_period.get("weak"):
             period, period_conf = url_period, 2
         else:
@@ -984,6 +1356,15 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
             "date": (period or {}).get("date") or "",
             "period_label": (period or {}).get("period_label") or "",
             "period_sort": (period or {}).get("period_sort") or "",
+            "period_note": "",
+            # Raw fiscal facts, kept only until normalise_periods folds them
+            # onto one calendar below; stripped before the results are returned.
+            "_month_end": (period or {}).get("month_end"),
+            "_fy": (period or {}).get("fy"),
+            "_quarter": (period or {}).get("quarter"),
+            "_span": (period or {}).get("span"),
+            "_quarter_override": (period or {}).get("quarter_override"),
+            "_section_fy": (section_period or {}).get("fy"),
             "_period_conf": period_conf,
             "_title_conf": 2 if (structured and label) else (1 if title else 0),
         }
@@ -1004,13 +1385,16 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
     # Applied only once the merge has settled which period and title won —
     # baking the label in per-occurrence would stamp a losing period onto a
     # title that a later listing then replaced.
+    fye, offset, cal_source = normalise_periods(out, fy_end_month)
     for entry in out:
         label = entry.get("period_label") or ""
         if label and label not in entry["title"]:
             entry["title"] = f"{label} — {entry['title']}"
-        entry.pop("_period_conf", None)
-        entry.pop("_title_conf", None)
-    return ScanResults(disambiguate_titles(out), truncated=truncated, limit=max_results)
+        for key in ("_period_conf", "_title_conf", "_month_end", "_fy",
+                    "_quarter", "_span", "_quarter_override", "_section_fy"):
+            entry.pop(key, None)
+    return ScanResults(disambiguate_titles(out), truncated=truncated, limit=max_results,
+                       fy_end_month=fye, fy_offset=offset, fy_calendar_source=cal_source)
 
 
 def _merge_occurrence(prior: dict, other: dict):

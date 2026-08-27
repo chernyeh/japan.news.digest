@@ -45,9 +45,34 @@ CONSENSUS_COLUMNS = ["code", "name", "metric", "fy", "basis",
 # need, which are not per-fiscal-year forecasts.
 FUNDAMENTALS_COLUMNS = ["code", "name", "shares", "bps", "equity", "total_assets",
                         "debt", "cash", "ebitda", "dep_amort", "op_actual",
-                        "ebitda_basis", "sources", "as_of"]
+                        "fy_end", "fy_end_next", "ebitda_basis", "sources", "as_of"]
 
 METRICS = ("net_sales", "operating_profit", "net_profit", "eps", "dps")
+
+_MONTH_ABBR = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def fy_end_month(fy_end: str):
+    """Month a fiscal year closes in, from a filed "2027-03-31". None when the
+    date is missing or malformed — never a default, because a guessed March on
+    a December-close company is worse than showing nothing."""
+    try:
+        month = int(str(fy_end)[5:7])
+    except (TypeError, ValueError):
+        return None
+    return month if 1 <= month <= 12 else None
+
+
+def fy_end_note(fy_end: str) -> str:
+    """"2027-03-31" -> "yr to Mar 2027". Japanese fiscal years close in March
+    for most issuers but in December, February or elsewhere for a meaningful
+    minority, and "FY2027" alone does not say which — so every forecast column
+    carries the month it actually runs to."""
+    month = fy_end_month(fy_end)
+    if not month:
+        return ""
+    return f"yr to {_MONTH_ABBR[month]} {str(fy_end)[:4]}"
 
 # Per-share metrics are in yen each; the rest are absolute yen.
 _PER_SHARE = {"eps", "dps"}
@@ -91,6 +116,10 @@ _JQ_ALIASES = {
     # Period metadata
     "period_type":  ("CurPerType", "TypeOfCurrentPeriod"),
     "fy_end":       ("CurFYEn", "CurrentFiscalYearEndDate"),
+    # Filed rather than derived. Japanese fiscal years do not all close in
+    # March — a December or February close is common enough that adding twelve
+    # months to CurFYEn would quietly mislabel a whole column of forecasts.
+    "nx_fy_end":    ("NxtFYEn", "NextFiscalYearEndDate"),
     "disc_date":    ("DiscDate", "DisclosedDate"),
 }
 
@@ -111,7 +140,7 @@ def to_num(val):
 # Concepts whose value is a date or a code, not a number. These must not go
 # through to_num — a fiscal year end of "2027-03-31" coerces to None, which
 # would leave every forecast unlabelled and silently unusable.
-TEXT_CONCEPTS = frozenset({"period_type", "fy_end", "disc_date"})
+TEXT_CONCEPTS = frozenset({"period_type", "fy_end", "nx_fy_end", "disc_date"})
 
 
 def jq_pick(record: dict, concept: str):
@@ -303,6 +332,8 @@ def load_fundamentals_from_github(repo: str, token: str = None) -> dict:
     """{code: {field: float_or_str}} for the balance-sheet snapshot."""
     numeric = {"shares", "bps", "equity", "total_assets", "debt",
                "cash", "ebitda", "dep_amort", "op_actual"}
+    # fy_end / fy_end_next stay strings: they are dates, and to_num would
+    # turn "2027-03-31" into None.
     out = {}
     for row in _raw_csv(repo, FUNDAMENTALS_PATH, token):
         code = row.get("code", "")

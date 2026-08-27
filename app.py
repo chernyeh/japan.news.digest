@@ -832,6 +832,10 @@ a.research-link:hover { background: #F0EDE8; }
         border-bottom: 1px solid #D9D3C8; white-space: nowrap; }
 .fc-metric { text-align: left; font-weight: 600; color: #1A1A1A; white-space: nowrap; }
 .fc-grp { color: #8B4513; }
+/* The month the column's fiscal year actually closes in, under the FY label.
+   Second line rather than inline so the header stays one short row wide. */
+.fc-fyend { display: block; font-size: 0.58rem; font-weight: 500; letter-spacing: 0;
+            text-transform: none; color: #9B8B7A; margin-top: 1px; }
 .fc-num { font-family: monospace; }
 .fc-cons { background: #F9F5F0; }
 .fc-na { color: #B0A798; }
@@ -3111,13 +3115,17 @@ with tab_research:
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
-        def _toggle_section(label: str, state_key: str) -> bool:
+        def _toggle_section(label: str, state_key: str, default_open: bool = False) -> bool:
             """Collapsible section header using a plain-character arrow instead
             of st.expander's built-in icon font — that font silently falls back
             to raw ligature text (e.g. "keyboard_arrow_right") if it fails to
             load client-side, which isn't something this app controls. Returns
-            whether the section's body should render."""
-            st.session_state.setdefault(state_key, False)
+            whether the section's body should render.
+
+            default_open is for the tab's primary content: it should still fold
+            away, but starting folded would leave the reader looking at nothing
+            but section headers on first paint."""
+            st.session_state.setdefault(state_key, default_open)
             with st.container(key=f"research_section_toggle_{state_key}"):
                 _arrow = "▾" if st.session_state[state_key] else "▸"
                 if st.button(f"{_arrow}  {label}", key=f"{state_key}_btn", use_container_width=True):
@@ -3174,10 +3182,22 @@ with tab_research:
             _y2 = _years[1] if len(_years) > 1 else ""
             _shown = [y for y in (_y1, _y2) if y]
 
+            # Which month each forecast year actually closes in. Most Japanese
+            # issuers close in March, but December and February closes are
+            # common enough that "FY2027" on its own is ambiguous — and the
+            # dates are filed (CurFYEn / NxtFYEn), so there is nothing to guess.
+            _fy_ends = {_y1: _fundrow.get("fy_end", ""),
+                        _y2: _fundrow.get("fy_end_next", "")}
+
             cells = ['<div class="fc-cell fc-h fc-metric">Metric</div>']
             for _y in _shown:
-                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} company</div>')
-                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} consensus</div>')
+                _note = fund.fy_end_note(_fy_ends.get(_y))
+                _sub = (f'<span class="fc-fyend">{_safe_text(_note)}</span>'
+                        if _note else '')
+                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} '
+                             f'company{_sub}</div>')
+                cells.append(f'<div class="fc-cell fc-h fc-grp">{_safe_text(_y)} '
+                             f'consensus{_sub}</div>')
 
             for _m, _label, _scale, _dp in _FC_ROWS:
                 cells.append(f'<div class="fc-cell fc-metric">{_safe_text(_label)}</div>')
@@ -3322,6 +3342,21 @@ with tab_research:
             _parse_key = f"fc_parse_{_rcode}"
             _api_key = get_secret("ANTHROPIC_API_KEY")
 
+            # What this parse will cost, before it is paid for. An image is
+            # billed by area — 28×28-pixel patches, one token each — so the
+            # figure is known exactly from the attachments themselves.
+            _images = [{"name": f.name, "media_type": f.type, "data": f.getvalue()}
+                       for f in (_files or [])]
+            if _images:
+                _est = consensus_vision.estimate_cost(_images)
+                st.markdown(
+                    f'<div class="fc-note">Cost of this read: '
+                    f'<strong>{_safe_text(consensus_vision.format_cost(_est))}</strong>. '
+                    'Cropping to just the table before you attach it is what makes that '
+                    'smaller — a full-screen capture costs several times a cropped one, '
+                    'and is harder to read besides.</div>',
+                    unsafe_allow_html=True)
+
             _c1, _c2 = st.columns([1.4, 2])
             with _c1:
                 _go = st.button(f"🔎 Read {len(_files or [])} screenshot(s)",
@@ -3338,8 +3373,6 @@ with tab_research:
                 if not _api_key:
                     st.error("ANTHROPIC_API_KEY not found in Streamlit Secrets.")
                 else:
-                    _images = [{"name": f.name, "media_type": f.type, "data": f.getvalue()}
-                               for f in _files]
                     try:
                         with st.spinner(f"Reading {len(_images)} screenshot(s)…"):
                             st.session_state[_parse_key] = consensus_vision.extract_from_images(
@@ -3557,158 +3590,164 @@ with tab_research:
                 "link_index": _li,
             })
 
-        # ── Sort / filter / show-limit controls ──────────────────────────
-        with st.container(key="research_filter_row"):
-            _fc1, _fc2, _fc3 = st.columns([1.2, 1.6, 0.9])
-            with _fc1:
-                _sort_mode = st.radio("Sort by:", ["Date (newest first)", "Document type"],
-                                       horizontal=True, key=f"research_sort_{_rcode}")
-            with _fc2:
-                _type_opts = sorted(set(it["type_label"] for it in _items))
-                _type_filter = st.multiselect("Filter by type:", options=_type_opts, key=f"research_typef_{_rcode}")
-            with _fc3:
-                _show_opts = ["20", "30", "50", "80", "All"]
-                _show_choice = st.selectbox("Show:", options=_show_opts, index=2, key=f"research_show_{_rcode}")
+        # ── Filings and saved links ──────────────────────────────────────
+        # Collapsible like every other section here: for a company with a long
+        # EDINET history this list runs to hundreds of rows, and it should not
+        # be the thing standing between the reader and the sections below it.
+        if _toggle_section(f"📄 Filings & saved links ({len(_items)})",
+                           "research_filings_open", default_open=True):
+            # ── Sort / filter / show-limit controls ──────────────────────────
+            with st.container(key="research_filter_row"):
+                _fc1, _fc2, _fc3 = st.columns([1.2, 1.6, 0.9])
+                with _fc1:
+                    _sort_mode = st.radio("Sort by:", ["Date (newest first)", "Document type"],
+                                           horizontal=True, key=f"research_sort_{_rcode}")
+                with _fc2:
+                    _type_opts = sorted(set(it["type_label"] for it in _items))
+                    _type_filter = st.multiselect("Filter by type:", options=_type_opts, key=f"research_typef_{_rcode}")
+                with _fc3:
+                    _show_opts = ["20", "30", "50", "80", "All"]
+                    _show_choice = st.selectbox("Show:", options=_show_opts, index=2, key=f"research_show_{_rcode}")
 
-        # A company can rack up hundreds of EDINET filings alone, so "show
-        # the N most recent" is applied on a date-descending view regardless
-        # of the chosen display sort — "most recent" always means by date.
-        _filtered = [it for it in _items if not _type_filter or it["type_label"] in _type_filter]
-        _filtered.sort(key=lambda it: it["date"] or "", reverse=True)
-        _total_count = len(_filtered)
-        if _show_choice != "All":
-            _filtered = _filtered[:int(_show_choice)]
-        if _sort_mode == "Document type":
-            _filtered.sort(key=lambda it: (it["type_label"], it["date"] or ""), reverse=False)
+            # A company can rack up hundreds of EDINET filings alone, so "show
+            # the N most recent" is applied on a date-descending view regardless
+            # of the chosen display sort — "most recent" always means by date.
+            _filtered = [it for it in _items if not _type_filter or it["type_label"] in _type_filter]
+            _filtered.sort(key=lambda it: it["date"] or "", reverse=True)
+            _total_count = len(_filtered)
+            if _show_choice != "All":
+                _filtered = _filtered[:int(_show_choice)]
+            if _sort_mode == "Document type":
+                _filtered.sort(key=lambda it: (it["type_label"], it["date"] or ""), reverse=False)
 
-        _count_note = f"{len(_filtered)} of {_total_count} item(s)" if len(_filtered) < _total_count else f"{_total_count} item(s)"
-        st.markdown(
-            f'<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.3rem;">{_count_note}</div>',
-            unsafe_allow_html=True
-        )
-
-        if not _filtered:
+            _count_note = f"{len(_filtered)} of {_total_count} item(s)" if len(_filtered) < _total_count else f"{_total_count} item(s)"
             st.markdown(
-                '<div class="empty-state">No filings or links yet for this company. Add one below, or check '
-                'back once the EDINET index has run.</div>', unsafe_allow_html=True
-            )
-
-        _edinet_doc_cache = _get_app_cache().setdefault("edinet_docs", {})
-        _badge_cls_map = {"edinet": "research-type-edinet", "tdnet": "research-type-tdnet",
-                           "custom": "research-type-custom"}
-
-        with st.container(key="research_items_list"):
-            st.markdown(
-                '<div class="research-item-row research-item-header-row">'
-                '<span class="research-date research-col-header">Date</span>&nbsp; '
-                '<span class="research-col-header">Type · Title</span>'
-                '</div>',
+                f'<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.3rem;">{_count_note}</div>',
                 unsafe_allow_html=True
             )
 
-            for _ri, it in enumerate(_filtered):
-                with st.container(key=f"research_item_row_{_ri}"):
-                    # Actions first in the DOM, floated right by CSS, so the
-                    # title text that follows wraps around them — that's what
-                    # puts JP/EN at the end of the title instead of on a line
-                    # of their own. Nesting them in one container keeps their
-                    # own left-to-right order (JP then EN) intact.
-                    with st.container(key=f"research_item_actions_{_ri}"):
-                        if it["source"] == "edinet":
-                            _doc_id = it["doc_id"]
-                            if not _edinet_api_key:
-                                st.markdown('<span class="research-no-doc">key required</span>',
-                                            unsafe_allow_html=True)
-                            else:
-                                # EDINET's own englishDocFlag on the list endpoint isn't
-                                # reliable enough to gate on, so both JP and EN are always
-                                # offered as an attempt — a missing document just resolves
-                                # to a calm "not available" note instead of an error.
-                                for _doc_type, _label, _fname_suffix, _mime in (
-                                    (2, "JP", "jp.pdf", "application/pdf"),
-                                    (4, "EN", "en.zip", "application/zip"),
-                                ):
-                                    _cache_key = (_doc_id, _doc_type)
-                                    _unavail_key = (_doc_id, _doc_type, "unavailable")
-                                    _bytes = _edinet_doc_cache.get(_cache_key)
-                                    if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
-                                        if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}"):
-                                            # Outcomes go through the flash + rerun path
-                                            # rather than st.info/st.error here: this
-                                            # container is a narrow floated strip, and a
-                                            # full-width alert box inside it would blow
-                                            # the row's layout apart.
-                                            try:
-                                                _edinet_doc_cache[_cache_key] = fetch_edinet_document_bytes(
-                                                    _doc_id, _doc_type, _edinet_api_key)
-                                            except DocumentNotAvailable:
-                                                _edinet_doc_cache[_unavail_key] = True
-                                                st.session_state.research_flash = (
-                                                    "info", f"No {_label} document available for this filing.")
-                                            except Exception as _dl_e:
-                                                st.session_state.research_flash = (
-                                                    "error", f"Fetch failed: {_dl_e}")
-                                            st.rerun()
-                                    elif _edinet_doc_cache.get(_unavail_key):
-                                        st.markdown(
-                                            f'<span class="research-no-doc">no {_label.lower()}</span>',
-                                            unsafe_allow_html=True)
-                                    if _edinet_doc_cache.get(_cache_key) is not None:
-                                        # Icon-only: the fetched state has to fit the
-                                        # same right-hand gutter as the JP/EN pair it
-                                        # replaces, and the tooltip carries the label.
-                                        st.download_button(
-                                            "💾", data=_edinet_doc_cache[_cache_key],
-                                            file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
-                                            key=f"edinet_save_{_doc_type}_{_doc_id}",
-                                            help=f"Save the {_label} document",
-                                        )
-                        elif it["source"] == "tdnet":
-                            _tl = []
-                            if it.get("url_en"):
-                                _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" '
-                                           f'class="research-link">EN</a>')
-                            if it.get("url_jp"):
-                                _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" '
-                                           f'class="research-link">JP</a>')
-                            if _tl:
-                                st.markdown(" ".join(_tl), unsafe_allow_html=True)
-                        else:  # custom link
-                            st.markdown(
-                                f'<a href="{_safe_url(it["url"])}" target="_blank" '
-                                f'class="research-link">Open ↗</a>',
-                                unsafe_allow_html=True
-                            )
-                            if st.button("🗑", key=f"research_del_{_rcode}_{it['link_index']}",
-                                          help="Remove this link"):
-                                _ok, _msg = delete_link(_ec_repo, _gh_token, _rcode, it["link_index"])
-                                _links_map.get(_rcode, []).pop(it["link_index"])
-                                st.session_state.research_flash = (
-                                    ("success", "Link removed.") if _ok
-                                    else ("warning", f"Removed from view, but not saved: {_msg}")
+            if not _filtered:
+                st.markdown(
+                    '<div class="empty-state">No filings or links yet for this company. Add one below, or check '
+                    'back once the EDINET index has run.</div>', unsafe_allow_html=True
+                )
+
+            _edinet_doc_cache = _get_app_cache().setdefault("edinet_docs", {})
+            _badge_cls_map = {"edinet": "research-type-edinet", "tdnet": "research-type-tdnet",
+                               "custom": "research-type-custom"}
+
+            with st.container(key="research_items_list"):
+                st.markdown(
+                    '<div class="research-item-row research-item-header-row">'
+                    '<span class="research-date research-col-header">Date</span>&nbsp; '
+                    '<span class="research-col-header">Type · Title</span>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+
+                for _ri, it in enumerate(_filtered):
+                    with st.container(key=f"research_item_row_{_ri}"):
+                        # Actions first in the DOM, floated right by CSS, so the
+                        # title text that follows wraps around them — that's what
+                        # puts JP/EN at the end of the title instead of on a line
+                        # of their own. Nesting them in one container keeps their
+                        # own left-to-right order (JP then EN) intact.
+                        with st.container(key=f"research_item_actions_{_ri}"):
+                            if it["source"] == "edinet":
+                                _doc_id = it["doc_id"]
+                                if not _edinet_api_key:
+                                    st.markdown('<span class="research-no-doc">key required</span>',
+                                                unsafe_allow_html=True)
+                                else:
+                                    # EDINET's own englishDocFlag on the list endpoint isn't
+                                    # reliable enough to gate on, so both JP and EN are always
+                                    # offered as an attempt — a missing document just resolves
+                                    # to a calm "not available" note instead of an error.
+                                    for _doc_type, _label, _fname_suffix, _mime in (
+                                        (2, "JP", "jp.pdf", "application/pdf"),
+                                        (4, "EN", "en.zip", "application/zip"),
+                                    ):
+                                        _cache_key = (_doc_id, _doc_type)
+                                        _unavail_key = (_doc_id, _doc_type, "unavailable")
+                                        _bytes = _edinet_doc_cache.get(_cache_key)
+                                        if _bytes is None and not _edinet_doc_cache.get(_unavail_key):
+                                            if st.button(_label, key=f"edinet_fetch_{_doc_type}_{_doc_id}"):
+                                                # Outcomes go through the flash + rerun path
+                                                # rather than st.info/st.error here: this
+                                                # container is a narrow floated strip, and a
+                                                # full-width alert box inside it would blow
+                                                # the row's layout apart.
+                                                try:
+                                                    _edinet_doc_cache[_cache_key] = fetch_edinet_document_bytes(
+                                                        _doc_id, _doc_type, _edinet_api_key)
+                                                except DocumentNotAvailable:
+                                                    _edinet_doc_cache[_unavail_key] = True
+                                                    st.session_state.research_flash = (
+                                                        "info", f"No {_label} document available for this filing.")
+                                                except Exception as _dl_e:
+                                                    st.session_state.research_flash = (
+                                                        "error", f"Fetch failed: {_dl_e}")
+                                                st.rerun()
+                                        elif _edinet_doc_cache.get(_unavail_key):
+                                            st.markdown(
+                                                f'<span class="research-no-doc">no {_label.lower()}</span>',
+                                                unsafe_allow_html=True)
+                                        if _edinet_doc_cache.get(_cache_key) is not None:
+                                            # Icon-only: the fetched state has to fit the
+                                            # same right-hand gutter as the JP/EN pair it
+                                            # replaces, and the tooltip carries the label.
+                                            st.download_button(
+                                                "💾", data=_edinet_doc_cache[_cache_key],
+                                                file_name=f"{_rcode}_{_doc_id}_{_fname_suffix}", mime=_mime,
+                                                key=f"edinet_save_{_doc_type}_{_doc_id}",
+                                                help=f"Save the {_label} document",
+                                            )
+                            elif it["source"] == "tdnet":
+                                _tl = []
+                                if it.get("url_en"):
+                                    _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" '
+                                               f'class="research-link">EN</a>')
+                                if it.get("url_jp"):
+                                    _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" '
+                                               f'class="research-link">JP</a>')
+                                if _tl:
+                                    st.markdown(" ".join(_tl), unsafe_allow_html=True)
+                            else:  # custom link
+                                st.markdown(
+                                    f'<a href="{_safe_url(it["url"])}" target="_blank" '
+                                    f'class="research-link">Open ↗</a>',
+                                    unsafe_allow_html=True
                                 )
-                                st.rerun()
+                                if st.button("🗑", key=f"research_del_{_rcode}_{it['link_index']}",
+                                              help="Remove this link"):
+                                    _ok, _msg = delete_link(_ec_repo, _gh_token, _rcode, it["link_index"])
+                                    _links_map.get(_rcode, []).pop(it["link_index"])
+                                    st.session_state.research_flash = (
+                                        ("success", "Link removed.") if _ok
+                                        else ("warning", f"Removed from view, but not saved: {_msg}")
+                                    )
+                                    st.rerun()
 
-                    st.markdown(
-                        f'<div class="research-item-row">'
-                        f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>&nbsp; '
-                        f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">'
-                        f'{_safe_text(it["type_label"])}</span>&nbsp; '
-                        f'<span class="research-title">{_safe_text(it["title"])}</span>'
-                        f'</div>',
-                        unsafe_allow_html=True
-                    )
+                        st.markdown(
+                            f'<div class="research-item-row">'
+                            f'<span class="research-date">{_safe_text(it["date"] or "—")}</span>&nbsp; '
+                            f'<span class="research-type-badge {_badge_cls_map[it["source"]]}">'
+                            f'{_safe_text(it["type_label"])}</span>&nbsp; '
+                            f'<span class="research-title">{_safe_text(it["title"])}</span>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
 
-        # ── Export current list ─────────────────────────────────────────
-        if _filtered:
-            _md_lines = [f"# {_rname} ({_rcode}) — Research Links", ""]
-            for it in _filtered:
-                _md_lines.append(f"- **{it['date'] or '—'}** · {it['type_label']} — {it['title']}")
-            st.download_button(
-                "⬇ Export list as Markdown", data="\n".join(_md_lines),
-                file_name=f"{_rcode}_research_links.md", mime="text/markdown",
-                key=f"research_export_{_rcode}",
-            )
+            # ── Export current list ─────────────────────────────────────────
+            if _filtered:
+                _md_lines = [f"# {_rname} ({_rcode}) — Research Links", ""]
+                for it in _filtered:
+                    _md_lines.append(f"- **{it['date'] or '—'}** · {it['type_label']} — {it['title']}")
+                st.download_button(
+                    "⬇ Export list as Markdown", data="\n".join(_md_lines),
+                    file_name=f"{_rcode}_research_links.md", mime="text/markdown",
+                    key=f"research_export_{_rcode}",
+                )
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
 
@@ -3747,8 +3786,18 @@ with tab_research:
                     st.error("Please enter a valid URL starting with http(s)://")
                 else:
                     try:
+                        # Tell the scanner when this company's fiscal year
+                        # closes, so a "(2025.12)" in a document title resolves
+                        # to the right quarter. The page's own section headings
+                        # override this where it has any; this is what stops a
+                        # December- or February-close company from being read
+                        # on the March calendar most of the market uses.
+                        _scan_fye = fund.fy_end_month(
+                            (st.session_state.get("fundamentals_map") or {})
+                            .get(_rcode, {}).get("fy_end"))
                         with st.spinner("Scanning page…"):
-                            st.session_state[_scan_key] = scan_page_for_documents(_scan_url.strip())
+                            st.session_state[_scan_key] = scan_page_for_documents(
+                                _scan_url.strip(), fy_end_month=_scan_fye)
                         if not st.session_state[_scan_key]:
                             st.info("No document-like links found on that page.")
                     except Exception as _scan_e:
@@ -3888,9 +3937,19 @@ with tab_research:
                 with st.container(key="research_scan_results"):
                     for _gname in _group_order:
                         _gitems = _groups[_gname]
+                        # "Q3 FY2025 · to Dec 2025" — the label is the page's
+                        # own numbering, the note is the period it actually
+                        # covers, which is the only unambiguous form when
+                        # issuers disagree about what FY2025 means.
+                        _gnote = next((_r.get("period_note") for _, _r in _gitems
+                                       if _r.get("period_note")), "")
                         st.markdown(
-                            f'<div class="research-scan-group">{_safe_text(_gname)} '
-                            f'<span style="font-weight:400;color:#B0A798;">({len(_gitems)})</span></div>',
+                            f'<div class="research-scan-group">{_safe_text(_gname)}'
+                            + (f' <span style="font-weight:400;color:#B0A798;'
+                               f'text-transform:none;letter-spacing:0;">· {_safe_text(_gnote)}'
+                               f'</span>' if _gnote else '')
+                            + f' <span style="font-weight:400;color:#B0A798;">'
+                              f'({len(_gitems)})</span></div>',
                             unsafe_allow_html=True
                         )
                         for _i, _r in _gitems:
