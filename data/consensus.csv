@@ -1,0 +1,1575 @@
+code,name,metric,fy,basis,value,unit,source,as_of
+1332,Nissui Corporation,eps,FY2027,consensus,97.19167,jpy,yfinance,2026-08-27
+1332,Nissui Corporation,net_sales,FY2027,consensus,1002216666670.0,jpy_abs,yfinance,2026-08-27
+1332,Nissui Corporation,eps,FY2028,consensus,106.14333,jpy,yfinance,2026-08-27
+1332,Nissui Corporation,net_sales,FY2028,consensus,1046733333330.0,jpy_abs,yfinance,2026-08-27
+1414,"SHO-BOND Holdings Co.,Ltd.",eps,FY2027,consensus,76.75424,jpy,yfinance,2026-08-27
+1414,"SHO-BOND Holdings Co.,Ltd.",net_sales,FY2027,consensus,91025000000.0,jpy_abs,yfinance,2026-08-27
+1414,"SHO-BOND Holdings Co.,Ltd.",eps,FY2028,consensus,80.64028,jpy,yfinance,2026-08-27
+1414,"SHO-BOND Holdings Co.,Ltd.",net_sales,FY2028,consensus,97675000000.0,jpy_abs,yfinance,2026-08-27
+1518,"MITSUI MATSUSHIMA HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+1518,"MITSUI MATSUSHIMA HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+1605,INPEX CORPORATION,eps,FY2026,consensus,443.53168,jpy,yfinance,2026-08-27
+1605,INPEX CORPORATION,net_sales,FY2026,consensus,2254834444440.0,jpy_abs,yfinance,2026-08-27
+1605,INPEX CORPORATION,eps,FY2027,consensus,415.40115,jpy,yfinance,2026-08-27
+1605,INPEX CORPORATION,net_sales,FY2027,consensus,2284914600000.0,jpy_abs,yfinance,2026-08-27
+1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2027,consensus,272.9,jpy,yfinance,2026-08-27
+1662,"Japan Petroleum Exploration Co.,Ltd.",net_sales,FY2027,consensus,387660000000.0,jpy_abs,yfinance,2026-08-27
+1662,"Japan Petroleum Exploration Co.,Ltd.",eps,FY2028,consensus,196.496,jpy,yfinance,2026-08-27
+1662,"Japan Petroleum Exploration Co.,Ltd.",net_sales,FY2028,consensus,407140000000.0,jpy_abs,yfinance,2026-08-27
+1719,HAZAMA ANDO CORPORATION,eps,FY2027,consensus,161.95332,jpy,yfinance,2026-08-27
+1719,HAZAMA ANDO CORPORATION,net_sales,FY2027,consensus,474000000000.0,jpy_abs,yfinance,2026-08-27
+1719,HAZAMA ANDO CORPORATION,eps,FY2028,consensus,159.63,jpy,yfinance,2026-08-27
+1719,HAZAMA ANDO CORPORATION,net_sales,FY2028,consensus,488300000000.0,jpy_abs,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,eps,FY2027,consensus,345.09,jpy,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,net_sales,FY2027,consensus,669560000000.0,jpy_abs,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,eps,FY2028,consensus,366.03,jpy,yfinance,2026-08-27
+1721,COMSYS Holdings Corporation,net_sales,FY2028,consensus,695960000000.0,jpy_abs,yfinance,2026-08-27
+1801,TAISEI CORPORATION,eps,FY2027,consensus,1024.3457,jpy,yfinance,2026-08-27
+1801,TAISEI CORPORATION,net_sales,FY2027,consensus,2420979304290.0,jpy_abs,yfinance,2026-08-27
+1801,TAISEI CORPORATION,eps,FY2028,consensus,1002.6043,jpy,yfinance,2026-08-27
+1801,TAISEI CORPORATION,net_sales,FY2028,consensus,2488551167700.0,jpy_abs,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,eps,FY2027,consensus,237.04375,jpy,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,net_sales,FY2027,consensus,2947033022860.0,jpy_abs,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,eps,FY2028,consensus,243.70375,jpy,yfinance,2026-08-27
+1802,OBAYASHI CORPORATION,net_sales,FY2028,consensus,3013919727630.0,jpy_abs,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,eps,FY2027,consensus,241.02,jpy,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,net_sales,FY2027,consensus,2292248090000.0,jpy_abs,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,eps,FY2028,consensus,195.62286,jpy,yfinance,2026-08-27
+1803,SHIMIZU CORPORATION,net_sales,FY2028,consensus,2308152230010.0,jpy_abs,yfinance,2026-08-27
+1808,HASEKO Corporation,eps,FY2027,consensus,261.9,jpy,yfinance,2026-08-27
+1808,HASEKO Corporation,net_sales,FY2027,consensus,1377373045730.0,jpy_abs,yfinance,2026-08-27
+1808,HASEKO Corporation,eps,FY2028,consensus,292.58777,jpy,yfinance,2026-08-27
+1808,HASEKO Corporation,net_sales,FY2028,consensus,1445883004360.0,jpy_abs,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,eps,FY2027,consensus,397.275,jpy,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,net_sales,FY2027,consensus,2954449835710.0,jpy_abs,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,eps,FY2028,consensus,430.6357,jpy,yfinance,2026-08-27
+1812,KAJIMA CORPORATION,net_sales,FY2028,consensus,3162035455070.0,jpy_abs,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2027,consensus,333.77588,jpy,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2027,consensus,2060238633750.0,jpy_abs,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",eps,FY2028,consensus,324.62912,jpy,yfinance,2026-08-27
+1878,"DAITO TRUST CONSTRUCTION CO.,LTD.",net_sales,FY2028,consensus,2131857269310.0,jpy_abs,yfinance,2026-08-27
+1885,TOA CORPORATION,eps,FY2027,consensus,217.75,jpy,yfinance,2026-08-27
+1885,TOA CORPORATION,net_sales,FY2027,consensus,349200000000.0,jpy_abs,yfinance,2026-08-27
+1885,TOA CORPORATION,eps,FY2028,consensus,226.8,jpy,yfinance,2026-08-27
+1885,TOA CORPORATION,net_sales,FY2028,consensus,360700000000.0,jpy_abs,yfinance,2026-08-27
+1893,"PENTA-OCEAN CONSTRUCTION CO.,LTD.",eps,FY2027,consensus,134.48857,jpy,yfinance,2026-08-27
+1893,"PENTA-OCEAN CONSTRUCTION CO.,LTD.",net_sales,FY2027,consensus,812000000000.0,jpy_abs,yfinance,2026-08-27
+1893,"PENTA-OCEAN CONSTRUCTION CO.,LTD.",eps,FY2028,consensus,145.37572,jpy,yfinance,2026-08-27
+1893,"PENTA-OCEAN CONSTRUCTION CO.,LTD.",net_sales,FY2028,consensus,848571428570.0,jpy_abs,yfinance,2026-08-27
+1911,"Sumitomo Forestry Co.,Ltd.",eps,FY2026,consensus,99.51,jpy,yfinance,2026-08-27
+1911,"Sumitomo Forestry Co.,Ltd.",net_sales,FY2026,consensus,2934533333330.0,jpy_abs,yfinance,2026-08-27
+1911,"Sumitomo Forestry Co.,Ltd.",eps,FY2027,consensus,173.955,jpy,yfinance,2026-08-27
+1911,"Sumitomo Forestry Co.,Ltd.",net_sales,FY2027,consensus,3200800000000.0,jpy_abs,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2027,consensus,442.53116,jpy,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2027,consensus,5929746154290.0,jpy_abs,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",eps,FY2028,consensus,508.94107,jpy,yfinance,2026-08-27
+1925,"DAIWA HOUSE INDUSTRY CO.,LTD.",net_sales,FY2028,consensus,6183519807660.0,jpy_abs,yfinance,2026-08-27
+1928,"Sekisui House,Ltd.",eps,FY2027,consensus,339.11566,jpy,yfinance,2026-08-27
+1928,"Sekisui House,Ltd.",net_sales,FY2027,consensus,4295889340560.0,jpy_abs,yfinance,2026-08-27
+1928,"Sekisui House,Ltd.",eps,FY2028,consensus,365.21378,jpy,yfinance,2026-08-27
+1928,"Sekisui House,Ltd.",net_sales,FY2028,consensus,4522356594130.0,jpy_abs,yfinance,2026-08-27
+1942,"KANDENKO CO.,LTD.",eps,FY2027,consensus,354.54428,jpy,yfinance,2026-08-27
+1942,"KANDENKO CO.,LTD.",net_sales,FY2027,consensus,787750000000.0,jpy_abs,yfinance,2026-08-27
+1942,"KANDENKO CO.,LTD.",eps,FY2028,consensus,384.96713,jpy,yfinance,2026-08-27
+1942,"KANDENKO CO.,LTD.",net_sales,FY2028,consensus,840285714290.0,jpy_abs,yfinance,2026-08-27
+1944,KINDEN CORPORATION,eps,FY2027,consensus,451.922,jpy,yfinance,2026-08-27
+1944,KINDEN CORPORATION,net_sales,FY2027,consensus,825416666670.0,jpy_abs,yfinance,2026-08-27
+1944,KINDEN CORPORATION,eps,FY2028,consensus,476.67285,jpy,yfinance,2026-08-27
+1944,KINDEN CORPORATION,net_sales,FY2028,consensus,871000000000.0,jpy_abs,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",eps,FY2027,consensus,178.2725,jpy,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",net_sales,FY2027,consensus,748000000000.0,jpy_abs,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",eps,FY2028,consensus,190.59,jpy,yfinance,2026-08-27
+1951,"EXEO Group,Inc.",net_sales,FY2028,consensus,767700000000.0,jpy_abs,yfinance,2026-08-27
+1959,KRAFTIA CORPORATION,eps,FY2027,consensus,599.919,jpy,yfinance,2026-08-27
+1959,KRAFTIA CORPORATION,net_sales,FY2027,consensus,504268714290.0,jpy_abs,yfinance,2026-08-27
+1959,KRAFTIA CORPORATION,eps,FY2028,consensus,668.19653,jpy,yfinance,2026-08-27
+1959,KRAFTIA CORPORATION,net_sales,FY2028,consensus,528131000000.0,jpy_abs,yfinance,2026-08-27
+1961,"SANKI ENGINEERING CO.,LTD.",eps,FY2027,consensus,172.7,jpy,yfinance,2026-08-27
+1961,"SANKI ENGINEERING CO.,LTD.",net_sales,FY2027,consensus,272500000000.0,jpy_abs,yfinance,2026-08-27
+1961,"SANKI ENGINEERING CO.,LTD.",eps,FY2028,consensus,189.0,jpy,yfinance,2026-08-27
+1961,"SANKI ENGINEERING CO.,LTD.",net_sales,FY2028,consensus,287500000000.0,jpy_abs,yfinance,2026-08-27
+1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2027,consensus,322.38666,jpy,yfinance,2026-08-27
+1969,"Takasago Thermal Engineering Co.,Ltd.",net_sales,FY2027,consensus,446666666670.0,jpy_abs,yfinance,2026-08-27
+1969,"Takasago Thermal Engineering Co.,Ltd.",eps,FY2028,consensus,349.72668,jpy,yfinance,2026-08-27
+1969,"Takasago Thermal Engineering Co.,Ltd.",net_sales,FY2028,consensus,481333333330.0,jpy_abs,yfinance,2026-08-27
+1980,"DAI-DAN CO.,LTD.",eps,FY2027,consensus,213.3,jpy,yfinance,2026-08-27
+1980,"DAI-DAN CO.,LTD.",net_sales,FY2027,consensus,265000000000.0,jpy_abs,yfinance,2026-08-27
+1980,"DAI-DAN CO.,LTD.",eps,FY2028,consensus,240.4,jpy,yfinance,2026-08-27
+1980,"DAI-DAN CO.,LTD.",net_sales,FY2028,consensus,300000000000.0,jpy_abs,yfinance,2026-08-27
+2124,"JAC Recruitment Co.,Ltd.",eps,FY2026,consensus,59.87667,jpy,yfinance,2026-08-27
+2124,"JAC Recruitment Co.,Ltd.",net_sales,FY2026,consensus,52854000000.0,jpy_abs,yfinance,2026-08-27
+2124,"JAC Recruitment Co.,Ltd.",eps,FY2027,consensus,69.92,jpy,yfinance,2026-08-27
+2124,"JAC Recruitment Co.,Ltd.",net_sales,FY2027,consensus,60708000000.0,jpy_abs,yfinance,2026-08-27
+2127,Nihon M&A Center Holdings Inc.,eps,FY2027,consensus,43.43333,jpy,yfinance,2026-08-27
+2127,Nihon M&A Center Holdings Inc.,net_sales,FY2027,consensus,54101833330.0,jpy_abs,yfinance,2026-08-27
+2127,Nihon M&A Center Holdings Inc.,eps,FY2028,consensus,46.78333,jpy,yfinance,2026-08-27
+2127,Nihon M&A Center Holdings Inc.,net_sales,FY2028,consensus,58826333330.0,jpy_abs,yfinance,2026-08-27
+2154,Open Up Group Inc.,eps,FY2027,consensus,147.61015,jpy,yfinance,2026-08-27
+2154,Open Up Group Inc.,net_sales,FY2027,consensus,173985000000.0,jpy_abs,yfinance,2026-08-27
+2154,Open Up Group Inc.,eps,FY2028,consensus,160.87947,jpy,yfinance,2026-08-27
+2154,Open Up Group Inc.,net_sales,FY2028,consensus,190835770000.0,jpy_abs,yfinance,2026-08-27
+2181,"PERSOL HOLDINGS CO.,LTD.",eps,FY2027,consensus,21.12143,jpy,yfinance,2026-08-27
+2181,"PERSOL HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,1685998827670.0,jpy_abs,yfinance,2026-08-27
+2181,"PERSOL HOLDINGS CO.,LTD.",eps,FY2028,consensus,23.58714,jpy,yfinance,2026-08-27
+2181,"PERSOL HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,1749189442290.0,jpy_abs,yfinance,2026-08-27
+2201,"Morinaga & Co.,Ltd.",eps,FY2027,consensus,193.60988,jpy,yfinance,2026-08-27
+2201,"Morinaga & Co.,Ltd.",net_sales,FY2027,consensus,256044847530.0,jpy_abs,yfinance,2026-08-27
+2201,"Morinaga & Co.,Ltd.",eps,FY2028,consensus,207.51096,jpy,yfinance,2026-08-27
+2201,"Morinaga & Co.,Ltd.",net_sales,FY2028,consensus,264146557180.0,jpy_abs,yfinance,2026-08-27
+2212,"YAMAZAKI BAKING CO.,LTD.",eps,FY2026,consensus,216.30621,jpy,yfinance,2026-08-27
+2212,"YAMAZAKI BAKING CO.,LTD.",net_sales,FY2026,consensus,1358387500000.0,jpy_abs,yfinance,2026-08-27
+2212,"YAMAZAKI BAKING CO.,LTD.",eps,FY2027,consensus,231.93532,jpy,yfinance,2026-08-27
+2212,"YAMAZAKI BAKING CO.,LTD.",net_sales,FY2027,consensus,1392837500000.0,jpy_abs,yfinance,2026-08-27
+2222,"Kotobuki Spirits Co.,Ltd.",eps,FY2027,consensus,96.6475,jpy,yfinance,2026-08-27
+2222,"Kotobuki Spirits Co.,Ltd.",net_sales,FY2027,consensus,86426455000.0,jpy_abs,yfinance,2026-08-27
+2222,"Kotobuki Spirits Co.,Ltd.",eps,FY2028,consensus,113.86,jpy,yfinance,2026-08-27
+2222,"Kotobuki Spirits Co.,Ltd.",net_sales,FY2028,consensus,95241154500.0,jpy_abs,yfinance,2026-08-27
+2229,"CALBEE,Inc.",eps,FY2027,consensus,145.79968,jpy,yfinance,2026-08-27
+2229,"CALBEE,Inc.",net_sales,FY2027,consensus,364720000000.0,jpy_abs,yfinance,2026-08-27
+2229,"CALBEE,Inc.",eps,FY2028,consensus,163.47466,jpy,yfinance,2026-08-27
+2229,"CALBEE,Inc.",net_sales,FY2028,consensus,376950000000.0,jpy_abs,yfinance,2026-08-27
+2264,"MORINAGA MILK INDUSTRY CO.,LTD.",eps,FY2027,consensus,72.31342,jpy,yfinance,2026-08-27
+2264,"MORINAGA MILK INDUSTRY CO.,LTD.",net_sales,FY2027,consensus,589862257900.0,jpy_abs,yfinance,2026-08-27
+2264,"MORINAGA MILK INDUSTRY CO.,LTD.",eps,FY2028,consensus,86.21356,jpy,yfinance,2026-08-27
+2264,"MORINAGA MILK INDUSTRY CO.,LTD.",net_sales,FY2028,consensus,604874596480.0,jpy_abs,yfinance,2026-08-27
+2267,"YAKULT HONSHA CO.,LTD.",eps,FY2027,consensus,161.87363,jpy,yfinance,2026-08-27
+2267,"YAKULT HONSHA CO.,LTD.",net_sales,FY2027,consensus,508165364220.0,jpy_abs,yfinance,2026-08-27
+2267,"YAKULT HONSHA CO.,LTD.",eps,FY2028,consensus,147.47104,jpy,yfinance,2026-08-27
+2267,"YAKULT HONSHA CO.,LTD.",net_sales,FY2028,consensus,521700589310.0,jpy_abs,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",eps,FY2027,consensus,234.93268,jpy,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2027,consensus,1214849365450.0,jpy_abs,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",eps,FY2028,consensus,260.02948,jpy,yfinance,2026-08-27
+2269,"Meiji Holdings Co.,Ltd.",net_sales,FY2028,consensus,1238619867450.0,jpy_abs,yfinance,2026-08-27
+2317,Systena Corporation,eps,FY2027,consensus,31.61722,jpy,yfinance,2026-08-27
+2317,Systena Corporation,net_sales,FY2027,consensus,98050000000.0,jpy_abs,yfinance,2026-08-27
+2317,Systena Corporation,eps,FY2028,consensus,35.27784,jpy,yfinance,2026-08-27
+2317,Systena Corporation,net_sales,FY2028,consensus,104660000000.0,jpy_abs,yfinance,2026-08-27
+2327,NS Solutions Corporation,eps,FY2027,consensus,179.63165,jpy,yfinance,2026-08-27
+2327,NS Solutions Corporation,net_sales,FY2027,consensus,417433333330.0,jpy_abs,yfinance,2026-08-27
+2327,NS Solutions Corporation,eps,FY2028,consensus,193.81398,jpy,yfinance,2026-08-27
+2327,NS Solutions Corporation,net_sales,FY2028,consensus,434355555560.0,jpy_abs,yfinance,2026-08-27
+2331,"ALSOK CO.,LTD.",eps,FY2027,consensus,85.182,jpy,yfinance,2026-08-27
+2331,"ALSOK CO.,LTD.",net_sales,FY2027,consensus,633431200000.0,jpy_abs,yfinance,2026-08-27
+2331,"ALSOK CO.,LTD.",eps,FY2028,consensus,84.91,jpy,yfinance,2026-08-27
+2331,"ALSOK CO.,LTD.",net_sales,FY2028,consensus,681009200000.0,jpy_abs,yfinance,2026-08-27
+2371,"Kakaku.com,Inc.",eps,FY2027,consensus,114.83267,jpy,yfinance,2026-08-27
+2371,"Kakaku.com,Inc.",net_sales,FY2027,consensus,111062891780.0,jpy_abs,yfinance,2026-08-27
+2371,"Kakaku.com,Inc.",eps,FY2028,consensus,136.17442,jpy,yfinance,2026-08-27
+2371,"Kakaku.com,Inc.",net_sales,FY2028,consensus,124434565560.0,jpy_abs,yfinance,2026-08-27
+2379,dip Corporation,eps,FY2027,consensus,74.875,jpy,yfinance,2026-08-27
+2379,dip Corporation,net_sales,FY2027,consensus,53109647610.0,jpy_abs,yfinance,2026-08-27
+2379,dip Corporation,eps,FY2028,consensus,85.70333,jpy,yfinance,2026-08-27
+2379,dip Corporation,net_sales,FY2028,consensus,54246502920.0,jpy_abs,yfinance,2026-08-27
+2384,"SBS Holdings,Inc.",eps,FY2026,consensus,356.7,jpy,yfinance,2026-08-27
+2384,"SBS Holdings,Inc.",net_sales,FY2026,consensus,569433333330.0,jpy_abs,yfinance,2026-08-27
+2384,"SBS Holdings,Inc.",eps,FY2027,consensus,397.8,jpy,yfinance,2026-08-27
+2384,"SBS Holdings,Inc.",net_sales,FY2027,consensus,594133333330.0,jpy_abs,yfinance,2026-08-27
+2413,"M3,Inc.",eps,FY2027,consensus,79.39248,jpy,yfinance,2026-08-27
+2413,"M3,Inc.",net_sales,FY2027,consensus,390195383040.0,jpy_abs,yfinance,2026-08-27
+2413,"M3,Inc.",eps,FY2028,consensus,88.65196,jpy,yfinance,2026-08-27
+2413,"M3,Inc.",net_sales,FY2028,consensus,426012112170.0,jpy_abs,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",eps,FY2026,consensus,214.83679,jpy,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",net_sales,FY2026,consensus,2527415067380.0,jpy_abs,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",eps,FY2027,consensus,224.58043,jpy,yfinance,2026-08-27
+2503,"Kirin Holdings Company,Limited",net_sales,FY2027,consensus,2557877574560.0,jpy_abs,yfinance,2026-08-27
+2587,Suntory Beverage & Food Limited,eps,FY2026,consensus,287.94568,jpy,yfinance,2026-08-27
+2587,Suntory Beverage & Food Limited,net_sales,FY2026,consensus,1852982576620.0,jpy_abs,yfinance,2026-08-27
+2587,Suntory Beverage & Food Limited,eps,FY2027,consensus,304.17673,jpy,yfinance,2026-08-27
+2587,Suntory Beverage & Food Limited,net_sales,FY2027,consensus,1901745576150.0,jpy_abs,yfinance,2026-08-27
+2670,"ABC-MART,INC.",eps,FY2027,consensus,193.34729,jpy,yfinance,2026-08-27
+2670,"ABC-MART,INC.",net_sales,FY2027,consensus,401278070710.0,jpy_abs,yfinance,2026-08-27
+2670,"ABC-MART,INC.",eps,FY2028,consensus,201.0366,jpy,yfinance,2026-08-27
+2670,"ABC-MART,INC.",net_sales,FY2028,consensus,416092168970.0,jpy_abs,yfinance,2026-08-27
+2678,ASKUL Corporation,eps,FY2027,consensus,43.42673,jpy,yfinance,2026-08-27
+2678,ASKUL Corporation,net_sales,FY2027,consensus,479068755710.0,jpy_abs,yfinance,2026-08-27
+2678,ASKUL Corporation,eps,FY2028,consensus,66.68417,jpy,yfinance,2026-08-27
+2678,ASKUL Corporation,net_sales,FY2028,consensus,499373286740.0,jpy_abs,yfinance,2026-08-27
+2685,"and ST HD Co.,Ltd.",eps,FY2027,consensus,252.07452,jpy,yfinance,2026-08-27
+2685,"and ST HD Co.,Ltd.",net_sales,FY2027,consensus,315560000000.0,jpy_abs,yfinance,2026-08-27
+2685,"and ST HD Co.,Ltd.",eps,FY2028,consensus,277.13766,jpy,yfinance,2026-08-27
+2685,"and ST HD Co.,Ltd.",net_sales,FY2028,consensus,329566666670.0,jpy_abs,yfinance,2026-08-27
+2702,"McDonald's Holdings Company(Japan),Ltd.",eps,FY2026,consensus,271.86667,jpy,yfinance,2026-08-27
+2702,"McDonald's Holdings Company(Japan),Ltd.",net_sales,FY2026,consensus,414133333330.0,jpy_abs,yfinance,2026-08-27
+2702,"McDonald's Holdings Company(Japan),Ltd.",eps,FY2027,consensus,288.83334,jpy,yfinance,2026-08-27
+2702,"McDonald's Holdings Company(Japan),Ltd.",net_sales,FY2027,consensus,413800000000.0,jpy_abs,yfinance,2026-08-27
+2726,"PAL GROUP Holdings CO.,LTD",eps,FY2027,consensus,109.3,jpy,yfinance,2026-08-27
+2726,"PAL GROUP Holdings CO.,LTD",net_sales,FY2027,consensus,248800000000.0,jpy_abs,yfinance,2026-08-27
+2726,"PAL GROUP Holdings CO.,LTD",eps,FY2028,consensus,117.7025,jpy,yfinance,2026-08-27
+2726,"PAL GROUP Holdings CO.,LTD",net_sales,FY2028,consensus,263500000000.0,jpy_abs,yfinance,2026-08-27
+2767,TSUBURAYA FIELDS HOLDINGS INC.,eps,FY2027,consensus,224.1,jpy,yfinance,2026-08-27
+2767,TSUBURAYA FIELDS HOLDINGS INC.,net_sales,FY2027,consensus,179300000000.0,jpy_abs,yfinance,2026-08-27
+2767,TSUBURAYA FIELDS HOLDINGS INC.,eps,FY2028,consensus,242.6,jpy,yfinance,2026-08-27
+2767,TSUBURAYA FIELDS HOLDINGS INC.,net_sales,FY2028,consensus,186350000000.0,jpy_abs,yfinance,2026-08-27
+2768,Sojitz Corporation,eps,FY2027,consensus,619.05707,jpy,yfinance,2026-08-27
+2768,Sojitz Corporation,net_sales,FY2027,consensus,3086733333330.0,jpy_abs,yfinance,2026-08-27
+2768,Sojitz Corporation,eps,FY2028,consensus,658.4938,jpy,yfinance,2026-08-27
+2768,Sojitz Corporation,net_sales,FY2028,consensus,3190759789880.0,jpy_abs,yfinance,2026-08-27
+2801,KIKKOMAN CORPORATION,eps,FY2027,consensus,71.12193,jpy,yfinance,2026-08-27
+2801,KIKKOMAN CORPORATION,net_sales,FY2027,consensus,816436264150.0,jpy_abs,yfinance,2026-08-27
+2801,KIKKOMAN CORPORATION,eps,FY2028,consensus,76.39264,jpy,yfinance,2026-08-27
+2801,KIKKOMAN CORPORATION,net_sales,FY2028,consensus,858133829170.0,jpy_abs,yfinance,2026-08-27
+2802,"Ajinomoto Co.,Inc.",eps,FY2027,consensus,144.9622,jpy,yfinance,2026-08-27
+2802,"Ajinomoto Co.,Inc.",net_sales,FY2027,consensus,1729051230770.0,jpy_abs,yfinance,2026-08-27
+2802,"Ajinomoto Co.,Inc.",eps,FY2028,consensus,176.65582,jpy,yfinance,2026-08-27
+2802,"Ajinomoto Co.,Inc.",net_sales,FY2028,consensus,1835728807720.0,jpy_abs,yfinance,2026-08-27
+2811,"KAGOME CO.,LTD.",eps,FY2026,consensus,138.6,jpy,yfinance,2026-08-27
+2811,"KAGOME CO.,LTD.",net_sales,FY2026,consensus,304550000000.0,jpy_abs,yfinance,2026-08-27
+2811,"KAGOME CO.,LTD.",eps,FY2027,consensus,157.38974,jpy,yfinance,2026-08-27
+2811,"KAGOME CO.,LTD.",net_sales,FY2027,consensus,306850000000.0,jpy_abs,yfinance,2026-08-27
+2871,NICHIREI CORPORATION,eps,FY2027,consensus,100.175,jpy,yfinance,2026-08-27
+2871,NICHIREI CORPORATION,net_sales,FY2027,consensus,613325879100.0,jpy_abs,yfinance,2026-08-27
+2871,NICHIREI CORPORATION,eps,FY2028,consensus,131.19157,jpy,yfinance,2026-08-27
+2871,NICHIREI CORPORATION,net_sales,FY2028,consensus,773912893190.0,jpy_abs,yfinance,2026-08-27
+2875,"TOYO SUISAN KAISHA,LTD.",eps,FY2027,consensus,720.1876,jpy,yfinance,2026-08-27
+2875,"TOYO SUISAN KAISHA,LTD.",net_sales,FY2027,consensus,571110153750.0,jpy_abs,yfinance,2026-08-27
+2875,"TOYO SUISAN KAISHA,LTD.",eps,FY2028,consensus,761.86804,jpy,yfinance,2026-08-27
+2875,"TOYO SUISAN KAISHA,LTD.",net_sales,FY2028,consensus,591825413830.0,jpy_abs,yfinance,2026-08-27
+2897,"NISSIN FOODS HOLDINGS CO.,LTD.",eps,FY2027,consensus,168.92494,jpy,yfinance,2026-08-27
+2897,"NISSIN FOODS HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,850610714820.0,jpy_abs,yfinance,2026-08-27
+2897,"NISSIN FOODS HOLDINGS CO.,LTD.",eps,FY2028,consensus,183.6567,jpy,yfinance,2026-08-27
+2897,"NISSIN FOODS HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,897921505430.0,jpy_abs,yfinance,2026-08-27
+2914,JAPAN TOBACCO INC.,eps,FY2026,consensus,362.85852,jpy,yfinance,2026-08-27
+2914,JAPAN TOBACCO INC.,net_sales,FY2026,consensus,3870313878970.0,jpy_abs,yfinance,2026-08-27
+2914,JAPAN TOBACCO INC.,eps,FY2027,consensus,405.17117,jpy,yfinance,2026-08-27
+2914,JAPAN TOBACCO INC.,net_sales,FY2027,consensus,4036527855210.0,jpy_abs,yfinance,2026-08-27
+3003,"Hulic Co.,Ltd.",eps,FY2026,consensus,163.24924,jpy,yfinance,2026-08-27
+3003,"Hulic Co.,Ltd.",net_sales,FY2026,consensus,896914285710.0,jpy_abs,yfinance,2026-08-27
+3003,"Hulic Co.,Ltd.",eps,FY2027,consensus,173.22633,jpy,yfinance,2026-08-27
+3003,"Hulic Co.,Ltd.",net_sales,FY2027,consensus,946310571430.0,jpy_abs,yfinance,2026-08-27
+3038,"KOBE BUSSAN CO.,LTD.",eps,FY2026,consensus,141.78934,jpy,yfinance,2026-08-27
+3038,"KOBE BUSSAN CO.,LTD.",net_sales,FY2026,consensus,584571134380.0,jpy_abs,yfinance,2026-08-27
+3038,"KOBE BUSSAN CO.,LTD.",eps,FY2027,consensus,151.113,jpy,yfinance,2026-08-27
+3038,"KOBE BUSSAN CO.,LTD.",net_sales,FY2027,consensus,647899003640.0,jpy_abs,yfinance,2026-08-27
+3064,"MonotaRO Co.,Ltd.",eps,FY2026,consensus,75.7554,jpy,yfinance,2026-08-27
+3064,"MonotaRO Co.,Ltd.",net_sales,FY2026,consensus,381666057190.0,jpy_abs,yfinance,2026-08-27
+3064,"MonotaRO Co.,Ltd.",eps,FY2027,consensus,85.13605,jpy,yfinance,2026-08-27
+3064,"MonotaRO Co.,Ltd.",net_sales,FY2027,consensus,421942020360.0,jpy_abs,yfinance,2026-08-27
+3086,"J.FRONT RETAILING Co.,Ltd.",eps,FY2027,consensus,127.30858,jpy,yfinance,2026-08-27
+3086,"J.FRONT RETAILING Co.,Ltd.",net_sales,FY2027,consensus,460160000000.0,jpy_abs,yfinance,2026-08-27
+3086,"J.FRONT RETAILING Co.,Ltd.",eps,FY2028,consensus,136.00842,jpy,yfinance,2026-08-27
+3086,"J.FRONT RETAILING Co.,Ltd.",net_sales,FY2028,consensus,471980000000.0,jpy_abs,yfinance,2026-08-27
+3088,MatsukiyoCocokara & Co.,eps,FY2027,consensus,154.51463,jpy,yfinance,2026-08-27
+3088,MatsukiyoCocokara & Co.,net_sales,FY2027,consensus,1171111666670.0,jpy_abs,yfinance,2026-08-27
+3088,MatsukiyoCocokara & Co.,eps,FY2028,consensus,163.29036,jpy,yfinance,2026-08-27
+3088,MatsukiyoCocokara & Co.,net_sales,FY2028,consensus,1207325900000.0,jpy_abs,yfinance,2026-08-27
+3092,"ZOZO,Inc.",eps,FY2027,consensus,58.24605,jpy,yfinance,2026-08-27
+3092,"ZOZO,Inc.",net_sales,FY2027,consensus,241656386460.0,jpy_abs,yfinance,2026-08-27
+3092,"ZOZO,Inc.",eps,FY2028,consensus,61.69121,jpy,yfinance,2026-08-27
+3092,"ZOZO,Inc.",net_sales,FY2028,consensus,254374410960.0,jpy_abs,yfinance,2026-08-27
+3099,Isetan Mitsukoshi Holdings Ltd.,eps,FY2027,consensus,182.71059,jpy,yfinance,2026-08-27
+3099,Isetan Mitsukoshi Holdings Ltd.,net_sales,FY2027,consensus,564569164710.0,jpy_abs,yfinance,2026-08-27
+3099,Isetan Mitsukoshi Holdings Ltd.,eps,FY2028,consensus,185.09393,jpy,yfinance,2026-08-27
+3099,Isetan Mitsukoshi Holdings Ltd.,net_sales,FY2028,consensus,575859812000.0,jpy_abs,yfinance,2026-08-27
+3107,"Daiwabo Holdings Co.,Ltd.",eps,FY2027,consensus,290.85,jpy,yfinance,2026-08-27
+3107,"Daiwabo Holdings Co.,Ltd.",net_sales,FY2027,consensus,1210500000000.0,jpy_abs,yfinance,2026-08-27
+3107,"Daiwabo Holdings Co.,Ltd.",eps,FY2028,consensus,315.25,jpy,yfinance,2026-08-27
+3107,"Daiwabo Holdings Co.,Ltd.",net_sales,FY2028,consensus,1278000000000.0,jpy_abs,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",eps,FY2027,consensus,107.86938,jpy,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",net_sales,FY2027,consensus,140310000000.0,jpy_abs,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",eps,FY2028,consensus,144.25018,jpy,yfinance,2026-08-27
+3110,"NITTO BOSEKI CO.,LTD.",net_sales,FY2028,consensus,161133333330.0,jpy_abs,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,eps,FY2027,consensus,271.454,jpy,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2027,consensus,2120446166670.0,jpy_abs,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,eps,FY2028,consensus,291.79996,jpy,yfinance,2026-08-27
+3116,TOYOTA BOSHOKU CORPORATION,net_sales,FY2028,consensus,2145874907000.0,jpy_abs,yfinance,2026-08-27
+3132,"MACNICA HOLDINGS,INC.",eps,FY2027,consensus,237.14,jpy,yfinance,2026-08-27
+3132,"MACNICA HOLDINGS,INC.",net_sales,FY2027,consensus,1556345000000.0,jpy_abs,yfinance,2026-08-27
+3132,"MACNICA HOLDINGS,INC.",eps,FY2028,consensus,275.905,jpy,yfinance,2026-08-27
+3132,"MACNICA HOLDINGS,INC.",net_sales,FY2028,consensus,1650360000000.0,jpy_abs,yfinance,2026-08-27
+3148,"CREATE SD HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+3148,"CREATE SD HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+3186,"NEXTAGE Co.,Ltd.",eps,FY2026,consensus,236.13333,jpy,yfinance,2026-08-27
+3186,"NEXTAGE Co.,Ltd.",net_sales,FY2026,consensus,784814500000.0,jpy_abs,yfinance,2026-08-27
+3186,"NEXTAGE Co.,Ltd.",eps,FY2027,consensus,276.26834,jpy,yfinance,2026-08-27
+3186,"NEXTAGE Co.,Ltd.",net_sales,FY2027,consensus,862228833330.0,jpy_abs,yfinance,2026-08-27
+3231,"Nomura Real Estate Holdings,Inc.",eps,FY2027,consensus,101.97347,jpy,yfinance,2026-08-27
+3231,"Nomura Real Estate Holdings,Inc.",net_sales,FY2027,consensus,1070662217520.0,jpy_abs,yfinance,2026-08-27
+3231,"Nomura Real Estate Holdings,Inc.",eps,FY2028,consensus,108.171,jpy,yfinance,2026-08-27
+3231,"Nomura Real Estate Holdings,Inc.",net_sales,FY2028,consensus,1086392952229.0,jpy_abs,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",eps,FY2026,consensus,1072.854,jpy,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",net_sales,FY2026,consensus,1495700000000.0,jpy_abs,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",eps,FY2027,consensus,1136.118,jpy,yfinance,2026-08-27
+3288,"Open House Group Co.,Ltd.",net_sales,FY2027,consensus,1635482463730.0,jpy_abs,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,eps,FY2027,consensus,145.3212,jpy,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2027,consensus,1406263348090.0,jpy_abs,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,eps,FY2028,consensus,151.47505,jpy,yfinance,2026-08-27
+3289,Tokyu Fudosan Holdings Corporation,net_sales,FY2028,consensus,1419581332670.0,jpy_abs,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",eps,FY2027,consensus,245.786,jpy,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2027,consensus,1648540000000.0,jpy_abs,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",eps,FY2028,consensus,255.142,jpy,yfinance,2026-08-27
+3291,"Iida Group Holdings Co.,Ltd.",net_sales,FY2028,consensus,1708140000000.0,jpy_abs,yfinance,2026-08-27
+3349,COSMOS Pharmaceutical Corporation,eps,FY2027,consensus,399.69327,jpy,yfinance,2026-08-27
+3349,COSMOS Pharmaceutical Corporation,net_sales,FY2027,consensus,1188160555560.0,jpy_abs,yfinance,2026-08-27
+3349,COSMOS Pharmaceutical Corporation,eps,FY2028,consensus,430.1507,jpy,yfinance,2026-08-27
+3349,COSMOS Pharmaceutical Corporation,net_sales,FY2028,consensus,1273308300000.0,jpy_abs,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",eps,FY2027,consensus,120.3523,jpy,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2027,consensus,10445061269750.0,jpy_abs,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",eps,FY2028,consensus,121.10806,jpy,yfinance,2026-08-27
+3382,"Seven & i Holdings Co.,Ltd.",net_sales,FY2028,consensus,10346136177700.0,jpy_abs,yfinance,2026-08-27
+3391,TSURUHA HOLDINGS INC.,eps,FY2027,consensus,101.82474,jpy,yfinance,2026-08-27
+3391,TSURUHA HOLDINGS INC.,net_sales,FY2027,consensus,2551585500000.0,jpy_abs,yfinance,2026-08-27
+3391,TSURUHA HOLDINGS INC.,eps,FY2028,consensus,125.41018,jpy,yfinance,2026-08-27
+3391,TSURUHA HOLDINGS INC.,net_sales,FY2028,consensus,2628352625000.0,jpy_abs,yfinance,2026-08-27
+3402,"TORAY INDUSTRIES,INC.",eps,FY2027,consensus,66.06537,jpy,yfinance,2026-08-27
+3402,"TORAY INDUSTRIES,INC.",net_sales,FY2027,consensus,2775343500000.0,jpy_abs,yfinance,2026-08-27
+3402,"TORAY INDUSTRIES,INC.",eps,FY2028,consensus,78.20533,jpy,yfinance,2026-08-27
+3402,"TORAY INDUSTRIES,INC.",net_sales,FY2028,consensus,2877430333330.0,jpy_abs,yfinance,2026-08-27
+3465,"KI-STAR REAL ESTATE CO.,LTD",eps,FY2027,consensus,695.9,jpy,yfinance,2026-08-27
+3465,"KI-STAR REAL ESTATE CO.,LTD",net_sales,FY2027,consensus,465200000000.0,jpy_abs,yfinance,2026-08-27
+3465,"KI-STAR REAL ESTATE CO.,LTD",eps,FY2028,consensus,717.5,jpy,yfinance,2026-08-27
+3465,"KI-STAR REAL ESTATE CO.,LTD",net_sales,FY2028,consensus,510400000000.0,jpy_abs,yfinance,2026-08-27
+3549,"KUSURI NO AOKI HOLDINGS CO.,LTD.",eps,FY2027,consensus,198.7272,jpy,yfinance,2026-08-27
+3549,"KUSURI NO AOKI HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,635726600000.0,jpy_abs,yfinance,2026-08-27
+3549,"KUSURI NO AOKI HOLDINGS CO.,LTD.",eps,FY2028,consensus,224.83374,jpy,yfinance,2026-08-27
+3549,"KUSURI NO AOKI HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,700538800000.0,jpy_abs,yfinance,2026-08-27
+3563,FOOD & LIFE COMPANIES LTD.,eps,FY2026,consensus,143.88556,jpy,yfinance,2026-08-27
+3563,FOOD & LIFE COMPANIES LTD.,net_sales,FY2026,consensus,519589499040.0,jpy_abs,yfinance,2026-08-27
+3563,FOOD & LIFE COMPANIES LTD.,eps,FY2027,consensus,176.62764,jpy,yfinance,2026-08-27
+3563,FOOD & LIFE COMPANIES LTD.,net_sales,FY2027,consensus,610457988340.0,jpy_abs,yfinance,2026-08-27
+3626,TISI Inc.,eps,FY2027,consensus,269.78583,jpy,yfinance,2026-08-27
+3626,TISI Inc.,net_sales,FY2027,consensus,623604000000.0,jpy_abs,yfinance,2026-08-27
+3626,TISI Inc.,eps,FY2028,consensus,280.52063,jpy,yfinance,2026-08-27
+3626,TISI Inc.,net_sales,FY2028,consensus,649800916670.0,jpy_abs,yfinance,2026-08-27
+3635,"KOEI TECMO HOLDINGS CO.,LTD.",eps,FY2027,consensus,109.38876,jpy,yfinance,2026-08-27
+3635,"KOEI TECMO HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,88270720220.0,jpy_abs,yfinance,2026-08-27
+3635,"KOEI TECMO HOLDINGS CO.,LTD.",eps,FY2028,consensus,113.32523,jpy,yfinance,2026-08-27
+3635,"KOEI TECMO HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,92602025780.0,jpy_abs,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",eps,FY2026,consensus,150.39172,jpy,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",net_sales,FY2026,consensus,509932259750.0,jpy_abs,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",eps,FY2027,consensus,143.2301,jpy,yfinance,2026-08-27
+3659,"NEXON Co.,Ltd.",net_sales,FY2027,consensus,520425718760.0,jpy_abs,yfinance,2026-08-27
+3697,SHIFT Inc.,eps,FY2026,consensus,34.13298,jpy,yfinance,2026-08-27
+3697,SHIFT Inc.,net_sales,FY2026,consensus,157462800000.0,jpy_abs,yfinance,2026-08-27
+3697,SHIFT Inc.,eps,FY2027,consensus,55.40397,jpy,yfinance,2026-08-27
+3697,SHIFT Inc.,net_sales,FY2027,consensus,184898500000.0,jpy_abs,yfinance,2026-08-27
+3769,"GMO Payment Gateway,Inc.",eps,FY2026,consensus,327.84854,jpy,yfinance,2026-08-27
+3769,"GMO Payment Gateway,Inc.",net_sales,FY2026,consensus,94914772590.0,jpy_abs,yfinance,2026-08-27
+3769,"GMO Payment Gateway,Inc.",eps,FY2027,consensus,398.05136,jpy,yfinance,2026-08-27
+3769,"GMO Payment Gateway,Inc.",net_sales,FY2027,consensus,110730965480.0,jpy_abs,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,eps,FY2027,consensus,143.94188,jpy,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,net_sales,FY2027,consensus,387564871330.0,jpy_abs,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,eps,FY2028,consensus,163.58607,jpy,yfinance,2026-08-27
+3774,Internet Initiative Japan Inc.,net_sales,FY2028,consensus,419049398900.0,jpy_abs,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",eps,FY2027,consensus,74.84288,jpy,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",net_sales,FY2027,consensus,60444440530.0,jpy_abs,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",eps,FY2028,consensus,52.73927,jpy,yfinance,2026-08-27
+3923,"RAKUS Co.,Ltd.",net_sales,FY2028,consensus,69617341430.0,jpy_abs,yfinance,2026-08-27
+4004,Resonac Holdings Corporation,eps,FY2026,consensus,544.7183,jpy,yfinance,2026-08-27
+4004,Resonac Holdings Corporation,net_sales,FY2026,consensus,1392010581500.0,jpy_abs,yfinance,2026-08-27
+4004,Resonac Holdings Corporation,eps,FY2027,consensus,771.7733,jpy,yfinance,2026-08-27
+4004,Resonac Holdings Corporation,net_sales,FY2027,consensus,1355542160540.0,jpy_abs,yfinance,2026-08-27
+4021,Nissan Chemical Corporation,eps,FY2027,consensus,401.01376,jpy,yfinance,2026-08-27
+4021,Nissan Chemical Corporation,net_sales,FY2027,consensus,294462532420.0,jpy_abs,yfinance,2026-08-27
+4021,Nissan Chemical Corporation,eps,FY2028,consensus,431.02386,jpy,yfinance,2026-08-27
+4021,Nissan Chemical Corporation,net_sales,FY2028,consensus,311466620680.0,jpy_abs,yfinance,2026-08-27
+4042,TOSOH CORPORATION,eps,FY2027,consensus,201.07832,jpy,yfinance,2026-08-27
+4042,TOSOH CORPORATION,net_sales,FY2027,consensus,1118772666670.0,jpy_abs,yfinance,2026-08-27
+4042,TOSOH CORPORATION,eps,FY2028,consensus,217.95515,jpy,yfinance,2026-08-27
+4042,TOSOH CORPORATION,net_sales,FY2028,consensus,1137109333330.0,jpy_abs,yfinance,2026-08-27
+4062,"IBIDEN CO.,LTD.",eps,FY2027,consensus,286.54214,jpy,yfinance,2026-08-27
+4062,"IBIDEN CO.,LTD.",net_sales,FY2027,consensus,537867485780.0,jpy_abs,yfinance,2026-08-27
+4062,"IBIDEN CO.,LTD.",eps,FY2028,consensus,439.8833,jpy,yfinance,2026-08-27
+4062,"IBIDEN CO.,LTD.",net_sales,FY2028,consensus,678375674980.0,jpy_abs,yfinance,2026-08-27
+4063,"Shin-Etsu Chemical Co.,Ltd.",eps,FY2027,consensus,304.30353,jpy,yfinance,2026-08-27
+4063,"Shin-Etsu Chemical Co.,Ltd.",net_sales,FY2027,consensus,2801975564220.0,jpy_abs,yfinance,2026-08-27
+4063,"Shin-Etsu Chemical Co.,Ltd.",eps,FY2028,consensus,344.51532,jpy,yfinance,2026-08-27
+4063,"Shin-Etsu Chemical Co.,Ltd.",net_sales,FY2028,consensus,2984657386610.0,jpy_abs,yfinance,2026-08-27
+4091,NIPPON SANSO HOLDINGS CORPORATION,eps,FY2027,consensus,324.74933,jpy,yfinance,2026-08-27
+4091,NIPPON SANSO HOLDINGS CORPORATION,net_sales,FY2027,consensus,1446836000000.0,jpy_abs,yfinance,2026-08-27
+4091,NIPPON SANSO HOLDINGS CORPORATION,eps,FY2028,consensus,335.0859,jpy,yfinance,2026-08-27
+4091,NIPPON SANSO HOLDINGS CORPORATION,net_sales,FY2028,consensus,1499775500000.0,jpy_abs,yfinance,2026-08-27
+4151,"Kyowa Kirin Co.,Ltd.",eps,FY2026,consensus,154.81198,jpy,yfinance,2026-08-27
+4151,"Kyowa Kirin Co.,Ltd.",net_sales,FY2026,consensus,528384225450.0,jpy_abs,yfinance,2026-08-27
+4151,"Kyowa Kirin Co.,Ltd.",eps,FY2027,consensus,182.03662,jpy,yfinance,2026-08-27
+4151,"Kyowa Kirin Co.,Ltd.",net_sales,FY2027,consensus,538372186360.0,jpy_abs,yfinance,2026-08-27
+417A,"BLUE ZONES HOLDINGS CO.,LTD.",eps,FY2027,consensus,122.36667,jpy,yfinance,2026-08-27
+417A,"BLUE ZONES HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,912233333330.0,jpy_abs,yfinance,2026-08-27
+417A,"BLUE ZONES HOLDINGS CO.,LTD.",eps,FY2028,consensus,132.7,jpy,yfinance,2026-08-27
+417A,"BLUE ZONES HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,972500000000.0,jpy_abs,yfinance,2026-08-27
+4183,"Mitsui Chemicals,Inc.",eps,FY2027,consensus,134.64938,jpy,yfinance,2026-08-27
+4183,"Mitsui Chemicals,Inc.",net_sales,FY2027,consensus,1886304721290.0,jpy_abs,yfinance,2026-08-27
+4183,"Mitsui Chemicals,Inc.",eps,FY2028,consensus,182.52286,jpy,yfinance,2026-08-27
+4183,"Mitsui Chemicals,Inc.",net_sales,FY2028,consensus,1908191797630.0,jpy_abs,yfinance,2026-08-27
+4186,"TOKYO OHKA KOGYO CO.,LTD.",eps,FY2026,consensus,359.7042,jpy,yfinance,2026-08-27
+4186,"TOKYO OHKA KOGYO CO.,LTD.",net_sales,FY2026,consensus,294414285710.0,jpy_abs,yfinance,2026-08-27
+4186,"TOKYO OHKA KOGYO CO.,LTD.",eps,FY2027,consensus,412.87018,jpy,yfinance,2026-08-27
+4186,"TOKYO OHKA KOGYO CO.,LTD.",net_sales,FY2027,consensus,321769089940.0,jpy_abs,yfinance,2026-08-27
+4194,"Visional,Inc.",eps,FY2026,consensus,431.36,jpy,yfinance,2026-08-27
+4194,"Visional,Inc.",net_sales,FY2026,consensus,99452190860.0,jpy_abs,yfinance,2026-08-27
+4194,"Visional,Inc.",eps,FY2027,consensus,498.052,jpy,yfinance,2026-08-27
+4194,"Visional,Inc.",net_sales,FY2027,consensus,117439868570.0,jpy_abs,yfinance,2026-08-27
+4202,Daicel Corporation,eps,FY2027,consensus,128.08498,jpy,yfinance,2026-08-27
+4202,Daicel Corporation,net_sales,FY2027,consensus,610062500000.0,jpy_abs,yfinance,2026-08-27
+4202,Daicel Corporation,eps,FY2028,consensus,144.67773,jpy,yfinance,2026-08-27
+4202,Daicel Corporation,net_sales,FY2028,consensus,631650000000.0,jpy_abs,yfinance,2026-08-27
+4203,"Sumitomo Bakelite Company,Limited",eps,FY2027,consensus,359.82,jpy,yfinance,2026-08-27
+4203,"Sumitomo Bakelite Company,Limited",net_sales,FY2027,consensus,355771428570.0,jpy_abs,yfinance,2026-08-27
+4203,"Sumitomo Bakelite Company,Limited",eps,FY2028,consensus,410.16287,jpy,yfinance,2026-08-27
+4203,"Sumitomo Bakelite Company,Limited",net_sales,FY2028,consensus,381371428570.0,jpy_abs,yfinance,2026-08-27
+4204,"Sekisui Chemical Co.,Ltd.",eps,FY2027,consensus,193.404,jpy,yfinance,2026-08-27
+4204,"Sekisui Chemical Co.,Ltd.",net_sales,FY2027,consensus,1397560000000.0,jpy_abs,yfinance,2026-08-27
+4204,"Sekisui Chemical Co.,Ltd.",eps,FY2028,consensus,223.548,jpy,yfinance,2026-08-27
+4204,"Sekisui Chemical Co.,Ltd.",net_sales,FY2028,consensus,1446600000000.0,jpy_abs,yfinance,2026-08-27
+4206,"Aica Kogyo Company,Limited",eps,FY2027,consensus,327.1,jpy,yfinance,2026-08-27
+4206,"Aica Kogyo Company,Limited",net_sales,FY2027,consensus,295000000000.0,jpy_abs,yfinance,2026-08-27
+4206,"Aica Kogyo Company,Limited",eps,FY2028,consensus,328.53333,jpy,yfinance,2026-08-27
+4206,"Aica Kogyo Company,Limited",net_sales,FY2028,consensus,301233333330.0,jpy_abs,yfinance,2026-08-27
+4307,"Nomura Research Institute,Ltd.",eps,FY2027,consensus,218.82169,jpy,yfinance,2026-08-27
+4307,"Nomura Research Institute,Ltd.",net_sales,FY2027,consensus,864324594970.0,jpy_abs,yfinance,2026-08-27
+4307,"Nomura Research Institute,Ltd.",eps,FY2028,consensus,244.37796,jpy,yfinance,2026-08-27
+4307,"Nomura Research Institute,Ltd.",net_sales,FY2028,consensus,912993917560.0,jpy_abs,yfinance,2026-08-27
+4373,"Simplex Holdings,Inc.",eps,FY2027,consensus,56.60983,jpy,yfinance,2026-08-27
+4373,"Simplex Holdings,Inc.",net_sales,FY2027,consensus,70345714290.0,jpy_abs,yfinance,2026-08-27
+4373,"Simplex Holdings,Inc.",eps,FY2028,consensus,66.00098,jpy,yfinance,2026-08-27
+4373,"Simplex Holdings,Inc.",net_sales,FY2028,consensus,81588571430.0,jpy_abs,yfinance,2026-08-27
+4385,"Mercari,Inc.",eps,FY2027,consensus,230.07697,jpy,yfinance,2026-08-27
+4385,"Mercari,Inc.",net_sales,FY2027,consensus,265702536750.0,jpy_abs,yfinance,2026-08-27
+4385,"Mercari,Inc.",eps,FY2028,consensus,260.65982,jpy,yfinance,2026-08-27
+4385,"Mercari,Inc.",net_sales,FY2028,consensus,287070612440.0,jpy_abs,yfinance,2026-08-27
+4401,ADEKA CORPORATION,eps,FY2027,consensus,305.0,jpy,yfinance,2026-08-27
+4401,ADEKA CORPORATION,net_sales,FY2027,consensus,450252697140.0,jpy_abs,yfinance,2026-08-27
+4401,ADEKA CORPORATION,eps,FY2028,consensus,320.84286,jpy,yfinance,2026-08-27
+4401,ADEKA CORPORATION,net_sales,FY2028,consensus,465545662170.0,jpy_abs,yfinance,2026-08-27
+4403,NOF CORPORATION,eps,FY2027,consensus,181.7357,jpy,yfinance,2026-08-27
+4403,NOF CORPORATION,net_sales,FY2027,consensus,306400000000.0,jpy_abs,yfinance,2026-08-27
+4403,NOF CORPORATION,eps,FY2028,consensus,209.645,jpy,yfinance,2026-08-27
+4403,NOF CORPORATION,net_sales,FY2028,consensus,326083333330.0,jpy_abs,yfinance,2026-08-27
+4452,Kao Corporation,eps,FY2026,consensus,152.91579,jpy,yfinance,2026-08-27
+4452,Kao Corporation,net_sales,FY2026,consensus,1789854965980.0,jpy_abs,yfinance,2026-08-27
+4452,Kao Corporation,eps,FY2027,consensus,162.27087,jpy,yfinance,2026-08-27
+4452,Kao Corporation,net_sales,FY2027,consensus,1852986114470.0,jpy_abs,yfinance,2026-08-27
+4503,Astellas Pharma Inc.,eps,FY2027,consensus,205.9237,jpy,yfinance,2026-08-27
+4503,Astellas Pharma Inc.,net_sales,FY2027,consensus,2315495962230.0,jpy_abs,yfinance,2026-08-27
+4503,Astellas Pharma Inc.,eps,FY2028,consensus,194.01665,jpy,yfinance,2026-08-27
+4503,Astellas Pharma Inc.,net_sales,FY2028,consensus,2136534159310.0,jpy_abs,yfinance,2026-08-27
+4507,"Shionogi & Co.,Ltd.",eps,FY2027,consensus,254.79102,jpy,yfinance,2026-08-27
+4507,"Shionogi & Co.,Ltd.",net_sales,FY2027,consensus,702650040000.0,jpy_abs,yfinance,2026-08-27
+4507,"Shionogi & Co.,Ltd.",eps,FY2028,consensus,277.11606,jpy,yfinance,2026-08-27
+4507,"Shionogi & Co.,Ltd.",net_sales,FY2028,consensus,735223238330.0,jpy_abs,yfinance,2026-08-27
+4516,"Nippon Shinyaku Co.,Ltd.",eps,FY2027,consensus,419.62625,jpy,yfinance,2026-08-27
+4516,"Nippon Shinyaku Co.,Ltd.",net_sales,FY2027,consensus,190613750000.0,jpy_abs,yfinance,2026-08-27
+4516,"Nippon Shinyaku Co.,Ltd.",eps,FY2028,consensus,188.71161,jpy,yfinance,2026-08-27
+4516,"Nippon Shinyaku Co.,Ltd.",net_sales,FY2028,consensus,169470785710.0,jpy_abs,yfinance,2026-08-27
+4519,"CHUGAI PHARMACEUTICAL CO.,LTD.",eps,FY2026,consensus,308.1386,jpy,yfinance,2026-08-27
+4519,"CHUGAI PHARMACEUTICAL CO.,LTD.",net_sales,FY2026,consensus,1388635481430.0,jpy_abs,yfinance,2026-08-27
+4519,"CHUGAI PHARMACEUTICAL CO.,LTD.",eps,FY2027,consensus,357.16095,jpy,yfinance,2026-08-27
+4519,"CHUGAI PHARMACEUTICAL CO.,LTD.",net_sales,FY2027,consensus,1533132010710.0,jpy_abs,yfinance,2026-08-27
+4523,"Eisai Co.,Ltd.",eps,FY2027,consensus,202.23853,jpy,yfinance,2026-08-27
+4523,"Eisai Co.,Ltd.",net_sales,FY2027,consensus,906353578070.0,jpy_abs,yfinance,2026-08-27
+4523,"Eisai Co.,Ltd.",eps,FY2028,consensus,235.70651,jpy,yfinance,2026-08-27
+4523,"Eisai Co.,Ltd.",net_sales,FY2028,consensus,961731487860.0,jpy_abs,yfinance,2026-08-27
+4527,"ROHTO PHARMACEUTICAL CO.,LTD.",eps,FY2027,consensus,153.58888,jpy,yfinance,2026-08-27
+4527,"ROHTO PHARMACEUTICAL CO.,LTD.",net_sales,FY2027,consensus,369109814780.0,jpy_abs,yfinance,2026-08-27
+4527,"ROHTO PHARMACEUTICAL CO.,LTD.",eps,FY2028,consensus,165.328,jpy,yfinance,2026-08-27
+4527,"ROHTO PHARMACEUTICAL CO.,LTD.",net_sales,FY2028,consensus,385332335400.0,jpy_abs,yfinance,2026-08-27
+4528,"ONO PHARMACEUTICAL CO.,LTD.",eps,FY2027,consensus,153.51784,jpy,yfinance,2026-08-27
+4528,"ONO PHARMACEUTICAL CO.,LTD.",net_sales,FY2027,consensus,457382601670.0,jpy_abs,yfinance,2026-08-27
+4528,"ONO PHARMACEUTICAL CO.,LTD.",eps,FY2028,consensus,134.30591,jpy,yfinance,2026-08-27
+4528,"ONO PHARMACEUTICAL CO.,LTD.",net_sales,FY2028,consensus,447626078330.0,jpy_abs,yfinance,2026-08-27
+4536,"SANTEN PHARMACEUTICAL CO.,LTD.",eps,FY2027,consensus,119.60381,jpy,yfinance,2026-08-27
+4536,"SANTEN PHARMACEUTICAL CO.,LTD.",net_sales,FY2027,consensus,303668725560.0,jpy_abs,yfinance,2026-08-27
+4536,"SANTEN PHARMACEUTICAL CO.,LTD.",eps,FY2028,consensus,133.0396,jpy,yfinance,2026-08-27
+4536,"SANTEN PHARMACEUTICAL CO.,LTD.",net_sales,FY2028,consensus,314297293330.0,jpy_abs,yfinance,2026-08-27
+4543,TERUMO CORPORATION,eps,FY2027,consensus,129.46265,jpy,yfinance,2026-08-27
+4543,TERUMO CORPORATION,net_sales,FY2027,consensus,1255837175710.0,jpy_abs,yfinance,2026-08-27
+4543,TERUMO CORPORATION,eps,FY2028,consensus,129.71486,jpy,yfinance,2026-08-27
+4543,TERUMO CORPORATION,net_sales,FY2028,consensus,1336001853200.0,jpy_abs,yfinance,2026-08-27
+4568,"DAIICHI SANKYO COMPANY,LIMITED",eps,FY2027,consensus,153.69426,jpy,yfinance,2026-08-27
+4568,"DAIICHI SANKYO COMPANY,LIMITED",net_sales,FY2027,consensus,2357304046310.0,jpy_abs,yfinance,2026-08-27
+4568,"DAIICHI SANKYO COMPANY,LIMITED",eps,FY2028,consensus,184.00809,jpy,yfinance,2026-08-27
+4568,"DAIICHI SANKYO COMPANY,LIMITED",net_sales,FY2028,consensus,2412874019440.0,jpy_abs,yfinance,2026-08-27
+4578,"Otsuka Holdings Co.,Ltd.",eps,FY2026,consensus,655.55176,jpy,yfinance,2026-08-27
+4578,"Otsuka Holdings Co.,Ltd.",net_sales,FY2026,consensus,2683124601580.0,jpy_abs,yfinance,2026-08-27
+4578,"Otsuka Holdings Co.,Ltd.",eps,FY2027,consensus,685.04065,jpy,yfinance,2026-08-27
+4578,"Otsuka Holdings Co.,Ltd.",net_sales,FY2027,consensus,2744331016750.0,jpy_abs,yfinance,2026-08-27
+4612,"NIPPON PAINT HOLDINGS CO.,LTD.",eps,FY2026,consensus,86.56676,jpy,yfinance,2026-08-27
+4612,"NIPPON PAINT HOLDINGS CO.,LTD.",net_sales,FY2026,consensus,1987864335000.0,jpy_abs,yfinance,2026-08-27
+4612,"NIPPON PAINT HOLDINGS CO.,LTD.",eps,FY2027,consensus,90.44745,jpy,yfinance,2026-08-27
+4612,"NIPPON PAINT HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,2104569785449.0,jpy_abs,yfinance,2026-08-27
+4613,"KANSAI PAINT CO.,LTD.",eps,FY2027,consensus,165.37384,jpy,yfinance,2026-08-27
+4613,"KANSAI PAINT CO.,LTD.",net_sales,FY2027,consensus,631216000000.0,jpy_abs,yfinance,2026-08-27
+4613,"KANSAI PAINT CO.,LTD.",eps,FY2028,consensus,207.15332,jpy,yfinance,2026-08-27
+4613,"KANSAI PAINT CO.,LTD.",net_sales,FY2028,consensus,646183452500.0,jpy_abs,yfinance,2026-08-27
+4626,"TAIYO HOLDINGS CO.,LTD.",eps,FY2027,consensus,237.4,jpy,yfinance,2026-08-27
+4626,"TAIYO HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,148000000000.0,jpy_abs,yfinance,2026-08-27
+4626,"TAIYO HOLDINGS CO.,LTD.",eps,FY2028,consensus,235.82668,jpy,yfinance,2026-08-27
+4626,"TAIYO HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,155333333330.0,jpy_abs,yfinance,2026-08-27
+4661,"ORIENTAL LAND CO.,LTD.",eps,FY2027,consensus,79.5836,jpy,yfinance,2026-08-27
+4661,"ORIENTAL LAND CO.,LTD.",net_sales,FY2027,consensus,750565133830.0,jpy_abs,yfinance,2026-08-27
+4661,"ORIENTAL LAND CO.,LTD.",eps,FY2028,consensus,85.08509,jpy,yfinance,2026-08-27
+4661,"ORIENTAL LAND CO.,LTD.",net_sales,FY2028,consensus,788203053610.0,jpy_abs,yfinance,2026-08-27
+4666,"PARK24 Co.,Ltd.",eps,FY2026,consensus,199.54317,jpy,yfinance,2026-08-27
+4666,"PARK24 Co.,Ltd.",net_sales,FY2026,consensus,424921972000.0,jpy_abs,yfinance,2026-08-27
+4666,"PARK24 Co.,Ltd.",eps,FY2027,consensus,159.53787,jpy,yfinance,2026-08-27
+4666,"PARK24 Co.,Ltd.",net_sales,FY2027,consensus,446391838330.0,jpy_abs,yfinance,2026-08-27
+4680,ROUND ONE Corporation,eps,FY2027,consensus,74.1,jpy,yfinance,2026-08-27
+4680,ROUND ONE Corporation,net_sales,FY2027,consensus,215901166670.0,jpy_abs,yfinance,2026-08-27
+4680,ROUND ONE Corporation,eps,FY2028,consensus,89.06667,jpy,yfinance,2026-08-27
+4680,ROUND ONE Corporation,net_sales,FY2028,consensus,237136333330.0,jpy_abs,yfinance,2026-08-27
+4681,"RESORTTRUST,INC.",eps,FY2027,consensus,104.865,jpy,yfinance,2026-08-27
+4681,"RESORTTRUST,INC.",net_sales,FY2027,consensus,263973118000.0,jpy_abs,yfinance,2026-08-27
+4681,"RESORTTRUST,INC.",eps,FY2028,consensus,107.10689,jpy,yfinance,2026-08-27
+4681,"RESORTTRUST,INC.",net_sales,FY2028,consensus,282770834000.0,jpy_abs,yfinance,2026-08-27
+4684,"OBIC Co.,Ltd.",eps,FY2027,consensus,195.73796,jpy,yfinance,2026-08-27
+4684,"OBIC Co.,Ltd.",net_sales,FY2027,consensus,151069851170.0,jpy_abs,yfinance,2026-08-27
+4684,"OBIC Co.,Ltd.",eps,FY2028,consensus,217.732,jpy,yfinance,2026-08-27
+4684,"OBIC Co.,Ltd.",net_sales,FY2028,consensus,166993170000.0,jpy_abs,yfinance,2026-08-27
+4686,JUSTSYSTEMS CORPORATION,net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+4686,JUSTSYSTEMS CORPORATION,net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+4689,LY Corporation,eps,FY2027,consensus,29.02491,jpy,yfinance,2026-08-27
+4689,LY Corporation,net_sales,FY2027,consensus,2282752870600.0,jpy_abs,yfinance,2026-08-27
+4689,LY Corporation,eps,FY2028,consensus,33.35999,jpy,yfinance,2026-08-27
+4689,LY Corporation,net_sales,FY2028,consensus,2497408001210.0,jpy_abs,yfinance,2026-08-27
+4704,Trend Micro Incorporated,eps,FY2026,consensus,279.1506,jpy,yfinance,2026-08-27
+4704,Trend Micro Incorporated,net_sales,FY2026,consensus,299233741160.0,jpy_abs,yfinance,2026-08-27
+4704,Trend Micro Incorporated,eps,FY2027,consensus,312.51547,jpy,yfinance,2026-08-27
+4704,Trend Micro Incorporated,net_sales,FY2027,consensus,316883332860.0,jpy_abs,yfinance,2026-08-27
+4716,ORACLE CORPORATION JAPAN,eps,FY2027,consensus,545.57,jpy,yfinance,2026-08-27
+4716,ORACLE CORPORATION JAPAN,net_sales,FY2027,consensus,306771428570.0,jpy_abs,yfinance,2026-08-27
+4716,ORACLE CORPORATION JAPAN,eps,FY2028,consensus,588.61285,jpy,yfinance,2026-08-27
+4716,ORACLE CORPORATION JAPAN,net_sales,FY2028,consensus,331285714290.0,jpy_abs,yfinance,2026-08-27
+4722,Future Corporation,eps,FY2026,consensus,138.8,jpy,yfinance,2026-08-27
+4722,Future Corporation,net_sales,FY2026,consensus,81214000000.0,jpy_abs,yfinance,2026-08-27
+4722,Future Corporation,eps,FY2027,consensus,166.96667,jpy,yfinance,2026-08-27
+4722,Future Corporation,net_sales,FY2027,consensus,90620000000.0,jpy_abs,yfinance,2026-08-27
+4732,"USS Co.,Ltd.",eps,FY2027,consensus,96.395,jpy,yfinance,2026-08-27
+4732,"USS Co.,Ltd.",net_sales,FY2027,consensus,124025000000.0,jpy_abs,yfinance,2026-08-27
+4732,"USS Co.,Ltd.",eps,FY2028,consensus,101.07667,jpy,yfinance,2026-08-27
+4732,"USS Co.,Ltd.",net_sales,FY2028,consensus,126850000000.0,jpy_abs,yfinance,2026-08-27
+4733,"OBIC BUSINESS CONSULTANTS CO.,LTD.",eps,FY2027,consensus,270.9082,jpy,yfinance,2026-08-27
+4733,"OBIC BUSINESS CONSULTANTS CO.,LTD.",net_sales,FY2027,consensus,58664976940.0,jpy_abs,yfinance,2026-08-27
+4733,"OBIC BUSINESS CONSULTANTS CO.,LTD.",eps,FY2028,consensus,322.10416,jpy,yfinance,2026-08-27
+4733,"OBIC BUSINESS CONSULTANTS CO.,LTD.",net_sales,FY2028,consensus,67069664529.0,jpy_abs,yfinance,2026-08-27
+4751,"CyberAgent,Inc.",eps,FY2026,consensus,84.73258,jpy,yfinance,2026-08-27
+4751,"CyberAgent,Inc.",net_sales,FY2026,consensus,950364181390.0,jpy_abs,yfinance,2026-08-27
+4751,"CyberAgent,Inc.",eps,FY2027,consensus,92.13328,jpy,yfinance,2026-08-27
+4751,"CyberAgent,Inc.",net_sales,FY2027,consensus,992161594640.0,jpy_abs,yfinance,2026-08-27
+4768,OTSUKA CORPORATION,eps,FY2026,consensus,175.96979,jpy,yfinance,2026-08-27
+4768,OTSUKA CORPORATION,net_sales,FY2026,consensus,1409494966880.0,jpy_abs,yfinance,2026-08-27
+4768,OTSUKA CORPORATION,eps,FY2027,consensus,187.8532,jpy,yfinance,2026-08-27
+4768,OTSUKA CORPORATION,net_sales,FY2027,consensus,1460048389050.0,jpy_abs,yfinance,2026-08-27
+4812,DENTSU SOKEN INC.,eps,FY2026,consensus,94.78214,jpy,yfinance,2026-08-27
+4812,DENTSU SOKEN INC.,net_sales,FY2026,consensus,184240000000.0,jpy_abs,yfinance,2026-08-27
+4812,DENTSU SOKEN INC.,eps,FY2027,consensus,110.51688,jpy,yfinance,2026-08-27
+4812,DENTSU SOKEN INC.,net_sales,FY2027,consensus,202250000000.0,jpy_abs,yfinance,2026-08-27
+4816,"TOEI ANIMATION CO.,LTD.JPX-Nikkei Index 400 Constituents (applied on August 31, 2026)",eps,FY2027,consensus,113.71625,jpy,yfinance,2026-08-27
+4816,"TOEI ANIMATION CO.,LTD.JPX-Nikkei Index 400 Constituents (applied on August 31, 2026)",net_sales,FY2027,consensus,101931625000.0,jpy_abs,yfinance,2026-08-27
+4816,"TOEI ANIMATION CO.,LTD.JPX-Nikkei Index 400 Constituents (applied on August 31, 2026)",eps,FY2028,consensus,132.67876,jpy,yfinance,2026-08-27
+4816,"TOEI ANIMATION CO.,LTD.JPX-Nikkei Index 400 Constituents (applied on August 31, 2026)",net_sales,FY2028,consensus,114165250000.0,jpy_abs,yfinance,2026-08-27
+4901,FUJIFILM Holdings Corporation,eps,FY2027,consensus,236.8597,jpy,yfinance,2026-08-27
+4901,FUJIFILM Holdings Corporation,net_sales,FY2027,consensus,3527409239670.0,jpy_abs,yfinance,2026-08-27
+4901,FUJIFILM Holdings Corporation,eps,FY2028,consensus,269.52933,jpy,yfinance,2026-08-27
+4901,FUJIFILM Holdings Corporation,net_sales,FY2028,consensus,3687878314710.0,jpy_abs,yfinance,2026-08-27
+4966,"C.Uyemura & Co.,Ltd.",eps,FY2027,consensus,1050.6666,jpy,yfinance,2026-08-27
+4966,"C.Uyemura & Co.,Ltd.",net_sales,FY2027,consensus,101403333330.0,jpy_abs,yfinance,2026-08-27
+4966,"C.Uyemura & Co.,Ltd.",eps,FY2028,consensus,1224.0333,jpy,yfinance,2026-08-27
+4966,"C.Uyemura & Co.,Ltd.",net_sales,FY2028,consensus,110470000000.0,jpy_abs,yfinance,2026-08-27
+4980,Dexerials Corporation,eps,FY2027,consensus,169.34833,jpy,yfinance,2026-08-27
+4980,Dexerials Corporation,net_sales,FY2027,consensus,122966666670.0,jpy_abs,yfinance,2026-08-27
+4980,Dexerials Corporation,eps,FY2028,consensus,210.225,jpy,yfinance,2026-08-27
+4980,Dexerials Corporation,net_sales,FY2028,consensus,140250000000.0,jpy_abs,yfinance,2026-08-27
+5019,"Idemitsu Kosan Co.,Ltd.",eps,FY2027,consensus,164.525,jpy,yfinance,2026-08-27
+5019,"Idemitsu Kosan Co.,Ltd.",net_sales,FY2027,consensus,9760733333330.0,jpy_abs,yfinance,2026-08-27
+5019,"Idemitsu Kosan Co.,Ltd.",eps,FY2028,consensus,149.875,jpy,yfinance,2026-08-27
+5019,"Idemitsu Kosan Co.,Ltd.",net_sales,FY2028,consensus,9325212500000.0,jpy_abs,yfinance,2026-08-27
+5020,"ENEOS Holdings,Inc.",eps,FY2027,consensus,154.7,jpy,yfinance,2026-08-27
+5020,"ENEOS Holdings,Inc.",net_sales,FY2027,consensus,12934550000000.0,jpy_abs,yfinance,2026-08-27
+5020,"ENEOS Holdings,Inc.",eps,FY2028,consensus,117.08938,jpy,yfinance,2026-08-27
+5020,"ENEOS Holdings,Inc.",net_sales,FY2028,consensus,12127942857140.0,jpy_abs,yfinance,2026-08-27
+5021,"COSMO ENERGY HOLDINGS COMPANY,LIMITED",eps,FY2027,consensus,366.59805,jpy,yfinance,2026-08-27
+5021,"COSMO ENERGY HOLDINGS COMPANY,LIMITED",net_sales,FY2027,consensus,3024437375000.0,jpy_abs,yfinance,2026-08-27
+5021,"COSMO ENERGY HOLDINGS COMPANY,LIMITED",eps,FY2028,consensus,487.93152,jpy,yfinance,2026-08-27
+5021,"COSMO ENERGY HOLDINGS COMPANY,LIMITED",net_sales,FY2028,consensus,2829966571430.0,jpy_abs,yfinance,2026-08-27
+5032,ANYCOLOR Inc.,eps,FY2027,consensus,249.33,jpy,yfinance,2026-08-27
+5032,ANYCOLOR Inc.,net_sales,FY2027,consensus,60945397570.0,jpy_abs,yfinance,2026-08-27
+5032,ANYCOLOR Inc.,eps,FY2028,consensus,286.3557,jpy,yfinance,2026-08-27
+5032,ANYCOLOR Inc.,net_sales,FY2028,consensus,68336426030.0,jpy_abs,yfinance,2026-08-27
+5076,INFRONEER Holdings Inc.,eps,FY2027,consensus,334.9,jpy,yfinance,2026-08-27
+5076,INFRONEER Holdings Inc.,net_sales,FY2027,consensus,1448166666670.0,jpy_abs,yfinance,2026-08-27
+5076,INFRONEER Holdings Inc.,eps,FY2028,consensus,243.48,jpy,yfinance,2026-08-27
+5076,INFRONEER Holdings Inc.,net_sales,FY2028,consensus,1486748571430.0,jpy_abs,yfinance,2026-08-27
+5101,"The Yokohama Rubber Company,Limited",eps,FY2026,consensus,831.08923,jpy,yfinance,2026-08-27
+5101,"The Yokohama Rubber Company,Limited",net_sales,FY2026,consensus,1333536441630.0,jpy_abs,yfinance,2026-08-27
+5101,"The Yokohama Rubber Company,Limited",eps,FY2027,consensus,861.39026,jpy,yfinance,2026-08-27
+5101,"The Yokohama Rubber Company,Limited",net_sales,FY2027,consensus,1385473254120.0,jpy_abs,yfinance,2026-08-27
+5105,Toyo Tire Corporation,eps,FY2026,consensus,471.47867,jpy,yfinance,2026-08-27
+5105,Toyo Tire Corporation,net_sales,FY2026,consensus,621642177170.0,jpy_abs,yfinance,2026-08-27
+5105,Toyo Tire Corporation,eps,FY2027,consensus,535.7167,jpy,yfinance,2026-08-27
+5105,Toyo Tire Corporation,net_sales,FY2027,consensus,659992431700.0,jpy_abs,yfinance,2026-08-27
+5108,BRIDGESTONE CORPORATION,eps,FY2026,consensus,284.663,jpy,yfinance,2026-08-27
+5108,BRIDGESTONE CORPORATION,net_sales,FY2026,consensus,4697535702560.0,jpy_abs,yfinance,2026-08-27
+5108,BRIDGESTONE CORPORATION,eps,FY2027,consensus,320.77457,jpy,yfinance,2026-08-27
+5108,BRIDGESTONE CORPORATION,net_sales,FY2027,consensus,4836224771170.0,jpy_abs,yfinance,2026-08-27
+5332,TOTO LTD.,eps,FY2027,consensus,295.4613,jpy,yfinance,2026-08-27
+5332,TOTO LTD.,net_sales,FY2027,consensus,783375000000.0,jpy_abs,yfinance,2026-08-27
+5332,TOTO LTD.,eps,FY2028,consensus,362.14935,jpy,yfinance,2026-08-27
+5332,TOTO LTD.,net_sales,FY2028,consensus,822362500000.0,jpy_abs,yfinance,2026-08-27
+5333,NGK Corporation,eps,FY2027,consensus,321.53857,jpy,yfinance,2026-08-27
+5333,NGK Corporation,net_sales,FY2027,consensus,728613423140.0,jpy_abs,yfinance,2026-08-27
+5333,NGK Corporation,eps,FY2028,consensus,339.72287,jpy,yfinance,2026-08-27
+5333,NGK Corporation,net_sales,FY2028,consensus,769642851710.0,jpy_abs,yfinance,2026-08-27
+5334,"Niterra Co.,Ltd.",eps,FY2027,consensus,609.525,jpy,yfinance,2026-08-27
+5334,"Niterra Co.,Ltd.",net_sales,FY2027,consensus,790333654030.0,jpy_abs,yfinance,2026-08-27
+5334,"Niterra Co.,Ltd.",eps,FY2028,consensus,654.9585,jpy,yfinance,2026-08-27
+5334,"Niterra Co.,Ltd.",net_sales,FY2028,consensus,830440316640.0,jpy_abs,yfinance,2026-08-27
+5344,"MARUWA CO.,LTD.",eps,FY2027,consensus,2023.408,jpy,yfinance,2026-08-27
+5344,"MARUWA CO.,LTD.",net_sales,FY2027,consensus,93300000000.0,jpy_abs,yfinance,2026-08-27
+5344,"MARUWA CO.,LTD.",eps,FY2028,consensus,2574.986,jpy,yfinance,2026-08-27
+5344,"MARUWA CO.,LTD.",net_sales,FY2028,consensus,103580000000.0,jpy_abs,yfinance,2026-08-27
+5393,NICHIAS CORPORATION,eps,FY2027,consensus,181.696,jpy,yfinance,2026-08-27
+5393,NICHIAS CORPORATION,net_sales,FY2027,consensus,276881000000.0,jpy_abs,yfinance,2026-08-27
+5393,NICHIAS CORPORATION,eps,FY2028,consensus,202.406,jpy,yfinance,2026-08-27
+5393,NICHIAS CORPORATION,net_sales,FY2028,consensus,290987000000.0,jpy_abs,yfinance,2026-08-27
+5401,NIPPON STEEL CORPORATION,eps,FY2027,consensus,54.6,jpy,yfinance,2026-08-27
+5401,NIPPON STEEL CORPORATION,net_sales,FY2027,consensus,11799052500000.0,jpy_abs,yfinance,2026-08-27
+5401,NIPPON STEEL CORPORATION,eps,FY2028,consensus,70.73617,jpy,yfinance,2026-08-27
+5401,NIPPON STEEL CORPORATION,net_sales,FY2028,consensus,12036599092220.0,jpy_abs,yfinance,2026-08-27
+5406,"Kobe Steel,Ltd.",eps,FY2027,consensus,233.91167,jpy,yfinance,2026-08-27
+5406,"Kobe Steel,Ltd.",net_sales,FY2027,consensus,2556960888570.0,jpy_abs,yfinance,2026-08-27
+5406,"Kobe Steel,Ltd.",eps,FY2028,consensus,235.0232,jpy,yfinance,2026-08-27
+5406,"Kobe Steel,Ltd.",net_sales,FY2028,consensus,2596359220000.0,jpy_abs,yfinance,2026-08-27
+5411,"JFE Holdings,Inc.",eps,FY2027,consensus,201.74097,jpy,yfinance,2026-08-27
+5411,"JFE Holdings,Inc.",net_sales,FY2027,consensus,4875788331340.0,jpy_abs,yfinance,2026-08-27
+5411,"JFE Holdings,Inc.",eps,FY2028,consensus,211.52567,jpy,yfinance,2026-08-27
+5411,"JFE Holdings,Inc.",net_sales,FY2028,consensus,4911736127600.0,jpy_abs,yfinance,2026-08-27
+5471,"Daido Steel Co.,Ltd.",eps,FY2027,consensus,163.8,jpy,yfinance,2026-08-27
+5471,"Daido Steel Co.,Ltd.",net_sales,FY2027,consensus,632225000000.0,jpy_abs,yfinance,2026-08-27
+5471,"Daido Steel Co.,Ltd.",eps,FY2028,consensus,182.975,jpy,yfinance,2026-08-27
+5471,"Daido Steel Co.,Ltd.",net_sales,FY2028,consensus,650750000000.0,jpy_abs,yfinance,2026-08-27
+547A,Muninova Holdings Inc.,eps,FY2027,consensus,68.41415,jpy,yfinance,2026-08-27
+547A,Muninova Holdings Inc.,net_sales,FY2027,consensus,234711459460.0,jpy_abs,yfinance,2026-08-27
+547A,Muninova Holdings Inc.,eps,FY2028,consensus,71.77811,jpy,yfinance,2026-08-27
+547A,Muninova Holdings Inc.,net_sales,FY2028,consensus,253688454350.0,jpy_abs,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",eps,FY2027,consensus,1526.9413,jpy,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2027,consensus,837691808890.0,jpy_abs,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",eps,FY2028,consensus,1805.9889,jpy,yfinance,2026-08-27
+5706,"Mitsui Kinzoku Company,Limited",net_sales,FY2028,consensus,885659792000.0,jpy_abs,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2027,consensus,855.6157,jpy,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2027,consensus,2045619384000.0,jpy_abs,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",eps,FY2028,consensus,844.47076,jpy,yfinance,2026-08-27
+5713,"Sumitomo Metal Mining Co.,Ltd.",net_sales,FY2028,consensus,2088195342000.0,jpy_abs,yfinance,2026-08-27
+5714,"DOWA HOLDINGS CO.,LTD.",eps,FY2027,consensus,1010.3065,jpy,yfinance,2026-08-27
+5714,"DOWA HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,942930506510.0,jpy_abs,yfinance,2026-08-27
+5714,"DOWA HOLDINGS CO.,LTD.",eps,FY2028,consensus,1013.5284,jpy,yfinance,2026-08-27
+5714,"DOWA HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,953263508170.0,jpy_abs,yfinance,2026-08-27
+5741,UACJ Corporation,eps,FY2027,consensus,239.28992,jpy,yfinance,2026-08-27
+5741,UACJ Corporation,net_sales,FY2027,consensus,1367413166360.0,jpy_abs,yfinance,2026-08-27
+5741,UACJ Corporation,eps,FY2028,consensus,232.0731,jpy,yfinance,2026-08-27
+5741,UACJ Corporation,net_sales,FY2028,consensus,1378553604390.0,jpy_abs,yfinance,2026-08-27
+5801,"Furukawa Electric Co.,Ltd.",eps,FY2027,consensus,154.792,jpy,yfinance,2026-08-27
+5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2027,consensus,1498909932220.0,jpy_abs,yfinance,2026-08-27
+5801,"Furukawa Electric Co.,Ltd.",eps,FY2028,consensus,196.14212,jpy,yfinance,2026-08-27
+5801,"Furukawa Electric Co.,Ltd.",net_sales,FY2028,consensus,1703123997780.0,jpy_abs,yfinance,2026-08-27
+5802,"Sumitomo Electric Industries,Ltd.",eps,FY2027,consensus,116.21291,jpy,yfinance,2026-08-27
+5802,"Sumitomo Electric Industries,Ltd.",net_sales,FY2027,consensus,5500536846700.0,jpy_abs,yfinance,2026-08-27
+5802,"Sumitomo Electric Industries,Ltd.",eps,FY2028,consensus,138.40775,jpy,yfinance,2026-08-27
+5802,"Sumitomo Electric Industries,Ltd.",net_sales,FY2028,consensus,5788752598220.0,jpy_abs,yfinance,2026-08-27
+5803,Fujikura Ltd.,eps,FY2027,consensus,177.43895,jpy,yfinance,2026-08-27
+5803,Fujikura Ltd.,net_sales,FY2027,consensus,1627063374440.0,jpy_abs,yfinance,2026-08-27
+5803,Fujikura Ltd.,eps,FY2028,consensus,210.947,jpy,yfinance,2026-08-27
+5803,Fujikura Ltd.,net_sales,FY2028,consensus,1832046445480.0,jpy_abs,yfinance,2026-08-27
+5805,SWCC Corporation,eps,FY2027,consensus,756.585,jpy,yfinance,2026-08-27
+5805,SWCC Corporation,net_sales,FY2027,consensus,334300000000.0,jpy_abs,yfinance,2026-08-27
+5805,SWCC Corporation,eps,FY2028,consensus,843.6232,jpy,yfinance,2026-08-27
+5805,SWCC Corporation,net_sales,FY2028,consensus,350069964000.0,jpy_abs,yfinance,2026-08-27
+5838,"Rakuten Bank,Ltd.",eps,FY2027,consensus,463.726,jpy,yfinance,2026-08-27
+5838,"Rakuten Bank,Ltd.",net_sales,FY2027,consensus,186500000000000.0,jpy_abs,yfinance,2026-08-27
+5838,"Rakuten Bank,Ltd.",eps,FY2028,consensus,529.65125,jpy,yfinance,2026-08-27
+5838,"Rakuten Bank,Ltd.",net_sales,FY2028,consensus,201000000000000.0,jpy_abs,yfinance,2026-08-27
+5857,"ARE Holdings,Inc.",eps,FY2027,consensus,359.6,jpy,yfinance,2026-08-27
+5857,"ARE Holdings,Inc.",net_sales,FY2027,consensus,744333333330.0,jpy_abs,yfinance,2026-08-27
+5857,"ARE Holdings,Inc.",eps,FY2028,consensus,373.13333,jpy,yfinance,2026-08-27
+5857,"ARE Holdings,Inc.",net_sales,FY2028,consensus,788100000000.0,jpy_abs,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,eps,FY2027,consensus,281.45178,jpy,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,net_sales,FY2027,consensus,680325877500.0,jpy_abs,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,eps,FY2028,consensus,299.8864,jpy,yfinance,2026-08-27
+5929,Sanwa Holdings Corporation,net_sales,FY2028,consensus,703655684290.0,jpy_abs,yfinance,2026-08-27
+5947,RINNAI CORPORATION,eps,FY2027,consensus,260.25626,jpy,yfinance,2026-08-27
+5947,RINNAI CORPORATION,net_sales,FY2027,consensus,502037500000.0,jpy_abs,yfinance,2026-08-27
+5947,RINNAI CORPORATION,eps,FY2028,consensus,271.64142,jpy,yfinance,2026-08-27
+5947,RINNAI CORPORATION,net_sales,FY2028,consensus,517971428570.0,jpy_abs,yfinance,2026-08-27
+5991,"NHK SPRING CO.,LTD.",eps,FY2027,consensus,230.142,jpy,yfinance,2026-08-27
+5991,"NHK SPRING CO.,LTD.",net_sales,FY2027,consensus,865140000000.0,jpy_abs,yfinance,2026-08-27
+5991,"NHK SPRING CO.,LTD.",eps,FY2028,consensus,262.7575,jpy,yfinance,2026-08-27
+5991,"NHK SPRING CO.,LTD.",net_sales,FY2028,consensus,912575000000.0,jpy_abs,yfinance,2026-08-27
+6005,"MIURA CO.,LTD.",eps,FY2027,consensus,249.53703,jpy,yfinance,2026-08-27
+6005,"MIURA CO.,LTD.",net_sales,FY2027,consensus,284500000000.0,jpy_abs,yfinance,2026-08-27
+6005,"MIURA CO.,LTD.",eps,FY2028,consensus,264.28094,jpy,yfinance,2026-08-27
+6005,"MIURA CO.,LTD.",net_sales,FY2028,consensus,297790000000.0,jpy_abs,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",eps,FY2027,consensus,526.48816,jpy,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2027,consensus,4170767699930.0,jpy_abs,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",eps,FY2028,consensus,634.71967,jpy,yfinance,2026-08-27
+6098,"Recruit Holdings Co.,Ltd.",net_sales,FY2028,consensus,4529785878680.0,jpy_abs,yfinance,2026-08-27
+6101,TSUGAMI CORPORATION,net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+6101,TSUGAMI CORPORATION,net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+6113,"AMADA CO.,LTD.",eps,FY2027,consensus,128.90701,jpy,yfinance,2026-08-27
+6113,"AMADA CO.,LTD.",net_sales,FY2027,consensus,484942857140.0,jpy_abs,yfinance,2026-08-27
+6113,"AMADA CO.,LTD.",eps,FY2028,consensus,154.1809,jpy,yfinance,2026-08-27
+6113,"AMADA CO.,LTD.",net_sales,FY2028,consensus,516528571430.0,jpy_abs,yfinance,2026-08-27
+6141,"DMG MORI CO.,LTD.",eps,FY2026,consensus,107.05995,jpy,yfinance,2026-08-27
+6141,"DMG MORI CO.,LTD.",net_sales,FY2026,consensus,558025000000.0,jpy_abs,yfinance,2026-08-27
+6141,"DMG MORI CO.,LTD.",eps,FY2027,consensus,172.21565,jpy,yfinance,2026-08-27
+6141,"DMG MORI CO.,LTD.",net_sales,FY2027,consensus,595925000000.0,jpy_abs,yfinance,2026-08-27
+6146,DISCO CORPORATION,eps,FY2027,consensus,1719.0558,jpy,yfinance,2026-08-27
+6146,DISCO CORPORATION,net_sales,FY2027,consensus,555847096350.0,jpy_abs,yfinance,2026-08-27
+6146,DISCO CORPORATION,eps,FY2028,consensus,2092.865,jpy,yfinance,2026-08-27
+6146,DISCO CORPORATION,net_sales,FY2028,consensus,653040124810.0,jpy_abs,yfinance,2026-08-27
+6254,"Nomura Micro Science Co.,Ltd.",eps,FY2027,consensus,278.045,jpy,yfinance,2026-08-27
+6254,"Nomura Micro Science Co.,Ltd.",net_sales,FY2027,consensus,93500000000.0,jpy_abs,yfinance,2026-08-27
+6254,"Nomura Micro Science Co.,Ltd.",eps,FY2028,consensus,367.705,jpy,yfinance,2026-08-27
+6254,"Nomura Micro Science Co.,Ltd.",net_sales,FY2028,consensus,120000000000.0,jpy_abs,yfinance,2026-08-27
+6269,"MODEC,INC.",eps,FY2026,consensus,907.82336,jpy,yfinance,2026-08-27
+6269,"MODEC,INC.",net_sales,FY2026,consensus,744199320000.0,jpy_abs,yfinance,2026-08-27
+6269,"MODEC,INC.",eps,FY2027,consensus,967.07715,jpy,yfinance,2026-08-27
+6269,"MODEC,INC.",net_sales,FY2027,consensus,756470720000.0,jpy_abs,yfinance,2026-08-27
+6273,SMC CORPORATION,eps,FY2027,consensus,3313.606,jpy,yfinance,2026-08-27
+6273,SMC CORPORATION,net_sales,FY2027,consensus,1043675724190.0,jpy_abs,yfinance,2026-08-27
+6273,SMC CORPORATION,eps,FY2028,consensus,3511.7598,jpy,yfinance,2026-08-27
+6273,SMC CORPORATION,net_sales,FY2028,consensus,1135023911320.0,jpy_abs,yfinance,2026-08-27
+6301,KOMATSU LTD.,eps,FY2027,consensus,432.90723,jpy,yfinance,2026-08-27
+6301,KOMATSU LTD.,net_sales,FY2027,consensus,4334484533599.0,jpy_abs,yfinance,2026-08-27
+6301,KOMATSU LTD.,eps,FY2028,consensus,468.0178,jpy,yfinance,2026-08-27
+6301,KOMATSU LTD.,net_sales,FY2028,consensus,4472040978550.0,jpy_abs,yfinance,2026-08-27
+6305,"Hitachi Construction Machinery Co.,Ltd.",eps,FY2027,consensus,420.46698,jpy,yfinance,2026-08-27
+6305,"Hitachi Construction Machinery Co.,Ltd.",net_sales,FY2027,consensus,1474454185460.0,jpy_abs,yfinance,2026-08-27
+6305,"Hitachi Construction Machinery Co.,Ltd.",eps,FY2028,consensus,486.56522,jpy,yfinance,2026-08-27
+6305,"Hitachi Construction Machinery Co.,Ltd.",net_sales,FY2028,consensus,1513554307950.0,jpy_abs,yfinance,2026-08-27
+6323,RORZE CORPORATION,eps,FY2027,consensus,197.6494,jpy,yfinance,2026-08-27
+6323,RORZE CORPORATION,net_sales,FY2027,consensus,167765670000.0,jpy_abs,yfinance,2026-08-27
+6323,RORZE CORPORATION,eps,FY2028,consensus,225.20717,jpy,yfinance,2026-08-27
+6323,RORZE CORPORATION,net_sales,FY2028,consensus,185997969170.0,jpy_abs,yfinance,2026-08-27
+6326,KUBOTA CORPORATION,eps,FY2026,consensus,234.75246,jpy,yfinance,2026-08-27
+6326,KUBOTA CORPORATION,net_sales,FY2026,consensus,3254709819910.0,jpy_abs,yfinance,2026-08-27
+6326,KUBOTA CORPORATION,eps,FY2027,consensus,226.50777,jpy,yfinance,2026-08-27
+6326,KUBOTA CORPORATION,net_sales,FY2027,consensus,3415583356900.0,jpy_abs,yfinance,2026-08-27
+6361,EBARA CORPORATION,eps,FY2026,consensus,216.76768,jpy,yfinance,2026-08-27
+6361,EBARA CORPORATION,net_sales,FY2026,consensus,1057545248200.0,jpy_abs,yfinance,2026-08-27
+6361,EBARA CORPORATION,eps,FY2027,consensus,257.5791,jpy,yfinance,2026-08-27
+6361,EBARA CORPORATION,net_sales,FY2027,consensus,1168257449420.0,jpy_abs,yfinance,2026-08-27
+6367,"DAIKIN INDUSTRIES,LTD.",eps,FY2027,consensus,996.2924,jpy,yfinance,2026-08-27
+6367,"DAIKIN INDUSTRIES,LTD.",net_sales,FY2027,consensus,5270957599690.0,jpy_abs,yfinance,2026-08-27
+6367,"DAIKIN INDUSTRIES,LTD.",eps,FY2028,consensus,1139.2727,jpy,yfinance,2026-08-27
+6367,"DAIKIN INDUSTRIES,LTD.",net_sales,FY2028,consensus,5521859295130.0,jpy_abs,yfinance,2026-08-27
+6368,ORGANO CORPORATION,eps,FY2027,consensus,658.935,jpy,yfinance,2026-08-27
+6368,ORGANO CORPORATION,net_sales,FY2027,consensus,203900000000.0,jpy_abs,yfinance,2026-08-27
+6368,ORGANO CORPORATION,eps,FY2028,consensus,774.21,jpy,yfinance,2026-08-27
+6368,ORGANO CORPORATION,net_sales,FY2028,consensus,229600000000.0,jpy_abs,yfinance,2026-08-27
+6383,"DAIFUKU CO.,LTD.",eps,FY2026,consensus,245.5253,jpy,yfinance,2026-08-27
+6383,"DAIFUKU CO.,LTD.",net_sales,FY2026,consensus,741713682860.0,jpy_abs,yfinance,2026-08-27
+6383,"DAIFUKU CO.,LTD.",eps,FY2027,consensus,269.9958,jpy,yfinance,2026-08-27
+6383,"DAIFUKU CO.,LTD.",net_sales,FY2027,consensus,807000867370.0,jpy_abs,yfinance,2026-08-27
+6417,"SANKYO CO.,LTD.",eps,FY2027,consensus,213.3,jpy,yfinance,2026-08-27
+6417,"SANKYO CO.,LTD.",net_sales,FY2027,consensus,175400000000.0,jpy_abs,yfinance,2026-08-27
+6417,"SANKYO CO.,LTD.",eps,FY2028,consensus,217.425,jpy,yfinance,2026-08-27
+6417,"SANKYO CO.,LTD.",net_sales,FY2028,consensus,178825000000.0,jpy_abs,yfinance,2026-08-27
+6432,"TAKEUCHI MFG.CO.,LTD.",eps,FY2027,consensus,579.99286,jpy,yfinance,2026-08-27
+6432,"TAKEUCHI MFG.CO.,LTD.",net_sales,FY2027,consensus,249220000000.0,jpy_abs,yfinance,2026-08-27
+6432,"TAKEUCHI MFG.CO.,LTD.",eps,FY2028,consensus,661.2818,jpy,yfinance,2026-08-27
+6432,"TAKEUCHI MFG.CO.,LTD.",net_sales,FY2028,consensus,267120000000.0,jpy_abs,yfinance,2026-08-27
+6436,Amano Corporation,eps,FY2027,consensus,260.2,jpy,yfinance,2026-08-27
+6436,Amano Corporation,net_sales,FY2027,consensus,185530000000.0,jpy_abs,yfinance,2026-08-27
+6436,Amano Corporation,eps,FY2028,consensus,282.7,jpy,yfinance,2026-08-27
+6436,Amano Corporation,net_sales,FY2028,consensus,194610000000.0,jpy_abs,yfinance,2026-08-27
+6448,"BROTHER INDUSTRIES,LTD.",eps,FY2027,consensus,320.4,jpy,yfinance,2026-08-27
+6448,"BROTHER INDUSTRIES,LTD.",net_sales,FY2027,consensus,957050000000.0,jpy_abs,yfinance,2026-08-27
+6448,"BROTHER INDUSTRIES,LTD.",eps,FY2028,consensus,297.2,jpy,yfinance,2026-08-27
+6448,"BROTHER INDUSTRIES,LTD.",net_sales,FY2028,consensus,980500000000.0,jpy_abs,yfinance,2026-08-27
+6457,GLORY LTD.,eps,FY2027,consensus,351.9,jpy,yfinance,2026-08-27
+6457,GLORY LTD.,net_sales,FY2027,consensus,365650000000.0,jpy_abs,yfinance,2026-08-27
+6457,GLORY LTD.,eps,FY2028,consensus,420.2,jpy,yfinance,2026-08-27
+6457,GLORY LTD.,net_sales,FY2028,consensus,379900000000.0,jpy_abs,yfinance,2026-08-27
+6460,SEGA SAMMY HOLDINGS INC.,eps,FY2027,consensus,178.93385,jpy,yfinance,2026-08-27
+6460,SEGA SAMMY HOLDINGS INC.,net_sales,FY2027,consensus,509157277720.0,jpy_abs,yfinance,2026-08-27
+6460,SEGA SAMMY HOLDINGS INC.,eps,FY2028,consensus,213.84428,jpy,yfinance,2026-08-27
+6460,SEGA SAMMY HOLDINGS INC.,net_sales,FY2028,consensus,536970253360.0,jpy_abs,yfinance,2026-08-27
+6465,HOSHIZAKI CORPORATION,eps,FY2026,consensus,302.50192,jpy,yfinance,2026-08-27
+6465,HOSHIZAKI CORPORATION,net_sales,FY2026,consensus,538677875000.0,jpy_abs,yfinance,2026-08-27
+6465,HOSHIZAKI CORPORATION,eps,FY2027,consensus,351.20068,jpy,yfinance,2026-08-27
+6465,HOSHIZAKI CORPORATION,net_sales,FY2027,consensus,576466500000.0,jpy_abs,yfinance,2026-08-27
+6479,MINEBEA MITSUMI Inc.,eps,FY2027,consensus,218.44379,jpy,yfinance,2026-08-27
+6479,MINEBEA MITSUMI Inc.,net_sales,FY2027,consensus,1707238701270.0,jpy_abs,yfinance,2026-08-27
+6479,MINEBEA MITSUMI Inc.,eps,FY2028,consensus,252.06688,jpy,yfinance,2026-08-27
+6479,MINEBEA MITSUMI Inc.,net_sales,FY2028,consensus,1791278710300.0,jpy_abs,yfinance,2026-08-27
+6501,"Hitachi,Ltd.",eps,FY2027,consensus,211.84492,jpy,yfinance,2026-08-27
+6501,"Hitachi,Ltd.",net_sales,FY2027,consensus,11618977571230.0,jpy_abs,yfinance,2026-08-27
+6501,"Hitachi,Ltd.",eps,FY2028,consensus,251.6598,jpy,yfinance,2026-08-27
+6501,"Hitachi,Ltd.",net_sales,FY2028,consensus,12382426672070.0,jpy_abs,yfinance,2026-08-27
+6503,Mitsubishi Electric Corporation,eps,FY2027,consensus,258.65262,jpy,yfinance,2026-08-27
+6503,Mitsubishi Electric Corporation,net_sales,FY2027,consensus,6394787608460.0,jpy_abs,yfinance,2026-08-27
+6503,Mitsubishi Electric Corporation,eps,FY2028,consensus,286.53754,jpy,yfinance,2026-08-27
+6503,Mitsubishi Electric Corporation,net_sales,FY2028,consensus,6547500851340.0,jpy_abs,yfinance,2026-08-27
+6504,"FUJI ELECTRIC CO.,LTD.",eps,FY2027,consensus,763.1321,jpy,yfinance,2026-08-27
+6504,"FUJI ELECTRIC CO.,LTD.",net_sales,FY2027,consensus,1308628680250.0,jpy_abs,yfinance,2026-08-27
+6504,"FUJI ELECTRIC CO.,LTD.",eps,FY2028,consensus,828.37756,jpy,yfinance,2026-08-27
+6504,"FUJI ELECTRIC CO.,LTD.",net_sales,FY2028,consensus,1374906848970.0,jpy_abs,yfinance,2026-08-27
+6506,YASKAWA Electric Corporation,eps,FY2027,consensus,187.25009,jpy,yfinance,2026-08-27
+6506,YASKAWA Electric Corporation,net_sales,FY2027,consensus,598300670620.0,jpy_abs,yfinance,2026-08-27
+6506,YASKAWA Electric Corporation,eps,FY2028,consensus,224.71698,jpy,yfinance,2026-08-27
+6506,YASKAWA Electric Corporation,net_sales,FY2028,consensus,642638069420.0,jpy_abs,yfinance,2026-08-27
+6507,"SINFONIA TECHNOLOGY CO.,LTD.",eps,FY2027,consensus,574.9,jpy,yfinance,2026-08-27
+6507,"SINFONIA TECHNOLOGY CO.,LTD.",net_sales,FY2027,consensus,142900000000.0,jpy_abs,yfinance,2026-08-27
+6507,"SINFONIA TECHNOLOGY CO.,LTD.",eps,FY2028,consensus,682.8,jpy,yfinance,2026-08-27
+6507,"SINFONIA TECHNOLOGY CO.,LTD.",net_sales,FY2028,consensus,163033333330.0,jpy_abs,yfinance,2026-08-27
+6508,MEIDENSHA CORPORATION,eps,FY2027,consensus,630.76434,jpy,yfinance,2026-08-27
+6508,MEIDENSHA CORPORATION,net_sales,FY2027,consensus,370993600000.0,jpy_abs,yfinance,2026-08-27
+6508,MEIDENSHA CORPORATION,eps,FY2028,consensus,654.3649,jpy,yfinance,2026-08-27
+6508,MEIDENSHA CORPORATION,net_sales,FY2028,consensus,390307253330.0,jpy_abs,yfinance,2026-08-27
+6526,Socionext Inc.,eps,FY2027,consensus,73.315,jpy,yfinance,2026-08-27
+6526,Socionext Inc.,net_sales,FY2027,consensus,233184749880.0,jpy_abs,yfinance,2026-08-27
+6526,Socionext Inc.,eps,FY2028,consensus,120.64424,jpy,yfinance,2026-08-27
+6526,Socionext Inc.,net_sales,FY2028,consensus,274736942579.0,jpy_abs,yfinance,2026-08-27
+6532,"BayCurrent,Inc.",eps,FY2027,consensus,324.7497,jpy,yfinance,2026-08-27
+6532,"BayCurrent,Inc.",net_sales,FY2027,consensus,193119227160.0,jpy_abs,yfinance,2026-08-27
+6532,"BayCurrent,Inc.",eps,FY2028,consensus,411.1116,jpy,yfinance,2026-08-27
+6532,"BayCurrent,Inc.",net_sales,FY2028,consensus,238646375000.0,jpy_abs,yfinance,2026-08-27
+6544,"JAPAN ELEVATOR SERVICE HOLDINGS CO.,LTD.",eps,FY2027,consensus,49.88083,jpy,yfinance,2026-08-27
+6544,"JAPAN ELEVATOR SERVICE HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,66257875000.0,jpy_abs,yfinance,2026-08-27
+6544,"JAPAN ELEVATOR SERVICE HOLDINGS CO.,LTD.",eps,FY2028,consensus,60.57307,jpy,yfinance,2026-08-27
+6544,"JAPAN ELEVATOR SERVICE HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,75481750000.0,jpy_abs,yfinance,2026-08-27
+6586,Makita Corporation,eps,FY2027,consensus,322.30118,jpy,yfinance,2026-08-27
+6586,Makita Corporation,net_sales,FY2027,consensus,828875725230.0,jpy_abs,yfinance,2026-08-27
+6586,Makita Corporation,eps,FY2028,consensus,336.7055,jpy,yfinance,2026-08-27
+6586,Makita Corporation,net_sales,FY2028,consensus,865616707630.0,jpy_abs,yfinance,2026-08-27
+6590,SHIBAURA MECHATRONICS CORPORATION,eps,FY2027,consensus,234.53333,jpy,yfinance,2026-08-27
+6590,SHIBAURA MECHATRONICS CORPORATION,net_sales,FY2027,consensus,111033333330.0,jpy_abs,yfinance,2026-08-27
+6590,SHIBAURA MECHATRONICS CORPORATION,eps,FY2028,consensus,307.66666,jpy,yfinance,2026-08-27
+6590,SHIBAURA MECHATRONICS CORPORATION,net_sales,FY2028,consensus,129091333330.0,jpy_abs,yfinance,2026-08-27
+6632,JVCKENWOOD Corporation,eps,FY2027,consensus,109.3,jpy,yfinance,2026-08-27
+6632,JVCKENWOOD Corporation,net_sales,FY2027,consensus,369150000000.0,jpy_abs,yfinance,2026-08-27
+6632,JVCKENWOOD Corporation,eps,FY2028,consensus,128.875,jpy,yfinance,2026-08-27
+6632,JVCKENWOOD Corporation,net_sales,FY2028,consensus,377950000000.0,jpy_abs,yfinance,2026-08-27
+6674,GS Yuasa Corporation,eps,FY2027,consensus,437.09,jpy,yfinance,2026-08-27
+6674,GS Yuasa Corporation,net_sales,FY2027,consensus,672466666670.0,jpy_abs,yfinance,2026-08-27
+6674,GS Yuasa Corporation,eps,FY2028,consensus,451.15845,jpy,yfinance,2026-08-27
+6674,GS Yuasa Corporation,net_sales,FY2028,consensus,686444444440.0,jpy_abs,yfinance,2026-08-27
+6701,NEC Corporation,eps,FY2027,consensus,228.23782,jpy,yfinance,2026-08-27
+6701,NEC Corporation,net_sales,FY2027,consensus,3775241429460.0,jpy_abs,yfinance,2026-08-27
+6701,NEC Corporation,eps,FY2028,consensus,256.98608,jpy,yfinance,2026-08-27
+6701,NEC Corporation,net_sales,FY2028,consensus,3955405975510.0,jpy_abs,yfinance,2026-08-27
+6702,Fujitsu Limited,eps,FY2027,consensus,177.09808,jpy,yfinance,2026-08-27
+6702,Fujitsu Limited,net_sales,FY2027,consensus,3542333654690.0,jpy_abs,yfinance,2026-08-27
+6702,Fujitsu Limited,eps,FY2028,consensus,208.6477,jpy,yfinance,2026-08-27
+6702,Fujitsu Limited,net_sales,FY2028,consensus,3690388012310.0,jpy_abs,yfinance,2026-08-27
+6703,"Oki Electric Industry Company,Limited",eps,FY2027,consensus,205.7,jpy,yfinance,2026-08-27
+6703,"Oki Electric Industry Company,Limited",net_sales,FY2027,consensus,438455000000.0,jpy_abs,yfinance,2026-08-27
+6703,"Oki Electric Industry Company,Limited",eps,FY2028,consensus,231.3,jpy,yfinance,2026-08-27
+6703,"Oki Electric Industry Company,Limited",net_sales,FY2028,consensus,453431666670.0,jpy_abs,yfinance,2026-08-27
+6723,Renesas Electronics Corporation,eps,FY2026,consensus,241.0363,jpy,yfinance,2026-08-27
+6723,Renesas Electronics Corporation,net_sales,FY2026,consensus,1657431909730.0,jpy_abs,yfinance,2026-08-27
+6723,Renesas Electronics Corporation,eps,FY2027,consensus,279.76544,jpy,yfinance,2026-08-27
+6723,Renesas Electronics Corporation,net_sales,FY2027,consensus,1792815535010.0,jpy_abs,yfinance,2026-08-27
+6724,SEIKO EPSON CORPORATION,eps,FY2027,consensus,201.36736,jpy,yfinance,2026-08-27
+6724,SEIKO EPSON CORPORATION,net_sales,FY2027,consensus,1468771428570.0,jpy_abs,yfinance,2026-08-27
+6724,SEIKO EPSON CORPORATION,eps,FY2028,consensus,200.232,jpy,yfinance,2026-08-27
+6724,SEIKO EPSON CORPORATION,net_sales,FY2028,consensus,1477500000000.0,jpy_abs,yfinance,2026-08-27
+6728,"ULVAC, Inc.",eps,FY2027,consensus,447.36328,jpy,yfinance,2026-08-27
+6728,"ULVAC, Inc.",net_sales,FY2027,consensus,270897242180.0,jpy_abs,yfinance,2026-08-27
+6728,"ULVAC, Inc.",eps,FY2028,consensus,536.148,jpy,yfinance,2026-08-27
+6728,"ULVAC, Inc.",net_sales,FY2028,consensus,282865800000.0,jpy_abs,yfinance,2026-08-27
+6752,Panasonic Holdings Corporation,eps,FY2027,consensus,204.1046,jpy,yfinance,2026-08-27
+6752,Panasonic Holdings Corporation,net_sales,FY2027,consensus,7866064954380.0,jpy_abs,yfinance,2026-08-27
+6752,Panasonic Holdings Corporation,eps,FY2028,consensus,250.27562,jpy,yfinance,2026-08-27
+6752,Panasonic Holdings Corporation,net_sales,FY2028,consensus,8344173396420.0,jpy_abs,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,eps,FY2027,consensus,216.36452,jpy,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,net_sales,FY2027,consensus,12878178521790.0,jpy_abs,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,eps,FY2028,consensus,229.38618,jpy,yfinance,2026-08-27
+6758,SONY GROUP CORPORATION,net_sales,FY2028,consensus,12799462000060.0,jpy_abs,yfinance,2026-08-27
+6762,TDK Corporation,eps,FY2027,consensus,130.68336,jpy,yfinance,2026-08-27
+6762,TDK Corporation,net_sales,FY2027,consensus,2834652582580.0,jpy_abs,yfinance,2026-08-27
+6762,TDK Corporation,eps,FY2028,consensus,152.91776,jpy,yfinance,2026-08-27
+6762,TDK Corporation,net_sales,FY2028,consensus,3036115114980.0,jpy_abs,yfinance,2026-08-27
+6787,"Meiko Electronics Co.,Ltd.",eps,FY2027,consensus,1036.0,jpy,yfinance,2026-08-27
+6787,"Meiko Electronics Co.,Ltd.",net_sales,FY2027,consensus,323650000000.0,jpy_abs,yfinance,2026-08-27
+6787,"Meiko Electronics Co.,Ltd.",eps,FY2028,consensus,1416.29,jpy,yfinance,2026-08-27
+6787,"Meiko Electronics Co.,Ltd.",net_sales,FY2028,consensus,399975000000.0,jpy_abs,yfinance,2026-08-27
+6806,"HIROSE ELECTRIC CO.,LTD.",eps,FY2027,consensus,1171.329,jpy,yfinance,2026-08-27
+6806,"HIROSE ELECTRIC CO.,LTD.",net_sales,FY2027,consensus,240338464910.0,jpy_abs,yfinance,2026-08-27
+6806,"HIROSE ELECTRIC CO.,LTD.",eps,FY2028,consensus,1359.7334,jpy,yfinance,2026-08-27
+6806,"HIROSE ELECTRIC CO.,LTD.",net_sales,FY2028,consensus,260126008500.0,jpy_abs,yfinance,2026-08-27
+6841,YOKOGAWA ELECTRIC CORPORATION,eps,FY2027,consensus,253.18803,jpy,yfinance,2026-08-27
+6841,YOKOGAWA ELECTRIC CORPORATION,net_sales,FY2027,consensus,627428571430.0,jpy_abs,yfinance,2026-08-27
+6841,YOKOGAWA ELECTRIC CORPORATION,eps,FY2028,consensus,291.38037,jpy,yfinance,2026-08-27
+6841,YOKOGAWA ELECTRIC CORPORATION,net_sales,FY2028,consensus,676237500000.0,jpy_abs,yfinance,2026-08-27
+6845,Azbil Corporation,eps,FY2027,consensus,75.42528,jpy,yfinance,2026-08-27
+6845,Azbil Corporation,net_sales,FY2027,consensus,313594778330.0,jpy_abs,yfinance,2026-08-27
+6845,Azbil Corporation,eps,FY2028,consensus,79.89425,jpy,yfinance,2026-08-27
+6845,Azbil Corporation,net_sales,FY2028,consensus,326678000000.0,jpy_abs,yfinance,2026-08-27
+6856,"HORIBA,Ltd.",eps,FY2026,consensus,1236.232,jpy,yfinance,2026-08-27
+6856,"HORIBA,Ltd.",net_sales,FY2026,consensus,386156057140.0,jpy_abs,yfinance,2026-08-27
+6856,"HORIBA,Ltd.",eps,FY2027,consensus,1486.144,jpy,yfinance,2026-08-27
+6856,"HORIBA,Ltd.",net_sales,FY2027,consensus,430136128170.0,jpy_abs,yfinance,2026-08-27
+6857,ADVANTEST CORPORATION,eps,FY2027,consensus,916.5509,jpy,yfinance,2026-08-27
+6857,ADVANTEST CORPORATION,net_sales,FY2027,consensus,1757390034410.0,jpy_abs,yfinance,2026-08-27
+6857,ADVANTEST CORPORATION,eps,FY2028,consensus,1139.7559,jpy,yfinance,2026-08-27
+6857,ADVANTEST CORPORATION,net_sales,FY2028,consensus,2164784904130.0,jpy_abs,yfinance,2026-08-27
+6861,KEYENCE CORPORATION,eps,FY2027,consensus,2329.1775,jpy,yfinance,2026-08-27
+6861,KEYENCE CORPORATION,net_sales,FY2027,consensus,1448043894280.0,jpy_abs,yfinance,2026-08-27
+6861,KEYENCE CORPORATION,eps,FY2028,consensus,2605.9534,jpy,yfinance,2026-08-27
+6861,KEYENCE CORPORATION,net_sales,FY2028,consensus,1624003978710.0,jpy_abs,yfinance,2026-08-27
+6869,SYSMEX CORPORATION,eps,FY2027,consensus,65.73231,jpy,yfinance,2026-08-27
+6869,SYSMEX CORPORATION,net_sales,FY2027,consensus,544549870619.0,jpy_abs,yfinance,2026-08-27
+6869,SYSMEX CORPORATION,eps,FY2028,consensus,83.13967,jpy,yfinance,2026-08-27
+6869,SYSMEX CORPORATION,net_sales,FY2028,consensus,571051217160.0,jpy_abs,yfinance,2026-08-27
+6871,"MICRONICS JAPAN CO.,LTD.",eps,FY2026,consensus,613.9,jpy,yfinance,2026-08-27
+6871,"MICRONICS JAPAN CO.,LTD.",net_sales,FY2026,consensus,101666666670.0,jpy_abs,yfinance,2026-08-27
+6871,"MICRONICS JAPAN CO.,LTD.",eps,FY2027,consensus,645.6825,jpy,yfinance,2026-08-27
+6871,"MICRONICS JAPAN CO.,LTD.",net_sales,FY2027,consensus,118375000000.0,jpy_abs,yfinance,2026-08-27
+6902,DENSO CORPORATION,eps,FY2027,consensus,157.44724,jpy,yfinance,2026-08-27
+6902,DENSO CORPORATION,net_sales,FY2027,consensus,7796605813230.0,jpy_abs,yfinance,2026-08-27
+6902,DENSO CORPORATION,eps,FY2028,consensus,181.69661,jpy,yfinance,2026-08-27
+6902,DENSO CORPORATION,net_sales,FY2028,consensus,8098366275850.0,jpy_abs,yfinance,2026-08-27
+6920,Lasertec Corporation,eps,FY2027,consensus,1113.367,jpy,yfinance,2026-08-27
+6920,Lasertec Corporation,net_sales,FY2027,consensus,294219969000.0,jpy_abs,yfinance,2026-08-27
+6920,Lasertec Corporation,eps,FY2028,consensus,1475.6858,jpy,yfinance,2026-08-27
+6920,Lasertec Corporation,net_sales,FY2028,consensus,376060663870.0,jpy_abs,yfinance,2026-08-27
+6951,JEOL Ltd.,eps,FY2027,consensus,428.08167,jpy,yfinance,2026-08-27
+6951,JEOL Ltd.,net_sales,FY2027,consensus,169918890170.0,jpy_abs,yfinance,2026-08-27
+6951,JEOL Ltd.,eps,FY2028,consensus,525.4038,jpy,yfinance,2026-08-27
+6951,JEOL Ltd.,net_sales,FY2028,consensus,189510115660.0,jpy_abs,yfinance,2026-08-27
+6954,FANUC CORPORATION,eps,FY2027,consensus,219.9166,jpy,yfinance,2026-08-27
+6954,FANUC CORPORATION,net_sales,FY2027,consensus,963963029210.0,jpy_abs,yfinance,2026-08-27
+6954,FANUC CORPORATION,eps,FY2028,consensus,236.1367,jpy,yfinance,2026-08-27
+6954,FANUC CORPORATION,net_sales,FY2028,consensus,1023505183680.0,jpy_abs,yfinance,2026-08-27
+6960,"FUKUDA DENSHI CO.,LTD.",eps,FY2027,consensus,647.8,jpy,yfinance,2026-08-27
+6960,"FUKUDA DENSHI CO.,LTD.",net_sales,FY2027,consensus,141600000000.0,jpy_abs,yfinance,2026-08-27
+6960,"FUKUDA DENSHI CO.,LTD.",eps,FY2028,consensus,696.3,jpy,yfinance,2026-08-27
+6960,"FUKUDA DENSHI CO.,LTD.",net_sales,FY2028,consensus,147000000000.0,jpy_abs,yfinance,2026-08-27
+6965,HAMAMATSU PHOTONICS K.K.,eps,FY2026,consensus,54.02,jpy,yfinance,2026-08-27
+6965,HAMAMATSU PHOTONICS K.K.,net_sales,FY2026,consensus,229191558230.0,jpy_abs,yfinance,2026-08-27
+6965,HAMAMATSU PHOTONICS K.K.,eps,FY2027,consensus,65.49143,jpy,yfinance,2026-08-27
+6965,HAMAMATSU PHOTONICS K.K.,net_sales,FY2027,consensus,246619435460.0,jpy_abs,yfinance,2026-08-27
+6981,"Murata Manufacturing Co.,Ltd.",eps,FY2027,consensus,193.29683,jpy,yfinance,2026-08-27
+6981,"Murata Manufacturing Co.,Ltd.",net_sales,FY2027,consensus,2080600585460.0,jpy_abs,yfinance,2026-08-27
+6981,"Murata Manufacturing Co.,Ltd.",eps,FY2028,consensus,270.86325,jpy,yfinance,2026-08-27
+6981,"Murata Manufacturing Co.,Ltd.",net_sales,FY2028,consensus,2409393392720.0,jpy_abs,yfinance,2026-08-27
+6988,NITTO DENKO CORPORATION,eps,FY2027,consensus,217.48128,jpy,yfinance,2026-08-27
+6988,NITTO DENKO CORPORATION,net_sales,FY2027,consensus,1098770000000.0,jpy_abs,yfinance,2026-08-27
+6988,NITTO DENKO CORPORATION,eps,FY2028,consensus,233.74426,jpy,yfinance,2026-08-27
+6988,NITTO DENKO CORPORATION,net_sales,FY2028,consensus,1141587272730.0,jpy_abs,yfinance,2026-08-27
+7003,"MITSUI E&S Co.,Ltd.",eps,FY2027,consensus,358.6625,jpy,yfinance,2026-08-27
+7003,"MITSUI E&S Co.,Ltd.",net_sales,FY2027,consensus,377617259900.0,jpy_abs,yfinance,2026-08-27
+7003,"MITSUI E&S Co.,Ltd.",eps,FY2028,consensus,371.295,jpy,yfinance,2026-08-27
+7003,"MITSUI E&S Co.,Ltd.",net_sales,FY2028,consensus,398701711280.0,jpy_abs,yfinance,2026-08-27
+7011,"Mitsubishi Heavy Industries,Ltd.",eps,FY2027,consensus,128.56796,jpy,yfinance,2026-08-27
+7011,"Mitsubishi Heavy Industries,Ltd.",net_sales,FY2027,consensus,5582499154760.0,jpy_abs,yfinance,2026-08-27
+7011,"Mitsubishi Heavy Industries,Ltd.",eps,FY2028,consensus,149.29364,jpy,yfinance,2026-08-27
+7011,"Mitsubishi Heavy Industries,Ltd.",net_sales,FY2028,consensus,6035339411010.0,jpy_abs,yfinance,2026-08-27
+7012,"Kawasaki Heavy Industries,Ltd.",eps,FY2027,consensus,141.55356,jpy,yfinance,2026-08-27
+7012,"Kawasaki Heavy Industries,Ltd.",net_sales,FY2027,consensus,2565714063080.0,jpy_abs,yfinance,2026-08-27
+7012,"Kawasaki Heavy Industries,Ltd.",eps,FY2028,consensus,165.14536,jpy,yfinance,2026-08-27
+7012,"Kawasaki Heavy Industries,Ltd.",net_sales,FY2028,consensus,2737165970730.0,jpy_abs,yfinance,2026-08-27
+7013,IHI Corporation,eps,FY2027,consensus,172.68475,jpy,yfinance,2026-08-27
+7013,IHI Corporation,net_sales,FY2027,consensus,1848003955090.0,jpy_abs,yfinance,2026-08-27
+7013,IHI Corporation,eps,FY2028,consensus,149.62299,jpy,yfinance,2026-08-27
+7013,IHI Corporation,net_sales,FY2028,consensus,1956256607500.0,jpy_abs,yfinance,2026-08-27
+7014,"Namura Shipbuilding Co.,Ltd.",eps,FY2027,consensus,357.395,jpy,yfinance,2026-08-27
+7014,"Namura Shipbuilding Co.,Ltd.",net_sales,FY2027,consensus,173053531520.0,jpy_abs,yfinance,2026-08-27
+7014,"Namura Shipbuilding Co.,Ltd.",eps,FY2028,consensus,399.425,jpy,yfinance,2026-08-27
+7014,"Namura Shipbuilding Co.,Ltd.",net_sales,FY2028,consensus,187915642620.0,jpy_abs,yfinance,2026-08-27
+7148,"Financial Partners Group Co.,Ltd.",net_sales,FY2026,consensus,0.0,jpy_abs,yfinance,2026-08-27
+7148,"Financial Partners Group Co.,Ltd.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+7164,"ZENKOKU HOSHO Co.,Ltd.",eps,FY2027,consensus,262.61465,jpy,yfinance,2026-08-27
+7164,"ZENKOKU HOSHO Co.,Ltd.",net_sales,FY2027,consensus,60789666670.0,jpy_abs,yfinance,2026-08-27
+7164,"ZENKOKU HOSHO Co.,Ltd.",eps,FY2028,consensus,284.51453,jpy,yfinance,2026-08-27
+7164,"ZENKOKU HOSHO Co.,Ltd.",net_sales,FY2028,consensus,63000166670.0,jpy_abs,yfinance,2026-08-27
+7167,"Mebuki Financial Group,Inc.",eps,FY2027,consensus,114.7794,jpy,yfinance,2026-08-27
+7167,"Mebuki Financial Group,Inc.",net_sales,FY2027,consensus,484500000000.0,jpy_abs,yfinance,2026-08-27
+7167,"Mebuki Financial Group,Inc.",eps,FY2028,consensus,132.31552,jpy,yfinance,2026-08-27
+7167,"Mebuki Financial Group,Inc.",net_sales,FY2028,consensus,564900000000.0,jpy_abs,yfinance,2026-08-27
+7173,"Tokyo Kiraboshi Financial Group,Inc.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+7173,"Tokyo Kiraboshi Financial Group,Inc.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+7186,"Yokohama Financial Group,Inc.",eps,FY2027,consensus,125.20511,jpy,yfinance,2026-08-27
+7186,"Yokohama Financial Group,Inc.",net_sales,FY2027,consensus,356445821000.0,jpy_abs,yfinance,2026-08-27
+7186,"Yokohama Financial Group,Inc.",eps,FY2028,consensus,146.40198,jpy,yfinance,2026-08-27
+7186,"Yokohama Financial Group,Inc.",net_sales,FY2028,consensus,404422530660.0,jpy_abs,yfinance,2026-08-27
+7202,ISUZU MOTORS LIMITED,eps,FY2027,consensus,275.8665,jpy,yfinance,2026-08-27
+7202,ISUZU MOTORS LIMITED,net_sales,FY2027,consensus,3739461196190.0,jpy_abs,yfinance,2026-08-27
+7202,ISUZU MOTORS LIMITED,eps,FY2028,consensus,304.1,jpy,yfinance,2026-08-27
+7202,ISUZU MOTORS LIMITED,net_sales,FY2028,consensus,3921550442550.0,jpy_abs,yfinance,2026-08-27
+7203,TOYOTA MOTOR CORPORATION,eps,FY2027,consensus,309.06668,jpy,yfinance,2026-08-27
+7203,TOYOTA MOTOR CORPORATION,net_sales,FY2027,consensus,53890748619140.0,jpy_abs,yfinance,2026-08-27
+7203,TOYOTA MOTOR CORPORATION,eps,FY2028,consensus,348.52686,jpy,yfinance,2026-08-27
+7203,TOYOTA MOTOR CORPORATION,net_sales,FY2028,consensus,55435252249890.0,jpy_abs,yfinance,2026-08-27
+7211,MITSUBISHI MOTORS CORPORATION,eps,FY2027,consensus,23.74057,jpy,yfinance,2026-08-27
+7211,MITSUBISHI MOTORS CORPORATION,net_sales,FY2027,consensus,3080001862680.0,jpy_abs,yfinance,2026-08-27
+7211,MITSUBISHI MOTORS CORPORATION,eps,FY2028,consensus,36.8678,jpy,yfinance,2026-08-27
+7211,MITSUBISHI MOTORS CORPORATION,net_sales,FY2028,consensus,3184763413830.0,jpy_abs,yfinance,2026-08-27
+7259,AISIN CORPORATION,eps,FY2027,consensus,223.7522,jpy,yfinance,2026-08-27
+7259,AISIN CORPORATION,net_sales,FY2027,consensus,5311168896970.0,jpy_abs,yfinance,2026-08-27
+7259,AISIN CORPORATION,eps,FY2028,consensus,266.31577,jpy,yfinance,2026-08-27
+7259,AISIN CORPORATION,net_sales,FY2028,consensus,5481095764430.0,jpy_abs,yfinance,2026-08-27
+7261,Mazda Motor Corporation,eps,FY2027,consensus,155.40509,jpy,yfinance,2026-08-27
+7261,Mazda Motor Corporation,net_sales,FY2027,consensus,5372404918030.0,jpy_abs,yfinance,2026-08-27
+7261,Mazda Motor Corporation,eps,FY2028,consensus,193.60982,jpy,yfinance,2026-08-27
+7261,Mazda Motor Corporation,net_sales,FY2028,consensus,5554280388660.0,jpy_abs,yfinance,2026-08-27
+7267,"HONDA MOTOR CO.,LTD.",eps,FY2027,consensus,141.48788,jpy,yfinance,2026-08-27
+7267,"HONDA MOTOR CO.,LTD.",net_sales,FY2027,consensus,23580068363500.0,jpy_abs,yfinance,2026-08-27
+7267,"HONDA MOTOR CO.,LTD.",eps,FY2028,consensus,203.16698,jpy,yfinance,2026-08-27
+7267,"HONDA MOTOR CO.,LTD.",net_sales,FY2028,consensus,24032294288250.0,jpy_abs,yfinance,2026-08-27
+7269,SUZUKI MOTOR CORPORATION,eps,FY2027,consensus,229.73656,jpy,yfinance,2026-08-27
+7269,SUZUKI MOTOR CORPORATION,net_sales,FY2027,consensus,6881219683710.0,jpy_abs,yfinance,2026-08-27
+7269,SUZUKI MOTOR CORPORATION,eps,FY2028,consensus,229.78479,jpy,yfinance,2026-08-27
+7269,SUZUKI MOTOR CORPORATION,net_sales,FY2028,consensus,7243256961690.0,jpy_abs,yfinance,2026-08-27
+7270,SUBARU CORPORATION,eps,FY2027,consensus,244.49396,jpy,yfinance,2026-08-27
+7270,SUBARU CORPORATION,net_sales,FY2027,consensus,5132144090630.0,jpy_abs,yfinance,2026-08-27
+7270,SUBARU CORPORATION,eps,FY2028,consensus,292.44205,jpy,yfinance,2026-08-27
+7270,SUBARU CORPORATION,net_sales,FY2028,consensus,5300222647920.0,jpy_abs,yfinance,2026-08-27
+7272,"Yamaha Motor Co.,Ltd.",eps,FY2026,consensus,179.34032,jpy,yfinance,2026-08-27
+7272,"Yamaha Motor Co.,Ltd.",net_sales,FY2026,consensus,2848332939810.0,jpy_abs,yfinance,2026-08-27
+7272,"Yamaha Motor Co.,Ltd.",eps,FY2027,consensus,174.10703,jpy,yfinance,2026-08-27
+7272,"Yamaha Motor Co.,Ltd.",net_sales,FY2027,consensus,2956137223690.0,jpy_abs,yfinance,2026-08-27
+7282,"TOYODA GOSEI CO.,LTD.",eps,FY2027,consensus,511.26953,jpy,yfinance,2026-08-27
+7282,"TOYODA GOSEI CO.,LTD.",net_sales,FY2027,consensus,1228770000000.0,jpy_abs,yfinance,2026-08-27
+7282,"TOYODA GOSEI CO.,LTD.",eps,FY2028,consensus,562.1873,jpy,yfinance,2026-08-27
+7282,"TOYODA GOSEI CO.,LTD.",net_sales,FY2028,consensus,1284895000000.0,jpy_abs,yfinance,2026-08-27
+7309,SHIMANO INC.,eps,FY2026,consensus,574.8559,jpy,yfinance,2026-08-27
+7309,SHIMANO INC.,net_sales,FY2026,consensus,490959945180.0,jpy_abs,yfinance,2026-08-27
+7309,SHIMANO INC.,eps,FY2027,consensus,727.4163,jpy,yfinance,2026-08-27
+7309,SHIMANO INC.,net_sales,FY2027,consensus,522101512830.0,jpy_abs,yfinance,2026-08-27
+7419,"Nojima Co.,Ltd.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+7419,"Nojima Co.,Ltd.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+7453,"RYOHIN KEIKAKU CO.,LTD.",eps,FY2026,consensus,127.72593,jpy,yfinance,2026-08-27
+7453,"RYOHIN KEIKAKU CO.,LTD.",net_sales,FY2026,consensus,907370646690.0,jpy_abs,yfinance,2026-08-27
+7453,"RYOHIN KEIKAKU CO.,LTD.",eps,FY2027,consensus,142.66234,jpy,yfinance,2026-08-27
+7453,"RYOHIN KEIKAKU CO.,LTD.",net_sales,FY2027,consensus,1001116910250.0,jpy_abs,yfinance,2026-08-27
+7532,Pan Pacific International Holdings Corporation,eps,FY2027,consensus,39.47824,jpy,yfinance,2026-08-27
+7532,Pan Pacific International Holdings Corporation,net_sales,FY2027,consensus,2662071373120.0,jpy_abs,yfinance,2026-08-27
+7532,Pan Pacific International Holdings Corporation,eps,FY2028,consensus,43.34204,jpy,yfinance,2026-08-27
+7532,Pan Pacific International Holdings Corporation,net_sales,FY2028,consensus,2802429796880.0,jpy_abs,yfinance,2026-08-27
+7550,"ZENSHO HOLDINGS CO.,LTD.",eps,FY2027,consensus,348.87167,jpy,yfinance,2026-08-27
+7550,"ZENSHO HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,1393083333330.0,jpy_abs,yfinance,2026-08-27
+7550,"ZENSHO HOLDINGS CO.,LTD.",eps,FY2028,consensus,415.17667,jpy,yfinance,2026-08-27
+7550,"ZENSHO HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,1525233333330.0,jpy_abs,yfinance,2026-08-27
+7564,"WORKMAN CO.,LTD.",eps,FY2027,consensus,291.54907,jpy,yfinance,2026-08-27
+7564,"WORKMAN CO.,LTD.",net_sales,FY2027,consensus,187666666670.0,jpy_abs,yfinance,2026-08-27
+7564,"WORKMAN CO.,LTD.",eps,FY2028,consensus,306.96857,jpy,yfinance,2026-08-27
+7564,"WORKMAN CO.,LTD.",net_sales,FY2028,consensus,196816666670.0,jpy_abs,yfinance,2026-08-27
+7599,IDOM Inc.,eps,FY2027,consensus,141.944,jpy,yfinance,2026-08-27
+7599,IDOM Inc.,net_sales,FY2027,consensus,631100000000.0,jpy_abs,yfinance,2026-08-27
+7599,IDOM Inc.,eps,FY2028,consensus,159.966,jpy,yfinance,2026-08-27
+7599,IDOM Inc.,net_sales,FY2028,consensus,675400000000.0,jpy_abs,yfinance,2026-08-27
+7649,"SUGI HOLDINGS Co.,LTD.",eps,FY2027,consensus,179.4977,jpy,yfinance,2026-08-27
+7649,"SUGI HOLDINGS Co.,LTD.",net_sales,FY2027,consensus,1092885714290.0,jpy_abs,yfinance,2026-08-27
+7649,"SUGI HOLDINGS Co.,LTD.",eps,FY2028,consensus,199.81667,jpy,yfinance,2026-08-27
+7649,"SUGI HOLDINGS Co.,LTD.",net_sales,FY2028,consensus,1176642857140.0,jpy_abs,yfinance,2026-08-27
+7701,Shimadzu Corporation,eps,FY2027,consensus,208.02428,jpy,yfinance,2026-08-27
+7701,Shimadzu Corporation,net_sales,FY2027,consensus,611841461250.0,jpy_abs,yfinance,2026-08-27
+7701,Shimadzu Corporation,eps,FY2028,consensus,224.23593,jpy,yfinance,2026-08-27
+7701,Shimadzu Corporation,net_sales,FY2028,consensus,656614945500.0,jpy_abs,yfinance,2026-08-27
+7729,"TOKYO SEIMITSU CO.,LTD.",eps,FY2027,consensus,772.80786,jpy,yfinance,2026-08-27
+7729,"TOKYO SEIMITSU CO.,LTD.",net_sales,FY2027,consensus,188819607970.0,jpy_abs,yfinance,2026-08-27
+7729,"TOKYO SEIMITSU CO.,LTD.",eps,FY2028,consensus,933.33704,jpy,yfinance,2026-08-27
+7729,"TOKYO SEIMITSU CO.,LTD.",net_sales,FY2028,consensus,213323876140.0,jpy_abs,yfinance,2026-08-27
+7733,OLYMPUS CORPORATION,eps,FY2027,consensus,98.12966,jpy,yfinance,2026-08-27
+7733,OLYMPUS CORPORATION,net_sales,FY2027,consensus,1079250375079.0,jpy_abs,yfinance,2026-08-27
+7733,OLYMPUS CORPORATION,eps,FY2028,consensus,113.52562,jpy,yfinance,2026-08-27
+7733,OLYMPUS CORPORATION,net_sales,FY2028,consensus,1116897217580.0,jpy_abs,yfinance,2026-08-27
+7735,"SCREEN Holdings Co.,Ltd.",eps,FY2027,consensus,623.7025,jpy,yfinance,2026-08-27
+7735,"SCREEN Holdings Co.,Ltd.",net_sales,FY2027,consensus,749257523750.0,jpy_abs,yfinance,2026-08-27
+7735,"SCREEN Holdings Co.,Ltd.",eps,FY2028,consensus,804.90204,jpy,yfinance,2026-08-27
+7735,"SCREEN Holdings Co.,Ltd.",net_sales,FY2028,consensus,886893019940.0,jpy_abs,yfinance,2026-08-27
+7740,"Tamron Co.,Ltd.",eps,FY2026,consensus,85.14419,jpy,yfinance,2026-08-27
+7740,"Tamron Co.,Ltd.",net_sales,FY2026,consensus,93065000000.0,jpy_abs,yfinance,2026-08-27
+7740,"Tamron Co.,Ltd.",eps,FY2027,consensus,90.77363,jpy,yfinance,2026-08-27
+7740,"Tamron Co.,Ltd.",net_sales,FY2027,consensus,96100000000.0,jpy_abs,yfinance,2026-08-27
+7741,HOYA CORPORATION,eps,FY2027,consensus,820.7701,jpy,yfinance,2026-08-27
+7741,HOYA CORPORATION,net_sales,FY2027,consensus,1042754506500.0,jpy_abs,yfinance,2026-08-27
+7741,HOYA CORPORATION,eps,FY2028,consensus,918.1847,jpy,yfinance,2026-08-27
+7741,HOYA CORPORATION,net_sales,FY2028,consensus,1120703731710.0,jpy_abs,yfinance,2026-08-27
+7747,"ASAHI INTECC CO.,LTD.",eps,FY2027,consensus,143.22736,jpy,yfinance,2026-08-27
+7747,"ASAHI INTECC CO.,LTD.",net_sales,FY2027,consensus,161146636580.0,jpy_abs,yfinance,2026-08-27
+7747,"ASAHI INTECC CO.,LTD.",eps,FY2028,consensus,154.83514,jpy,yfinance,2026-08-27
+7747,"ASAHI INTECC CO.,LTD.",net_sales,FY2028,consensus,174798203830.0,jpy_abs,yfinance,2026-08-27
+7751,CANON INC.,eps,FY2026,consensus,376.52625,jpy,yfinance,2026-08-27
+7751,CANON INC.,net_sales,FY2026,consensus,4777334565480.0,jpy_abs,yfinance,2026-08-27
+7751,CANON INC.,eps,FY2027,consensus,405.78677,jpy,yfinance,2026-08-27
+7751,CANON INC.,net_sales,FY2027,consensus,4943383585650.0,jpy_abs,yfinance,2026-08-27
+7762,"Citizen Watch Co.,Ltd.",eps,FY2027,consensus,144.53656,jpy,yfinance,2026-08-27
+7762,"Citizen Watch Co.,Ltd.",net_sales,FY2027,consensus,402600000000.0,jpy_abs,yfinance,2026-08-27
+7762,"Citizen Watch Co.,Ltd.",eps,FY2028,consensus,146.05048,jpy,yfinance,2026-08-27
+7762,"Citizen Watch Co.,Ltd.",net_sales,FY2028,consensus,409050000000.0,jpy_abs,yfinance,2026-08-27
+7832,Bandai Namco Holdings Inc.,eps,FY2027,consensus,232.92702,jpy,yfinance,2026-08-27
+7832,Bandai Namco Holdings Inc.,net_sales,FY2027,consensus,1403120246180.0,jpy_abs,yfinance,2026-08-27
+7832,Bandai Namco Holdings Inc.,eps,FY2028,consensus,252.17711,jpy,yfinance,2026-08-27
+7832,Bandai Namco Holdings Inc.,net_sales,FY2028,consensus,1481338972650.0,jpy_abs,yfinance,2026-08-27
+7867,"TOMY COMPANY,LTD.",eps,FY2027,consensus,210.56667,jpy,yfinance,2026-08-27
+7867,"TOMY COMPANY,LTD.",net_sales,FY2027,consensus,283566666670.0,jpy_abs,yfinance,2026-08-27
+7867,"TOMY COMPANY,LTD.",eps,FY2028,consensus,227.76666,jpy,yfinance,2026-08-27
+7867,"TOMY COMPANY,LTD.",net_sales,FY2028,consensus,296733333330.0,jpy_abs,yfinance,2026-08-27
+7906,"YONEX CO.,LTD.",eps,FY2027,consensus,158.5,jpy,yfinance,2026-08-27
+7906,"YONEX CO.,LTD.",net_sales,FY2027,consensus,183068500000.0,jpy_abs,yfinance,2026-08-27
+7906,"YONEX CO.,LTD.",eps,FY2028,consensus,172.3,jpy,yfinance,2026-08-27
+7906,"YONEX CO.,LTD.",net_sales,FY2028,consensus,197601500000.0,jpy_abs,yfinance,2026-08-27
+7912,"Dai Nippon Printing Co.,Ltd.",eps,FY2027,consensus,220.078,jpy,yfinance,2026-08-27
+7912,"Dai Nippon Printing Co.,Ltd.",net_sales,FY2027,consensus,1542340000000.0,jpy_abs,yfinance,2026-08-27
+7912,"Dai Nippon Printing Co.,Ltd.",eps,FY2028,consensus,249.25,jpy,yfinance,2026-08-27
+7912,"Dai Nippon Printing Co.,Ltd.",net_sales,FY2028,consensus,1603360000000.0,jpy_abs,yfinance,2026-08-27
+7936,ASICS Corporation,eps,FY2026,consensus,179.71951,jpy,yfinance,2026-08-27
+7936,ASICS Corporation,net_sales,FY2026,consensus,1022917398250.0,jpy_abs,yfinance,2026-08-27
+7936,ASICS Corporation,eps,FY2027,consensus,204.95337,jpy,yfinance,2026-08-27
+7936,ASICS Corporation,net_sales,FY2027,consensus,1131638468690.0,jpy_abs,yfinance,2026-08-27
+7974,"Nintendo Co.,Ltd.",eps,FY2027,consensus,374.8852,jpy,yfinance,2026-08-27
+7974,"Nintendo Co.,Ltd.",net_sales,FY2027,consensus,2345924242100.0,jpy_abs,yfinance,2026-08-27
+7974,"Nintendo Co.,Ltd.",eps,FY2028,consensus,417.44653,jpy,yfinance,2026-08-27
+7974,"Nintendo Co.,Ltd.",net_sales,FY2028,consensus,2582173576540.0,jpy_abs,yfinance,2026-08-27
+7988,NIFCO INC.,eps,FY2027,consensus,395.90054,jpy,yfinance,2026-08-27
+7988,NIFCO INC.,net_sales,FY2027,consensus,368477393690.0,jpy_abs,yfinance,2026-08-27
+7988,NIFCO INC.,eps,FY2028,consensus,448.2043,jpy,yfinance,2026-08-27
+7988,NIFCO INC.,net_sales,FY2028,consensus,384476005760.0,jpy_abs,yfinance,2026-08-27
+7994,OKAMURA CORPORATION,eps,FY2027,consensus,237.225,jpy,yfinance,2026-08-27
+7994,OKAMURA CORPORATION,net_sales,FY2027,consensus,345825000000.0,jpy_abs,yfinance,2026-08-27
+7994,OKAMURA CORPORATION,eps,FY2028,consensus,241.925,jpy,yfinance,2026-08-27
+7994,OKAMURA CORPORATION,net_sales,FY2028,consensus,359125000000.0,jpy_abs,yfinance,2026-08-27
+8001,ITOCHU Corporation,eps,FY2027,consensus,139.74689,jpy,yfinance,2026-08-27
+8001,ITOCHU Corporation,net_sales,FY2027,consensus,15526430314360.0,jpy_abs,yfinance,2026-08-27
+8001,ITOCHU Corporation,eps,FY2028,consensus,147.63086,jpy,yfinance,2026-08-27
+8001,ITOCHU Corporation,net_sales,FY2028,consensus,16056619922130.0,jpy_abs,yfinance,2026-08-27
+8002,Marubeni Corporation,eps,FY2027,consensus,369.0532,jpy,yfinance,2026-08-27
+8002,Marubeni Corporation,net_sales,FY2027,consensus,8608200097999.0,jpy_abs,yfinance,2026-08-27
+8002,Marubeni Corporation,eps,FY2028,consensus,387.4082,jpy,yfinance,2026-08-27
+8002,Marubeni Corporation,net_sales,FY2028,consensus,9040073751600.0,jpy_abs,yfinance,2026-08-27
+8015,TOYOTA TSUSHO CORPORATION,eps,FY2027,consensus,453.29858,jpy,yfinance,2026-08-27
+8015,TOYOTA TSUSHO CORPORATION,net_sales,FY2027,consensus,12849775000000.0,jpy_abs,yfinance,2026-08-27
+8015,TOYOTA TSUSHO CORPORATION,eps,FY2028,consensus,492.30792,jpy,yfinance,2026-08-27
+8015,TOYOTA TSUSHO CORPORATION,net_sales,FY2028,consensus,13093400000000.0,jpy_abs,yfinance,2026-08-27
+8020,KANEMATSU CORPORATION,eps,FY2027,consensus,216.3,jpy,yfinance,2026-08-27
+8020,KANEMATSU CORPORATION,net_sales,FY2027,consensus,1114000000000.0,jpy_abs,yfinance,2026-08-27
+8020,KANEMATSU CORPORATION,eps,FY2028,consensus,231.05,jpy,yfinance,2026-08-27
+8020,KANEMATSU CORPORATION,net_sales,FY2028,consensus,1163000000000.0,jpy_abs,yfinance,2026-08-27
+8031,"MITSUI & CO.,LTD.",eps,FY2027,consensus,346.40274,jpy,yfinance,2026-08-27
+8031,"MITSUI & CO.,LTD.",net_sales,FY2027,consensus,15164075000000.0,jpy_abs,yfinance,2026-08-27
+8031,"MITSUI & CO.,LTD.",eps,FY2028,consensus,361.8193,jpy,yfinance,2026-08-27
+8031,"MITSUI & CO.,LTD.",net_sales,FY2028,consensus,15169861889040.0,jpy_abs,yfinance,2026-08-27
+8035,Tokyo Electron Limited,eps,FY2027,consensus,1684.7186,jpy,yfinance,2026-08-27
+8035,Tokyo Electron Limited,net_sales,FY2027,consensus,3398299763080.0,jpy_abs,yfinance,2026-08-27
+8035,Tokyo Electron Limited,eps,FY2028,consensus,2289.267,jpy,yfinance,2026-08-27
+8035,Tokyo Electron Limited,net_sales,FY2028,consensus,4132957612380.0,jpy_abs,yfinance,2026-08-27
+8050,SEIKO GROUP CORPORATION,eps,FY2027,consensus,437.3,jpy,yfinance,2026-08-27
+8050,SEIKO GROUP CORPORATION,net_sales,FY2027,consensus,395750000000.0,jpy_abs,yfinance,2026-08-27
+8050,SEIKO GROUP CORPORATION,eps,FY2028,consensus,411.0375,jpy,yfinance,2026-08-27
+8050,SEIKO GROUP CORPORATION,net_sales,FY2028,consensus,388050000000.0,jpy_abs,yfinance,2026-08-27
+8053,"SUMITOMO CORPORATION (SUMITOMO SHOJI KAISHA,LTD.)",eps,FY2027,consensus,137.9569,jpy,yfinance,2026-08-27
+8053,"SUMITOMO CORPORATION (SUMITOMO SHOJI KAISHA,LTD.)",net_sales,FY2027,consensus,7727000000000.0,jpy_abs,yfinance,2026-08-27
+8053,"SUMITOMO CORPORATION (SUMITOMO SHOJI KAISHA,LTD.)",eps,FY2028,consensus,144.41547,jpy,yfinance,2026-08-27
+8053,"SUMITOMO CORPORATION (SUMITOMO SHOJI KAISHA,LTD.)",net_sales,FY2028,consensus,8013849166700.0,jpy_abs,yfinance,2026-08-27
+8056,BIPROGY Inc.,eps,FY2027,consensus,336.55167,jpy,yfinance,2026-08-27
+8056,BIPROGY Inc.,net_sales,FY2027,consensus,472630000000.0,jpy_abs,yfinance,2026-08-27
+8056,BIPROGY Inc.,eps,FY2028,consensus,369.39706,jpy,yfinance,2026-08-27
+8056,BIPROGY Inc.,net_sales,FY2028,consensus,494528888890.0,jpy_abs,yfinance,2026-08-27
+8058,Mitsubishi Corporation,eps,FY2027,consensus,324.88776,jpy,yfinance,2026-08-27
+8058,Mitsubishi Corporation,net_sales,FY2027,consensus,22058393976900.0,jpy_abs,yfinance,2026-08-27
+8058,Mitsubishi Corporation,eps,FY2028,consensus,315.39407,jpy,yfinance,2026-08-27
+8058,Mitsubishi Corporation,net_sales,FY2028,consensus,21824396479960.0,jpy_abs,yfinance,2026-08-27
+8060,Canon Marketing Japan Inc.,eps,FY2026,consensus,219.675,jpy,yfinance,2026-08-27
+8060,Canon Marketing Japan Inc.,net_sales,FY2026,consensus,690942500000.0,jpy_abs,yfinance,2026-08-27
+8060,Canon Marketing Japan Inc.,eps,FY2027,consensus,234.55,jpy,yfinance,2026-08-27
+8060,Canon Marketing Japan Inc.,net_sales,FY2027,consensus,715492500000.0,jpy_abs,yfinance,2026-08-27
+8078,"HANWA CO.,LTD.",eps,FY2027,consensus,214.96333,jpy,yfinance,2026-08-27
+8078,"HANWA CO.,LTD.",net_sales,FY2027,consensus,2828667588740.0,jpy_abs,yfinance,2026-08-27
+8078,"HANWA CO.,LTD.",eps,FY2028,consensus,227.00333,jpy,yfinance,2026-08-27
+8078,"HANWA CO.,LTD.",net_sales,FY2028,consensus,2860127956160.0,jpy_abs,yfinance,2026-08-27
+8088,IWATANI  CORPORATION,eps,FY2027,consensus,221.01,jpy,yfinance,2026-08-27
+8088,IWATANI  CORPORATION,net_sales,FY2027,consensus,963260000000.0,jpy_abs,yfinance,2026-08-27
+8088,IWATANI  CORPORATION,eps,FY2028,consensus,210.814,jpy,yfinance,2026-08-27
+8088,IWATANI  CORPORATION,net_sales,FY2028,consensus,967620000000.0,jpy_abs,yfinance,2026-08-27
+8098,"Inabata & Co.,Ltd.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+8098,"Inabata & Co.,Ltd.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+8111,Goldwin Inc.,eps,FY2027,consensus,182.3075,jpy,yfinance,2026-08-27
+8111,Goldwin Inc.,net_sales,FY2027,consensus,142864200000.0,jpy_abs,yfinance,2026-08-27
+8111,Goldwin Inc.,eps,FY2028,consensus,194.792,jpy,yfinance,2026-08-27
+8111,Goldwin Inc.,net_sales,FY2028,consensus,151463400000.0,jpy_abs,yfinance,2026-08-27
+8113,UNICHARM CORPORATION,eps,FY2026,consensus,45.45503,jpy,yfinance,2026-08-27
+8113,UNICHARM CORPORATION,net_sales,FY2026,consensus,1004741338380.0,jpy_abs,yfinance,2026-08-27
+8113,UNICHARM CORPORATION,eps,FY2027,consensus,50.96224,jpy,yfinance,2026-08-27
+8113,UNICHARM CORPORATION,net_sales,FY2027,consensus,1055000863730.0,jpy_abs,yfinance,2026-08-27
+8130,Sangetsu Corporation,eps,FY2027,consensus,228.61,jpy,yfinance,2026-08-27
+8130,Sangetsu Corporation,net_sales,FY2027,consensus,212960000000.0,jpy_abs,yfinance,2026-08-27
+8130,Sangetsu Corporation,eps,FY2028,consensus,241.9,jpy,yfinance,2026-08-27
+8130,Sangetsu Corporation,net_sales,FY2028,consensus,220400000000.0,jpy_abs,yfinance,2026-08-27
+8133,"ITOCHU ENEX CO.,LTD.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+8133,"ITOCHU ENEX CO.,LTD.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+8136,"Sanrio Company,Ltd.",eps,FY2027,consensus,52.9075,jpy,yfinance,2026-08-27
+8136,"Sanrio Company,Ltd.",net_sales,FY2027,consensus,229761951470.0,jpy_abs,yfinance,2026-08-27
+8136,"Sanrio Company,Ltd.",eps,FY2028,consensus,60.2375,jpy,yfinance,2026-08-27
+8136,"Sanrio Company,Ltd.",net_sales,FY2028,consensus,258785693750.0,jpy_abs,yfinance,2026-08-27
+8154,"KAGA ELECTRONICS CO.,LTD.",eps,FY2027,consensus,671.4,jpy,yfinance,2026-08-27
+8154,"KAGA ELECTRONICS CO.,LTD.",net_sales,FY2027,consensus,800000000000.0,jpy_abs,yfinance,2026-08-27
+8154,"KAGA ELECTRONICS CO.,LTD.",eps,FY2028,consensus,502.5,jpy,yfinance,2026-08-27
+8154,"KAGA ELECTRONICS CO.,LTD.",net_sales,FY2028,consensus,760400000000.0,jpy_abs,yfinance,2026-08-27
+8174,"NIPPON GAS CO.,LTD.",eps,FY2027,consensus,136.48,jpy,yfinance,2026-08-27
+8174,"NIPPON GAS CO.,LTD.",net_sales,FY2027,consensus,219259333330.0,jpy_abs,yfinance,2026-08-27
+8174,"NIPPON GAS CO.,LTD.",eps,FY2028,consensus,154.48,jpy,yfinance,2026-08-27
+8174,"NIPPON GAS CO.,LTD.",net_sales,FY2028,consensus,232195800000.0,jpy_abs,yfinance,2026-08-27
+8194,LIFE CORPORATION,eps,FY2027,consensus,218.86667,jpy,yfinance,2026-08-27
+8194,LIFE CORPORATION,net_sales,FY2027,consensus,917233333330.0,jpy_abs,yfinance,2026-08-27
+8194,LIFE CORPORATION,eps,FY2028,consensus,227.83333,jpy,yfinance,2026-08-27
+8194,LIFE CORPORATION,net_sales,FY2028,consensus,951666666670.0,jpy_abs,yfinance,2026-08-27
+8227,"SHIMAMURA Co.,Ltd.",eps,FY2027,consensus,230.92242,jpy,yfinance,2026-08-27
+8227,"SHIMAMURA Co.,Ltd.",net_sales,FY2027,consensus,731668583330.0,jpy_abs,yfinance,2026-08-27
+8227,"SHIMAMURA Co.,Ltd.",eps,FY2028,consensus,240.70613,jpy,yfinance,2026-08-27
+8227,"SHIMAMURA Co.,Ltd.",net_sales,FY2028,consensus,756186416670.0,jpy_abs,yfinance,2026-08-27
+8242,H2O RETAILING CORPORATION,eps,FY2027,consensus,213.75,jpy,yfinance,2026-08-27
+8242,H2O RETAILING CORPORATION,net_sales,FY2027,consensus,698500000000.0,jpy_abs,yfinance,2026-08-27
+8242,H2O RETAILING CORPORATION,eps,FY2028,consensus,207.3,jpy,yfinance,2026-08-27
+8242,H2O RETAILING CORPORATION,net_sales,FY2028,consensus,712000000000.0,jpy_abs,yfinance,2026-08-27
+8252,"MARUI GROUP CO.,LTD.",eps,FY2027,consensus,171.13344,jpy,yfinance,2026-08-27
+8252,"MARUI GROUP CO.,LTD.",net_sales,FY2027,consensus,299255900370.0,jpy_abs,yfinance,2026-08-27
+8252,"MARUI GROUP CO.,LTD.",eps,FY2028,consensus,187.54591,jpy,yfinance,2026-08-27
+8252,"MARUI GROUP CO.,LTD.",net_sales,FY2028,consensus,321706867460.0,jpy_abs,yfinance,2026-08-27
+8253,"Credit Saison Co.,Ltd.",eps,FY2027,consensus,546.2969,jpy,yfinance,2026-08-27
+8253,"Credit Saison Co.,Ltd.",net_sales,FY2027,consensus,507352728660.0,jpy_abs,yfinance,2026-08-27
+8253,"Credit Saison Co.,Ltd.",eps,FY2028,consensus,588.31323,jpy,yfinance,2026-08-27
+8253,"Credit Saison Co.,Ltd.",net_sales,FY2028,consensus,541059885310.0,jpy_abs,yfinance,2026-08-27
+8306,"Mitsubishi UFJ Financial Group,Inc.",eps,FY2027,consensus,248.35965,jpy,yfinance,2026-08-27
+8306,"Mitsubishi UFJ Financial Group,Inc.",net_sales,FY2027,consensus,6634056311000.0,jpy_abs,yfinance,2026-08-27
+8306,"Mitsubishi UFJ Financial Group,Inc.",eps,FY2028,consensus,273.64438,jpy,yfinance,2026-08-27
+8306,"Mitsubishi UFJ Financial Group,Inc.",net_sales,FY2028,consensus,7491033783800.0,jpy_abs,yfinance,2026-08-27
+8308,"Resona Holdings, Inc.",eps,FY2027,consensus,148.02264,jpy,yfinance,2026-08-27
+8308,"Resona Holdings, Inc.",net_sales,FY2027,consensus,896246873800.0,jpy_abs,yfinance,2026-08-27
+8308,"Resona Holdings, Inc.",eps,FY2028,consensus,174.06924,jpy,yfinance,2026-08-27
+8308,"Resona Holdings, Inc.",net_sales,FY2028,consensus,1026442922110.0,jpy_abs,yfinance,2026-08-27
+8309,"Sumitomo Mitsui Trust Group,Inc.",eps,FY2027,consensus,139.70381,jpy,yfinance,2026-08-27
+8309,"Sumitomo Mitsui Trust Group,Inc.",net_sales,FY2027,consensus,1028255333330.0,jpy_abs,yfinance,2026-08-27
+8309,"Sumitomo Mitsui Trust Group,Inc.",eps,FY2028,consensus,146.5362,jpy,yfinance,2026-08-27
+8309,"Sumitomo Mitsui Trust Group,Inc.",net_sales,FY2028,consensus,1124598921000.0,jpy_abs,yfinance,2026-08-27
+8316,"Sumitomo Mitsui Financial Group,Inc.",eps,FY2027,consensus,469.78073,jpy,yfinance,2026-08-27
+8316,"Sumitomo Mitsui Financial Group,Inc.",net_sales,FY2027,consensus,5244296000670.0,jpy_abs,yfinance,2026-08-27
+8316,"Sumitomo Mitsui Financial Group,Inc.",eps,FY2028,consensus,519.59937,jpy,yfinance,2026-08-27
+8316,"Sumitomo Mitsui Financial Group,Inc.",net_sales,FY2028,consensus,5574171275210.0,jpy_abs,yfinance,2026-08-27
+8331,"The Chiba Bank,Ltd.",eps,FY2027,consensus,167.48792,jpy,yfinance,2026-08-27
+8331,"The Chiba Bank,Ltd.",net_sales,FY2027,consensus,278884326500.0,jpy_abs,yfinance,2026-08-27
+8331,"The Chiba Bank,Ltd.",eps,FY2028,consensus,188.55408,jpy,yfinance,2026-08-27
+8331,"The Chiba Bank,Ltd.",net_sales,FY2028,consensus,308520846330.0,jpy_abs,yfinance,2026-08-27
+8334,"The Gunma Bank,Ltd.",eps,FY2027,consensus,187.94,jpy,yfinance,2026-08-27
+8334,"The Gunma Bank,Ltd.",net_sales,FY2027,consensus,122800000000.0,jpy_abs,yfinance,2026-08-27
+8334,"The Gunma Bank,Ltd.",eps,FY2028,consensus,197.575,jpy,yfinance,2026-08-27
+8334,"The Gunma Bank,Ltd.",net_sales,FY2028,consensus,256600000000.0,jpy_abs,yfinance,2026-08-27
+8354,"Fukuoka Financial Group,Inc.",eps,FY2027,consensus,541.9999,jpy,yfinance,2026-08-27
+8354,"Fukuoka Financial Group,Inc.",net_sales,FY2027,consensus,338321789230.0,jpy_abs,yfinance,2026-08-27
+8354,"Fukuoka Financial Group,Inc.",eps,FY2028,consensus,629.61676,jpy,yfinance,2026-08-27
+8354,"Fukuoka Financial Group,Inc.",net_sales,FY2028,consensus,364641475870.0,jpy_abs,yfinance,2026-08-27
+8411,"Mizuho Financial Group,Inc.",eps,FY2027,consensus,591.6332,jpy,yfinance,2026-08-27
+8411,"Mizuho Financial Group,Inc.",net_sales,FY2027,consensus,4123932156000.0,jpy_abs,yfinance,2026-08-27
+8411,"Mizuho Financial Group,Inc.",eps,FY2028,consensus,663.91003,jpy,yfinance,2026-08-27
+8411,"Mizuho Financial Group,Inc.",net_sales,FY2028,consensus,4532541623190.0,jpy_abs,yfinance,2026-08-27
+8424,"Fuyo General Lease Co.,Ltd.",eps,FY2027,consensus,510.1,jpy,yfinance,2026-08-27
+8424,"Fuyo General Lease Co.,Ltd.",net_sales,FY2027,consensus,716000000000.0,jpy_abs,yfinance,2026-08-27
+8424,"Fuyo General Lease Co.,Ltd.",eps,FY2028,consensus,541.1,jpy,yfinance,2026-08-27
+8424,"Fuyo General Lease Co.,Ltd.",net_sales,FY2028,consensus,732000000000.0,jpy_abs,yfinance,2026-08-27
+8425,"Mizuho Leasing Company,Limited",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+8425,"Mizuho Leasing Company,Limited",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+8439,Tokyo Century Corporation,eps,FY2027,consensus,263.83566,jpy,yfinance,2026-08-27
+8439,Tokyo Century Corporation,net_sales,FY2027,consensus,1521703799280.0,jpy_abs,yfinance,2026-08-27
+8439,Tokyo Century Corporation,eps,FY2028,consensus,267.1841,jpy,yfinance,2026-08-27
+8439,Tokyo Century Corporation,net_sales,FY2028,consensus,1568371339740.0,jpy_abs,yfinance,2026-08-27
+8473,"SBI Holdings,Inc.",eps,FY2027,consensus,348.5025,jpy,yfinance,2026-08-27
+8473,"SBI Holdings,Inc.",net_sales,FY2027,consensus,1492200000000.0,jpy_abs,yfinance,2026-08-27
+8473,"SBI Holdings,Inc.",eps,FY2028,consensus,342.66653,jpy,yfinance,2026-08-27
+8473,"SBI Holdings,Inc.",net_sales,FY2028,consensus,1565593340160.0,jpy_abs,yfinance,2026-08-27
+8572,"ACOM CO.,LTD.",eps,FY2027,consensus,43.55535,jpy,yfinance,2026-08-27
+8572,"ACOM CO.,LTD.",net_sales,FY2027,consensus,358960702410.0,jpy_abs,yfinance,2026-08-27
+8572,"ACOM CO.,LTD.",eps,FY2028,consensus,46.1022,jpy,yfinance,2026-08-27
+8572,"ACOM CO.,LTD.",net_sales,FY2028,consensus,376412324570.0,jpy_abs,yfinance,2026-08-27
+8591,ORIX CORPORATION,eps,FY2027,consensus,809.8313,jpy,yfinance,2026-08-27
+8591,ORIX CORPORATION,net_sales,FY2027,consensus,3426133333330.0,jpy_abs,yfinance,2026-08-27
+8591,ORIX CORPORATION,eps,FY2028,consensus,474.2668,jpy,yfinance,2026-08-27
+8591,ORIX CORPORATION,net_sales,FY2028,consensus,3578104160080.0,jpy_abs,yfinance,2026-08-27
+8593,Mitsubishi HC Capital Inc.,eps,FY2027,consensus,114.21667,jpy,yfinance,2026-08-27
+8593,Mitsubishi HC Capital Inc.,net_sales,FY2027,consensus,2179545406940.0,jpy_abs,yfinance,2026-08-27
+8593,Mitsubishi HC Capital Inc.,eps,FY2028,consensus,130.50667,jpy,yfinance,2026-08-27
+8593,Mitsubishi HC Capital Inc.,net_sales,FY2028,consensus,2456395449850.0,jpy_abs,yfinance,2026-08-27
+8601,Daiwa Securities Group Inc.,eps,FY2027,consensus,137.0142,jpy,yfinance,2026-08-27
+8601,Daiwa Securities Group Inc.,net_sales,FY2027,consensus,1620100000000.0,jpy_abs,yfinance,2026-08-27
+8601,Daiwa Securities Group Inc.,eps,FY2028,consensus,144.23228,jpy,yfinance,2026-08-27
+8601,Daiwa Securities Group Inc.,net_sales,FY2028,consensus,1670750000000.0,jpy_abs,yfinance,2026-08-27
+8604,"Nomura Holdings, Inc.",eps,FY2027,consensus,141.028,jpy,yfinance,2026-08-27
+8604,"Nomura Holdings, Inc.",net_sales,FY2027,consensus,2263828348800.0,jpy_abs,yfinance,2026-08-27
+8604,"Nomura Holdings, Inc.",eps,FY2028,consensus,145.6787,jpy,yfinance,2026-08-27
+8604,"Nomura Holdings, Inc.",net_sales,FY2028,consensus,2327187965670.0,jpy_abs,yfinance,2026-08-27
+8628,"MATSUI SECURITIES CO.,LTD.",eps,FY2016,consensus,82.8,jpy,yfinance,2026-08-27
+8628,"MATSUI SECURITIES CO.,LTD.",net_sales,FY2016,consensus,66400000000.0,jpy_abs,yfinance,2026-08-27
+8628,"MATSUI SECURITIES CO.,LTD.",eps,FY2017,consensus,91.1,jpy,yfinance,2026-08-27
+8628,"MATSUI SECURITIES CO.,LTD.",net_sales,FY2017,consensus,67100000000.0,jpy_abs,yfinance,2026-08-27
+8630,"Sompo Holdings,Inc.",eps,FY2027,consensus,596.2811,jpy,yfinance,2026-08-27
+8630,"Sompo Holdings,Inc.",net_sales,FY2027,consensus,6895500000000.0,jpy_abs,yfinance,2026-08-27
+8630,"Sompo Holdings,Inc.",eps,FY2028,consensus,660.7,jpy,yfinance,2026-08-27
+8630,"Sompo Holdings,Inc.",net_sales,FY2028,consensus,7207700000000.0,jpy_abs,yfinance,2026-08-27
+8697,"Japan Exchange Group,Inc.",eps,FY2027,consensus,95.93,jpy,yfinance,2026-08-27
+8697,"Japan Exchange Group,Inc.",net_sales,FY2027,consensus,240636533330.0,jpy_abs,yfinance,2026-08-27
+8697,"Japan Exchange Group,Inc.",eps,FY2028,consensus,96.11072,jpy,yfinance,2026-08-27
+8697,"Japan Exchange Group,Inc.",net_sales,FY2028,consensus,246034821000.0,jpy_abs,yfinance,2026-08-27
+8725,"MS&AD Insurance Group Holdings,Inc.",eps,FY2027,consensus,456.0319,jpy,yfinance,2026-08-27
+8725,"MS&AD Insurance Group Holdings,Inc.",net_sales,FY2027,consensus,7338947600000.0,jpy_abs,yfinance,2026-08-27
+8725,"MS&AD Insurance Group Holdings,Inc.",eps,FY2028,consensus,513.3413,jpy,yfinance,2026-08-27
+8725,"MS&AD Insurance Group Holdings,Inc.",net_sales,FY2028,consensus,7676283805030.0,jpy_abs,yfinance,2026-08-27
+8750,"Daiichi Life Group,Inc.",eps,FY2027,consensus,145.2513,jpy,yfinance,2026-08-27
+8750,"Daiichi Life Group,Inc.",net_sales,FY2027,consensus,11234790186470.0,jpy_abs,yfinance,2026-08-27
+8750,"Daiichi Life Group,Inc.",eps,FY2028,consensus,156.76553,jpy,yfinance,2026-08-27
+8750,"Daiichi Life Group,Inc.",net_sales,FY2028,consensus,11428531145420.0,jpy_abs,yfinance,2026-08-27
+8766,"Tokio Marine Holdings,Inc.",eps,FY2027,consensus,501.47412,jpy,yfinance,2026-08-27
+8766,"Tokio Marine Holdings,Inc.",net_sales,FY2027,consensus,8769142500000.0,jpy_abs,yfinance,2026-08-27
+8766,"Tokio Marine Holdings,Inc.",eps,FY2028,consensus,563.0257,jpy,yfinance,2026-08-27
+8766,"Tokio Marine Holdings,Inc.",net_sales,FY2028,consensus,8819538000000.0,jpy_abs,yfinance,2026-08-27
+8795,"T&D Holdings, Inc.",eps,FY2027,consensus,297.38486,jpy,yfinance,2026-08-27
+8795,"T&D Holdings, Inc.",net_sales,FY2027,consensus,3310600000000.0,jpy_abs,yfinance,2026-08-27
+8795,"T&D Holdings, Inc.",eps,FY2028,consensus,389.23395,jpy,yfinance,2026-08-27
+8795,"T&D Holdings, Inc.",net_sales,FY2028,consensus,3137000000000.0,jpy_abs,yfinance,2026-08-27
+8801,"Mitsui Fudosan Co.,Ltd.",eps,FY2027,consensus,108.07833,jpy,yfinance,2026-08-27
+8801,"Mitsui Fudosan Co.,Ltd.",net_sales,FY2027,consensus,2787773101980.0,jpy_abs,yfinance,2026-08-27
+8801,"Mitsui Fudosan Co.,Ltd.",eps,FY2028,consensus,115.75375,jpy,yfinance,2026-08-27
+8801,"Mitsui Fudosan Co.,Ltd.",net_sales,FY2028,consensus,2931650180560.0,jpy_abs,yfinance,2026-08-27
+8802,"Mitsubishi Estate Company,Limited",eps,FY2027,consensus,203.1012,jpy,yfinance,2026-08-27
+8802,"Mitsubishi Estate Company,Limited",net_sales,FY2027,consensus,1985864661840.0,jpy_abs,yfinance,2026-08-27
+8802,"Mitsubishi Estate Company,Limited",eps,FY2028,consensus,217.0509,jpy,yfinance,2026-08-27
+8802,"Mitsubishi Estate Company,Limited",net_sales,FY2028,consensus,2047721949780.0,jpy_abs,yfinance,2026-08-27
+8804,"Tokyo Tatemono Co.,Ltd.",eps,FY2026,consensus,319.86203,jpy,yfinance,2026-08-27
+8804,"Tokyo Tatemono Co.,Ltd.",net_sales,FY2026,consensus,526132164330.0,jpy_abs,yfinance,2026-08-27
+8804,"Tokyo Tatemono Co.,Ltd.",eps,FY2027,consensus,335.31107,jpy,yfinance,2026-08-27
+8804,"Tokyo Tatemono Co.,Ltd.",net_sales,FY2027,consensus,568521932310.0,jpy_abs,yfinance,2026-08-27
+8830,"Sumitomo Realty & Development Co.,Ltd.",eps,FY2027,consensus,249.83302,jpy,yfinance,2026-08-27
+8830,"Sumitomo Realty & Development Co.,Ltd.",net_sales,FY2027,consensus,1067463559820.0,jpy_abs,yfinance,2026-08-27
+8830,"Sumitomo Realty & Development Co.,Ltd.",eps,FY2028,consensus,266.17023,jpy,yfinance,2026-08-27
+8830,"Sumitomo Realty & Development Co.,Ltd.",net_sales,FY2028,consensus,1127889010070.0,jpy_abs,yfinance,2026-08-27
+8848,LEOPALACE21 CORPORATION,eps,FY2027,consensus,75.8,jpy,yfinance,2026-08-27
+8848,LEOPALACE21 CORPORATION,net_sales,FY2027,consensus,466950000000.0,jpy_abs,yfinance,2026-08-27
+8848,LEOPALACE21 CORPORATION,eps,FY2028,consensus,83.35,jpy,yfinance,2026-08-27
+8848,LEOPALACE21 CORPORATION,net_sales,FY2028,consensus,482250000000.0,jpy_abs,yfinance,2026-08-27
+8850,STARTS CORPORATION INC.,eps,FY2027,consensus,580.1,jpy,yfinance,2026-08-27
+8850,STARTS CORPORATION INC.,net_sales,FY2027,consensus,285500000000.0,jpy_abs,yfinance,2026-08-27
+8850,STARTS CORPORATION INC.,eps,FY2028,consensus,614.25,jpy,yfinance,2026-08-27
+8850,STARTS CORPORATION INC.,net_sales,FY2028,consensus,291500000000.0,jpy_abs,yfinance,2026-08-27
+8876,"Relo Group,Inc.",eps,FY2027,consensus,151.87361,jpy,yfinance,2026-08-27
+8876,"Relo Group,Inc.",net_sales,FY2027,consensus,161893333330.0,jpy_abs,yfinance,2026-08-27
+8876,"Relo Group,Inc.",eps,FY2028,consensus,166.99152,jpy,yfinance,2026-08-27
+8876,"Relo Group,Inc.",net_sales,FY2028,consensus,173142083330.0,jpy_abs,yfinance,2026-08-27
+8919,"KATITAS CO.,LTD",eps,FY2027,consensus,183.90117,jpy,yfinance,2026-08-27
+8919,"KATITAS CO.,LTD",net_sales,FY2027,consensus,177705150200.0,jpy_abs,yfinance,2026-08-27
+8919,"KATITAS CO.,LTD",eps,FY2028,consensus,204.48123,jpy,yfinance,2026-08-27
+8919,"KATITAS CO.,LTD",net_sales,FY2028,consensus,196451903560.0,jpy_abs,yfinance,2026-08-27
+8923,TOSEI CORPORATION,eps,FY2026,consensus,169.025,jpy,yfinance,2026-08-27
+8923,TOSEI CORPORATION,net_sales,FY2026,consensus,119701000000.0,jpy_abs,yfinance,2026-08-27
+8923,TOSEI CORPORATION,eps,FY2027,consensus,178.625,jpy,yfinance,2026-08-27
+8923,TOSEI CORPORATION,net_sales,FY2027,consensus,130337500000.0,jpy_abs,yfinance,2026-08-27
+8934,"Sun Frontier Fudousan Co.,Ltd.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+8934,"Sun Frontier Fudousan Co.,Ltd.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+9001,"TOBU RAILWAY CO.,LTD.",eps,FY2027,consensus,291.4997,jpy,yfinance,2026-08-27
+9001,"TOBU RAILWAY CO.,LTD.",net_sales,FY2027,consensus,678825000000.0,jpy_abs,yfinance,2026-08-27
+9001,"TOBU RAILWAY CO.,LTD.",eps,FY2028,consensus,267.9891,jpy,yfinance,2026-08-27
+9001,"TOBU RAILWAY CO.,LTD.",net_sales,FY2028,consensus,692275000000.0,jpy_abs,yfinance,2026-08-27
+9003,"Sotetsu Holdings,Inc.",eps,FY2027,consensus,252.2,jpy,yfinance,2026-08-27
+9003,"Sotetsu Holdings,Inc.",net_sales,FY2027,consensus,325300000000.0,jpy_abs,yfinance,2026-08-27
+9003,"Sotetsu Holdings,Inc.",eps,FY2028,consensus,260.5,jpy,yfinance,2026-08-27
+9003,"Sotetsu Holdings,Inc.",net_sales,FY2028,consensus,342900000000.0,jpy_abs,yfinance,2026-08-27
+9005,TOKYU CORPORATION,eps,FY2027,consensus,160.71066,jpy,yfinance,2026-08-27
+9005,TOKYU CORPORATION,net_sales,FY2027,consensus,1136085804190.0,jpy_abs,yfinance,2026-08-27
+9005,TOKYU CORPORATION,eps,FY2028,consensus,165.45631,jpy,yfinance,2026-08-27
+9005,TOKYU CORPORATION,net_sales,FY2028,consensus,1155449787060.0,jpy_abs,yfinance,2026-08-27
+9006,Keikyu Corporation,eps,FY2027,consensus,116.69498,jpy,yfinance,2026-08-27
+9006,Keikyu Corporation,net_sales,FY2027,consensus,387800000000.0,jpy_abs,yfinance,2026-08-27
+9006,Keikyu Corporation,eps,FY2028,consensus,110.0441,jpy,yfinance,2026-08-27
+9006,Keikyu Corporation,net_sales,FY2028,consensus,370050000000.0,jpy_abs,yfinance,2026-08-27
+9007,"Odakyu Electric Railway Co.,Ltd.",eps,FY2027,consensus,116.16068,jpy,yfinance,2026-08-27
+9007,"Odakyu Electric Railway Co.,Ltd.",net_sales,FY2027,consensus,456609715580.0,jpy_abs,yfinance,2026-08-27
+9007,"Odakyu Electric Railway Co.,Ltd.",eps,FY2028,consensus,124.01852,jpy,yfinance,2026-08-27
+9007,"Odakyu Electric Railway Co.,Ltd.",net_sales,FY2028,consensus,476259653860.0,jpy_abs,yfinance,2026-08-27
+9008,Keio Corporation,eps,FY2027,consensus,73.26528,jpy,yfinance,2026-08-27
+9008,Keio Corporation,net_sales,FY2027,consensus,510180000000.0,jpy_abs,yfinance,2026-08-27
+9008,Keio Corporation,eps,FY2028,consensus,69.16318,jpy,yfinance,2026-08-27
+9008,Keio Corporation,net_sales,FY2028,consensus,535320000000.0,jpy_abs,yfinance,2026-08-27
+9009,"Keisei Electric Railway Co.,Ltd.",eps,FY2027,consensus,90.99306,jpy,yfinance,2026-08-27
+9009,"Keisei Electric Railway Co.,Ltd.",net_sales,FY2027,consensus,350189002400.0,jpy_abs,yfinance,2026-08-27
+9009,"Keisei Electric Railway Co.,Ltd.",eps,FY2028,consensus,97.50958,jpy,yfinance,2026-08-27
+9009,"Keisei Electric Railway Co.,Ltd.",net_sales,FY2028,consensus,363778262700.0,jpy_abs,yfinance,2026-08-27
+9021,West Japan Railway Company,eps,FY2027,consensus,227.82185,jpy,yfinance,2026-08-27
+9021,West Japan Railway Company,net_sales,FY2027,consensus,1842634000000.0,jpy_abs,yfinance,2026-08-27
+9021,West Japan Railway Company,eps,FY2028,consensus,225.46858,jpy,yfinance,2026-08-27
+9021,West Japan Railway Company,net_sales,FY2028,consensus,1894169416950.0,jpy_abs,yfinance,2026-08-27
+9022,Central Japan Railway Company,eps,FY2027,consensus,506.65994,jpy,yfinance,2026-08-27
+9022,Central Japan Railway Company,net_sales,FY2027,consensus,2027518843340.0,jpy_abs,yfinance,2026-08-27
+9022,Central Japan Railway Company,eps,FY2028,consensus,514.6549,jpy,yfinance,2026-08-27
+9022,Central Japan Railway Company,net_sales,FY2028,consensus,2074863343080.0,jpy_abs,yfinance,2026-08-27
+9024,SEIBU HOLDINGS INC.,eps,FY2027,consensus,113.1865,jpy,yfinance,2026-08-27
+9024,SEIBU HOLDINGS INC.,net_sales,FY2027,consensus,572762060340.0,jpy_abs,yfinance,2026-08-27
+9024,SEIBU HOLDINGS INC.,eps,FY2028,consensus,188.27383,jpy,yfinance,2026-08-27
+9024,SEIBU HOLDINGS INC.,net_sales,FY2028,consensus,603382022840.0,jpy_abs,yfinance,2026-08-27
+9031,"Nishi-Nippon Railroad Co.,Ltd.",eps,FY2027,consensus,315.2632,jpy,yfinance,2026-08-27
+9031,"Nishi-Nippon Railroad Co.,Ltd.",net_sales,FY2027,consensus,502800000000.0,jpy_abs,yfinance,2026-08-27
+9031,"Nishi-Nippon Railroad Co.,Ltd.",eps,FY2028,consensus,298.02646,jpy,yfinance,2026-08-27
+9031,"Nishi-Nippon Railroad Co.,Ltd.",net_sales,FY2028,consensus,522650000000.0,jpy_abs,yfinance,2026-08-27
+9041,"Kintetsu Group Holdings Co.,Ltd.",eps,FY2027,consensus,252.7007,jpy,yfinance,2026-08-27
+9041,"Kintetsu Group Holdings Co.,Ltd.",net_sales,FY2027,consensus,1888700000000.0,jpy_abs,yfinance,2026-08-27
+9041,"Kintetsu Group Holdings Co.,Ltd.",eps,FY2028,consensus,267.38745,jpy,yfinance,2026-08-27
+9041,"Kintetsu Group Holdings Co.,Ltd.",net_sales,FY2028,consensus,1962650000000.0,jpy_abs,yfinance,2026-08-27
+9045,"Keihan Holdings Co.,Ltd.",eps,FY2027,consensus,296.3197,jpy,yfinance,2026-08-27
+9045,"Keihan Holdings Co.,Ltd.",net_sales,FY2027,consensus,330850000000.0,jpy_abs,yfinance,2026-08-27
+9045,"Keihan Holdings Co.,Ltd.",eps,FY2028,consensus,289.41434,jpy,yfinance,2026-08-27
+9045,"Keihan Holdings Co.,Ltd.",net_sales,FY2028,consensus,338200000000.0,jpy_abs,yfinance,2026-08-27
+9065,SANKYU INC.,eps,FY2027,consensus,693.2414,jpy,yfinance,2026-08-27
+9065,SANKYU INC.,net_sales,FY2027,consensus,645566666670.0,jpy_abs,yfinance,2026-08-27
+9065,SANKYU INC.,eps,FY2028,consensus,716.117,jpy,yfinance,2026-08-27
+9065,SANKYU INC.,net_sales,FY2028,consensus,652183333330.0,jpy_abs,yfinance,2026-08-27
+9069,"SENKO Group Holdings Co.,Ltd.",eps,FY2027,consensus,145.43777,jpy,yfinance,2026-08-27
+9069,"SENKO Group Holdings Co.,Ltd.",net_sales,FY2027,consensus,1008960714290.0,jpy_abs,yfinance,2026-08-27
+9069,"SENKO Group Holdings Co.,Ltd.",eps,FY2028,consensus,155.39227,jpy,yfinance,2026-08-27
+9069,"SENKO Group Holdings Co.,Ltd.",net_sales,FY2028,consensus,1052841000000.0,jpy_abs,yfinance,2026-08-27
+9101,Nippon Yusen Kabushiki Kaisha,eps,FY2027,consensus,591.57166,jpy,yfinance,2026-08-27
+9101,Nippon Yusen Kabushiki Kaisha,net_sales,FY2027,consensus,2699763242100.0,jpy_abs,yfinance,2026-08-27
+9101,Nippon Yusen Kabushiki Kaisha,eps,FY2028,consensus,493.974,jpy,yfinance,2026-08-27
+9101,Nippon Yusen Kabushiki Kaisha,net_sales,FY2028,consensus,2766717612420.0,jpy_abs,yfinance,2026-08-27
+9104,"Mitsui O.S.K.Lines,Ltd.",eps,FY2027,consensus,681.1314,jpy,yfinance,2026-08-27
+9104,"Mitsui O.S.K.Lines,Ltd.",net_sales,FY2027,consensus,2082127895930.0,jpy_abs,yfinance,2026-08-27
+9104,"Mitsui O.S.K.Lines,Ltd.",eps,FY2028,consensus,581.2212,jpy,yfinance,2026-08-27
+9104,"Mitsui O.S.K.Lines,Ltd.",net_sales,FY2028,consensus,2161292407680.0,jpy_abs,yfinance,2026-08-27
+9107,"Kawasaki Kisen Kaisha,Ltd.",eps,FY2027,consensus,215.05418,jpy,yfinance,2026-08-27
+9107,"Kawasaki Kisen Kaisha,Ltd.",net_sales,FY2027,consensus,1074790656759.0,jpy_abs,yfinance,2026-08-27
+9107,"Kawasaki Kisen Kaisha,Ltd.",eps,FY2028,consensus,198.63947,jpy,yfinance,2026-08-27
+9107,"Kawasaki Kisen Kaisha,Ltd.",net_sales,FY2028,consensus,1106817525990.0,jpy_abs,yfinance,2026-08-27
+9110,"NS United Kaiun Kaisha,Ltd.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+9110,"NS United Kaiun Kaisha,Ltd.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+9142,Kyushu Railway Company,eps,FY2027,consensus,331.89963,jpy,yfinance,2026-08-27
+9142,Kyushu Railway Company,net_sales,FY2027,consensus,524332130470.0,jpy_abs,yfinance,2026-08-27
+9142,Kyushu Railway Company,eps,FY2028,consensus,369.88437,jpy,yfinance,2026-08-27
+9142,Kyushu Railway Company,net_sales,FY2028,consensus,555965361390.0,jpy_abs,yfinance,2026-08-27
+9143,"SG HOLDINGS CO.,LTD.",eps,FY2027,consensus,104.83688,jpy,yfinance,2026-08-27
+9143,"SG HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,1748895364990.0,jpy_abs,yfinance,2026-08-27
+9143,"SG HOLDINGS CO.,LTD.",eps,FY2028,consensus,115.04999,jpy,yfinance,2026-08-27
+9143,"SG HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,1815118553840.0,jpy_abs,yfinance,2026-08-27
+9201,"Japan Airlines Co.,Ltd.",eps,FY2027,consensus,219.47847,jpy,yfinance,2026-08-27
+9201,"Japan Airlines Co.,Ltd.",net_sales,FY2027,consensus,2182716702699.0,jpy_abs,yfinance,2026-08-27
+9201,"Japan Airlines Co.,Ltd.",eps,FY2028,consensus,284.28558,jpy,yfinance,2026-08-27
+9201,"Japan Airlines Co.,Ltd.",net_sales,FY2028,consensus,2232628468220.0,jpy_abs,yfinance,2026-08-27
+9202,ANA HOLDINGS INC.,eps,FY2027,consensus,257.01965,jpy,yfinance,2026-08-27
+9202,ANA HOLDINGS INC.,net_sales,FY2027,consensus,2796647010270.0,jpy_abs,yfinance,2026-08-27
+9202,ANA HOLDINGS INC.,eps,FY2028,consensus,339.74127,jpy,yfinance,2026-08-27
+9202,ANA HOLDINGS INC.,net_sales,FY2028,consensus,2840734402740.0,jpy_abs,yfinance,2026-08-27
+9336,"Daiei Kankyo Co.,Ltd.",eps,FY2027,consensus,167.775,jpy,yfinance,2026-08-27
+9336,"Daiei Kankyo Co.,Ltd.",net_sales,FY2027,consensus,96375000000.0,jpy_abs,yfinance,2026-08-27
+9336,"Daiei Kankyo Co.,Ltd.",eps,FY2028,consensus,181.4,jpy,yfinance,2026-08-27
+9336,"Daiei Kankyo Co.,Ltd.",net_sales,FY2028,consensus,102550000000.0,jpy_abs,yfinance,2026-08-27
+9418,"U-NEXT HOLDINGS Co.,Ltd.",eps,FY2026,consensus,102.2,jpy,yfinance,2026-08-27
+9418,"U-NEXT HOLDINGS Co.,Ltd.",net_sales,FY2026,consensus,459095666670.0,jpy_abs,yfinance,2026-08-27
+9418,"U-NEXT HOLDINGS Co.,Ltd.",eps,FY2027,consensus,110.26667,jpy,yfinance,2026-08-27
+9418,"U-NEXT HOLDINGS Co.,Ltd.",net_sales,FY2027,consensus,510248000000.0,jpy_abs,yfinance,2026-08-27
+9432,"NTT,Inc.",eps,FY2027,consensus,12.56552,jpy,yfinance,2026-08-27
+9432,"NTT,Inc.",net_sales,FY2027,consensus,15109668655200.0,jpy_abs,yfinance,2026-08-27
+9432,"NTT,Inc.",eps,FY2028,consensus,13.52129,jpy,yfinance,2026-08-27
+9432,"NTT,Inc.",net_sales,FY2028,consensus,15620342180540.0,jpy_abs,yfinance,2026-08-27
+9434,SoftBank Corp.,eps,FY2027,consensus,12.06268,jpy,yfinance,2026-08-27
+9434,SoftBank Corp.,net_sales,FY2027,consensus,7570120268300.0,jpy_abs,yfinance,2026-08-27
+9434,SoftBank Corp.,eps,FY2028,consensus,13.09634,jpy,yfinance,2026-08-27
+9434,SoftBank Corp.,net_sales,FY2028,consensus,8009422869420.0,jpy_abs,yfinance,2026-08-27
+9435,"HIKARI TSUSHIN,INC.",eps,FY2027,consensus,2798.9497,jpy,yfinance,2026-08-27
+9435,"HIKARI TSUSHIN,INC.",net_sales,FY2027,consensus,819009968000.0,jpy_abs,yfinance,2026-08-27
+9435,"HIKARI TSUSHIN,INC.",eps,FY2028,consensus,3044.4294,jpy,yfinance,2026-08-27
+9435,"HIKARI TSUSHIN,INC.",net_sales,FY2028,consensus,879637362000.0,jpy_abs,yfinance,2026-08-27
+9449,"GMO internet group,Inc.",eps,FY2026,consensus,216.32333,jpy,yfinance,2026-08-27
+9449,"GMO internet group,Inc.",net_sales,FY2026,consensus,309294000000.0,jpy_abs,yfinance,2026-08-27
+9449,"GMO internet group,Inc.",eps,FY2027,consensus,258.7275,jpy,yfinance,2026-08-27
+9449,"GMO internet group,Inc.",net_sales,FY2027,consensus,334518750000.0,jpy_abs,yfinance,2026-08-27
+9502,"Chubu Electric Power Company,Incorporated",eps,FY2027,consensus,227.83167,jpy,yfinance,2026-08-27
+9502,"Chubu Electric Power Company,Incorporated",net_sales,FY2027,consensus,3787266666670.0,jpy_abs,yfinance,2026-08-27
+9502,"Chubu Electric Power Company,Incorporated",eps,FY2028,consensus,292.74332,jpy,yfinance,2026-08-27
+9502,"Chubu Electric Power Company,Incorporated",net_sales,FY2028,consensus,3821583333330.0,jpy_abs,yfinance,2026-08-27
+9503,"The Kansai Electric Power Company,Incorporated",eps,FY2027,consensus,284.1875,jpy,yfinance,2026-08-27
+9503,"The Kansai Electric Power Company,Incorporated",net_sales,FY2027,consensus,4364983333330.0,jpy_abs,yfinance,2026-08-27
+9503,"The Kansai Electric Power Company,Incorporated",eps,FY2028,consensus,242.74333,jpy,yfinance,2026-08-27
+9503,"The Kansai Electric Power Company,Incorporated",net_sales,FY2028,consensus,4387450000000.0,jpy_abs,yfinance,2026-08-27
+9504,"The Chugoku Electric Power Company,Incorporated",eps,FY2027,consensus,113.3775,jpy,yfinance,2026-08-27
+9504,"The Chugoku Electric Power Company,Incorporated",net_sales,FY2027,consensus,1529000000000.0,jpy_abs,yfinance,2026-08-27
+9504,"The Chugoku Electric Power Company,Incorporated",eps,FY2028,consensus,167.8075,jpy,yfinance,2026-08-27
+9504,"The Chugoku Electric Power Company,Incorporated",net_sales,FY2028,consensus,1526333333330.0,jpy_abs,yfinance,2026-08-27
+9505,Hokuriku Electric Power Company,eps,FY2027,consensus,137.3825,jpy,yfinance,2026-08-27
+9505,Hokuriku Electric Power Company,net_sales,FY2027,consensus,780000000000.0,jpy_abs,yfinance,2026-08-27
+9505,Hokuriku Electric Power Company,eps,FY2028,consensus,173.18,jpy,yfinance,2026-08-27
+9505,Hokuriku Electric Power Company,net_sales,FY2028,consensus,792666666670.0,jpy_abs,yfinance,2026-08-27
+9506,"Tohoku Electric Power Company,Incorporated",eps,FY2027,consensus,233.695,jpy,yfinance,2026-08-27
+9506,"Tohoku Electric Power Company,Incorporated",net_sales,FY2027,consensus,2436400000000.0,jpy_abs,yfinance,2026-08-27
+9506,"Tohoku Electric Power Company,Incorporated",eps,FY2028,consensus,210.335,jpy,yfinance,2026-08-27
+9506,"Tohoku Electric Power Company,Incorporated",net_sales,FY2028,consensus,2425366666670.0,jpy_abs,yfinance,2026-08-27
+9507,"Shikoku Electric Power Company,Incorporated",eps,FY2027,consensus,178.2275,jpy,yfinance,2026-08-27
+9507,"Shikoku Electric Power Company,Incorporated",net_sales,FY2027,consensus,877600000000.0,jpy_abs,yfinance,2026-08-27
+9507,"Shikoku Electric Power Company,Incorporated",eps,FY2028,consensus,217.5875,jpy,yfinance,2026-08-27
+9507,"Shikoku Electric Power Company,Incorporated",net_sales,FY2028,consensus,863000000000.0,jpy_abs,yfinance,2026-08-27
+9508,"Kyushu Electric Power Company,Incorporated",eps,FY2027,consensus,280.90668,jpy,yfinance,2026-08-27
+9508,"Kyushu Electric Power Company,Incorporated",net_sales,FY2027,consensus,2296566666670.0,jpy_abs,yfinance,2026-08-27
+9508,"Kyushu Electric Power Company,Incorporated",eps,FY2028,consensus,300.27167,jpy,yfinance,2026-08-27
+9508,"Kyushu Electric Power Company,Incorporated",net_sales,FY2028,consensus,2308983333330.0,jpy_abs,yfinance,2026-08-27
+9509,"Hokkaido Electric Power Company,Incorporated",eps,FY2027,consensus,127.425,jpy,yfinance,2026-08-27
+9509,"Hokkaido Electric Power Company,Incorporated",net_sales,FY2027,consensus,957700000000.0,jpy_abs,yfinance,2026-08-27
+9509,"Hokkaido Electric Power Company,Incorporated",eps,FY2028,consensus,174.67,jpy,yfinance,2026-08-27
+9509,"Hokkaido Electric Power Company,Incorporated",net_sales,FY2028,consensus,957175000000.0,jpy_abs,yfinance,2026-08-27
+9513,"Electric Power Development Co.,Ltd.",eps,FY2027,consensus,474.402,jpy,yfinance,2026-08-27
+9513,"Electric Power Development Co.,Ltd.",net_sales,FY2027,consensus,1394600000000.0,jpy_abs,yfinance,2026-08-27
+9513,"Electric Power Development Co.,Ltd.",eps,FY2028,consensus,447.226,jpy,yfinance,2026-08-27
+9513,"Electric Power Development Co.,Ltd.",net_sales,FY2028,consensus,1375916666670.0,jpy_abs,yfinance,2026-08-27
+9531,"TOKYO GAS CO.,LTD.",eps,FY2027,consensus,374.064,jpy,yfinance,2026-08-27
+9531,"TOKYO GAS CO.,LTD.",net_sales,FY2027,consensus,3040433333330.0,jpy_abs,yfinance,2026-08-27
+9531,"TOKYO GAS CO.,LTD.",eps,FY2028,consensus,433.20834,jpy,yfinance,2026-08-27
+9531,"TOKYO GAS CO.,LTD.",net_sales,FY2028,consensus,3022016666670.0,jpy_abs,yfinance,2026-08-27
+9532,"OSAKA GAS CO.,LTD.",eps,FY2027,consensus,381.9,jpy,yfinance,2026-08-27
+9532,"OSAKA GAS CO.,LTD.",net_sales,FY2027,consensus,2293875000000.0,jpy_abs,yfinance,2026-08-27
+9532,"OSAKA GAS CO.,LTD.",eps,FY2028,consensus,428.11832,jpy,yfinance,2026-08-27
+9532,"OSAKA GAS CO.,LTD.",net_sales,FY2028,consensus,2212766666670.0,jpy_abs,yfinance,2026-08-27
+9602,"TOHO CO.,LTD",eps,FY2027,consensus,58.54642,jpy,yfinance,2026-08-27
+9602,"TOHO CO.,LTD",net_sales,FY2027,consensus,363061404180.0,jpy_abs,yfinance,2026-08-27
+9602,"TOHO CO.,LTD",eps,FY2028,consensus,65.90544,jpy,yfinance,2026-08-27
+9602,"TOHO CO.,LTD",net_sales,FY2028,consensus,383101291560.0,jpy_abs,yfinance,2026-08-27
+9616,"KYORITSU MAINTENANCE CO.,LTD.",eps,FY2027,consensus,202.7625,jpy,yfinance,2026-08-27
+9616,"KYORITSU MAINTENANCE CO.,LTD.",net_sales,FY2027,consensus,275096674380.0,jpy_abs,yfinance,2026-08-27
+9616,"KYORITSU MAINTENANCE CO.,LTD.",eps,FY2028,consensus,226.6925,jpy,yfinance,2026-08-27
+9616,"KYORITSU MAINTENANCE CO.,LTD.",net_sales,FY2028,consensus,291646814750.0,jpy_abs,yfinance,2026-08-27
+9682,DTS CORPORATION,eps,FY2027,consensus,74.9,jpy,yfinance,2026-08-27
+9682,DTS CORPORATION,net_sales,FY2027,consensus,142675000000.0,jpy_abs,yfinance,2026-08-27
+9682,DTS CORPORATION,eps,FY2028,consensus,82.2,jpy,yfinance,2026-08-27
+9682,DTS CORPORATION,net_sales,FY2028,consensus,149743333330.0,jpy_abs,yfinance,2026-08-27
+9684,"SQUARE ENIX HOLDINGS CO.,LTD.",eps,FY2027,consensus,112.97562,jpy,yfinance,2026-08-27
+9684,"SQUARE ENIX HOLDINGS CO.,LTD.",net_sales,FY2027,consensus,314606603750.0,jpy_abs,yfinance,2026-08-27
+9684,"SQUARE ENIX HOLDINGS CO.,LTD.",eps,FY2028,consensus,117.90912,jpy,yfinance,2026-08-27
+9684,"SQUARE ENIX HOLDINGS CO.,LTD.",net_sales,FY2028,consensus,326607848290.0,jpy_abs,yfinance,2026-08-27
+9697,"CAPCOM CO.,LTD.",eps,FY2027,consensus,150.92636,jpy,yfinance,2026-08-27
+9697,"CAPCOM CO.,LTD.",net_sales,FY2027,consensus,219742011880.0,jpy_abs,yfinance,2026-08-27
+9697,"CAPCOM CO.,LTD.",eps,FY2028,consensus,173.65169,jpy,yfinance,2026-08-27
+9697,"CAPCOM CO.,LTD.",net_sales,FY2028,consensus,242326988820.0,jpy_abs,yfinance,2026-08-27
+9706,"Japan Airport Terminal Co.,ltd.",eps,FY2027,consensus,286.1276,jpy,yfinance,2026-08-27
+9706,"Japan Airport Terminal Co.,ltd.",net_sales,FY2027,consensus,300935160620.0,jpy_abs,yfinance,2026-08-27
+9706,"Japan Airport Terminal Co.,ltd.",eps,FY2028,consensus,294.23285,jpy,yfinance,2026-08-27
+9706,"Japan Airport Terminal Co.,ltd.",net_sales,FY2028,consensus,312190368500.0,jpy_abs,yfinance,2026-08-27
+9735,"SECOM CO.,LTD.",eps,FY2027,consensus,291.606,jpy,yfinance,2026-08-27
+9735,"SECOM CO.,LTD.",net_sales,FY2027,consensus,1314152000000.0,jpy_abs,yfinance,2026-08-27
+9735,"SECOM CO.,LTD.",eps,FY2028,consensus,325.98,jpy,yfinance,2026-08-27
+9735,"SECOM CO.,LTD.",net_sales,FY2028,consensus,1368324000000.0,jpy_abs,yfinance,2026-08-27
+9744,MEITEC Group Holdings Inc.,eps,FY2027,consensus,183.755,jpy,yfinance,2026-08-27
+9744,MEITEC Group Holdings Inc.,net_sales,FY2027,consensus,141305287280.0,jpy_abs,yfinance,2026-08-27
+9744,MEITEC Group Holdings Inc.,eps,FY2028,consensus,190.356,jpy,yfinance,2026-08-27
+9744,MEITEC Group Holdings Inc.,net_sales,FY2028,consensus,144425412590.0,jpy_abs,yfinance,2026-08-27
+9759,"NSD CO.,LTD.",eps,FY2027,consensus,180.45,jpy,yfinance,2026-08-27
+9759,"NSD CO.,LTD.",net_sales,FY2027,consensus,126300000000.0,jpy_abs,yfinance,2026-08-27
+9759,"NSD CO.,LTD.",eps,FY2028,consensus,199.4,jpy,yfinance,2026-08-27
+9759,"NSD CO.,LTD.",net_sales,FY2028,consensus,135285000000.0,jpy_abs,yfinance,2026-08-27
+9766,KONAMI GROUP CORPORATION,eps,FY2027,consensus,928.1802,jpy,yfinance,2026-08-27
+9766,KONAMI GROUP CORPORATION,net_sales,FY2027,consensus,556225910390.0,jpy_abs,yfinance,2026-08-27
+9766,KONAMI GROUP CORPORATION,eps,FY2028,consensus,1028.72,jpy,yfinance,2026-08-27
+9766,KONAMI GROUP CORPORATION,net_sales,FY2028,consensus,595474332560.0,jpy_abs,yfinance,2026-08-27
+9843,"Nitori Holdings Co.,Ltd.",eps,FY2027,consensus,167.06,jpy,yfinance,2026-08-27
+9843,"Nitori Holdings Co.,Ltd.",net_sales,FY2027,consensus,1038022444440.0,jpy_abs,yfinance,2026-08-27
+9843,"Nitori Holdings Co.,Ltd.",eps,FY2028,consensus,179.1,jpy,yfinance,2026-08-27
+9843,"Nitori Holdings Co.,Ltd.",net_sales,FY2028,consensus,1106000000000.0,jpy_abs,yfinance,2026-08-27
+9934,"INABA DENKISANGYO CO.,LTD.",net_sales,FY2027,consensus,0.0,jpy_abs,yfinance,2026-08-27
+9934,"INABA DENKISANGYO CO.,LTD.",net_sales,FY2028,consensus,0.0,jpy_abs,yfinance,2026-08-27
+9962,MISUMI Group Inc.,eps,FY2027,consensus,183.42374,jpy,yfinance,2026-08-27
+9962,MISUMI Group Inc.,net_sales,FY2027,consensus,521825000000.0,jpy_abs,yfinance,2026-08-27
+9962,MISUMI Group Inc.,eps,FY2028,consensus,200.97112,jpy,yfinance,2026-08-27
+9962,MISUMI Group Inc.,net_sales,FY2028,consensus,556800000000.0,jpy_abs,yfinance,2026-08-27
+9983,"FAST RETAILING CO.,LTD.",eps,FY2026,consensus,1671.5869,jpy,yfinance,2026-08-27
+9983,"FAST RETAILING CO.,LTD.",net_sales,FY2026,consensus,3964541473020.0,jpy_abs,yfinance,2026-08-27
+9983,"FAST RETAILING CO.,LTD.",eps,FY2027,consensus,1887.1532,jpy,yfinance,2026-08-27
+9983,"FAST RETAILING CO.,LTD.",net_sales,FY2027,consensus,4417843488640.0,jpy_abs,yfinance,2026-08-27
+9984,SoftBank Group Corp.,eps,FY2027,consensus,188.07187,jpy,yfinance,2026-08-27
+9984,SoftBank Group Corp.,net_sales,FY2027,consensus,8461481003270.0,jpy_abs,yfinance,2026-08-27
+9984,SoftBank Group Corp.,eps,FY2028,consensus,117.96302,jpy,yfinance,2026-08-27
+9984,SoftBank Group Corp.,net_sales,FY2028,consensus,9064817068490.0,jpy_abs,yfinance,2026-08-27
+9989,"SUNDRUG CO.,LTD.",eps,FY2027,consensus,284.57227,jpy,yfinance,2026-08-27
+9989,"SUNDRUG CO.,LTD.",net_sales,FY2027,consensus,894457142860.0,jpy_abs,yfinance,2026-08-27
+9989,"SUNDRUG CO.,LTD.",eps,FY2028,consensus,305.68222,jpy,yfinance,2026-08-27
+9989,"SUNDRUG CO.,LTD.",net_sales,FY2028,consensus,950671428570.0,jpy_abs,yfinance,2026-08-27
