@@ -38,6 +38,73 @@ _JQ_BASE = "https://api.jquants.com/v2"
 _TIMEOUT = 20
 
 
+def diagnose_key(api_key: str) -> list:
+    """Describe what is wrong with a rejected key without ever printing it.
+
+    Two rounds were lost to a 403 whose only message was "invalid or expired",
+    which covers several very different mistakes. This separates them:
+
+      - a value pasted with a trailing newline (GitHub stores secrets verbatim)
+      - a V1 ID token pasted where a V2 API key belongs; those are JWTs and
+        expire after 24 hours, which matches "expired" exactly
+      - an opaque key that is simply wrong or revoked
+
+    A JWT's payload is base64, not encrypted, so its expiry can be read locally.
+    Only the expiry and the shape are reported — never the value."""
+    import base64
+    import json as _json
+
+    notes = []
+    if not api_key:
+        return ["The secret is empty."]
+    if api_key != api_key.strip():
+        notes.append("The value has leading or trailing whitespace — GitHub stores "
+                     "secrets verbatim, so a stray newline from copy-paste ends up "
+                     "in the header. Re-paste without it. (Collector calls now "
+                     "strip it, so this alone should no longer cause a 403.)")
+    notes.append(f"Key shape: {len(api_key.strip())} characters, "
+                 f"{'dot-separated (JWT-like)' if api_key.strip().count('.') == 2 else 'opaque'}.")
+
+    parts = api_key.strip().split(".")
+    if len(parts) == 3:
+        notes.append("This looks like a **V1 ID token**, not a V2 API key. V2 wants the "
+                     "key from the J-Quants dashboard; ID tokens are the deprecated "
+                     "V1 flow and last only 24 hours.")
+        try:
+            pad = parts[1] + "=" * (-len(parts[1]) % 4)
+            claims = _json.loads(base64.urlsafe_b64decode(pad))
+            exp = claims.get("exp")
+            if exp:
+                when = datetime.fromtimestamp(exp, tz=timezone.utc)
+                state = "EXPIRED" if when < datetime.now(timezone.utc) else "still valid"
+                notes.append(f"Token expiry: {when.isoformat()} ({state}).")
+        except Exception:
+            notes.append("Could not read an expiry from it.")
+    return notes
+
+
+def probe_auth(api_key: str, code: str) -> list:
+    """Try each auth style against the API and report the status of each, so a
+    wrong *scheme* is distinguishable from a wrong *key*."""
+    import requests
+    results = []
+    attempts = (
+        ("v2 + x-api-key (expected)", f"{_JQ_BASE}/fins/summary", {"x-api-key": api_key}),
+        ("v2 + Bearer",               f"{_JQ_BASE}/fins/summary",
+         {"Authorization": f"Bearer {api_key}"}),
+        ("v1 + Bearer (deprecated)",  "https://api.jquants.com/v1/fins/statements",
+         {"Authorization": f"Bearer {api_key}"}),
+    )
+    for label, url, headers in attempts:
+        try:
+            r = requests.get(url, headers=headers, params={"code": code}, timeout=_TIMEOUT)
+            body = (r.text or "")[:110].replace("\n", " ")
+            results.append(f"  {label:28} HTTP {r.status_code}  {body}")
+        except Exception as exc:
+            results.append(f"  {label:28} request failed: {exc}")
+    return results
+
+
 class JQuantsAuthError(RuntimeError):
     """The key was rejected. Distinct from a per-company failure because it
     will fail identically for every remaining company — the first live run
@@ -321,13 +388,28 @@ def main() -> int:
     ap.add_argument("--sleep", type=float, default=0.6, help="delay between companies")
     args = ap.parse_args()
 
-    api_key = os.environ.get("JQUANTS_API_KEY", "")
+    # GitHub stores secrets verbatim, so a newline picked up while copying
+    # travels into the auth header and reads as an invalid key.
+    api_key = os.environ.get("JQUANTS_API_KEY", "").strip()
 
     if args.probe:
         if not api_key:
             print("ERROR: --probe needs JQUANTS_API_KEY.", file=sys.stderr)
             return 1
-        records = fetch_jq_summary(api_key, args.probe)
+        try:
+            records = fetch_jq_summary(api_key, args.probe)
+        except JQuantsAuthError as exc:
+            print(f"::error title=J-Quants key rejected::{exc}")
+            print("\nThe key was rejected. What that usually means:\n")
+            for note in diagnose_key(os.environ.get("JQUANTS_API_KEY", "")):
+                print(f"  - {note}")
+            print("\nSame request, each auth style:")
+            for line in probe_auth(api_key, args.probe):
+                print(line)
+            print("\nGet a V2 API key from the dashboard at https://jpx-jquants.com "
+                  "(not EDINET — different service), and set it as the JQUANTS_API_KEY "
+                  "repo secret under Settings -> Secrets and variables -> Actions.")
+            return 1
         if not records:
             print(f"No /fins/summary records for {args.probe}.")
             return 1

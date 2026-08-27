@@ -33,10 +33,12 @@ def get_jquants_secret() -> str:
         import streamlit as st
         val = st.secrets.get("JQUANTS_API_KEY", "")
         if val:
-            return val
+            # Stripped because a secret pasted with a trailing newline carries it
+            # into the auth header, where it reads as an invalid key.
+            return val.strip()
     except Exception:
         pass
-    return os.environ.get("JQUANTS_API_KEY", "")
+    return os.environ.get("JQUANTS_API_KEY", "").strip()
 
 
 # ── Authentication ────────────────────────────────────────────────────────────
