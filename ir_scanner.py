@@ -341,8 +341,21 @@ def _is_generic_label(text: str) -> bool:
 
 # A trailing size badge — "(620KB)", "[86KB]", "(1.40MB)" — and a trailing bare
 # format word, which IR pages glue straight onto the link text.
+# The inner run must not cross a bracket of its own, or an unbalanced label
+# like "PDF(with script (1.07MB)" is matched from its *first* parenthesis and
+# the whole "(with script (1.07MB)" disappears — taking with it the one word
+# that tells a deck apart from the same deck with speaker notes.
 _SIZE_BADGE_RE = re.compile(
-    r'\s*[\(（\[［][^)\]）］]*?\d[\d.,]*\s*[kmg]?i?b[^)\]）］]*[\)）\]］]\s*$',
+    r'\s*[\(（\[［][^()\[\]（）［］]*?\d[\d.,]*\s*[kmg]?i?b[^()\[\]（）［］]*[\)）\]］]\s*$',
+    re.IGNORECASE,
+)
+
+# An opening bracket with no closing bracket after it — the residue of markup
+# like "PDF(with script (1.07MB)" once the size badge is gone. Drop the stray
+# bracket and any format word glued in front of it, keeping the words.
+_UNBALANCED_OPEN_RE = re.compile(
+    r'\s*(?:pdf|ppt[xm]?|xls[xm]?|doc[xm]?|zip|excel)?\s*[\(（\[［]\s*'
+    r'(?=[^()\[\]（）［］]*$)',
     re.IGNORECASE,
 )
 _TRAILING_FORMAT_RE = re.compile(
@@ -362,6 +375,9 @@ def _strip_format_noise(text: str) -> str:
     for _ in range(3):
         before = out
         out = _SIZE_BADGE_RE.sub("", out).strip()
+        tidied = _UNBALANCED_OPEN_RE.sub(" ", out).strip()
+        if _HAS_WORD_RE.search(tidied):
+            out = re.sub(r"\s{2,}", " ", tidied)
         without_format = _TRAILING_FORMAT_RE.sub("", out).strip()
         if without_format:  # never reduce the label to nothing
             out = without_format
@@ -400,6 +416,49 @@ def _loose_text(ancestor) -> str:
         if t:
             bits.append(t)
     return " ".join(bits)
+
+
+# "Presenter: Shiro Kondo President and COO" sits between a sub-heading and its
+# documents on most Japanese IR pages. It identifies a person, not a document,
+# so it is skipped in favour of the heading above it.
+_PRESENTER_RE = re.compile(r'^\s*(presenter|presented by|speaker|登壇者|説明者|発表者)\s*[:：]?',
+                           re.IGNORECASE)
+# A caption has to contain actual words — this rejects leftovers like "(1.07MB)"
+# and "→", which are meaningful() but say nothing.
+_HAS_WORD_RE = re.compile(r'[A-Za-z\u3040-\u30ff\u4e00-\u9fff]{3,}')
+
+
+def _is_caption(text: str) -> bool:
+    return bool(text) and bool(_HAS_WORD_RE.search(text)) and not _PRESENTER_RE.match(text)
+
+
+def _cell_captions(cell) -> dict:
+    """{id(<a>): the sub-heading it sits under, within this one cell}.
+
+    A single IR table cell routinely lists several documents under their own
+    sub-headings — "Energy Business Strategies" and its deck and script, then
+    "Semiconductor Business Strategies" and its pair, and so on. Every one of
+    those links has the same visible text ("Presentation Material PDF(3.51MB)"),
+    and the cell's text as a whole is one undifferentiated blob, so without
+    reading the headings each document ends up with an identical title
+    distinguishable only by its filename stem.
+
+    Walks the cell in document order, keeping the last heading seen. The
+    heading stays with every link beneath it, so a deck and its with-script
+    twin share one caption rather than only the first getting it."""
+    links = cell.find_all("a", href=True)
+    if len(links) < 2:
+        return {}          # a lone link needs no telling apart
+    out, caption = {}, ""
+    for node in cell.descendants:
+        if getattr(node, "name", None) == "a" and node.get("href"):
+            if caption:
+                out[id(node)] = caption[:120]
+        elif isinstance(node, str) and node.find_parent("a") is None:
+            text = re.sub(r"\s+", " ", str(node)).strip()
+            if _is_caption(text):
+                caption = text
+    return out
 
 
 def _nearby_context_text(a_tag) -> str:
@@ -645,7 +704,7 @@ def build_table_link_context(soup) -> dict:
             continue
         header_rows = _header_row_indices(grid)
 
-        entries = []          # (link, row_label, col_label, cell_text, col_span)
+        entries = []          # (link, row_label, col_label, cell_text, caption)
         col_labels, row_labels = set(), set()
         cells_by_col = {}     # col_label -> [cell, ...], for year resolution
         for r, (_, cells) in enumerate(grid):
@@ -663,8 +722,9 @@ def build_table_link_context(soup) -> dict:
                 if row_lbl:
                     row_labels.add(row_lbl)
                 cell_txt = _loose_text(cell)
+                caps = _cell_captions(cell)
                 for link in links:
-                    entries.append((link, row_lbl, col_lbl, cell_txt))
+                    entries.append((link, row_lbl, col_lbl, cell_txt, caps.get(id(link), "")))
         if not entries:
             continue
 
@@ -711,8 +771,8 @@ def build_table_link_context(soup) -> dict:
         # it, whatever mode we settled on.
         structured = bool(header_rows or row_labels or col_labels)
 
-        for link, row_lbl, col_lbl, cell_txt in entries:
-            ctx[id(link)] = {"row": row_lbl, "col": col_lbl, "cell": cell_txt,
+        for link, row_lbl, col_lbl, cell_txt, cap in entries:
+            ctx[id(link)] = {"row": row_lbl, "col": col_lbl, "cell": cell_txt, "caption": cap,
                              "mode": mode, "structured": structured,
                              "axis": axis_period.get(col_lbl if mode == "col" else row_lbl)}
     return ctx
@@ -821,6 +881,16 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
         if not _is_meaningful(cell_text):
             cell_text = ""
         detail = own or cell_text
+
+        # The sub-heading this link sits under, where its cell lists several
+        # documents. Appended rather than substituted: "Presentation Material"
+        # is still what the row calls it, and the caption is what tells this
+        # one apart from the four identical decks beside it.
+        caption = tctx.get("caption", "")
+        if caption and _is_meaningful(caption):
+            low = caption.lower()
+            if low not in (detail or "").lower() and low not in (label or "").lower():
+                detail = f"{detail} · {caption}" if detail else caption
 
         # The row/column heading names the document kind; the link's own text
         # tells apart several links sharing one cell ("Opening remarks by the

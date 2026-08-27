@@ -38,6 +38,13 @@ _JQ_BASE = "https://api.jquants.com/v2"
 _TIMEOUT = 20
 
 
+class JQuantsAuthError(RuntimeError):
+    """The key was rejected. Distinct from a per-company failure because it
+    will fail identically for every remaining company — the first live run
+    spent twelve minutes collecting 400 copies of "The incoming api key is
+    invalid or expired" and reported them as routine retryable failures."""
+
+
 # ── J-Quants ─────────────────────────────────────────────────────────────
 
 def fetch_jq_summary(api_key: str, code: str) -> list:
@@ -50,6 +57,8 @@ def fetch_jq_summary(api_key: str, code: str) -> list:
             params["pagination_key"] = page_key
         r = requests.get(f"{_JQ_BASE}/fins/summary",
                          headers={"x-api-key": api_key}, params=params, timeout=_TIMEOUT)
+        if r.status_code in (401, 403):
+            raise JQuantsAuthError(f"HTTP {r.status_code}: {r.text[:160]}")
         if r.status_code != 200:
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:120]}")
         payload = r.json()
@@ -354,12 +363,24 @@ def main() -> int:
               "Yahoo balance-sheet data are still collected.")
 
     cons_rows, fund_rows, failures = [], [], []
+    auth_failed = False
     for i, row in enumerate(universe, 1):
         code, name = row["Code"], row.get("Name", "")
         guide, jq_fund, jq_as_of, fy1 = {}, {}, "", ""
         if api_key:
             try:
                 guide, jq_fund, jq_as_of, fy1 = company_guidance(fetch_jq_summary(api_key, code))
+            except JQuantsAuthError as exc:
+                # Stop asking. Every remaining company would fail the same way,
+                # and burying one configuration error under 400 identical
+                # retryable-looking lines is how the first run hid it.
+                print(f"::error title=J-Quants key rejected::{exc} — company guidance will be "
+                      f"absent for all {len(universe)} companies. Refresh JQUANTS_API_KEY under "
+                      f"Settings -> Secrets and variables -> Actions and re-run. Consensus and "
+                      f"Yahoo balance-sheet data are unaffected.")
+                auth_failed = True
+                api_key = ""
+                failures.append((code, f"jquants auth: {exc}"))
             except Exception as exc:
                 failures.append((code, f"jquants: {exc}"))
         fy2 = next_fy_label(fy1)
@@ -387,7 +408,8 @@ def main() -> int:
         "ran_at": date.today().isoformat(),
         "universe": len(universe),
         "attempted": len(universe),
-        "jquants_key_present": bool(api_key),
+        "jquants_key_present": bool(os.environ.get("JQUANTS_API_KEY", "")),
+        "jquants_key_rejected": auth_failed,
         "guidance_rows": sum(1 for r in cons_rows if r["basis"] == "company"),
         "consensus_rows": sum(1 for r in cons_rows if r["basis"] == "consensus"),
         "companies_with_guidance": len({r["code"] for r in cons_rows if r["basis"] == "company"}),

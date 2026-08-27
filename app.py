@@ -218,6 +218,30 @@ html, body {
 code, pre, kbd, samp {
     font-family: monospace !important;
 }
+/* Restore the icon font. The universal rule above also lands on Streamlit's
+   icon spans, and those work by *ligature* — the glyph is chosen by the literal
+   word inside the span ("upload", "keyboard_arrow_right"). Force a text face
+   onto them and the ligature never forms, so the raw word renders instead:
+   the file uploader's button read "uploadUpload". */
+span[data-testid="stIconMaterial"], [data-testid*="stIconMaterial"],
+[class*="material-symbols"], [class*="material-icons"],
+.material-icons, .material-symbols-rounded, .material-symbols-outlined {
+    font-family: 'Material Symbols Rounded', 'Material Symbols Outlined',
+                 'Material Icons', sans-serif !important;
+}
+/* Belt and braces on the uploader: this app draws its own labels and emoji, so
+   drop the button's icon entirely. That way the button reads "Upload" even if
+   the icon font fails to load client-side, which this app cannot control. */
+[data-testid="stFileUploader"] button [data-testid="stIconMaterial"],
+[data-testid="stFileUploaderDropzone"] [data-testid="stIconMaterial"] {
+    display: none !important;
+}
+/* Streamlit advertises its server-wide 200MB limit here, which is not the
+   limit that applies — the vision request caps each image far lower. Hide it
+   and state the real one in the caption below the widget. */
+[data-testid="stFileUploaderDropzoneInstructions"] small {
+    display: none !important;
+}
 
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 1rem; padding-bottom: 3rem; max-width: 1060px; }
@@ -3186,7 +3210,16 @@ with tab_research:
             _run = st.session_state.get("consensus_run") or {}
             _no_guidance_at_all = all(
                 _get(m, y, "company") is None for m, *_ in _FC_ROWS for y in _shown)
-            if _no_guidance_at_all and _run and not _run.get("jquants_key_present", True):
+            if _no_guidance_at_all and _run.get("jquants_key_rejected"):
+                st.markdown(
+                    '<div class="fc-note fc-warn">Company guidance is missing for every company: '
+                    'the last collector run had its <code>JQUANTS_API_KEY</code> rejected '
+                    '(<em>invalid or expired</em>). Refresh the secret under <em>Settings → Secrets '
+                    'and variables → Actions</em> and re-run <em>Weekly Consensus and '
+                    'Fundamentals</em>. Consensus and the balance sheet below come from Yahoo and '
+                    'are unaffected.</div>',
+                    unsafe_allow_html=True)
+            elif _no_guidance_at_all and _run and not _run.get("jquants_key_present", True):
                 st.markdown(
                     '<div class="fc-note fc-warn">Company guidance is missing for every company, '
                     'not just this one: the last collector run had no <code>JQUANTS_API_KEY</code>. '
@@ -3280,6 +3313,11 @@ with tab_research:
                 accept_multiple_files=True, key=f"fc_shots_{_rcode}",
                 label_visibility="collapsed",
                 help="PNG, JPG, WebP or GIF. Up to 8 images, 5MB each.")
+            st.markdown(
+                f'<div class="fc-note">Up to {consensus_vision.MAX_IMAGES} images, '
+                f'{consensus_vision.MAX_IMAGE_BYTES // (1024 * 1024)}MB each · '
+                'PNG, JPG, WebP or GIF.</div>',
+                unsafe_allow_html=True)
 
             _parse_key = f"fc_parse_{_rcode}"
             _api_key = get_secret("ANTHROPIC_API_KEY")
