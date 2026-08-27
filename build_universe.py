@@ -69,27 +69,65 @@ def _pick(record: dict, field: str) -> str:
     return ""
 
 
+# Which path the listed-company master sits behind. The first that answers is
+# used; the rest exist because this is one call whose exact V2 shape could not
+# be checked before shipping it, and a run that says "404 on all three" is a
+# far better failure than one that says nothing.
+_ENDPOINTS = ("/listed/info", "/listed", "/master/listed")
+
+# The array's key varies with the endpoint; fall back to whichever key holds a
+# list of objects rather than adding a fourth guess every time.
+def _records_in(payload: dict) -> list:
+    for key in ("info", "data", "listed"):
+        val = payload.get(key)
+        if isinstance(val, list):
+            return val
+    for val in payload.values():
+        if isinstance(val, list) and val and isinstance(val[0], dict):
+            return val
+    return []
+
+
 def fetch_listed(api_key: str) -> list:
     """Every listed company J-Quants knows about, one page at a time."""
     import requests
-    out, page_key = [], None
-    while True:
-        params = {"pagination_key": page_key} if page_key else {}
-        r = requests.get(f"{_JQ_BASE}/listed/info",
-                         headers={"x-api-key": api_key}, params=params, timeout=_TIMEOUT)
-        if r.status_code in (401, 403):
-            raise SystemExit(
-                f"J-Quants rejected the key (HTTP {r.status_code}): {r.text[:160]}\n"
-                "Set JQUANTS_API_KEY to a V2 API key from https://jpx-jquants.com.")
-        if r.status_code != 200:
-            raise SystemExit(f"J-Quants HTTP {r.status_code}: {r.text[:160]}")
-        payload = r.json()
-        batch = payload.get("info") or payload.get("data") or []
-        out.extend(batch)
-        page_key = payload.get("pagination_key")
-        if not page_key or not batch:
-            break
-    return out
+    tried = []
+    for path in _ENDPOINTS:
+        out, page_key, ok = [], None, True
+        while True:
+            params = {"pagination_key": page_key} if page_key else {}
+            r = requests.get(f"{_JQ_BASE}{path}", headers={"x-api-key": api_key},
+                             params=params, timeout=_TIMEOUT)
+            if r.status_code in (401, 403):
+                # The same key works for /fins/summary in the collector, so a
+                # rejection here is about this endpoint's entitlement, not the
+                # key itself. Say so rather than sending anyone to rotate it.
+                raise SystemExit(
+                    f"::warning title=Universe refresh skipped::J-Quants returned "
+                    f"HTTP {r.status_code} for {path}. If the collector's own calls "
+                    f"work, this endpoint is not included in the plan. "
+                    f"{r.text[:120]}")
+            if r.status_code != 200:
+                tried.append(f"{path} -> HTTP {r.status_code} {r.text[:80]}")
+                ok = False
+                break
+            payload = r.json()
+            batch = _records_in(payload)
+            out.extend(batch)
+            page_key = payload.get("pagination_key")
+            if not page_key or not batch:
+                break
+        if ok and out:
+            if path != _ENDPOINTS[0]:
+                print(f"note: the listed-company master answered at {path}")
+            return out
+        if ok:
+            tried.append(f"{path} -> 200 but no records in the response")
+
+    raise SystemExit(
+        "::warning title=Universe refresh failed::No listed-company endpoint "
+        "answered, so the universe was left as it is and the collection falls "
+        "back to it. Tried:\n  " + "\n  ".join(tried))
 
 
 def in_scope(scale: str, scope: str) -> bool:
@@ -137,7 +175,7 @@ def main() -> int:
 
     records = fetch_listed(api_key)
     if not records:
-        print("ERROR: /listed/info returned nothing.", file=sys.stderr)
+        print("ERROR: the listed-company master returned nothing.", file=sys.stderr)
         return 1
 
     if args.dump:
@@ -162,9 +200,18 @@ def main() -> int:
         # Refuse to write a half-fetched index. A short list would silently
         # shrink the app's coverage rather than fail visibly, and the file it
         # would overwrite is the only record of what the universe was.
-        print(f"ERROR: {args.scope} resolved to {len(rows)} constituents, expected at "
-              f"least {floor}. The scale-category names have probably changed; run "
-              f"--dump and check before committing.", file=sys.stderr)
+        scaled = sum(1 for r in records if _pick(r, "scale"))
+        if not scaled:
+            why = (f"None of the {len(records)} records carried a scale category "
+                   f"under any of {_FIELDS['scale']} — the field is named "
+                   f"something else in this response.")
+        else:
+            why = (f"{scaled} of {len(records)} records carry a scale category, "
+                   f"so the category *values* have probably changed.")
+        print(f"::warning title=Universe left unchanged::{args.scope} resolved to "
+              f"{len(rows)} constituents, expected at least {floor}. {why} Run "
+              f"build_universe.py --dump to see the real field and category names.",
+              file=sys.stderr)
         return 1
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)

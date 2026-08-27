@@ -96,7 +96,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/consensus.csv data/fundamentals.csv data/consensus_run.json data/universe.csv
+          # Stage only what exists. `git add` on a missing pathspec is fatal,
+          # not a warning, and under `bash -e` that ended a thirteen-minute
+          # collection by throwing away everything it had just written —
+          # because data/universe.csv had not been produced.
+          for f in data/consensus.csv data/fundamentals.csv \
+                   data/consensus_run.json data/universe.csv; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
           if git diff --staged --quiet; then
             echo "No changes"
           else
