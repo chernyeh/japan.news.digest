@@ -823,6 +823,8 @@ a.research-link:hover { background: #F0EDE8; }
              color: #9B8B7A; margin: 6px 0 2px; }
 .fc-note { font-size: 0.72rem; color: #9B8B7A; border-left: 3px solid #D9D3C8;
            padding: 6px 10px; margin: 8px 0; background: #FDFAF7; }
+.fc-note.fc-warn { border-left-color: #E65100; color: #7A4A22; background: #FDF4EE; }
+.fc-note code { font-family: monospace; font-size: 0.95em; }
 .fc-vgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
             gap: 1px; background: #D9D3C8; border: 1px solid #D9D3C8;
             border-radius: 5px; overflow: hidden; margin-top: 0.6rem; }
@@ -906,6 +908,7 @@ for key, default in [
     ("earnings_perf", {}), ("fin_summary_cache", {}),
     # Research tab forecast panel (consensus / guidance / valuation)
     ("consensus_map", {}), ("fundamentals_map", {}), ("jpx400_map", {}),
+    ("consensus_run", {}),
     ("consensus_manual_map", {}), ("consensus_loaded_ts", None),
     ("consensus_load_attempted", False),
     ("research_prices_map", {}), ("research_prices_attempted", False),
@@ -3178,12 +3181,41 @@ with tab_research:
                 '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
                 unsafe_allow_html=True)
 
-            if _y2 and all(_get(m, _y2, "company") is None for m, *_ in _FC_ROWS):
+            # Three different things produce an empty company column, and the
+            # user cannot tell them apart from dashes alone. Say which it is.
+            _run = st.session_state.get("consensus_run") or {}
+            _no_guidance_at_all = all(
+                _get(m, y, "company") is None for m, *_ in _FC_ROWS for y in _shown)
+            if _no_guidance_at_all and _run and not _run.get("jquants_key_present", True):
+                st.markdown(
+                    '<div class="fc-note fc-warn">Company guidance is missing for every company, '
+                    'not just this one: the last collector run had no <code>JQUANTS_API_KEY</code>. '
+                    'Add it under <em>Settings → Secrets and variables → Actions</em> and re-run '
+                    '<em>Weekly Consensus and Fundamentals</em>. Consensus and the balance sheet '
+                    'below come from Yahoo and are unaffected.</div>',
+                    unsafe_allow_html=True)
+            elif _no_guidance_at_all and _run.get("companies_with_guidance"):
+                st.markdown(
+                    '<div class="fc-note">No company guidance collected for this company, though '
+                    f'other companies have it ({_run["companies_with_guidance"]} of '
+                    f'{_run.get("universe", "?")}). Its filing may not be in J-Quants yet.</div>',
+                    unsafe_allow_html=True)
+            elif _y2 and all(_get(m, _y2, "company") is None for m, *_ in _FC_ROWS):
                 st.markdown(
                     f'<div class="fc-note">No company guidance for {_safe_text(_y2)} yet. Japanese '
                     'issuers publish next-year guidance only alongside full-year results, so that '
                     'column fills in after the Q4 filing and is empty the rest of the year — for a '
                     'second year the street is usually the only forecast there is.</div>',
+                    unsafe_allow_html=True)
+
+            # Yahoo's estimate frames carry EPS and revenue only, so operating
+            # profit, net profit and DPS never have a consensus side. Saying so
+            # once beats three rows of unexplained dashes.
+            if any(_get(m, y, "consensus") is not None for m in ("eps", "net_sales") for y in _shown):
+                st.markdown(
+                    '<div class="fc-note">Consensus covers EPS and net sales only — Yahoo publishes '
+                    'no street estimate for operating profit, net profit or DPS on Japanese names. '
+                    'Those come from company guidance, or from a screenshot below.</div>',
                     unsafe_allow_html=True)
 
             _tiles = [
@@ -3370,6 +3402,7 @@ with tab_research:
                 st.session_state.fundamentals_map     = fund.load_fundamentals_from_github(_ec_repo, _gh_token)
                 st.session_state.jpx400_map           = fund.load_universe_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
+                st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
             except Exception as _ce:
                 print(f"Consensus load error: {_ce}")

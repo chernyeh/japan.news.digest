@@ -31,6 +31,7 @@ CONSENSUS_PATH = "data/consensus.csv"
 FUNDAMENTALS_PATH = "data/fundamentals.csv"
 MANUAL_PATH = "data/consensus_manual.json"
 UNIVERSE_PATH = "data/jpxnikkei400.csv"
+RUN_MANIFEST_PATH = "data/consensus_run.json"
 
 _UA = "japan-news-digest-fundamentals"
 
@@ -324,6 +325,21 @@ def load_manual_from_github(repo: str, token: str = None) -> dict:
     try:
         return r.json()
     except ValueError:
+        return {}
+
+
+def load_run_manifest_from_github(repo: str, token: str = None) -> dict:
+    """What the last collector run reached. Lets the panel say *why* a column
+    is empty instead of showing dashes that could mean three different things."""
+    import requests
+    headers = {"User-Agent": _UA}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    url = f"https://raw.githubusercontent.com/{repo}/main/{RUN_MANIFEST_PATH}"
+    try:
+        r = requests.get(url, headers=headers, timeout=15)
+        return r.json() if r.status_code == 200 else {}
+    except Exception:
         return {}
 
 
