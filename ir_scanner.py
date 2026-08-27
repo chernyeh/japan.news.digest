@@ -573,6 +573,60 @@ def _row_label(cells) -> str:
     return ""
 
 
+# A column/row header that names a period *slot* without pinning the year:
+# "1Q", "Q3", "第2四半期", "Full Year", "通期", "Interim". These are the axis of
+# a matrix table just as much as a dated header is — the year simply lives
+# somewhere else on the page. Treating them as "not a period" is what let
+# carry-forward back in and smear one quarter's date across a whole grid.
+_AXIS_LABEL_RE = re.compile(
+    r'^\s*(?:'
+    r'(?:[1-4１２３４]\s*Q|Q\s*[1-4])'
+    r'|第\s*[1-4１２３４]\s*四半期'
+    r'|(?:full[\s-]?year|fy|interim|half[\s-]?year|1h|2h|h1|h2)'
+    r'|通期|上期|下期|中間'
+    r')\s*$',
+    re.IGNORECASE,
+)
+
+_QUARTER_IN_LABEL_RE = re.compile(
+    r'(?:(?P<a>[1-4])\s*Q|Q\s*(?P<b>[1-4])|第\s*(?P<c>[1-4１２３４])\s*四半期)', re.IGNORECASE)
+
+
+def _axis_quarter(label: str) -> str:
+    """"1Q" -> "1", "第2四半期" -> "2", "" when the label names no quarter."""
+    m = _QUARTER_IN_LABEL_RE.search(label or "")
+    if not m:
+        return ""
+    raw = m.group("a") or m.group("b") or m.group("c") or ""
+    return _JP_DIGIT_MAP.get(raw, raw)
+
+
+def _is_axis_label(label: str) -> bool:
+    return bool(_AXIS_LABEL_RE.match((label or "").strip()))
+
+
+def _year_from_links(cells) -> str:
+    """The fiscal year a column is really about, taken from the dates its own
+    links carry. Deliberately only its *own* links: borrowing a year from a
+    neighbouring column is exactly the mistake this whole change exists to
+    stop."""
+    years = {}
+    for cell in cells:
+        for a in cell.find_all("a", href=True):
+            period = extract_period_from_url(a["href"])
+            sort = (period or {}).get("period_sort") or ""
+            head = sort[:4]
+            # extract_period_from_url writes "0000" when it found a quarter but
+            # no year. Adopting that produced the nonsense label "Q2 FY0000".
+            if head.isdigit() and 2000 <= int(head) <= 2099:
+                years[head] = years.get(head, 0) + 1
+    if not years:
+        return ""
+    top = max(years.values())
+    winners = [y for y, n in years.items() if n == top]
+    return winners[0] if len(winners) == 1 else ""
+
+
 def build_table_link_context(soup) -> dict:
     """{id(<a>): {"row", "col", "cell", "mode"}} for every link inside a table.
 
@@ -591,8 +645,9 @@ def build_table_link_context(soup) -> dict:
             continue
         header_rows = _header_row_indices(grid)
 
-        entries = []          # (link, row_label, col_label, cell_text)
+        entries = []          # (link, row_label, col_label, cell_text, col_span)
         col_labels, row_labels = set(), set()
+        cells_by_col = {}     # col_label -> [cell, ...], for year resolution
         for r, (_, cells) in enumerate(grid):
             if r in header_rows:
                 continue
@@ -604,6 +659,7 @@ def build_table_link_context(soup) -> dict:
                 col_lbl = _column_label(grid, header_rows, a, b)
                 if col_lbl:
                     col_labels.add(col_lbl)
+                    cells_by_col.setdefault(col_lbl, []).append(cell)
                 if row_lbl:
                     row_labels.add(row_lbl)
                 cell_txt = _loose_text(cell)
@@ -614,15 +670,51 @@ def build_table_link_context(soup) -> dict:
 
         n_col_periods = sum(1 for lbl in col_labels if extract_period(lbl))
         n_row_periods = sum(1 for lbl in row_labels if extract_period(lbl))
-        if n_col_periods and n_col_periods >= n_row_periods:
+        # An axis of bare period slots ("1Q", "2Q", "通期") is still a period
+        # axis; the year is just written elsewhere. Counting only fully-dated
+        # headers is what previously dropped such tables to mode "" and handed
+        # them back to carry-forward.
+        n_col_axis = sum(1 for lbl in col_labels if _is_axis_label(lbl))
+        n_row_axis = sum(1 for lbl in row_labels if _is_axis_label(lbl))
+        if (n_col_periods or n_col_axis) and (n_col_periods + n_col_axis) >= (n_row_periods + n_row_axis):
             mode = "col"
-        elif n_row_periods:
+        elif n_row_periods or n_row_axis:
             mode = "row"
         else:
             mode = ""
 
+        # Resolve a bare quarter header against the years its own column's
+        # links carry, so "1Q" becomes "Q1 FY2026" rather than nothing.
+        axis_period = {}
+        for lbl in col_labels if mode == "col" else ():
+            # A cell spanning several period columns — a whole-year Excel under
+            # an "All Financial Data" row, say — gets a joined header naming
+            # every quarter it covers. It belongs to none of them individually,
+            # so claim no period rather than pinning it to the first.
+            if len(_QUARTER_IN_LABEL_RE.findall(lbl)) > 1:
+                continue
+            qn = _axis_quarter(lbl)
+            if not qn or extract_period(lbl):
+                continue
+            year = _year_from_links(cells_by_col.get(lbl, []))
+            if year:
+                axis_period[lbl] = {"date": None, "period_label": f"Q{qn} FY{year}",
+                                    "period_sort": f"{year}-Q{qn}"}
+            else:
+                # Honest and partial beats confident and wrong: a bare "Q1" is
+                # far better than a neighbouring column's date.
+                axis_period[lbl] = {"date": None, "period_label": f"Q{qn}",
+                                    "period_sort": f"0000-Q{qn}"}
+
+        # Any table with headings is a grid, and reading a grid in DOM order
+        # walks across periods. Carry-forward must stay off for every link in
+        # it, whatever mode we settled on.
+        structured = bool(header_rows or row_labels or col_labels)
+
         for link, row_lbl, col_lbl, cell_txt in entries:
-            ctx[id(link)] = {"row": row_lbl, "col": col_lbl, "cell": cell_txt, "mode": mode}
+            ctx[id(link)] = {"row": row_lbl, "col": col_lbl, "cell": cell_txt,
+                             "mode": mode, "structured": structured,
+                             "axis": axis_period.get(col_lbl if mode == "col" else row_lbl)}
     return ctx
 
 
@@ -677,6 +769,7 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
 
     seen_urls = set()
     seen_labels = set()
+    by_url = {}
     out = []
     truncated = False
     _CARRY_FORWARD_MAX = 6  # undated siblings after a dated line still inherit its period
@@ -692,9 +785,6 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
         text = a.get_text(strip=True)
         if not _looks_like_document(text, href):
             continue
-        if abs_url in seen_urls:
-            continue
-
         ext = _file_ext(href)
         # Pure navigation ("2025", "Next") is only ever noise — but never drop
         # a real file link on the strength of its label alone.
@@ -708,6 +798,7 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
         # ── What this table cell's row and column say about the link ──────
         tctx = table_ctx.get(id(a)) or {}
         mode = tctx.get("mode", "")
+        structured = tctx.get("structured", False)
         row_lbl, col_lbl = tctx.get("row", ""), tctx.get("col", "")
         if mode == "col":
             table_period, label = _heading_period(col_lbl), row_lbl
@@ -715,6 +806,9 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
             table_period, label = _heading_period(row_lbl), col_lbl
         else:
             table_period, label = None, (row_lbl or col_lbl)
+        # A bare "1Q" header yields no period on its own; the axis resolution
+        # in build_table_link_context pairs it with its own column's year.
+        table_period = table_period or tctx.get("axis")
         if not _is_meaningful(label):
             label = ""
 
@@ -781,39 +875,37 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
         # 4 must outrank 5: a page listing one dated summary followed by
         # undated siblings gives those siblings a full "Q1 FY2026" with a
         # real date, which beats the bare "Q1" their filenames imply.
-        period = table_period or extract_period(_period_context_text(a, detail or text))
         url_period = extract_period_from_url(href)
-        if not period and url_period and not url_period.get("weak"):
-            period = url_period
-        if mode:
-            # A table that labels its periods has already said which one this
-            # cell belongs to; a neighbour's period is not evidence about it,
-            # it's the cell next door. Carry-forward would put the Financial
-            # Results row under whatever quarter the row above ended on.
-            period = period or url_period
+        text_period = extract_period(_period_context_text(a, detail or text))
+        if table_period:
+            period, period_conf = table_period, 4
+        elif text_period:
+            period, period_conf = text_period, 3
+        elif url_period and not url_period.get("weak"):
+            period, period_conf = url_period, 2
+        else:
+            period, period_conf = None, -1
+
+        if structured:
+            # Every table with headings is a grid, and reading a grid in DOM
+            # order walks *across* periods rather than along one. A neighbour
+            # is not evidence about this cell, it is the cell next door — this
+            # is what put 2Q documents and a whole-table Excel under 1Q's date.
+            if period is None:
+                period, period_conf = url_period, (0 if url_period else -1)
             carried_period, carry_remaining = None, 0
-        elif period:
+        elif period is not None:
             carried_period = period
             carry_remaining = _CARRY_FORWARD_MAX
         elif carry_remaining > 0:
-            period = carried_period
+            period, period_conf = carried_period, 1
             carry_remaining -= 1
         else:
             # Weak URL matches apply to this item only — they're too coarse
             # to be worth propagating onto the items that follow.
-            period = url_period
+            period, period_conf = url_period, (0 if url_period else -1)
 
-        # The whole point of detecting a period is so the user can tell what
-        # a document is *for* without opening it — put it in the name itself
-        # rather than a separate field that's easy to miss. Skip if it's
-        # already part of the title (common when the title came from a row
-        # that already spelled the date out, e.g. "Summary of Q&A Aug 7, 2026").
-        _period_label = (period or {}).get("period_label") or ""
-        if _period_label and _period_label not in title:
-            title = f"{_period_label} — {title}"
-
-        seen_urls.add(abs_url)
-        out.append({
+        entry = {
             "title": title,
             "url": abs_url,
             "doc_type": doc_type,
@@ -822,8 +914,60 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
             "date": (period or {}).get("date") or "",
             "period_label": (period or {}).get("period_label") or "",
             "period_sort": (period or {}).get("period_sort") or "",
-        })
+            "_period_conf": period_conf,
+            "_title_conf": 2 if (structured and label) else (1 if title else 0),
+        }
+        prior = by_url.get(abs_url)
+        if prior is None:
+            by_url[abs_url] = entry
+            out.append(entry)
+        else:
+            # The same document is very often listed twice on one IR page —
+            # once in the matrix at the top, again in a per-briefing block
+            # further down — and the two listings know different things. The
+            # matrix names the document ("Financial Results"); the briefing
+            # block dates it ("announced on July 30, 2026"). Dropping whichever
+            # came second threw half of that away, so merge instead: one row
+            # per URL, each field taken from the listing that knew it best.
+            _merge_occurrence(prior, entry)
+
+    # Applied only once the merge has settled which period and title won —
+    # baking the label in per-occurrence would stamp a losing period onto a
+    # title that a later listing then replaced.
+    for entry in out:
+        label = entry.get("period_label") or ""
+        if label and label not in entry["title"]:
+            entry["title"] = f"{label} — {entry['title']}"
+        entry.pop("_period_conf", None)
+        entry.pop("_title_conf", None)
     return ScanResults(disambiguate_titles(out), truncated=truncated, limit=max_results)
+
+
+def _merge_occurrence(prior: dict, other: dict):
+    """Fold a second listing of the same URL into the first, field by field."""
+    if other["_period_conf"] > prior["_period_conf"]:
+        prior["date"] = other["date"]
+        prior["period_label"] = other["period_label"]
+        prior["period_sort"] = other["period_sort"]
+        prior["_period_conf"] = other["_period_conf"]
+    elif other["_period_conf"] == prior["_period_conf"] and other["date"] and not prior["date"]:
+        # Same class of evidence, but one listing pins a calendar date and the
+        # other only names the quarter. Take the date and keep the label: a
+        # matrix column says "Q1 FY2026" for five documents, and the briefing
+        # block below dates three of them. Adopting the date wholesale would
+        # relabel those three "Jul 30, 2026" and split one quarter across two
+        # groups — precisely the scattering this is meant to end.
+        prior["date"] = other["date"]
+    if other["_title_conf"] > prior["_title_conf"]:
+        prior["title"] = other["title"]
+        prior["_title_conf"] = other["_title_conf"]
+    # "Other" is the catch-all, so anything specific beats it.
+    if prior["doc_type"] == "Other" and other["doc_type"] != "Other":
+        prior["doc_type"] = other["doc_type"]
+    # A listing that reached the file directly wins over one that only linked
+    # to a landing page for it.
+    if not prior["ext"] and other["ext"]:
+        prior["ext"], prior["kind"] = other["ext"], "file"
 
 
 def disambiguate_titles(results: list) -> list:

@@ -162,10 +162,15 @@ def fetch_yahoo(code: str, fy1: str, fy2: str) -> tuple:
         epoch = F.to_num(info.get("nextFiscalYearEnd"))
         if epoch:
             try:
-                fy1 = f"FY{datetime.fromtimestamp(epoch, tz=timezone.utc).year}"
-                fy2 = next_fy_label(fy1)
+                year = datetime.fromtimestamp(epoch, tz=timezone.utc).year
             except (OverflowError, OSError, ValueError):
-                pass
+                year = 0
+            # Yahoo sometimes carries a stale or zeroed fiscal-year end, which
+            # labelled live estimates "FY2016". A "next" year-end that has
+            # already passed is not a next year-end.
+            if date.today().year <= year <= date.today().year + 2:
+                fy1 = f"FY{year}"
+                fy2 = next_fy_label(fy1)
 
     slot = {"0y": fy1, "+1y": fy2}
     if fy1 or fy2:
@@ -336,8 +341,14 @@ def main() -> int:
         universe = universe[:args.limit]
 
     if not api_key:
-        print("WARNING: JQUANTS_API_KEY not set — company guidance will be "
-              "missing; consensus and Yahoo balance-sheet data still collected.")
+        # ::error:: renders as a red annotation on the workflow summary page.
+        # The previous plain warning scrolled past in a 400-line log, and the
+        # committed CSVs gave no hint why every company column was empty —
+        # a missing key and a total API outage looked identical afterwards.
+        print("::error title=JQUANTS_API_KEY missing::Company guidance will be "
+              "absent from every company. Add JQUANTS_API_KEY under Settings -> "
+              "Secrets and variables -> Actions, then re-run. Consensus and "
+              "Yahoo balance-sheet data are still collected.")
 
     cons_rows, fund_rows, failures = [], [], []
     for i, row in enumerate(universe, 1):
@@ -364,6 +375,24 @@ def main() -> int:
             time.sleep(args.sleep)
 
     print(coverage_report(cons_rows, fund_rows, len(universe)))
+
+    # A manifest of what this run could and could not reach. Without it the
+    # committed CSVs cannot distinguish "the key was missing" from "J-Quants
+    # was down" from "these companies genuinely have not guided" — all three
+    # render as the same empty column, and the panel had no way to say which.
+    manifest = {
+        "ran_at": date.today().isoformat(),
+        "universe": len(universe),
+        "attempted": len(universe),
+        "jquants_key_present": bool(api_key),
+        "guidance_rows": sum(1 for r in cons_rows if r["basis"] == "company"),
+        "consensus_rows": sum(1 for r in cons_rows if r["basis"] == "consensus"),
+        "companies_with_guidance": len({r["code"] for r in cons_rows if r["basis"] == "company"}),
+        "companies_with_consensus": len({r["code"] for r in cons_rows if r["basis"] == "consensus"}),
+        "jquants_failures": sum(1 for _, e in failures if e.startswith("jquants")),
+        "yahoo_failures": sum(1 for _, e in failures if e.startswith("yahoo")),
+        "sample_errors": [f"{c}: {e[:120]}" for c, e in failures[:5]],
+    }
     if failures:
         print(f"\n{len(failures)} failure(s) — skipped, will retry next run:")
         for code, err in failures[:15]:
@@ -384,8 +413,14 @@ def main() -> int:
     F.write_rows(args.out_fundamentals, F.FUNDAMENTALS_COLUMNS,
                  sorted(by_code.values(), key=lambda r: r["code"]))
 
+    import json
+    os.makedirs(os.path.dirname(F.RUN_MANIFEST_PATH) or ".", exist_ok=True)
+    with open(F.RUN_MANIFEST_PATH, "w", encoding="utf-8") as fh:
+        json.dump(manifest, fh, ensure_ascii=False, indent=2, sort_keys=True)
+
     print(f"\nWrote {len(merged)} consensus rows -> {args.out_consensus}")
     print(f"Wrote {len(by_code)} fundamentals rows -> {args.out_fundamentals}")
+    print(f"Wrote run manifest -> {F.RUN_MANIFEST_PATH}")
     return 0
 
 
