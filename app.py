@@ -860,15 +860,11 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-actual { color: #5C4033; }
 .fc-h.fc-actual-h { color: #5C4033; }
 .fc-na { color: #B0A798; }
-/* Interim guidance: one line, only where the company actually files it. */
-.fc-h1strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px;
-              font-size: 0.7rem; color: #5C4033; background: #F7F3EC;
-              border: 1px solid #E8E3DC; border-radius: 5px;
-              padding: 6px 10px; margin-top: 6px; }
-.fc-h1k { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
-          color: #9B8B7A; font-weight: 700; }
-.fc-h1v { font-family: monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.fc-h1v b { color: #1A1A1A; }
+/* Implied 2H — arithmetic on two filed figures, not a third filed figure.
+   Tinted a shade off both the reported and the street columns so the eye can
+   see at a glance which number in the row is the derived one. */
+.fc-derived { background: #FBF8F2; color: #6E5E4C; }
+.fc-h.fc-derived { color: #7A6A57; }
 /* nowrap: "+10.4%" was breaking between the number and the sign on a phone. */
 .fc-delta { font-family: monospace; font-size: 0.64rem; font-weight: 700;
             margin-left: 0.3em; white-space: nowrap; }
@@ -879,6 +875,7 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-src-a { color: #9B8B7A; }
 .fc-src-s { color: #E65100; }
 .fc-src-t { color: #8B4513; }
+.fc-src-d { color: #1B4F72; }
 .fc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.68rem;
              color: #9B8B7A; margin: 6px 0 2px; }
 .fc-note { font-size: 0.72rem; color: #9B8B7A; border-left: 3px solid #D9D3C8;
@@ -951,7 +948,6 @@ a.research-link:hover { background: #F0EDE8; }
     .fc-vcell { padding: 6px 8px; }
     .fc-note { font-size: 0.68rem; padding: 5px 8px; margin: 6px 0; }
     .fc-legend { gap: 9px; font-size: 0.62rem; }
-    .fc-h1strip { gap: 3px 10px; font-size: 0.66rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3047,18 +3043,10 @@ with tab_filings:
 # ════════════════════════════════════════════════════════════
 with tab_research:
     st.markdown('<div class="section-title">🔎 Research — Company Filing &amp; Link Library</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="info-box">Search a company to see its statutory EDINET filings (rolling ~2-year index, '
-        'covering all filing types — annual/quarterly reports, extraordinary reports, large shareholding and '
-        'tender offer filings, and more), TDnet timely disclosures (earnings summaries/tanshin, dividends, '
-        'guidance revisions — also a rolling ~2-year index), and your '
-        'own curated links — IR pages, investor presentations, earnings-call transcripts, shareholder-meeting '
-        'materials. <strong>JP PDF</strong> / <strong>EN Doc</strong> each attempt a fetch — EDINET doesn\'t '
-        'reliably flag in advance which filings have an English version, so a "not available" result for EN '
-        'just means this particular filing doesn\'t have one. Sort or filter the combined list by date or '
-        'document type.</div>',
-        unsafe_allow_html=True
-    )
+    # What this tab is stays with the empty state below, where it is read once
+    # and answers the only question there is at that point. Repeating it above
+    # a company that is already on screen costs eight lines of the fold on
+    # every visit to tell the reader something they have already acted on.
 
     # A message queued right before st.rerun() (e.g. from the add/delete-link
     # actions below) doesn't reliably reach the browser — the rerun cuts the
@@ -3142,14 +3130,28 @@ with tab_research:
     )
 
     if not _sel:
-        st.markdown('<div class="empty-state">Search for a company above to see its filing &amp; link library.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="empty-state">Search for a company above to see its filing &amp; link '
+            'library.</div>'
+            '<div class="info-box">Every company here comes with its statutory <strong>EDINET</strong> '
+            'filings (a rolling ~2-year index covering every filing type — annual and quarterly '
+            'reports, extraordinary reports, large-shareholding and tender-offer filings), its '
+            '<strong>TDnet</strong> timely disclosures (earnings summaries/tanshin, dividends, '
+            'guidance revisions — also ~2 years), forecasts and consensus where they have been '
+            'collected, and your own curated links: IR pages, presentations, transcripts, '
+            'shareholder-meeting materials. <strong>JP PDF</strong> / <strong>EN Doc</strong> each '
+            'attempt a fetch — EDINET doesn\'t reliably flag in advance which filings have an '
+            'English version, so a "not available" result for EN just means this particular filing '
+            'doesn\'t have one.</div>',
+            unsafe_allow_html=True
+        )
     else:
         _rcode   = _sel.split(" — ", 1)[0]
         _rname   = NAMES_LOOKUP.get(_rcode, _sel)
         _rsector = SECTOR_LOOKUP.get(_rcode, "")
         _rmcap   = st.session_state.get("mktcap_map", {}).get(_rcode)
 
-        _hdr_col1, _hdr_col2, _hdr_col3 = st.columns([4, 1.2, 1.2])
+        _hdr_col1, _hdr_col2 = st.columns([5, 1.4])
         with _hdr_col1:
             _mcap_str   = f" · ¥{_rmcap:,.0f}B" if _rmcap else ""
             _sector_str = _safe_text(_rsector) if _rsector else ""
@@ -3163,28 +3165,23 @@ with tab_research:
             if st.button("⭐ Add to Watchlist", key=f"research_wl_{_rcode}", use_container_width=True):
                 add_to_watchlist(_rname)
                 st.toast(f"Added {_rname} to Watchlist")
-        with _hdr_col3:
-            _ir_query = f'"{_rname}" investor relations'
-            st.link_button(
-                "🔍 Search for IR page", f"https://www.google.com/search?q={_ir_query.replace(' ', '+')}",
-                use_container_width=True,
-            )
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
-        def _toggle_section(label: str, state_key: str) -> bool:
+        def _toggle_section(label: str, state_key: str, default: bool = False) -> bool:
             """Collapsible section header using a plain-character arrow instead
             of st.expander's built-in icon font — that font silently falls back
             to raw ligature text (e.g. "keyboard_arrow_right") if it fails to
             load client-side, which isn't something this app controls. Returns
             whether the section's body should render.
 
-            Every section starts closed. Opening one is a choice about the
-            company on screen — a long EDINET history is worth unfolding for
-            some names and not others — and the state key is shared across
-            companies, so a section left open silently reopens on the next
-            search."""
-            st.session_state.setdefault(state_key, False)
+            Sections start closed apart from the forecast panel, which is
+            what the tab is usually opened for. Opening any of the others is a
+            choice about the company on screen — a long EDINET history is worth
+            unfolding for some names and not others — and the state key is
+            shared across companies, so whatever is left open reopens on the
+            next search."""
+            st.session_state.setdefault(state_key, default)
             with st.container(key=f"research_section_toggle_{state_key}"):
                 _arrow = "▾" if st.session_state[state_key] else "▸"
                 if st.button(f"{_arrow}  {label}", key=f"{state_key}_btn", use_container_width=True):
@@ -3218,7 +3215,9 @@ with tab_research:
 
         _SRC_TAG = {"jquants": ("A", "auto — J-Quants filing"),
                     "yfinance": ("A", "auto — Yahoo/LSEG consensus"),
-                    "typed": ("T", "typed by you"), "manual": ("T", "typed by you")}
+                    "typed": ("T", "typed by you"), "manual": ("T", "typed by you"),
+                    "derived": ("D", "derived here — full-year guidance minus the "
+                                     "first half; not a figure the company files")}
 
         def _src_mark(source: str) -> str:
             """A one-letter provenance mark, so a number's origin is visible in
@@ -3229,7 +3228,7 @@ with tab_research:
                 letter, title = "S", f"from your screenshot ({source.split(':', 1)[-1]})"
             else:
                 letter, title = _SRC_TAG.get(source, ("A", source))
-            cls = {"A": "a", "S": "s", "T": "t"}[letter]
+            cls = {"A": "a", "S": "s", "T": "t", "D": "d"}[letter]
             return (f'<span class="fc-src fc-src-{cls}" '
                     f'title="{_safe_text(title)}">{letter}</span>')
 
@@ -3264,16 +3263,38 @@ with tab_research:
             _fy_ends = fund.fy_end_dates(_shown, _fundrow.get("fy_end", ""),
                                          _fundrow.get("fy_end_next", ""))
 
+            # Interim guidance belongs to a fiscal year, so it is columns of
+            # that year rather than a strip of its own below the table: "1H,
+            # implied 2H, full year" is one line of arithmetic read across, and
+            # splitting the halves off the grid meant reading a number here and
+            # its complement 200px lower down.
+            def _cell(_m, _y, _b):
+                if _b == "company_h2":
+                    return fund.implied_h2(_get(_m, _y, "company"),
+                                           _get(_m, _y, "company_h1"))
+                return _get(_m, _y, _b)
+
             # A year earns a company column only if the company has guided it.
             # Japanese issuers guide one year at a time, so in practice that is
             # the first column; the years beyond it are the street's alone,
             # which is exactly what makes room for a third of them.
-            _cols = {_y: [_b for _b in ("actual", "company", "consensus")
-                           if any(_get(_m, _y, _b) is not None for _m, *_ in _FC_ROWS)]
+            _cols = {_y: [_b for _b in ("actual", "company_h1", "company_h2",
+                                        "company", "consensus")
+                           if any(_cell(_m, _y, _b) is not None for _m, *_ in _FC_ROWS)]
                      for _y in _shown}
             _cols = {_y: _c for _y, _c in _cols.items() if _c}
             _shown = [_y for _y in _shown if _y in _cols]
-            _basis_label = {"actual": "Actual", "company": "Co.", "consensus": "Street"}
+            _basis_label = {"actual": "Actual", "company_h1": "1H",
+                            "company_h2": "Impl. 2H", "company": "Full yr",
+                            "consensus": "Street"}
+            _basis_help = {"actual": "Reported, as filed",
+                           "company_h1": "Company guidance — first half",
+                           "company_h2": "Implied second half — the full-year guidance "
+                                         "less the first half. Derived here; not a figure "
+                                         "the company files.",
+                           "company": "Company guidance — full year",
+                           "consensus": "Street consensus"}
+            _has_h2 = any("company_h2" in _c for _c in _cols.values())
 
             # Two header rows: the fiscal year once, spanning its own columns,
             # with company/street beneath. Repeating "FY2027" on every column
@@ -3288,7 +3309,9 @@ with tab_research:
                 for _i, _b in enumerate(_cols[_y]):
                     cells.append(f'<div class="fc-cell fc-h fc-sub'
                                  f'{" fc-cons" if _b == "consensus" else ""}'
-                                 f'{" fc-ystart" if _i == 0 else ""}">'
+                                 f'{" fc-derived" if _b == "company_h2" else ""}'
+                                 f'{" fc-ystart" if _i == 0 else ""}" '
+                                 f'title="{_safe_text(_basis_help[_b])}">'
                                  f'{_basis_label[_b]}</div>')
 
             for _m, _label, _scale, _dp in _FC_ROWS:
@@ -3300,10 +3323,18 @@ with tab_research:
                         # shaded street columns in a row do not read as one.
                         _edge = " fc-ystart" if _i == 0 else ""
                         if _b != "consensus":
+                            _v = _cell(_m, _y, _b)
+                            # The implied column has no filed source to cite, so
+                            # it cites the arithmetic instead — and only where
+                            # there is a number, or an empty cell would carry a
+                            # provenance mark for a value that isn't there.
+                            _mark = ("derived" if (_b == "company_h2" and _v is not None)
+                                     else _src(_m, _y, _b))
                             cells.append(f'<div class="fc-cell fc-num{_edge}'
-                                         f'{" fc-actual" if _b == "actual" else ""}">'
-                                         + _fnum(_get(_m, _y, _b), _dp, "", _scale)
-                                         + _src_mark(_src(_m, _y, _b)) + '</div>')
+                                         f'{" fc-actual" if _b == "actual" else ""}'
+                                         f'{" fc-derived" if _b == "company_h2" else ""}">'
+                                         + _fnum(_v, _dp, "", _scale)
+                                         + _src_mark(_mark) + '</div>')
                             continue
                         # The gap chip fires only past 5% — consensus sitting on
                         # top of guidance is the normal case and not worth
@@ -3329,75 +3360,72 @@ with tab_research:
                 '<span><b class="fc-src fc-src-a">A</b> auto</span>'
                 '<span><b class="fc-src fc-src-s">S</b> screenshot</span>'
                 '<span><b class="fc-src fc-src-t">T</b> typed</span>'
-                '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
+                + ('<span><b class="fc-src fc-src-d">D</b> implied 2H '
+                   '= full yr &minus; 1H</span>' if _has_h2 else '')
+                + '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
                 unsafe_allow_html=True)
 
-            # Interim guidance, where the company files it. Its own strip
-            # rather than more columns: it belongs to one fiscal year, and
-            # widening the table for it would undo the point of the two-level
-            # header above.
-            _h1 = [(lbl, _get(m, _y1, "company_h1"), sc, dp)
-                   for m, lbl, sc, dp in _FC_ROWS
-                   if _get(m, _y1, "company_h1") is not None]
-            if _h1:
-                st.markdown(
-                    f'<div class="fc-h1strip"><span class="fc-h1k">First half of '
-                    f'{_safe_text(fund.fy_end_short(_fy_ends.get(_y1, ""), _y1))}, '
-                    f'guided</span>' + "".join(
-                        f'<span class="fc-h1v">{_safe_text(lbl)} '
-                        f'<b>{_fnum(v, dp, "", sc)}</b></span>'
-                        for lbl, v, sc, dp in _h1) + '</div>',
-                    unsafe_allow_html=True)
-
-            # Three different things produce an empty company column, and the
-            # user cannot tell them apart from dashes alone. Say which it is.
+            # Two classes of note sit under this table, and they do not
+            # deserve the same room. A missing API key is a broken pipeline the
+            # reader has to act on, so it stays on screen. The rest explains
+            # why a column or a row is empty — true, worth saying once, and
+            # read once — so it folds away behind a toggle instead of standing
+            # between the table and the multiples below it.
             _run = st.session_state.get("consensus_run") or {}
             _no_guidance_at_all = all(
                 _get(m, y, "company") is None for m, *_ in _FC_ROWS for y in _shown)
+            _warn_html, _note_html = "", []
             if _no_guidance_at_all and _run.get("jquants_key_rejected"):
-                st.markdown(
+                _warn_html = (
                     '<div class="fc-note fc-warn">Company guidance is missing for every company: '
                     'the last collector run had its <code>JQUANTS_API_KEY</code> rejected '
                     '(<em>invalid or expired</em>). Refresh the secret under <em>Settings → Secrets '
                     'and variables → Actions</em> and re-run <em>Weekly Consensus and '
                     'Fundamentals</em>. Consensus and the balance sheet below come from Yahoo and '
-                    'are unaffected.</div>',
-                    unsafe_allow_html=True)
+                    'are unaffected.</div>')
             elif _no_guidance_at_all and _run and not _run.get("jquants_key_present", True):
-                st.markdown(
+                _warn_html = (
                     '<div class="fc-note fc-warn">Company guidance is missing for every company, '
                     'not just this one: the last collector run had no <code>JQUANTS_API_KEY</code>. '
                     'Add it under <em>Settings → Secrets and variables → Actions</em> and re-run '
                     '<em>Weekly Consensus and Fundamentals</em>. Consensus and the balance sheet '
-                    'below come from Yahoo and are unaffected.</div>',
-                    unsafe_allow_html=True)
+                    'below come from Yahoo and are unaffected.</div>')
             elif _no_guidance_at_all and _run.get("companies_with_guidance"):
-                st.markdown(
+                _note_html.append(
                     '<div class="fc-note">No company guidance collected for this company, though '
                     f'other companies have it ({_run["companies_with_guidance"]} of '
-                    f'{_run.get("universe", "?")}). Its filing may not be in J-Quants yet.</div>',
-                    unsafe_allow_html=True)
+                    f'{_run.get("universe", "?")}). Its filing may not be in J-Quants yet.</div>')
             elif len(_shown) > 1:
                 # Not a gap to apologise for — it is how Japanese disclosure
                 # works, and saying so once stops the reader hunting for a
                 # company column that was never going to exist.
-                st.markdown(
-                    '<div class="fc-note">Japanese issuers guide one year at a time, so there is a '
-                    f'single company column ({_safe_text(_y1)}). The years beyond it are the '
+                _note_html.append(
+                    '<div class="fc-note">Japanese issuers guide one year at a time, so the '
+                    f'company columns all belong to {_safe_text(_y1)}. The years beyond it are the '
                     'street\'s — and the street\'s own second year is typed or screenshotted in, '
-                    'since Yahoo publishes only the current year and the next.</div>',
-                    unsafe_allow_html=True)
+                    'since Yahoo publishes only the current year and the next.</div>')
 
             # Yahoo's estimate frames carry EPS and revenue only, so operating
             # profit, net profit and DPS never have a consensus side. Saying so
             # once beats three rows of unexplained dashes.
             if any(_get(m, y, "consensus") is not None for m in ("eps", "net_sales") for y in _shown):
-                st.markdown(
+                _note_html.append(
                     '<div class="fc-note">Consensus covers EPS and net sales only — those are the '
                     'two estimate frames Yahoo carries, so there is no street operating profit, net '
                     'profit or DPS to collect for Japanese names. Those come from company guidance, '
-                    'or from what you type or screenshot in below.</div>',
-                    unsafe_allow_html=True)
+                    'or from what you type or screenshot in below.</div>')
+
+            if _has_h2:
+                _note_html.append(
+                    '<div class="fc-note"><strong>Impl. 2H</strong> is the full-year guidance less '
+                    'the guided first half — the run rate the company is implicitly committing to '
+                    'for the back half, which no issuer prints. It is arithmetic on two filed '
+                    'numbers, not a filing: a company that revises only its full year leaves an '
+                    'implied 2H that moves with it. There is no implied DPS — an annual dividend '
+                    'is a rate, not a flow to split.</div>')
+
+            if _warn_html:
+                st.markdown(_warn_html, unsafe_allow_html=True)
 
             _tiles = [
                 ("Price", _fnum(ctx["price"], 0), "close"),
@@ -3422,6 +3450,14 @@ with tab_research:
                 f'<div class="fc-vcell"><span class="fc-k">{_safe_text(k)}</span>'
                 f'<span class="fc-v">{v}</span><span class="fc-vsub">{_safe_text(sub)}</span></div>'
                 for k, v, sub in _tiles) + '</div>', unsafe_allow_html=True)
+
+            # Folded, and below the multiples rather than between them and the
+            # table: the numbers are what the panel is for, and prose that
+            # explains an empty column is read once and then in the way.
+            if _note_html and _toggle_section(
+                    f"ℹ️  How to read this table ({len(_note_html)} note"
+                    f"{'s' if len(_note_html) > 1 else ''})", "research_fc_notes_open"):
+                st.markdown("".join(_note_html), unsafe_allow_html=True)
 
         def _fc_exports(_rcode, _rname, _fc_map):
             _rows = fund.export_rows(_rcode, _rname, _fc_map)
@@ -3735,7 +3771,8 @@ with tab_research:
         _in_400 = _rcode in (st.session_state.jpx400_map or {})
 
         if _fc_map or _in_400:
-            if _toggle_section("📈 Forecasts, consensus & valuation", "research_forecast_open"):
+            if _toggle_section("📈 Forecasts, consensus & valuation",
+                               "research_forecast_open", default=True):
                 if not _fc_map:
                     st.markdown(
                         '<div class="empty-state">In the JPX-Nikkei 400, but no forecast data '
@@ -3788,19 +3825,26 @@ with tab_research:
                         "vals": fund.compute_valuations(_price, _shares, _mcap, _fundrow, _slots),
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
                     })
-                    _fc_exports(_rcode, _rname, _fc_map)
-                    st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
-                                unsafe_allow_html=True)
-                    # Two ways into the same override store. Typing is first
-                    # because it always works — the screenshot reader needs an
-                    # API key, and half of what is missing here is a single
-                    # figure that is faster typed than captured.
-                    _tab_type, _tab_shot = st.tabs(["✏️ Type or correct values",
-                                                    "📸 Read a screenshot"])
-                    with _tab_type:
-                        _fc_typed(_rcode, _rname, _years, _fc_map)
-                    with _tab_shot:
-                        _fc_screenshots(_rcode, _rname, _years)
+                    # Folded away by default. Filling gaps is occasional work
+                    # — it is the table and the multiples the panel is opened
+                    # for — and a data-editor grid plus a file uploader below
+                    # them is most of a screen the reader has to scroll past
+                    # every time to reach the sections beneath.
+                    if _toggle_section("✏️  Fill gaps, correct values & export",
+                                       "research_fc_edit_open"):
+                        _fc_exports(_rcode, _rname, _fc_map)
+                        st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
+                                    unsafe_allow_html=True)
+                        # Two ways into the same override store. Typing is first
+                        # because it always works — the screenshot reader needs an
+                        # API key, and half of what is missing here is a single
+                        # figure that is faster typed than captured.
+                        _tab_type, _tab_shot = st.tabs(["✏️ Type or correct values",
+                                                        "📸 Read a screenshot"])
+                        with _tab_type:
+                            _fc_typed(_rcode, _rname, _years, _fc_map)
+                        with _tab_shot:
+                            _fc_screenshots(_rcode, _rname, _years)
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []
@@ -4018,35 +4062,87 @@ with tab_research:
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
 
-        # ── Pull documents from an IR page ────────────────────────────────
+        # ── IR page & documents ───────────────────────────────────────────
+        # One section for one URL. Finding the company's IR page, remembering
+        # it, and pulling documents off it used to be three separate places on
+        # this tab — a link button in the header, a scanner, and a bookmark
+        # form below it — with the URL that ties all three together retyped or
+        # hunted down again at each one.
+        #
         # EDINET/TDnet only carry statutory filings — transcripts, Q&A notes,
         # and presentation decks generally only exist on the company's own IR
-        # site. This is a best-effort scan (see ir_scanner.py), not a
-        # reliable universal scraper — every IR site is laid out differently
-        # and some are JS-rendered SPAs this can't see at all.
+        # site. The scan is best-effort (see ir_scanner.py), not a reliable
+        # universal scraper — every IR site is laid out differently and some
+        # are JS-rendered SPAs this can't see at all.
         _scan_key = f"ir_scan_results_{_rcode}"
-        # If a plain "IR Page" bookmark is already saved for this company (via
-        # the bookmark section below), pre-fill the scanner with that URL — that
-        # is the whole point of saving it, and it makes a repeat scan one click.
+        # A saved "IR Page" bookmark pre-fills the box — that is the whole
+        # point of saving one, and it makes a repeat scan a single click.
         _saved_ir_pages = [l["url"] for l in _links_map.get(_rcode, []) if l.get("doc_type") == "IR Page" and l.get("url")]
         _scan_url_default = _saved_ir_pages[-1] if _saved_ir_pages else ""
-        if _toggle_section("🔍 Pull documents from an IR page", "research_irscan_open"):
+        if _toggle_section("🔗 IR page & documents", "research_irscan_open"):
             st.markdown(
                 '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
-                'Paste an IR page URL (or an IR document-library sub-page) to scan it for '
-                'transcripts, Q&A notes, presentations, and similar investor documents — then '
-                'pick which ones to add. Different from bookmarking the page itself (below): '
-                'that just saves the link, this reads the page and finds individual documents on it. '
-                'Best-effort: not every site can be read this way, and guessed titles/types are worth '
-                'a quick check before saving.</div>',
+                'One box, three things to do with it. <strong>Scan</strong> reads the page and '
+                'lists the transcripts, Q&amp;A notes, presentations and similar documents on it '
+                'to pick from. <strong>Save as IR page</strong> remembers the URL for this '
+                'company, so the box comes back pre-filled. A document-library sub-page scans '
+                'better than a whole IR index. Best-effort: not every site can be read this way, '
+                'and guessed titles and types are worth a glance before saving.</div>',
                 unsafe_allow_html=True
             )
-            _scan_col1, _scan_col2 = st.columns([4, 1])
+            _scan_col1, _scan_col2, _scan_col3 = st.columns([3.2, 1, 1.4])
             with _scan_col1:
                 _scan_url = st.text_input("Page URL", value=_scan_url_default, placeholder="https://…/ir/library/",
                                            key=f"ir_scan_url_{_rcode}", label_visibility="collapsed")
             with _scan_col2:
-                _scan_clicked = st.button("Scan page", key=f"ir_scan_btn_{_rcode}", use_container_width=True)
+                _scan_clicked = st.button("🔍 Scan", key=f"ir_scan_btn_{_rcode}",
+                                          use_container_width=True,
+                                          help="Read this page and list the documents on it")
+            with _scan_col3:
+                _bookmark_clicked = st.button(
+                    "🔖 Save as IR page", key=f"ir_bookmark_btn_{_rcode}",
+                    use_container_width=True,
+                    help="Remember this URL for this company. Nothing else to fill in — "
+                         "an IR page is identified by its address.")
+
+            # Where the page already is, and — since the answer is usually
+            # "nowhere yet" the first time — how to go find it. Both on one
+            # line: this is signposting, not content.
+            _ir_query = f'"{_rname}" investor relations'
+            _ir_search_url = f"https://www.google.com/search?q={_ir_query.replace(' ', '+')}"
+            st.markdown(
+                '<div style="font-size:0.68rem;color:#9B8B7A;margin:-0.1rem 0 0.5rem;">'
+                + (f'🔖 Saved: <a href="{_safe_url(_saved_ir_pages[-1])}" target="_blank" '
+                   f'class="research-link">open ↗</a> '
+                   f'<span style="color:#B0A798;">· remove it from '
+                   f'<em>Filings &amp; saved links</em> above</span> · '
+                   if _saved_ir_pages else 'No IR page saved for this company yet · ')
+                + f'<a href="{_safe_url(_ir_search_url)}" target="_blank" '
+                  f'class="research-link">find on google ↗</a></div>',
+                unsafe_allow_html=True
+            )
+
+            if _bookmark_clicked:
+                if not _scan_url.strip().startswith("http"):
+                    st.error("Put the IR page URL in the box above first (http(s)://…).")
+                elif _scan_url.strip() in _saved_ir_pages:
+                    st.session_state.research_flash = ("info", "That IR page is already saved.")
+                    st.rerun()
+                else:
+                    # No title and no date asked for. An IR page is identified
+                    # by its address, the two fields the old form wanted were a
+                    # tax on the one action here anyone repeats, and the saved-
+                    # links list already falls back to the URL for a blank title.
+                    _ir_entry = {"title": "", "url": _scan_url.strip(),
+                                 "doc_type": "IR Page", "date": "",
+                                 "added_at": now_local().isoformat()}
+                    _links_map.setdefault(_rcode, []).append(_ir_entry)
+                    _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _ir_entry)
+                    st.session_state.research_flash = (
+                        ("success", "IR page saved — this box will be pre-filled next time.") if _ok
+                        else ("warning", f"Saved for this session, but not permanently: {_msg}")
+                    )
+                    st.rerun()
 
             if _scan_clicked:
                 if not _scan_url.strip().startswith("http"):
@@ -4326,54 +4422,56 @@ with tab_research:
                         st.session_state.research_flash = ("warning", "No items were checked — nothing added.")
                     st.rerun()
 
-        # ── Bookmark the IR page / add a document by hand ─────────────────
-        # Sits *below* the scanner deliberately: scanning is the everyday
-        # action, and this is the two jobs the scanner can't do for itself —
-        # remembering which page to scan, and covering what it can't read.
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
-        if _toggle_section("➕ Bookmark this company's IR page (or add a document by hand)",
-                            "research_addlink_open"):
-            st.markdown(
-                '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
-                'Two uses. <strong>Save the IR page URL once</strong> (type <em>IR Page</em>) and every '
-                'later scan starts pre-filled with it — no hunting down the link again. Or '
-                '<strong>add a single document by hand</strong> when the scanner can&rsquo;t reach it: '
-                'JS-rendered IR sites return nothing to a scan, and a deck or transcript you were '
-                'sent directly never appears on the library page at all.</div>',
-                unsafe_allow_html=True
-            )
-            with st.form(key=f"research_add_form_{_rcode}", clear_on_submit=True):
-                _af1, _af2 = st.columns([2, 1])
-                with _af1:
-                    _new_title = st.text_input(
-                        "Title", placeholder="e.g. IR library — results & presentations")
-                with _af2:
-                    _new_type = st.selectbox("Type", options=RESEARCH_DOC_TYPES,
-                                              index=RESEARCH_DOC_TYPES.index("IR Page"))
-                _af3, _af4 = st.columns([3, 1])
-                with _af3:
-                    _new_url = st.text_input("URL", placeholder="https://…")
-                with _af4:
-                    _new_date = st.text_input("Date (optional)", placeholder="YYYY-MM-DD")
-                _submitted = st.form_submit_button("Add link")
-                if _submitted:
-                    if not _new_url.strip().startswith("http"):
-                        st.error("Please enter a valid URL starting with http(s)://")
-                    else:
-                        _link_entry = {
-                            "title":   _new_title.strip() or _new_url.strip(),
-                            "url":     _new_url.strip(),
-                            "doc_type": _new_type,
-                            "date":    _new_date.strip(),
-                            "added_at": now_local().isoformat(),
-                        }
-                        _links_map.setdefault(_rcode, []).append(_link_entry)
-                        _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)
-                        st.session_state.research_flash = (
-                            ("success", "Link added and saved.") if _ok
-                            else ("warning", f"Link added for this session, but not saved permanently: {_msg}")
-                        )
-                        st.rerun()
+            # ── A document the scan can't reach ───────────────────────────
+            # Folded inside the IR section rather than beside it: it is the
+            # same job — get a document into the library — done by hand when
+            # the page can't be read. Bookmarking the IR page is no longer
+            # part of this form; that is the button at the top of the section.
+            st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
+                        unsafe_allow_html=True)
+            if _toggle_section("➕  Add a document by hand", "research_addlink_open"):
+                st.markdown(
+                    '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
+                    'For what the scan can&rsquo;t reach: a JS-rendered IR site returns nothing '
+                    'to it, and a deck or transcript you were sent directly never appears on the '
+                    'library page at all.</div>',
+                    unsafe_allow_html=True
+                )
+                with st.form(key=f"research_add_form_{_rcode}", clear_on_submit=True):
+                    _af1, _af2 = st.columns([2, 1])
+                    with _af1:
+                        _new_title = st.text_input(
+                            "Title", placeholder="e.g. Q1 FY2027 results presentation")
+                    with _af2:
+                        # "IR Page" is no longer the default: that case has its
+                        # own one-click button above, and everything reaching
+                        # this form is a document.
+                        _new_type = st.selectbox("Type", options=RESEARCH_DOC_TYPES,
+                                                  index=RESEARCH_DOC_TYPES.index("Presentation"))
+                    _af3, _af4 = st.columns([3, 1])
+                    with _af3:
+                        _new_url = st.text_input("URL", placeholder="https://…")
+                    with _af4:
+                        _new_date = st.text_input("Date (optional)", placeholder="YYYY-MM-DD")
+                    _submitted = st.form_submit_button("Add document")
+                    if _submitted:
+                        if not _new_url.strip().startswith("http"):
+                            st.error("Please enter a valid URL starting with http(s)://")
+                        else:
+                            _link_entry = {
+                                "title":   _new_title.strip() or _new_url.strip(),
+                                "url":     _new_url.strip(),
+                                "doc_type": _new_type,
+                                "date":    _new_date.strip(),
+                                "added_at": now_local().isoformat(),
+                            }
+                            _links_map.setdefault(_rcode, []).append(_link_entry)
+                            _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _link_entry)
+                            st.session_state.research_flash = (
+                                ("success", "Link added and saved.") if _ok
+                                else ("warning", f"Link added for this session, but not saved permanently: {_msg}")
+                            )
+                            st.rerun()
 
 # TAB 4 — SENTIMENT
 # ════════════════════════════════════════════════════════════

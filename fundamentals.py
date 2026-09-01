@@ -364,6 +364,23 @@ def compute_valuations(price, shares, market_cap, fund: dict, forecasts: dict) -
     return out
 
 
+def implied_h2(full_year, first_half):
+    """Second-half guidance a company never files directly: the full year it
+    guided, less the first half it guided.
+
+    Every metric this is applied to is a flow over the period (sales, the three
+    profit lines, EPS), so the two halves add up to the year — which is exactly
+    why it is not applied to DPS, a per-year rate that no company splits this
+    way, and why there is no interim DPS in the store to subtract.
+
+    None unless both halves of the arithmetic are there: an implied 2H that
+    silently equals the full year because no interim was filed is a wrong
+    number, not a missing one."""
+    if full_year is None or first_half is None:
+        return None
+    return full_year - first_half
+
+
 def guidance_gap(company, consensus, threshold: float = 0.05):
     """Signed fractional gap of consensus vs company guidance, or None when
     either side is missing or the gap is inside `threshold`. Only a gap worth

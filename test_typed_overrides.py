@@ -1,4 +1,4 @@
-"""Tests for typed forecast overrides — `python test_typed_overrides.py`.
+"""Tests for the forecast panel's number handling — `python test_typed_overrides.py`.
 
 No test framework and no network: plan_typed_overrides is pure, and
 save_manual_overrides is exercised against a stubbed GitHub contents API. The
@@ -173,6 +173,41 @@ def test_screenshot_flow_still_calls_it_without_remove():
 def test_no_token_keeps_the_value_for_the_session_only():
     ok, msg = F.save_manual_overrides("o/r", None, "6504", {"eps|FY2028|consensus": {"value": 1}})
     assert not ok and "session only" in msg
+
+
+# ── Implied 2H ───────────────────────────────────────────────────────────
+# The one figure in the forecast table that no filing contains: the panel
+# derives it from the two that do. A wrong one is indistinguishable from a
+# filed one on screen, so the arithmetic is checked here rather than by eye.
+
+def _near(expected, tol=1e-9):
+    """Float equality for a subtraction of two decimals — 231.22 - 104.05 is
+    not exactly 127.17 in binary."""
+    class _Near:
+        def __eq__(self, other):
+            return abs(other - expected) <= tol
+    return _Near()
+
+
+def test_implied_h2_is_the_year_less_the_first_half():
+    assert F.implied_h2(101e9, 45.5e9) == 55.5e9
+    assert F.implied_h2(231.22, 104.05) == _near(127.17)
+
+
+def test_implied_h2_is_none_unless_both_halves_are_filed():
+    # A missing interim must not fall through to the full year — that would
+    # print the whole year's guidance in the 2H column as if it were a half.
+    assert F.implied_h2(101e9, None) is None
+    assert F.implied_h2(None, 45.5e9) is None
+    assert F.implied_h2(None, None) is None
+
+
+def test_implied_h2_keeps_a_second_half_that_shrinks():
+    # Guiding a first half above the full year is a real filing pattern —
+    # a loss-making back half — and the negative must survive, not be zeroed.
+    assert F.implied_h2(8e9, 10e9) == -2e9
+    # A company guiding zero for the year still has an answer, not a blank.
+    assert F.implied_h2(0.0, 4e9) == -4e9
 
 
 if __name__ == "__main__":
