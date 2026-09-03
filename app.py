@@ -876,6 +876,21 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-src-s { color: #E65100; }
 .fc-src-t { color: #8B4513; }
 .fc-src-d { color: #1B4F72; }
+/* Parent-company-only (単体) — flagged in the same red as a warning, because a
+   holding company's standalone ordinary profit sitting in a consolidated
+   column is a wrong number, not a footnote. */
+.fc-src-p { color: #C62828; }
+/* "n/c" — a street cell whose estimate is not measuring the filed line beside
+   it. Deliberately not styled as a missing value: the number exists, it just
+   cannot be put on this row. */
+.fc-nc { color: #9B8B7A; font-style: italic; cursor: help; }
+/* Derived ratio rows, below the ¥bn flows. The rule above the group is what
+   stops a percentage being read as another money line; the rows themselves
+   stay quieter than the figures they are computed from. */
+.fc-rgroup { border-top: 1px solid #D9D3C8; background: #F7F4EF;
+             color: #8B4513; font-size: 0.62rem; letter-spacing: 0.06em;
+             text-transform: uppercase; font-weight: 700; }
+.fc-rrow { color: #6E5E4C; }
 .fc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.68rem;
              color: #9B8B7A; margin: 6px 0 2px; }
 .fc-note { font-size: 0.72rem; color: #9B8B7A; border-left: 3px solid #D9D3C8;
@@ -3216,8 +3231,14 @@ with tab_research:
         _SRC_TAG = {"jquants": ("A", "auto — J-Quants filing"),
                     "yfinance": ("A", "auto — Yahoo/LSEG consensus"),
                     "typed": ("T", "typed by you"), "manual": ("T", "typed by you"),
+                    "jquants:nonconsolidated":
+                        ("P", "parent company only (単体), not the group — "
+                              "J-Quants had no consolidated figure for this "
+                              "line, so this is the holding company on its own"),
                     "derived": ("D", "derived here — full-year guidance minus the "
-                                     "first half; not a figure the company files")}
+                                     "first half; not a figure the company files"),
+                    "derived:ratio": ("D", "derived here from the two filed figures "
+                                           "in this same column")}
 
         def _src_mark(source: str) -> str:
             """A one-letter provenance mark, so a number's origin is visible in
@@ -3228,29 +3249,91 @@ with tab_research:
                 letter, title = "S", f"from your screenshot ({source.split(':', 1)[-1]})"
             else:
                 letter, title = _SRC_TAG.get(source, ("A", source))
-            cls = {"A": "a", "S": "s", "T": "t", "D": "d"}[letter]
+            cls = {"A": "a", "S": "s", "T": "t", "D": "d", "P": "p"}[letter]
             return (f'<span class="fc-src fc-src-{cls}" '
                     f'title="{_safe_text(title)}">{letter}</span>')
 
         # Short labels on purpose: the column headers already cost width, and
         # these read the same at a glance on a phone.
-        _FC_ROWS = [("net_sales", "Net sales", 1e9, 1),
-                    ("operating_profit", "Op. profit", 1e9, 1),
-                    ("ordinary_profit", "Ord. profit", 1e9, 1),
-                    ("net_profit", "Net profit", 1e9, 1),
-                    ("eps", "EPS ¥", 1.0, 1),
-                    ("dps", "DPS ¥", 1.0, 1)]
+        #
+        # (metric, label, scale, decimals, kind). "flow" rows are yen amounts
+        # over a period and add up across halves; "ratio" rows are derived
+        # percentages that do not, and are rendered under their own separator
+        # below the money rows. fundamentals.profile_rows() relabels and drops
+        # rows per presentation profile — a bank has no operating profit line,
+        # and its top line is ordinary income, not net sales.
+        _FC_BASE_ROWS = [("net_sales", "Net sales", 1e9, 1, "flow"),
+                         ("operating_profit", "Op. profit", 1e9, 1, "flow"),
+                         ("ordinary_profit", "Ord. profit", 1e9, 1, "flow"),
+                         ("net_profit", "Net profit", 1e9, 1, "flow"),
+                         ("eps", "EPS ¥", 1.0, 1, "flow"),
+                         ("dps", "DPS ¥", 1.0, 1, "flow")]
+
+        # Derived, never collected: the arithmetic of two figures already in
+        # the same column. Shown for financial issuers, where return on equity
+        # and the payout ratio are what a P/E is standing in for anyway.
+        # Deliberately NOT here: CET1, solvency margin, ESR — see
+        # fundamentals.CAPITAL_DISCLAIMER. No feed carries them, and a proxied
+        # capital ratio is worse than none.
+        _FC_RATIO_ROWS = [("roe", "ROE %", 1.0, 1, "ratio"),
+                          ("payout", "Payout %", 1.0, 1, "ratio")]
+
+        # Kept for the code paths that only need the money rows in their
+        # original order (the typed-override editor seeds from it).
+        _FC_ROWS = _FC_BASE_ROWS
+
+        def _fc_rows(profile: str, with_ratios: bool = True):
+            """The row set for one company, labelled for its profile."""
+            rows = list(fund.profile_rows(profile, _FC_BASE_ROWS))
+            if with_ratios and profile in fund.FINANCIAL_PROFILES:
+                rows += _FC_RATIO_ROWS
+            return rows
+
+        def _ratio_cell(metric, get, year, basis, bps, split=None):
+            """ROE and payout for one (year, basis) cell, or None.
+
+            Both are derived from figures in that same column, so a cell only
+            has a value where the column has the inputs — a street column with
+            no DPS estimate has no payout ratio, and says so with a dash.
+
+            A detected stock split empties them: EPS restated onto the new
+            share count over a book value struck on the old one is wrong by the
+            split factor, and so is a dividend summed across the boundary."""
+            if split:
+                return None
+            eps = get("eps", year, basis)
+            if metric == "roe":
+                return None if (eps is None or not bps or bps <= 0) else eps / bps
+            dps = get("dps", year, basis)
+            return None if (dps is None or eps is None or eps <= 0) else dps / eps
 
         def _fc_render(ctx: dict):
             _years, _get, _src = ctx["years"], ctx["get"], ctx["src"]
             _vals, _fundrow = ctx["vals"], ctx["fundrow"]
+            _profile = ctx.get("profile", "general")
+            _split = ctx.get("split_factor")
+            _bps = _vals.get("bps")
+            # Row set and labels for this company's presentation profile: a
+            # bank files no operating profit and calls its top line ordinary
+            # income, so the row is dropped rather than shown as a line of
+            # dashes, and the survivors are named as the company names them.
+            _ROWS = _fc_rows(_profile)
+            _MONEY_ROWS = [r for r in _ROWS if r[4] == "flow"]
+            _std = fund.accounting_standard(_fundrow.get("doc_type", ""))
+
+            def _raw(_m, _y, _b):
+                """Value for a cell, derived for the ratio rows."""
+                if _m in ("roe", "payout"):
+                    return _ratio_cell(_m, _get, _y, _b, _bps, _split)
+                return _get(_m, _y, _b)
+
             # The reported year sits to the left of the forecasts, as its own
             # single column: what the company actually did is the thing every
             # forecast beside it is judged against, and it is filed, not
             # estimated, so it has no company/street split to make.
             _shown = list(_years)
             _actual_years = {_y for _y in _shown
-                             if any(_get(_m, _y, "actual") is not None for _m, *_ in _FC_ROWS)}
+                             if any(_get(_m, _y, "actual") is not None for _m, *_ in _MONEY_ROWS)}
             _fc_years = [_y for _y in _shown if _y not in _actual_years]
             _y1 = _fc_years[0] if _fc_years else ""
             _y2 = _fc_years[1] if len(_fc_years) > 1 else ""
@@ -3270,9 +3353,29 @@ with tab_research:
             # its complement 200px lower down.
             def _cell(_m, _y, _b):
                 if _b == "company_h2":
+                    # A ratio is a rate, not a flow: half a year's return on
+                    # equity is not the year's less the first half, so the
+                    # implied column simply has no value for these rows.
+                    if _m in ("roe", "payout"):
+                        return None
                     return fund.implied_h2(_get(_m, _y, "company"),
                                            _get(_m, _y, "company_h1"))
-                return _get(_m, _y, _b)
+                return _raw(_m, _y, _b)
+
+            # Where the street's revenue estimate is measuring something other
+            # than the filed top line — Yahoo publishes net revenue for a bank
+            # against the tanshin's gross ordinary income, a factor of roughly
+            # two — the cell carries "n/c" instead of a number. Showing both
+            # on one row invites a comparison that cannot be made.
+            _actual_top = next((_get("net_sales", _y, "actual") for _y in _shown
+                                if _get("net_sales", _y, "actual") is not None), None)
+            _suppress_street_top = _profile in fund.FINANCIAL_PROFILES and any(
+                fund.revenue_basis_mismatch(_actual_top, _get("net_sales", _y, "consensus"))
+                for _y in _shown)
+
+            def _blocked(_m, _b):
+                return (_m == "net_sales" and _b == "consensus"
+                        and _suppress_street_top)
 
             # A year earns a company column only if the company has guided it.
             # Japanese issuers guide one year at a time, so in practice that is
@@ -3280,7 +3383,7 @@ with tab_research:
             # which is exactly what makes room for a third of them.
             _cols = {_y: [_b for _b in ("actual", "company_h1", "company_h2",
                                         "company", "consensus")
-                           if any(_cell(_m, _y, _b) is not None for _m, *_ in _FC_ROWS)]
+                           if any(_cell(_m, _y, _b) is not None for _m, *_ in _ROWS)]
                      for _y in _shown}
             _cols = {_y: _c for _y, _c in _cols.items() if _c}
             _shown = [_y for _y in _shown if _y in _cols]
@@ -3295,6 +3398,9 @@ with tab_research:
                            "company": "Company guidance — full year",
                            "consensus": "Street consensus"}
             _has_h2 = any("company_h2" in _c for _c in _cols.values())
+            _has_nc = any(_src(_m, _y, _b) == "jquants:nonconsolidated"
+                          for _m, *_ in _MONEY_ROWS for _y in _shown
+                          for _b in _cols.get(_y, ()))
 
             # Two header rows: the fiscal year once, spanning its own columns,
             # with company/street beneath. Repeating "FY2027" on every column
@@ -3314,16 +3420,47 @@ with tab_research:
                                  f'title="{_safe_text(_basis_help[_b])}">'
                                  f'{_basis_label[_b]}</div>')
 
-            for _m, _label, _scale, _dp in _FC_ROWS:
-                cells.append(f'<div class="fc-cell fc-metric">{_safe_text(_label)}</div>')
+            _ratio_started = False
+            for _m, _label, _scale, _dp, _kind in _ROWS:
+                # One separator ahead of the derived ratios, so nobody reads a
+                # percentage as another ¥bn line.
+                if _kind == "ratio" and not _ratio_started:
+                    _ratio_started = True
+                    # No fc-span2 here: that class is `grid-row: span 2`, for
+                    # the two-deep header only. A separator is one row.
+                    cells.append(
+                        '<div class="fc-cell fc-metric fc-rgroup">Returns</div>')
+                    for _y in _shown:
+                        for _i, _b in enumerate(_cols[_y]):
+                            cells.append('<div class="fc-cell fc-rgroup'
+                                         + (' fc-ystart' if _i == 0 else '') + '"></div>')
+                cells.append(f'<div class="fc-cell fc-metric'
+                             f'{" fc-rrow" if _kind == "ratio" else ""}">'
+                             f'{_safe_text(_label)}</div>')
                 for _y in _shown:
-                    _co, _cs = _get(_m, _y, "company"), _get(_m, _y, "consensus")
+                    _co, _cs = _raw(_m, _y, "company"), _raw(_m, _y, "consensus")
                     for _i, _b in enumerate(_cols[_y]):
                         # A rule where each fiscal year starts, so three
                         # shaded street columns in a row do not read as one.
                         _edge = " fc-ystart" if _i == 0 else ""
+                        if _blocked(_m, _b):
+                            cells.append(
+                                f'<div class="fc-cell fc-num fc-cons{_edge} fc-nc" '
+                                f'title="Not comparable. Yahoo&#39;s revenue estimate for '
+                                f'this issuer is net revenue; the filed figure beside it is '
+                                f'gross ordinary income. The two are roughly a factor of '
+                                f'two apart and are not the same measure.">n/c</div>')
+                            continue
                         if _b != "consensus":
                             _v = _cell(_m, _y, _b)
+                            if _kind == "ratio":
+                                cells.append(
+                                    f'<div class="fc-cell fc-num fc-rrow{_edge}'
+                                    f'{" fc-actual" if _b == "actual" else ""}">'
+                                    + _pct(_v, _dp)
+                                    + (_src_mark("derived:ratio") if _v is not None else "")
+                                    + '</div>')
+                                continue
                             # The implied column has no filed source to cite, so
                             # it cites the arithmetic instead — and only where
                             # there is a number, or an empty cell would carry a
@@ -3339,11 +3476,20 @@ with tab_research:
                         # The gap chip fires only past 5% — consensus sitting on
                         # top of guidance is the normal case and not worth
                         # marking — and only where there is guidance to differ
-                        # from, which is the first column.
-                        _gap = fund.guidance_gap(_co, _cs)
+                        # from, which is the first column. A detected stock
+                        # split silences it: guidance and consensus are then on
+                        # opposite sides of the split and the "gap" is the
+                        # split factor, not a disagreement about the business.
+                        _gap = None if _split else fund.guidance_gap(_co, _cs)
                         _chip = ('' if _gap is None else
                                  f'<span class="fc-delta {"u" if _gap > 0 else "d"}">'
                                  f'{_gap * 100:+.0f}%</span>')
+                        if _kind == "ratio":
+                            cells.append(f'<div class="fc-cell fc-num fc-cons fc-rrow{_edge}">'
+                                         + _pct(_cs, _dp)
+                                         + (_src_mark("derived:ratio") if _cs is not None else "")
+                                         + '</div>')
+                            continue
                         cells.append(f'<div class="fc-cell fc-num fc-cons{_edge}">'
                                      + _fnum(_cs, _dp, "", _scale)
                                      + _src_mark(_src(_m, _y, "consensus")) + _chip + '</div>')
@@ -3362,6 +3508,13 @@ with tab_research:
                 '<span><b class="fc-src fc-src-t">T</b> typed</span>'
                 + ('<span><b class="fc-src fc-src-d">D</b> implied 2H '
                    '= full yr &minus; 1H</span>' if _has_h2 else '')
+                + ('<span><b class="fc-src fc-src-p">P</b> parent only '
+                   '(単体)</span>' if _has_nc else '')
+                # Which accounting standard the rows are drawn from, where the
+                # filing said so. It is what decides whether "Ord. profit"
+                # means ordinary profit or profit before tax, so it belongs
+                # beside the table rather than in a note nobody opens.
+                + (f'<span>basis: {_safe_text(_std)}</span>' if _std else '')
                 + '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
                 unsafe_allow_html=True)
 
@@ -3373,7 +3526,7 @@ with tab_research:
             # between the table and the multiples below it.
             _run = st.session_state.get("consensus_run") or {}
             _no_guidance_at_all = all(
-                _get(m, y, "company") is None for m, *_ in _FC_ROWS for y in _shown)
+                _get(m, y, "company") is None for m, *_ in _MONEY_ROWS for y in _shown)
             _warn_html, _note_html = "", []
             if _no_guidance_at_all and _run.get("jquants_key_rejected"):
                 _warn_html = (
@@ -3415,6 +3568,50 @@ with tab_research:
                     'profit or DPS to collect for Japanese names. Those come from company guidance, '
                     'or from what you type or screenshot in below.</div>')
 
+            # Why this company's rows look different from the last one's. Said
+            # once, folded away with the rest — but said, because a reader who
+            # does not know the panel switched layouts will read a missing
+            # operating-profit row as missing data rather than as a line the
+            # company does not file.
+            if _profile in fund.FINANCIAL_PROFILES:
+                _what = {"bank": "a bank", "insurer": "an insurer",
+                         "insurer_ifrs": "an IFRS-reporting insurer",
+                         "securities": "a securities house",
+                         "other_finance": "a finance company"}.get(
+                             _profile, "a financial issuer")
+                _note_html.append(
+                    f'<div class="fc-note">Laid out for {_safe_text(_what)}. Japanese banks and '
+                    'insurers file 経常収益 (ordinary income) where an industrial files net sales, '
+                    'and file no operating profit at all — so that row is absent rather than empty. '
+                    'The line the market quotes is ordinary profit, above net profit.'
+                    + ('' if _profile != "insurer_ifrs" else
+                       ' Under IFRS there is no ordinary profit: the line shown is profit before '
+                       'tax, and the top line is insurance revenue.')
+                    + '</div>')
+                _note_html.append(
+                    '<div class="fc-note"><strong>Regulatory capital is not shown.</strong> '
+                    + _safe_text(fund.CAPITAL_DISCLAIMER)
+                    + ' Those figures live in the Basel Pillar 3 disclosure (自己資本の充実の状況), '
+                      'the 有価証券報告書 and IR presentations — all of them documents this panel '
+                      'does not read. Rather than show an estimate, it shows none.</div>')
+
+            if _suppress_street_top:
+                _note_html.append(
+                    '<div class="fc-note">The street cell on the top line reads <strong>n/c</strong> '
+                    'because Yahoo publishes a <em>net</em> revenue estimate for this issuer — '
+                    'interest income net of interest expense, plus fees — while the filed figure '
+                    'beside it is gross ordinary income. Across this universe the two run about a '
+                    'factor of two apart for banks and securities houses, so they are not put on '
+                    'one row.</div>')
+
+            if _has_nc:
+                _note_html.append(
+                    '<div class="fc-note">A <strong>P</strong> marks a <strong>parent-company-only '
+                    '(単体)</strong> figure: J-Quants carried no consolidated value for that line, '
+                    'so what is shown is the holding company on its own. For a holding company that '
+                    'is largely dividends received from its own subsidiaries, and it is not '
+                    'comparable with the consolidated figures around it.</div>')
+
             if _has_h2:
                 _note_html.append(
                     '<div class="fc-note"><strong>Impl. 2H</strong> is the full-year guidance less '
@@ -3424,9 +3621,27 @@ with tab_research:
                     'implied 2H that moves with it. There is no implied DPS — an annual dividend '
                     'is a rate, not a flow to split.</div>')
 
+            # A stock split straddling the filing and the share price is the
+            # one condition that makes every per-share multiple below wrong by
+            # a known factor, so it is stated on screen rather than folded away
+            # with the explanatory notes.
+            if _split:
+                _ratio_txt = (f"{_split:g}-for-1" if _split >= 1
+                              else f"1-for-{1 / _split:g}")
+                _warn_html += (
+                    '<div class="fc-note fc-warn"><strong>Stock split detected '
+                    f'({_safe_text(_ratio_txt)}).</strong> The share count the company used to '
+                    'strike its guidance EPS differs from the filed share count by that factor, '
+                    'so the per-share figures and the share price are on opposite sides of a '
+                    'split. <strong>P/E, dividend yield, ROE and the guidance-vs-street chip are '
+                    'suppressed</strong> rather than shown wrong by the factor. The ¥ amounts in '
+                    'the table are unaffected. Type the adjusted per-share figures in below to '
+                    'restore the multiples.</div>')
+
             if _warn_html:
                 st.markdown(_warn_html, unsafe_allow_html=True)
 
+            _is_fin = _profile in fund.FINANCIAL_PROFILES
             _tiles = [
                 ("Price", _fnum(ctx["price"], 0), "close"),
                 ("Market cap", _fnum(ctx["mcap"], 1, "B", 1e9), "¥"),
@@ -3436,18 +3651,41 @@ with tab_research:
             ] + ([
                 (f"P/E {_yy(_y3)} st.", _fnum(_vals.get("pe_fy3_consensus"), 1, "×"), "street EPS"),
             ] if _y3 else []) + [
+                # The book value's vintage, not just its size. A company that
+                # has restated its balance sheet onto a new accounting standard
+                # since this snapshot was taken has a P/B here that is struck
+                # on the superseded book — for an insurer moving to IFRS that
+                # is a difference of tens of per cent, and nothing else on the
+                # panel would show it.
                 ("P/B", _fnum(_vals.get("pb"), 2, "×"),
-                 "BPS " + (f"{_vals['bps']:,.0f}" if _vals.get("bps") else "—")),
+                 "BPS " + (f"{_vals['bps']:,.0f}" if _vals.get("bps") else "—")
+                 + (f" @ {_fundrow['as_of'][:7]}" if _fundrow.get("as_of") else "")),
+            ] + ([
+                # Financial issuers: return on equity and the payout ratio in
+                # place of the two enterprise-value tiles, which have no
+                # meaning when "debt" is the funding base. Equity/assets is the
+                # accounting ratio the company itself files — never a Basel or
+                # solvency figure, which no source here carries.
+                (f"ROE {_yy(_y1)} co.", _pct(_vals.get("roe_fy1_company")), "guidance EPS ÷ BPS"),
+                (f"Payout {_yy(_y1)}", _pct(_vals.get("payout_fy1_company"), 0), "guidance DPS ÷ EPS"),
+                ("Equity/assets", _pct(_vals.get("equity_to_assets"), 1), "accounting, not Basel"),
+            ] if _is_fin else [
                 ("EV/EBITDA", _fnum(_vals.get("ev_ebitda"), 1, "×"),
                  _fundrow.get("ebitda_basis") or "no EBITDA"),
                 ("Net debt", _fnum(_vals.get("net_debt"), 1, "B", 1e9), "¥ debt − cash"),
+            ]) + [
                 ("Div yield", _pct(_vals.get("yield_fy1_company"), 2), "guidance DPS"),
                 ("EPS growth", _pct(_vals.get("eps_growth")),
                  f"{_yy(_y1)}→{_yy(_y2)}"),
                 ("PEG", _fnum(_vals.get("peg"), 2), "cons. P/E ÷ growth"),
             ]
+            # The one tile whose label could be misread as something it is not,
+            # so it carries the full sentence rather than the three-word sub.
+            _tile_help = {"Equity/assets": fund.CAPITAL_DISCLAIMER}
             st.markdown('<div class="fc-vgrid">' + "".join(
-                f'<div class="fc-vcell"><span class="fc-k">{_safe_text(k)}</span>'
+                f'<div class="fc-vcell"'
+                + (f' title="{_safe_text(_tile_help[k])}"' if k in _tile_help else '')
+                + f'><span class="fc-k">{_safe_text(k)}</span>'
                 f'<span class="fc-v">{v}</span><span class="fc-vsub">{_safe_text(sub)}</span></div>'
                 for k, v, sub in _tiles) + '</div>', unsafe_allow_html=True)
 
@@ -3483,7 +3721,7 @@ with tab_research:
                     'These are raw numbers, not the formatted figures above, so the sheet can '
                     'compute on them.</div>', unsafe_allow_html=True)
 
-        def _fc_typed(_rcode, _rname, _years, _fc_map):
+        def _fc_typed(_rcode, _rname, _years, _fc_map, _profile="general"):
             """Type any cell in the table by hand, or correct a collected one.
 
             The screenshot reader below covers the terminal case; this covers
@@ -3496,7 +3734,18 @@ with tab_research:
             Deleting a row does not blank the cell: it drops the override so
             the collected number shows through again. A row with nothing
             collected behind it simply disappears."""
-            _label_of = {m: lbl for m, lbl, *_ in _FC_ROWS}
+            # Money rows only, and labelled for this company's profile: the
+            # ratio rows are derived from the cells around them, so there is
+            # nothing to type into them, and a bank's top line is offered as
+            # "Ordinary income" because that is what the panel above calls it.
+            #
+            # _label_of still covers *every* base metric, not just the ones the
+            # profile shows. A bank that somehow has an operating-profit
+            # override must stay editable — otherwise the one row you would
+            # want to delete is the one row the grid cannot show.
+            _typed_rows = _fc_rows(_profile, with_ratios=False)
+            _label_of = {m: lbl for m, lbl, *_ in _FC_BASE_ROWS}
+            _label_of.update({m: lbl for m, lbl, *_ in _typed_rows})
             _metric_of = {lbl: m for m, lbl in _label_of.items()}
             # company_h1 is in the store for 760-odd rows (it feeds the interim
             # strip under the table), so it needs an option of its own —
@@ -3518,7 +3767,7 @@ with tab_research:
             # Seeded from what the table is showing, not from the override store
             # alone — the point is to edit the panel you are looking at, and a
             # collected value you retype has to start from the collected number.
-            _order = {m: i for i, (m, *_) in enumerate(_FC_ROWS)}
+            _order = {m: i for i, (m, *_) in enumerate(_FC_BASE_ROWS)}
             _seed_keys = sorted(
                 (k for k in _fc_map
                  if len(k) == 3 and k[0] in _order and k[2] in _basis_label),
@@ -3534,13 +3783,21 @@ with tab_research:
                 "source": _fc_map[(_m, _y, _b)].get("source", ""),
             } for _m, _y, _b in _seed_keys]
 
+            # Offer the profile's rows first, then any metric already present
+            # on this company that the profile does not show — a selectbox
+            # seeded with a value outside its options blanks the row on edit.
+            _metric_options = [lbl for _, lbl, *_ in _typed_rows]
+            for _r in _rows:
+                if _r["metric"] not in _metric_options:
+                    _metric_options.append(_r["metric"])
+
             _nonce = st.session_state.get(f"fc_typed_nonce_{_rcode}", 0)
             _edited = st.data_editor(
                 _rows, key=f"fc_typed_{_rcode}_{_nonce}", hide_index=True,
                 num_rows="dynamic", use_container_width=True,
                 column_config={
                     "metric": st.column_config.SelectboxColumn(
-                        "Metric", options=[lbl for _, lbl, *_ in _FC_ROWS], required=True),
+                        "Metric", options=_metric_options, required=True),
                     "fiscal_year": st.column_config.TextColumn(
                         "FY", width="small", required=True,
                         help="The fiscal year as the panel labels it, e.g. FY2027."),
@@ -3811,19 +4068,55 @@ with tab_research:
                     _actual_yrs = {_y for _y in _years
                                    if any(_get(_m, _y, "actual") is not None
                                           for _m in fund.METRICS)}
+                    _fc_years = [_y for _y in _years if _y not in _actual_yrs]
                     _slots = {}
-                    for _slot, _y in zip(("fy1", "fy2", "fy3"),
-                                         [_y for _y in _years if _y not in _actual_yrs]):
+                    for _slot, _y in zip(("fy1", "fy2", "fy3"), _fc_years):
                         for _b in ("company", "consensus"):
                             for _m in fund.METRICS:
                                 _v = _get(_m, _y, _b)
                                 if _v is not None:
                                     _slots[(_m, _slot, _b)] = _v
 
+                    # Which income statement this company files. The JPX
+                    # 33-sector code is the authority where the universe file
+                    # carries it; failing that, a company with no operating
+                    # profit in any period but an ordinary profit has a
+                    # financial issuer's shape whatever it is called.
+                    _uni_row = (st.session_state.jpx400_map or {}).get(_rcode, {})
+                    _has_op = any(_get("operating_profit", _y, _b) is not None
+                                  for _y in _years
+                                  for _b in ("actual", "company", "consensus"))
+                    _has_odp = any(_get("ordinary_profit", _y, _b) is not None
+                                   for _y in _years
+                                   for _b in ("actual", "company", "consensus"))
+                    _profile = fund.profile_for(
+                        sector33=_uni_row.get("sector33", ""),
+                        sector_name=_uni_row.get("sector", ""),
+                        doc_type=_fundrow.get("doc_type", ""),
+                        has_operating_profit=_has_op,
+                        has_ordinary_profit=_has_odp,
+                        sector_hint=SECTOR_LOOKUP.get(_rcode, ""))
+
+                    # A split between the filing and today's close makes every
+                    # per-share multiple wrong by the split factor. Detected
+                    # from the company's own guidance — net profit over EPS is
+                    # the share count it struck that EPS on — against the filed
+                    # share count, so it needs no corporate-action feed.
+                    _split_factor = None
+                    for _y in _fc_years:
+                        _split_factor = fund.detect_split(
+                            _get("net_profit", _y, "company"),
+                            _get("eps", _y, "company"),
+                            _fundrow.get("shares"))
+                        if _split_factor:
+                            break
+
                     _fc_render({
                         "years": _years, "get": _get, "src": _src,
-                        "vals": fund.compute_valuations(_price, _shares, _mcap, _fundrow, _slots),
+                        "vals": fund.compute_valuations(_price, _shares, _mcap, _fundrow,
+                                                        _slots, _profile, _split_factor),
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
+                        "profile": _profile, "split_factor": _split_factor,
                     })
                     # Folded away by default. Filling gaps is occasional work
                     # — it is the table and the multiples the panel is opened
@@ -3842,7 +4135,7 @@ with tab_research:
                         _tab_type, _tab_shot = st.tabs(["✏️ Type or correct values",
                                                         "📸 Read a screenshot"])
                         with _tab_type:
-                            _fc_typed(_rcode, _rname, _years, _fc_map)
+                            _fc_typed(_rcode, _rname, _years, _fc_map, _profile)
                         with _tab_shot:
                             _fc_screenshots(_rcode, _rname, _years)
 

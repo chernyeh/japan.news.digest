@@ -223,12 +223,17 @@ def company_actuals(records: list) -> tuple:
                 return val, key
         return None, ""
 
-    out = {}
+    out, nc = {}, set()
     for metric in F.METRICS:
-        val = F.dps_annual(newest, "") if metric == "dps" else newest(metric)[0]
+        if metric == "dps":
+            val, key = F.dps_annual(newest, ""), ""
+        else:
+            val, key = newest(metric)
         if val is not None:
             out[(metric, label, "actual")] = val
-    return out, label, F.jq_pick_str(latest, "disc_date")[0][:10]
+            if key in F.NONCONSOLIDATED_KEYS:
+                nc.add((metric, label, "actual"))
+    return out, label, F.jq_pick_str(latest, "disc_date")[0][:10], nc
 
 
 def company_guidance(records: list) -> tuple:
@@ -272,36 +277,44 @@ def company_guidance(records: list) -> tuple:
     else:
         fy1_has_guidance = True
 
-    out = {}
+    out, nc = {}, set()
+
+    def keep(metric, fy, basis, val, key):
+        if val is None:
+            return
+        out[(metric, fy, basis)] = val
+        if key in F.NONCONSOLIDATED_KEYS:
+            nc.add((metric, fy, basis))
+
     if fy1 and fy1_has_guidance:
         for metric in F.METRICS:
             if metric == "dps":
                 # No annual total is filed for a next year, only the four
                 # instalments — see fundamentals.dps_annual.
-                val = F.dps_annual(newest, prefix)
+                val, key = F.dps_annual(newest, prefix), ""
             else:
-                val, _ = newest(f"{prefix}{metric}")
-            if val is not None:
-                out[(metric, fy1, "company")] = val
+                val, key = newest(f"{prefix}{metric}")
+            keep(metric, fy1, "company", val, key)
 
         # Interim guidance, where the company files it. Many do: the first-half
         # forecast is its own row in the tanshin, and it is the number a
         # mid-year result gets judged against.
         interim_prefix = "nx2q_" if prefix == "nx_" else "f2q_"
         for metric in F.INTERIM_METRICS:
-            val, _ = newest(f"{interim_prefix}{metric}")
-            if val is not None:
-                out[(metric, fy1, "company_h1")] = val
+            val, key = newest(f"{interim_prefix}{metric}")
+            keep(metric, fy1, "company_h1", val, key)
 
     # A quarterly filing occasionally carries next-year fields too. Where it
     # does, that is a genuine second company year and worth keeping.
     if prefix == "f_" and fy1:
         fy2 = next_fy_label(fy1)
         for metric in F.METRICS:
-            val = (F.dps_annual(newest, "nx_") if metric == "dps"
-                   else newest(f"nx_{metric}")[0])
-            if val is not None and fy2:
-                out[(metric, fy2, "company")] = val
+            if metric == "dps":
+                val, key = F.dps_annual(newest, "nx_"), ""
+            else:
+                val, key = newest(f"nx_{metric}")
+            if fy2:
+                keep(metric, fy2, "company", val, key)
 
     fund = {}
     # The date the guidance year closes, filed rather than derived, so a
@@ -319,7 +332,7 @@ def company_guidance(records: list) -> tuple:
         fund["fy_end_next"] = nxt
 
     for concept in ("equity", "total_assets", "bps", "cash", "debt", "dep_amort",
-                    "shares", "cfo"):
+                    "shares", "cfo", "equity_to_assets"):
         val, key = newest(concept)
         if val is not None:
             fund[concept] = val
@@ -327,7 +340,15 @@ def company_guidance(records: list) -> tuple:
     op, _ = newest("operating_profit")
     if op is not None:
         fund["op_actual"] = op
-    return out, fund, as_of, fy1
+
+    # Which accounting standard the newest filing is drawn up under. Taken from
+    # `latest` rather than across filings: it is the *current* basis that says
+    # how to label the income statement, and a company mid-IFRS-transition is
+    # precisely the case where an older filing would give the wrong answer.
+    doc_type = F.jq_pick_str(latest, "doc_type")[0]
+    if doc_type:
+        fund["doc_type"] = doc_type
+    return out, fund, as_of, fy1, nc
 
 
 # ── Yahoo ────────────────────────────────────────────────────────────────
@@ -442,15 +463,26 @@ def fetch_yahoo(code: str, fy1: str, fy2: str) -> tuple:
 # ── Assembly ─────────────────────────────────────────────────────────────
 
 def build_rows(code: str, name: str, guide: dict, cons: dict,
-               jq_as_of: str, y_as_of: str) -> list:
+               jq_as_of: str, y_as_of: str, nonconsolidated=()) -> list:
+    """Long-format rows for consensus.csv.
+
+    A value that came from a parent-only J-Quants key is sourced
+    "jquants:nonconsolidated" rather than plain "jquants", so the panel can
+    mark it. Everything else keeps the source string it always had, which is
+    what stops this from being a schema change."""
+    nc = set(nonconsolidated or ())
     rows = []
     for (metric, fy, basis), value in list(guide.items()) + list(cons.items()):
         filed = basis.startswith("company") or basis == "actual"
+        source = "yfinance"
+        if filed:
+            source = ("jquants:nonconsolidated" if (metric, fy, basis) in nc
+                      else "jquants")
         rows.append({
             "code": code, "name": name, "metric": metric, "fy": fy, "basis": basis,
             "value": value,
             "unit": "jpy" if metric in ("eps", "dps") else "jpy_abs",
-            "source": "jquants" if filed else "yfinance",
+            "source": source,
             "as_of": jq_as_of if filed else y_as_of,
         })
     return rows
@@ -463,9 +495,12 @@ def merge_fundamentals(code: str, name: str, jq: dict, yh: dict, as_of: str) -> 
     for field in ("fy_end", "fy_end_next"):
         if jq.get(field):
             out[field] = jq[field]
+    if jq.get("doc_type"):
+        out["doc_type"] = jq["doc_type"]
     srcs = {}
     for concept in ("shares", "bps", "equity", "total_assets", "debt",
-                    "cash", "ebitda", "dep_amort", "op_actual"):
+                    "cash", "ebitda", "dep_amort", "op_actual",
+                    "equity_to_assets", "cfo"):
         for src in (jq, yh):
             if concept in src and src[concept] is not None:
                 out[concept] = src[concept]
@@ -589,6 +624,18 @@ def main() -> int:
                   "NxtFYSt", "NxtFYEn", "DiscDate"):
             if k in latest:
                 print(f"  {k:12} {latest[k]!r}")
+        # The equity ratio's own scale is not documented, and 5.2 and 0.052 are
+        # both plausible encodings of the same 5.2%, so the probe prints the
+        # raw value beside the ratio computed from the balance sheet. That is
+        # what fundamentals.equity_to_assets checks at collection time; seeing
+        # both here is how you confirm it is checking the right thing.
+        _eqar, _eqar_key = F.jq_pick(latest, "equity_to_assets")
+        _eq, _ = F.jq_pick(latest, "equity")
+        _ta, _ = F.jq_pick(latest, "total_assets")
+        print(f"\nEquity ratio (ACCOUNTING — not Basel CET1 or a solvency margin):")
+        print(f"  filed      {_eqar!r} (key {_eqar_key or 'NO MATCH'})")
+        print(f"  equity/TA  {(_eq / _ta) if (_eq and _ta) else None}")
+        print(f"  resolved   {F.equity_to_assets(_eqar, _eq, _ta)}")
         print("\nForecast fields on the newest record (blank = present but empty):")
         for k in sorted(k for k in latest if k.startswith(("F", "Nx"))):
             print(f"  {k:18} {str(latest[k])[:28]!r}")
@@ -649,11 +696,13 @@ def main() -> int:
     for i, row in enumerate(universe, 1):
         code, name = row["Code"], row.get("Name", "")
         guide, actual, jq_fund, jq_as_of, fy1 = {}, {}, {}, "", ""
+        nonconsolidated = set()
         if api_key:
             try:
                 _records = fetch_jq_summary(api_key, code)
-                guide, jq_fund, jq_as_of, fy1 = company_guidance(_records)
-                actual, _fy0, _ = company_actuals(_records)
+                guide, jq_fund, jq_as_of, fy1, _nc_g = company_guidance(_records)
+                actual, _fy0, _, _nc_a = company_actuals(_records)
+                nonconsolidated = _nc_g | _nc_a
             except JQuantsAuthError as exc:
                 # Stop asking. Every remaining company would fail the same way,
                 # and burying one configuration error under 400 identical
@@ -675,7 +724,7 @@ def main() -> int:
             cons, y_fund, y_as_of = {}, {}, date.today().isoformat()
 
         cons_rows.extend(build_rows(code, name, {**actual, **guide}, cons,
-                                    jq_as_of, y_as_of))
+                                    jq_as_of, y_as_of, nonconsolidated))
         fund_rows.append(merge_fundamentals(code, name, jq_fund, y_fund,
                                             jq_as_of or y_as_of))
         print(f"  [{i}/{len(universe)}] {code} {name[:36]:36} "
