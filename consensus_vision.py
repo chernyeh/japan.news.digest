@@ -128,7 +128,18 @@ def format_cost(est: dict) -> str:
             f"+ prompt, read by {MODEL}")
 
 
-_METRICS = ["net_sales", "operating_profit", "net_profit", "eps", "dps"]
+# ordinary_profit was missing and is the single most important line for a
+# JGAAP bank or insurer — 経常利益 is what the market quotes, and there is no
+# operating profit above it to stand in.
+#
+# Deliberately NOT in this list: cet1_ratio, solvency_margin, esr, or any other
+# regulatory capital measure. A vision model transcribing a capital ratio off a
+# slide can misread which of several ratios it is looking at — CET1 before or
+# after unrealised gains, group or bank-only, transitional or fully loaded —
+# and a capital ratio that is wrong in that way is worse than absent. Those
+# figures are not collected here at all; see fundamentals.CAPITAL_DISCLAIMER.
+_METRICS = ["net_sales", "operating_profit", "ordinary_profit",
+            "net_profit", "eps", "dps"]
 _UNITS = ["jpy", "thousand_jpy", "million_jpy", "billion_jpy", "trillion_jpy", "percent"]
 
 _SCHEMA = {
@@ -188,6 +199,15 @@ and rows in another describe the same figures. Do not report the same \
 metric/year/basis twice — if two images disagree, prefer the clearer one and \
 note the disagreement in `unreadable`.
 6. Set `from_image` to the filename the figure came from.
+7. **Do not record capital or solvency ratios.** CET1, total capital ratio, \
+leverage ratio, solvency margin and ESR are not among the metrics above, and \
+must not be mapped onto one that is. If a screenshot shows them, note that in \
+`unreadable` and move on. An accounting equity-to-assets ratio is not a \
+capital ratio either.
+8. For a bank or an insurer, "ordinary income" (経常収益) is the top line — \
+record it as net_sales — and "ordinary profit" (経常利益) is ordinary_profit. \
+Do not record a net revenue or gross profit figure as net_sales for these \
+issuers: it is a different measure, and leaving it out is correct.
 
 Return only figures actually visible in the images."""
 

@@ -210,6 +210,221 @@ def test_implied_h2_keeps_a_second_half_that_shrinks():
     assert F.implied_h2(0.0, 4e9) == -4e9
 
 
+
+# ── Financial-issuer presentation profiles ───────────────────────────────
+# The forecast panel lays a bank's tanshin out differently from an
+# industrial's, and every one of these decisions can be wrong in a way that is
+# invisible on screen — a row labelled "Net sales" holding ordinary income, a
+# P/E struck across a stock split, a capital ratio that is not a capital ratio.
+
+BASE_ROWS = [("net_sales", "Net sales", 1e9, 1, "flow"),
+             ("operating_profit", "Op. profit", 1e9, 1, "flow"),
+             ("ordinary_profit", "Ord. profit", 1e9, 1, "flow"),
+             ("net_profit", "Net profit", 1e9, 1, "flow"),
+             ("eps", "EPS ¥", 1.0, 1, "flow"),
+             ("dps", "DPS ¥", 1.0, 1, "flow")]
+
+
+def labels(profile):
+    return [lbl for _m, lbl, *_ in F.profile_rows(profile, BASE_ROWS)]
+
+
+def test_bank_drops_operating_profit_and_renames_the_top_line():
+    # MUFG files 経常収益 and no operating profit at all. Showing "Net sales"
+    # over its ordinary income is the mislabelling this whole profile exists
+    # to stop, and a permanently empty Op. profit row reads as missing data.
+    assert labels("bank") == ["Ordinary income", "Ord. profit", "Profit attrib.",
+                              "EPS ¥", "DPS ¥"]
+    assert labels("financial")[0] == "Ordinary income"
+    assert "Op. profit" not in labels("financial")
+
+
+def test_securities_and_leasing_keep_their_operating_profit():
+    # Daiwa Securities, ORIX and Credit Saison all file one. Hiding the row for
+    # everything merely tagged "financial" would blank a real line.
+    assert "Operating profit" in labels("securities") or "Op. profit" in labels("securities")
+    assert labels("securities")[0] == "Operating revenue"
+    assert labels("other_finance")[0] == "Operating revenue"
+
+
+def test_ifrs_insurer_has_no_ordinary_profit_row():
+    # Ordinary profit is a JGAAP concept. An IFRS insurer's equivalent line is
+    # profit before tax, and its top line is insurance revenue.
+    lab = labels("insurer_ifrs")
+    assert "Ord. profit" not in lab
+    assert lab[0] == "Insurance revenue"
+    assert "Profit before tax" in lab
+
+
+def test_general_profile_is_untouched():
+    assert labels("general") == [lbl for _m, lbl, *_ in BASE_ROWS]
+
+
+def test_profile_needs_both_a_sector_hint_and_the_data_shape():
+    # J-Quants carries no operating profit for IFRS filers either, so the
+    # shape test alone makes Mitsui & Co. and SoftBank look exactly like a
+    # bank. Neither signal is trusted on its own.
+    assert F.profile_for(has_operating_profit=False, has_ordinary_profit=True,
+                         sector_hint="Industrials") == "general"
+    assert F.profile_for(has_operating_profit=False, has_ordinary_profit=True,
+                         sector_hint="Financial Services") == "financial"
+    # A financial that does file an operating profit is on the general shape.
+    assert F.profile_for(has_operating_profit=True, has_ordinary_profit=True,
+                         sector_hint="Financial Services") == "general"
+
+
+def test_financial_without_ordinary_profit_is_not_relabelled():
+    # Sompo and Nomura file no ordinary profit, so they are not on the JGAAP
+    # bank shape — the row set is trimmed, but the top line is not renamed to
+    # "Ordinary income", which would be a guess dressed as a fact.
+    prof = F.profile_for(has_operating_profit=False, has_ordinary_profit=False,
+                         sector_hint="Financial Services")
+    assert prof == "financial_other"
+    assert labels(prof)[0] == "Revenue"
+    assert "Ord. profit" not in labels(prof)
+
+
+def test_sector33_code_beats_the_coarse_hint():
+    assert F.profile_for(sector33="7050", sector_hint="Industrials") == "bank"
+    assert F.profile_for(sector33="7150", sector_hint="") == "insurer"
+    assert F.profile_for(sector33="7100") == "securities"
+    assert F.profile_for(sector33="7200") == "other_finance"
+    # The filing's own standard refines it: an IFRS insurer is not a JGAAP one.
+    assert F.profile_for(sector33="7150",
+                         doc_type="FYFinancialStatements_Consolidated_IFRS") == "insurer_ifrs"
+
+
+def test_enterprise_value_is_not_computed_for_financials():
+    # A bank's "debt" is its deposit and funding base; net debt against its
+    # reserve balance is a number with no interpretation. MUFG's came out at
+    # ¥18.3tn and sat in a tile beside the P/E.
+    fundrow = {"bps": 1973.31, "debt": 108.4e12, "cash": 90.0e12, "ebitda": 1e12}
+    bank = F.compute_valuations(3684.0, 11.87e9, 43.7e12, fundrow, {}, "bank")
+    assert bank["net_debt"] is None
+    assert bank["ev"] is None
+    assert bank["ev_ebitda"] is None
+    # An industrial keeps both.
+    gen = F.compute_valuations(3684.0, 11.87e9, 43.7e12, fundrow, {}, "general")
+    assert gen["net_debt"] == _near(18.4e12, 0.05)
+    assert gen["ev_ebitda"] is not None
+
+
+def test_roe_and_payout_replace_them():
+    fundrow = {"bps": 1973.31}
+    slots = {("eps", "fy1", "company"): 213.17, ("dps", "fy1", "company"): 86.0}
+    v = F.compute_valuations(3684.0, 11.87e9, 43.7e12, fundrow, slots, "bank")
+    assert v["roe_fy1_company"] == _near(0.10803, 0.01)
+    assert v["payout_fy1_company"] == _near(0.40343, 0.01)
+
+
+# ── Stock splits ─────────────────────────────────────────────────────────
+
+def test_split_is_detected_from_guidance_against_the_filed_share_count():
+    # SMFG, live: FY3/27 guidance of ¥1,700,000m and EPS ¥223.75 imply 7.598bn
+    # shares against a filed 3.827bn. Its panel was showing P/E 31.2x for a
+    # company on about 15.6x, and a +110% guidance-vs-street chip that was
+    # nothing but the split.
+    assert F.detect_split(1.70e12, 223.75, 3.8275e9) == 2.0
+
+
+def test_no_split_is_reported_when_the_share_counts_agree():
+    # MUFG: guidance net profit and EPS struck on the filed share count.
+    assert F.detect_split(2.4272e12, 213.17, 11.3853e9) is None
+    # And a company whose numbers are simply missing is not a split.
+    assert F.detect_split(None, 223.75, 3.8e9) is None
+    assert F.detect_split(1.7e12, None, 3.8e9) is None
+    assert F.detect_split(1.7e12, 223.75, None) is None
+    assert F.detect_split(1.7e12, 0.0, 3.8e9) is None
+
+
+def test_a_detected_split_suppresses_every_per_share_multiple():
+    # Wrong by exactly the split factor is the worst kind of wrong: it looks
+    # like a number. Better to show nothing and say why.
+    fundrow = {"bps": 4135.71}
+    slots = {("eps", "fy1", "company"): 223.75, ("dps", "fy1", "company"): 135.0}
+    v = F.compute_valuations(6971.0, 3.8275e9, 26.7e12, fundrow, slots, "financial", 2.0)
+    assert v["pe_fy1_company"] is None
+    assert v["yield_fy1_company"] is None
+    assert v["roe_fy1_company"] is None
+    assert v["split_factor"] == 2.0
+    # Without the split flag the same inputs give the wrong 31.2x that was on
+    # screen — which is what makes the suppression worth testing.
+    unguarded = F.compute_valuations(6971.0, 3.8275e9, 26.7e12, fundrow, slots, "financial")
+    assert unguarded["pe_fy1_company"] == _near(31.15, 0.01)
+
+
+# ── Street revenue that is measuring something else ──────────────────────
+
+def test_bank_street_revenue_is_flagged_as_a_different_measure():
+    # Yahoo publishes net revenue for a bank; the tanshin files gross ordinary
+    # income. MUFG 14.62tn against 6.63tn, SMFG 10.79 against 5.24.
+    assert F.revenue_basis_mismatch(14.62e12, 6.63e12)
+    assert F.revenue_basis_mismatch(10.79e12, 5.24e12)
+
+
+def test_insurer_street_revenue_is_left_alone():
+    # Insurers do not have the problem: Tokio Marine 8.87 against 8.77,
+    # Dai-ichi Life 11.31 against 11.23. Nor does a growing industrial.
+    assert not F.revenue_basis_mismatch(8.87e12, 8.77e12)
+    assert not F.revenue_basis_mismatch(11.31e12, 11.23e12)
+    assert not F.revenue_basis_mismatch(1.0e12, 0.86e12)
+    assert not F.revenue_basis_mismatch(None, 5e12)
+    assert not F.revenue_basis_mismatch(5e12, None)
+
+
+# ── Capital ratios: the accounting one only, and only when it checks out ──
+
+def test_equity_to_assets_resolves_the_filed_scale_against_the_balance_sheet():
+    # J-Quants' encoding of 5.2% is not documented here, so it is checked
+    # rather than assumed: whichever reading agrees with equity/total assets
+    # from the same record is the right one.
+    assert F.equity_to_assets(5.2, 24.18e12, 433.9e12) == _near(0.052, 0.001)
+    assert F.equity_to_assets(0.052, 24.18e12, 433.9e12) == _near(0.052, 0.001)
+    assert F.equity_to_assets(24.3, 8.05e12, 33.0e12) == _near(0.243, 0.001)
+
+
+def test_equity_to_assets_is_dropped_when_it_agrees_with_neither_reading():
+    # Better no number than a wrong one — the whole reason this is checked.
+    assert F.equity_to_assets(85.0, 24.18e12, 433.9e12) is None
+    assert F.equity_to_assets(None, None, None) is None
+    # With no balance sheet to check against, a plausible fraction still passes
+    # and an implausible one does not.
+    assert F.equity_to_assets(5.2, None, None) == _near(0.052, 0.001)
+    assert F.equity_to_assets(520.0, None, None) is None
+
+
+def test_equity_to_assets_is_never_derived_when_none_was_filed():
+    # equity/total_assets is a *different* ratio: it carries non-controlling
+    # interests, which the filed one excludes — 5.5% against MUFG's filed 5.2%.
+    # On a figure sitting this close to the subject of capital adequacy, that
+    # is not a substitute, so the tile stays empty until the real one arrives.
+    assert F.equity_to_assets(None, 24.18e12, 433.9e12) is None
+
+
+def test_payout_is_suppressed_across_a_split_too():
+    # SMFG files a ¥90 interim before the split and a ¥45 final after it, and
+    # J-Quants has no annual total to use instead — so the summed ¥135 over a
+    # restated EPS is a ratio of two different bases.
+    fundrow = {"bps": 4135.71}
+    slots = {("eps", "fy1", "company"): 223.75, ("dps", "fy1", "company"): 135.0}
+    v = F.compute_valuations(6971.0, 3.8275e9, 26.7e12, fundrow, slots, "financial", 2.0)
+    assert v["payout_fy1_company"] is None
+
+
+def test_no_regulatory_capital_metric_exists_anywhere():
+    # Deliberate, and load-bearing: no feed this app reads carries CET1, the
+    # solvency margin or ESR, and a proxied capital ratio is worse than none.
+    # If a future change adds one, this test is where the argument happens.
+    import consensus_vision as V
+    banned = ("cet1", "tier1", "tier_1", "solvency", "esr", "capital_adequacy",
+              "leverage_ratio")
+    for name in banned:
+        assert name not in V._METRICS, name
+        assert not any(name in m for m in V._METRICS), name
+        assert not any(name in c for c in F._JQ_ALIASES), name
+    assert "not a regulatory capital ratio" in F.CAPITAL_DISCLAIMER
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

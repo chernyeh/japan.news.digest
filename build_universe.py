@@ -46,6 +46,12 @@ _FIELDS = {
     "scale":  ("ScaleCat", "ScaleCategory"),
     "market": ("MktCdNm", "MarketCodeName", "MktCd", "MarketCode"),
     "sector": ("Sec17CdNm", "Sector17CodeName", "Sec33CdNm", "Sector33CodeName"),
+    # The 33-sector *code*, not its name. The name arrives in Japanese or in
+    # English depending on the response and gets re-worded between releases;
+    # the code (7050 銀行業, 7100 証券, 7150 保険業, 7200 その他金融業) does
+    # not move, and it is what the forecast panel keys its bank/insurer
+    # presentation profiles on. See fundamentals.profile_for.
+    "sector33": ("Sec33Cd", "Sector33Code"),
 }
 
 # Matched as substrings, case-insensitively, because the category strings carry
@@ -64,7 +70,7 @@ _SCALE_MARKERS = ("core30", "large70", "mid400", "small 1", "small1",
                   "small 2", "small2")
 _FLOOR = {"topix100": 90, "topix500": 450, "topix1000": 900, "topix": 1500}
 
-COLUMNS = ["Code", "MarketDiv", "Name", "ScaleCategory", "Sector"]
+COLUMNS = ["Code", "MarketDiv", "Name", "ScaleCategory", "Sector", "Sector33"]
 
 
 # Last resort when neither the V1 nor the guessed V2 name is present: match the
@@ -75,7 +81,11 @@ _FUZZY = {
     "name":     ((("nmen", "nameen"),), ("mkt", "sec", "div", "scale")),
     "name_jp":  ((("nm", "name"),), ("mkt", "sec", "div", "scale", "en")),
     "market":   ((("mkt", "market"),), ("code",)),
+    # Left as it was: the sector *name* keys are themselves "Sec33CdNm", so
+    # banning "cd" here would stop the fallback matching the very field it
+    # exists to find. sector33 does its own narrowing instead.
     "sector":   ((("sec17", "sector17", "sec33", "sector33", "sec", "sector"),), ()),
+    "sector33": ((("sec33cd", "sector33code"),), ("nm", "name")),
 }
 
 
@@ -219,6 +229,7 @@ def build(records: list, scope: str, scale_key: str = "") -> list:
             "Name": _pick(rec, "name") or _pick(rec, "name_jp"),
             "ScaleCategory": scale,
             "Sector": _pick(rec, "sector"),
+            "Sector33": _pick(rec, "sector33"),
         })
     rows.sort(key=lambda r: r["Code"])
     return rows
