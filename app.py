@@ -967,6 +967,100 @@ a.research-link:hover { background: #F0EDE8; }
 </style>
 """, unsafe_allow_html=True)
 
+# ── Display size ──────────────────────────────────────────────────────────────
+# Added to an iPhone Home Screen, this page launches as a standalone web app,
+# and iOS disables pinch-to-zoom in that mode. Nothing in this app causes it:
+# Streamlit's viewport meta is "width=device-width, initial-scale=1,
+# shrink-to-fit=no", which permits scaling (user-scalable defaults to yes and no
+# maximum-scale is set), and neither Streamlit's stylesheet nor the block above
+# sets a `touch-action` that would block a pinch. It is the standalone launch
+# mode itself, which is why the same page zooms normally in Safari.
+#
+# So the app carries its own size control instead. Every font-size in this file
+# is in rem — 229 of them, not one absolute px — so scaling the root font size
+# scales the whole interface, Streamlit's own widgets included. That also beats
+# pinch-zoom for a page this dense: text reflows in the same column width
+# rather than forcing you to pan sideways to read a line.
+ZOOM_STEPS = (90, 100, 110, 125, 140)
+ZOOM_DEFAULT = 100
+
+
+def _clamp_zoom(value) -> int:
+    """Nearest supported step to `value`, or the default if it is not a number.
+    Guards the query-parameter path, which is user-editable text."""
+    try:
+        wanted = int(float(value))
+    except (TypeError, ValueError):
+        return ZOOM_DEFAULT
+    return min(ZOOM_STEPS, key=lambda step: abs(step - wanted))
+
+
+# Seeded from the URL so the size survives a reload and, on iOS, a relaunch that
+# restores the last address. Streamlit rewrites the query string in place
+# without reloading, so this costs nothing and needs no javascript.
+if "ui_zoom" not in st.session_state:
+    st.session_state.ui_zoom = _clamp_zoom(st.query_params.get("z", ZOOM_DEFAULT))
+
+
+def _set_zoom(value: int):
+    st.session_state.ui_zoom = value
+    if value == ZOOM_DEFAULT:
+        # Keep the default out of the URL, so a shared link stays clean.
+        if "z" in st.query_params:
+            del st.query_params["z"]
+    else:
+        st.query_params["z"] = str(value)
+
+
+# Injected here, after the stylesheet above and before anything is drawn, so it
+# beats both that block and Streamlit's own base styles. Only the root size
+# moves: every rem in the app is measured against it. The control that changes
+# it is drawn under the masthead — NOT in the sidebar, which this app cannot
+# open: the rule `#MainMenu, footer, header { visibility: hidden }` above hides
+# Streamlit's header, and the sidebar's expand arrow lives inside it.
+if st.session_state.ui_zoom != ZOOM_DEFAULT:
+    st.markdown(
+        f"<style>html {{ font-size: {st.session_state.ui_zoom}% !important; }}</style>",
+        unsafe_allow_html=True)
+
+
+def _on_zoom_pick():
+    """Radio callback. Wired as on_change rather than a branch on the widget's
+    return value, because Streamlit runs callbacks *before* it reruns the
+    script — so the style block at the top of this file already sees the new
+    size on the very next pass, with no st.rerun() needed to catch up."""
+    _set_zoom(_clamp_zoom(st.session_state.get("zoom_pick", ZOOM_DEFAULT)))
+
+
+def render_text_size_control():
+    """The text-size control, drawn under the masthead.
+
+    One tap on one control, deliberately: an expander re-asserts its collapsed
+    state on every rerun, so a pair of A−/A+ buttons inside one snapped shut
+    after the first tap and had to be reopened for the second. A single choice
+    finishes the job in one interaction, and the panel closing behind it is
+    then the right behaviour rather than a bug.
+
+    The expander's own label carries the current size, so it costs one line of
+    the page and still says what it is at a glance."""
+    _z = st.session_state.ui_zoom
+    _idx = ZOOM_STEPS.index(_z) if _z in ZOOM_STEPS else ZOOM_STEPS.index(ZOOM_DEFAULT)
+    # ⚙️ rather than 🔠: this app forces a serif face onto everything, and the
+    # "input latin uppercase" glyph renders as an empty ABCD box in it, which
+    # reads as a broken character rather than as a label.
+    with st.expander(f"⚙️  Text size — {_z}%", expanded=False):
+        st.radio("Size", ZOOM_STEPS, index=_idx, horizontal=True,
+                 format_func=lambda z: f"{z}%", key="zoom_pick",
+                 on_change=_on_zoom_pick, label_visibility="collapsed")
+        st.markdown(
+            '<div class="fc-note">Opened from your Home Screen, iOS runs this as a '
+            'standalone app and turns pinch-to-zoom off — so the size is set here '
+            'instead. It scales the whole interface, and the text re-flows to fit the '
+            'column rather than making you pan sideways to finish a line, which is what '
+            'pinching would do on a page this dense. The setting rides in the address, '
+            'so a reload keeps it.</div>',
+            unsafe_allow_html=True)
+
 # ── MSCI Sectors ──────────────────────────────────────────────────────────────
 MSCI_SECTORS = [
     ("Energy", "⛽"), ("Materials", "🏭"), ("Industrials", "⚙️"),
@@ -1627,6 +1721,8 @@ st.markdown(f"""
 </div>
 <div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 42 News Sources</div>
 """, unsafe_allow_html=True)
+
+render_text_size_control()
 
 # ── Market ticker strip ───────────────────────────────────────────────────────
 def render_ticker(label, data):
