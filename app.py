@@ -964,6 +964,56 @@ a.research-link:hover { background: #F0EDE8; }
     .fc-note { font-size: 0.68rem; padding: 5px 8px; margin: 6px 0; }
     .fc-legend { gap: 9px; font-size: 0.62rem; }
 }
+
+/* ── Text-size stepper ─────────────────────────────────────────────────
+   Two hairline circles and a figure between them. Sized to the touch target
+   rather than to the page, and in the muted grey the app uses for anything
+   secondary, so it sits under the dateline strip without competing with it.
+   Streamlit stamps `st-key-<key>` on a keyed widget's container; on a build
+   too old to do that the buttons simply keep their default look rather than
+   breaking. */
+.st-key-zoombar {
+    flex-direction: row !important; align-items: center;
+    justify-content: flex-end; gap: 0.4rem;
+    margin: 0.15rem 0 0.1rem;
+}
+.st-key-zoombar > [data-testid="stElementContainer"] {
+    width: auto !important; flex: 0 0 auto !important;
+}
+/* The selectors carry the extra `div[data-testid="stButton"]` step to outrank
+   the app's own button rule above, which is `!important` at specificity
+   (0,1,2) — a bare `.st-key-x button` is (0,1,1) and loses to it, which is
+   what left the circle a 35x30 oval with the global button padding still on. */
+.st-key-zoom_dec div[data-testid="stButton"] button,
+.st-key-zoom_inc div[data-testid="stButton"] button {
+    width: 2.2rem !important; height: 2.2rem !important;
+    min-width: 2.2rem !important; min-height: 2.2rem !important;
+    padding: 0 !important; border-radius: 50% !important;
+    border: 1px solid #D9D3C8 !important;
+    background: #FDFAF7; color: #6B6B6B; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+}
+.st-key-zoom_dec div[data-testid="stButton"] button p,
+.st-key-zoom_inc div[data-testid="stButton"] button p {
+    font-size: 1rem !important; font-weight: 400 !important;
+    margin: 0; line-height: 1;
+}
+.st-key-zoom_dec div[data-testid="stButton"] button:hover,
+.st-key-zoom_inc div[data-testid="stButton"] button:hover {
+    border-color: #9B8B7A; background: #F7F4EF; color: #1A1A1A;
+}
+.st-key-zoom_dec div[data-testid="stButton"] button:disabled,
+.st-key-zoom_inc div[data-testid="stButton"] button:disabled { opacity: 0.3; }
+/* Matched to the buttons' own height and centred inside it, rather than
+   leaned on a line-height: the markdown wrapper Streamlit puts around this
+   div carries its own spacing, which dropped the figure below the circles. */
+.zoom-readout {
+    display: flex; align-items: center; justify-content: center;
+    height: 2.2rem; min-width: 2.7rem;
+    font-size: 0.76rem; color: #6B6B6B; font-variant-numeric: tabular-nums;
+}
+.st-key-zoombar [data-testid="stMarkdownContainer"],
+.st-key-zoombar [data-testid="stMarkdownContainer"] p { margin: 0; padding: 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1024,42 +1074,44 @@ if st.session_state.ui_zoom != ZOOM_DEFAULT:
         unsafe_allow_html=True)
 
 
-def _on_zoom_pick():
-    """Radio callback. Wired as on_change rather than a branch on the widget's
-    return value, because Streamlit runs callbacks *before* it reruns the
-    script — so the style block at the top of this file already sees the new
-    size on the very next pass, with no st.rerun() needed to catch up."""
-    _set_zoom(_clamp_zoom(st.session_state.get("zoom_pick", ZOOM_DEFAULT)))
+def _zoom_step(delta: int):
+    """Move one step along ZOOM_STEPS.
+
+    Wired as an on_click callback rather than a branch on the button's return
+    value, because Streamlit runs callbacks *before* it reruns the script — so
+    the style block at the top of this file already sees the new size on the
+    very next pass, with no st.rerun() needed to catch up."""
+    _z = st.session_state.ui_zoom
+    _i = ZOOM_STEPS.index(_z) if _z in ZOOM_STEPS else ZOOM_STEPS.index(ZOOM_DEFAULT)
+    _set_zoom(ZOOM_STEPS[max(0, min(len(ZOOM_STEPS) - 1, _i + delta))])
 
 
 def render_text_size_control():
-    """The text-size control, drawn under the masthead.
+    """A −/+ stepper, set small and right-aligned under the dateline strip.
 
-    One tap on one control, deliberately: an expander re-asserts its collapsed
-    state on every rerun, so a pair of A−/A+ buttons inside one snapped shut
-    after the first tap and had to be reopened for the second. A single choice
-    finishes the job in one interaction, and the panel closing behind it is
-    then the right behaviour rather than a bug.
+    Above the tabs, so it is reachable whichever tab you are reading, and
+    quiet enough to disappear until you go looking for it — which is the whole
+    brief: this is set once, not read.
 
-    The expander's own label carries the current size, so it costs one line of
-    the page and still says what it is at a glance."""
+    Not inside an expander. An expander re-asserts its collapsed state on every
+    rerun, so the panel snapped shut after the first tap and had to be reopened
+    for the second — a stepper is only worth having if you can press it twice."""
     _z = st.session_state.ui_zoom
     _idx = ZOOM_STEPS.index(_z) if _z in ZOOM_STEPS else ZOOM_STEPS.index(ZOOM_DEFAULT)
-    # ⚙️ rather than 🔠: this app forces a serif face onto everything, and the
-    # "input latin uppercase" glyph renders as an empty ABCD box in it, which
-    # reads as a broken character rather than as a label.
-    with st.expander(f"⚙️  Text size — {_z}%", expanded=False):
-        st.radio("Size", ZOOM_STEPS, index=_idx, horizontal=True,
-                 format_func=lambda z: f"{z}%", key="zoom_pick",
-                 on_change=_on_zoom_pick, label_visibility="collapsed")
-        st.markdown(
-            '<div class="fc-note">Opened from your Home Screen, iOS runs this as a '
-            'standalone app and turns pinch-to-zoom off — so the size is set here '
-            'instead. It scales the whole interface, and the text re-flows to fit the '
-            'column rather than making you pan sideways to finish a line, which is what '
-            'pinching would do on a page this dense. The setting rides in the address, '
-            'so a reload keeps it.</div>',
-            unsafe_allow_html=True)
+    # A keyed container rather than st.columns: Streamlit stacks columns
+    # vertically below a mobile breakpoint, which turned the stepper into three
+    # rows on the phone it exists for. A container is a flex column by default,
+    # so one CSS property turns it into the row instead — and it cannot stack.
+    with st.container(key="zoombar"):
+        # No help= on either button. It wraps them in a tooltip layer that
+        # renders a second, zero-size copy of the button and squashes the real
+        # one into an oval — and a hover tooltip is no use on a phone.
+        # U+2212 minus, not a hyphen: it matches the plus in weight and width.
+        st.button("−", key="zoom_dec", disabled=_idx == 0,
+                  on_click=_zoom_step, args=(-1,))
+        st.markdown(f'<div class="zoom-readout">{_z}%</div>', unsafe_allow_html=True)
+        st.button("+", key="zoom_inc", disabled=_idx == len(ZOOM_STEPS) - 1,
+                  on_click=_zoom_step, args=(1,))
 
 # ── MSCI Sectors ──────────────────────────────────────────────────────────────
 MSCI_SECTORS = [
