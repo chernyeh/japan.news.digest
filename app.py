@@ -2311,7 +2311,14 @@ with tab_news:
         if _cur != st.session_state.selected_sector:
             st.session_state.selected_sector = _cur
 
-        sector_name = st.session_state.selected_sector
+        # `or ""` because selected_sector is None when nothing was fetched —
+        # every RSS source down, or a first run that has not fetched yet. It is
+        # interpolated into an f-string and a widget key a few lines below, and
+        # None.replace raised straight out of the tab body, which in Streamlit
+        # takes down the *whole page*: every tab after this one, Research and
+        # Earnings included, stopped rendering. Not st.stop() for the same
+        # reason. Everything else here already degrades to empty.
+        sector_name = st.session_state.selected_sector or ""
         raw_articles = st.session_state.articles.get(sector_name, [])
         articles = flag_high_value_articles(raw_articles)
         icon = next((i for n, i in MSCI_SECTORS if n == sector_name), "📰")
@@ -3450,16 +3457,48 @@ with tab_research:
         _FC_RATIO_ROWS = [("roe", "ROE %", 1.0, 1, "ratio"),
                           ("payout", "Payout %", 1.0, 1, "ratio")]
 
+        # 進捗率 — year to date over the full year. The first figure the market
+        # quotes off a Japanese quarterly result, and the reason the collector
+        # now keeps the cumulative quarterly filings it used to discard. Shown
+        # for every issuer, not just financials: it is how a result is read.
+        _FC_PROGRESS_ROW = ("progress", "Progress %", 1.0, 0, "ratio")
+
         # Kept for the code paths that only need the money rows in their
         # original order (the typed-override editor seeds from it).
         _FC_ROWS = _FC_BASE_ROWS
 
-        def _fc_rows(profile: str, with_ratios: bool = True):
+        def _fc_rows(profile: str, with_ratios: bool = True, with_progress: bool = False):
             """The row set for one company, labelled for its profile."""
             rows = list(fund.profile_rows(profile, _FC_BASE_ROWS))
             if with_ratios and profile in fund.FINANCIAL_PROFILES:
                 rows += _FC_RATIO_ROWS
+            if with_progress:
+                rows.append(_FC_PROGRESS_ROW)
             return rows
+
+        # The cumulative quarters a company may have filed, latest first — the
+        # panel shows one year-to-date column per year and this picks which.
+        _YTD_BASES = ("ytd_3q", "ytd_2q", "ytd_1q")
+
+        def _latest_ytd(get, year):
+            """(basis, label) for the newest year-to-date filing in `year`, or
+            (None, "") — e.g. ("ytd_2q", "YTD Q2"). Newest wins because the
+            figures are cumulative: Q2 already contains Q1."""
+            for basis in _YTD_BASES:
+                if any(get(m, year, basis) is not None for m, *_ in _FC_BASE_ROWS):
+                    return basis, f"YTD {basis[-2:].upper()}"
+            return None, ""
+
+        def _full_year(get, year):
+            """The denominator a progress rate divides by: the company's own
+            guidance for a year still running, or the reported actual for one
+            that has closed. Returns a callable, because it is needed per
+            metric."""
+            def pick(metric):
+                return (get(metric, year, "company")
+                        if get(metric, year, "company") is not None
+                        else get(metric, year, "actual"))
+            return pick
 
         def _ratio_cell(metric, get, year, basis, bps, split=None):
             """ROE and payout for one (year, basis) cell, or None.
@@ -3489,15 +3528,58 @@ with tab_research:
             # bank files no operating profit and calls its top line ordinary
             # income, so the row is dropped rather than shown as a line of
             # dashes, and the survivors are named as the company names them.
-            _ROWS = _fc_rows(_profile)
+            # Which year-to-date column, if any, each year has filed.
+            _ytd_of = {}
+            for _y in _years:
+                _b, _lbl = _latest_ytd(_get, _y)
+                if _b:
+                    _ytd_of[_y] = (_b, _lbl)
+            _ROWS = _fc_rows(_profile, with_progress=bool(_ytd_of))
             _MONEY_ROWS = [r for r in _ROWS if r[4] == "flow"]
             _std = fund.accounting_standard(_fundrow.get("doc_type", ""))
 
             def _raw(_m, _y, _b):
-                """Value for a cell, derived for the ratio rows."""
+                """Value for a cell, derived for the ratio and synthetic-column
+                rows. `ytd` and `rest` are columns the store has no basis for:
+                one resolves to whichever cumulative quarter the company last
+                filed, the other is the arithmetic between that and the full
+                year."""
+                if _m == "progress":
+                    return _progress_cell(_m, _y, _b)
                 if _m in ("roe", "payout"):
                     return _ratio_cell(_m, _get, _y, _b, _bps, _split)
+                if _b == "ytd":
+                    _yb = _ytd_of.get(_y, (None, ""))[0]
+                    return _get(_m, _y, _yb) if _yb else None
+                if _b == "rest":
+                    # Only for a year still running. On a closed year the same
+                    # subtraction gives the second half that already happened,
+                    # which is a real number but not "what is left to earn" —
+                    # and a column headed "Rest of yr" on a finished year reads
+                    # as a company that still has something to do.
+                    _yb = _ytd_of.get(_y, (None, ""))[0]
+                    if not _yb or _y in _actual_years:
+                        return None
+                    return fund.implied_h2(_full_year(_get, _y)(_m),
+                                           _get(_m, _y, _yb))
                 return _get(_m, _y, _b)
+
+            def _progress_cell(_m, _y, _b):
+                """進捗率 for one cell: year to date over the full year. Only in
+                the year-to-date column — a progress rate against anything else
+                would be dividing a number by itself."""
+                if _b != "ytd" or _y not in _ytd_of:
+                    return None
+                _yb = _ytd_of[_y][0]
+                _whole = _full_year(_get, _y)
+                # Operating profit where the issuer files one, else the top
+                # profit line it does file: the row has to mean the same thing
+                # for a bank as for an industrial.
+                for _cand in ("operating_profit", "ordinary_profit", "net_profit", "net_sales"):
+                    _num, _den = _get(_cand, _y, _yb), _whole(_cand)
+                    if _num is not None and _den:
+                        return _num / _den
+                return None
 
             # The reported year sits to the left of the forecasts, as its own
             # single column: what the company actually did is the thing every
@@ -3553,21 +3635,25 @@ with tab_research:
             # Japanese issuers guide one year at a time, so in practice that is
             # the first column; the years beyond it are the street's alone,
             # which is exactly what makes room for a third of them.
-            _cols = {_y: [_b for _b in ("actual", "company_h1", "company_h2",
-                                        "company", "consensus")
+            _cols = {_y: [_b for _b in ("actual", "ytd", "company_h1", "company_h2",
+                                        "company", "rest", "consensus")
                            if any(_cell(_m, _y, _b) is not None for _m, *_ in _ROWS)]
                      for _y in _shown}
             _cols = {_y: _c for _y, _c in _cols.items() if _c}
             _shown = [_y for _y in _shown if _y in _cols]
-            _basis_label = {"actual": "Actual", "company_h1": "1H",
+            _basis_label = {"actual": "Actual", "ytd": "YTD", "company_h1": "1H",
                             "company_h2": "Impl. 2H", "company": "Full yr",
-                            "consensus": "Street"}
+                            "rest": "Rest of yr", "consensus": "Street"}
             _basis_help = {"actual": "Reported, as filed",
+                           "ytd": "Cumulative year to date, as filed on the company's "
+                                  "latest quarterly tanshin",
                            "company_h1": "Company guidance — first half",
                            "company_h2": "Implied second half — the full-year guidance "
                                          "less the first half. Derived here; not a figure "
                                          "the company files.",
                            "company": "Company guidance — full year",
+                           "rest": "What is left to earn — the full year less the year to "
+                                   "date. Derived here; not a figure the company files.",
                            "consensus": "Street consensus"}
             _has_h2 = any("company_h2" in _c for _c in _cols.values())
             _has_nc = any(_src(_m, _y, _b) == "jquants:nonconsolidated"
@@ -3585,12 +3671,14 @@ with tab_research:
                              f'title="{_safe_text(_y)}">{_safe_text(_short)}</div>')
             for _y in _shown:
                 for _i, _b in enumerate(_cols[_y]):
+                    _sub = (_ytd_of[_y][1] if (_b == "ytd" and _y in _ytd_of)
+                            else _basis_label[_b])
                     cells.append(f'<div class="fc-cell fc-h fc-sub'
                                  f'{" fc-cons" if _b == "consensus" else ""}'
-                                 f'{" fc-derived" if _b == "company_h2" else ""}'
+                                 f'{" fc-derived" if _b in ("company_h2", "rest") else ""}'
                                  f'{" fc-ystart" if _i == 0 else ""}" '
                                  f'title="{_safe_text(_basis_help[_b])}">'
-                                 f'{_basis_label[_b]}</div>')
+                                 f'{_safe_text(_sub)}</div>')
 
             _ratio_started = False
             for _m, _label, _scale, _dp, _kind in _ROWS:
@@ -3600,8 +3688,10 @@ with tab_research:
                     _ratio_started = True
                     # No fc-span2 here: that class is `grid-row: span 2`, for
                     # the two-deep header only. A separator is one row.
+                    _rgroup = ("Returns" if any(_r[0] in ("roe", "payout") for _r in _ROWS)
+                               else "Derived")
                     cells.append(
-                        '<div class="fc-cell fc-metric fc-rgroup">Returns</div>')
+                        f'<div class="fc-cell fc-metric fc-rgroup">{_rgroup}</div>')
                     for _y in _shown:
                         for _i, _b in enumerate(_cols[_y]):
                             cells.append('<div class="fc-cell fc-rgroup'
@@ -3637,11 +3727,12 @@ with tab_research:
                             # it cites the arithmetic instead — and only where
                             # there is a number, or an empty cell would carry a
                             # provenance mark for a value that isn't there.
-                            _mark = ("derived" if (_b == "company_h2" and _v is not None)
-                                     else _src(_m, _y, _b))
+                            _mark = ("derived" if (_b in ("company_h2", "rest") and _v is not None)
+                                     else _src(_m, _y, _b if _b != "ytd"
+                                               else _ytd_of.get(_y, ("", ""))[0]))
                             cells.append(f'<div class="fc-cell fc-num{_edge}'
                                          f'{" fc-actual" if _b == "actual" else ""}'
-                                         f'{" fc-derived" if _b == "company_h2" else ""}">'
+                                         f'{" fc-derived" if _b in ("company_h2", "rest") else ""}">'
                                          + _fnum(_v, _dp, "", _scale)
                                          + _src_mark(_mark) + '</div>')
                             continue
@@ -3783,6 +3874,21 @@ with tab_research:
                     'so what is shown is the holding company on its own. For a holding company that '
                     'is largely dividends received from its own subsidiaries, and it is not '
                     'comparable with the consolidated figures around it.</div>')
+
+            if _ytd_of:
+                _note_html.append(
+                    '<div class="fc-note"><strong>YTD</strong> is the cumulative figure from the '
+                    'company\'s latest quarterly tanshin — Q2 already contains Q1, so the newest '
+                    'filing is the one shown and the header says which quarter it is. '
+                    '<strong>Progress %</strong> is that over the full year (guidance for a year '
+                    'still running, the reported actual for one that has closed), which is the '
+                    '進捗率 the market quotes off a Japanese quarterly result. '
+                    '<strong>Read it across, not on its own:</strong> 30% at Q1 is not "behind" '
+                    'for a company that earns its profit in the second half — the reported year\'s '
+                    'own column at the same quarter is what says whether it is. '
+                    '<strong>Rest of yr</strong> is the full year less the year to date: what is '
+                    'still to be earned. It is arithmetic on two filed numbers, not a filing, and '
+                    'it is shown only for a year still running.</div>')
 
             if _has_h2:
                 _note_html.append(
@@ -4230,7 +4336,18 @@ with tab_research:
                     # company mid-year and one that has just reported are on
                     # different calendars, and the label has to match what the
                     # filing actually said.
-                    _years = sorted({k[1] for k in _fc_map if k[1]})[:4]
+                    # Pick the years to show explicitly. The collector keeps
+                    # three years of actuals so a progress rate has a prior year
+                    # to be read against, but a sorted()[:4] would then take the
+                    # OLDEST four and push the street's forecast years off the
+                    # edge. Two reported years and three forecast years is the
+                    # most a phone can carry.
+                    _all_years = sorted({k[1] for k in _fc_map if k[1]})
+                    _rep_years = [_y for _y in _all_years
+                                  if any((_m, _y, "actual") in _fc_map for _m in fund.METRICS)]
+                    _years = sorted(set(_rep_years[-2:])
+                                    | set([_y for _y in _all_years
+                                           if _y not in _rep_years][:3]))
                     _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
                     _src = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("source", "")
 

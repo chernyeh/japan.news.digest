@@ -529,6 +529,89 @@ def test_sync_survives_a_repo_with_no_watchlist_yet():
     assert W.sync_from_github("o/r", "tok") == {}
 
 
+
+# ── Year-to-date actuals and the progress rate ───────────────────────────
+# Every quarterly tanshin carries cumulative year-to-date figures, and the
+# collector used to drop them one line into company_actuals — they arrived in
+# the same /fins/summary response and were never looked at. They are what makes
+# 進捗率 computable, so the labelling and the arithmetic are checked here.
+
+import collect_consensus as C
+
+
+def _rec(period, fy_end, disc, **fields):
+    base = {"Code": "7203", "CurPerType": period, "CurFYEn": fy_end, "DiscDate": disc,
+            "DocType": f"{period}FinancialStatements_Consolidated_JP"}
+    base.update({k: str(v) for k, v in fields.items()})
+    return base
+
+
+# One closed year, the quarters inside it, and the year now running.
+_RECS = [
+    _rec("FY", "2025-03-31", "2025-05-14", Sales=45_000_000, OP=4_000_000, NP=3_000_000, EPS=230.0),
+    _rec("1Q", "2026-03-31", "2025-08-06", Sales=11_000_000, OP=1_000_000, NP=800_000),
+    _rec("2Q", "2026-03-31", "2025-11-06", Sales=23_000_000, OP=2_100_000, NP=1_700_000),
+    _rec("FY", "2026-03-31", "2026-05-13", Sales=50_685_000, OP=3_766_200, NP=3_848_100,
+         EPS=295.2, DivAnn=95, NxFOP=3_000_000, NxFSales=51_000_000),
+    _rec("1Q", "2027-03-31", "2026-08-05", Sales=12_400_000, OP=900_000, NP=780_000,
+         FOP=3_000_000, FSales=51_000_000),
+]
+
+
+def test_quarterly_filings_are_labelled_by_the_year_in_progress():
+    # On a quarterly tanshin CurFYEn is the year *running*; on a full-year one
+    # it is the year just closed. Conflating them is what put a whole column
+    # out by a year in forecast_horizon, and the same trap applies here.
+    ytd, _ = C.company_ytd(_RECS)
+    assert ytd[("operating_profit", "FY2027", "ytd_1q")] == 900_000
+    assert ytd[("operating_profit", "FY2026", "ytd_2q")] == 2_100_000
+    assert ytd[("operating_profit", "FY2026", "ytd_1q")] == 1_000_000
+
+
+def test_no_year_to_date_dividend_is_collected():
+    # An annual DPS is a rate for the year, not a flow that accumulates quarter
+    # by quarter — the same reason there is no implied-2H dividend.
+    ytd, _ = C.company_ytd(_RECS)
+    assert not [k for k in ytd if k[0] == "dps"]
+
+
+def test_actuals_now_cover_several_years_so_progress_has_a_denominator():
+    actual, label, _, _ = C.company_actuals(_RECS)
+    assert label == "FY2026", "the newest closed year is still the headline one"
+    assert actual[("operating_profit", "FY2026", "actual")] == 3_766_200
+    assert actual[("operating_profit", "FY2025", "actual")] == 4_000_000
+
+
+def test_the_progress_rate_reads_against_the_same_quarter_last_year():
+    actual, _, _, _ = C.company_actuals(_RECS)
+    ytd, _ = C.company_ytd(_RECS)
+    guide, _, _, _, _ = C.company_guidance(_RECS)
+    # Year running: year to date over guidance.
+    now = (ytd[("operating_profit", "FY2027", "ytd_1q")]
+           / guide[("operating_profit", "FY2027", "company")])
+    # Year closed: the same quarter over what the year actually delivered.
+    then = (ytd[("operating_profit", "FY2026", "ytd_1q")]
+            / actual[("operating_profit", "FY2026", "actual")])
+    assert now == _near(0.30, 0.001)
+    assert then == _near(0.2655, 0.001)
+
+
+def test_a_company_with_no_quarterly_filings_yields_nothing():
+    fy_only = [r for r in _RECS if r["CurPerType"] == "FY"]
+    assert C.company_ytd(fy_only) == ({}, set())
+
+
+def test_year_to_date_rows_are_written_as_filed_data():
+    actual, _, _, nc_a = C.company_actuals(_RECS)
+    ytd, nc_y = C.company_ytd(_RECS)
+    rows = C.build_rows("7203", "Toyota", {**actual, **ytd}, {},
+                        "2026-08-05", "2026-09-01", nc_a | nc_y)
+    ytd_rows = [r for r in rows if r["basis"].startswith("ytd_")]
+    assert ytd_rows, "the year-to-date figures must reach the store"
+    assert {r["source"] for r in ytd_rows} == {"jquants"}
+    assert {r["unit"] for r in ytd_rows} <= {"jpy", "jpy_abs"}
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
