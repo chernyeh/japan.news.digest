@@ -122,7 +122,44 @@ def _get_app_cache():
         "last_market_fetch":      None,
         "breaking_last_fetch":    None,
         "filings_last_fetch":     None,
+        # Large read-only structures rebuilt weekly by the workflows. These live
+        # here rather than in st.session_state because session state is per
+        # browser tab: see _shared() below for why that mattered.
+        "edinet_idx":       None,
+        "tdnet_idx":        None,
+        "consensus_map":    None,
+        "fundamentals_map": None,
+        "jpx400_map":       None,
+        "guidance_history": None,
+        "prices_map":       None,
     }
+
+
+def _shared(key: str, build):
+    """Build an expensive structure once per app process, not once per tab.
+
+    st.session_state is per browser session, so every tab that opened the app
+    got its own copy of the filing indexes. Measured, that is 85 MB for EDINET
+    (75k rows held as dicts cost roughly 1 KB each -- about 7x their size on
+    disk) plus 14 MB for the consensus map, and Streamlit Community Cloud gives
+    the whole app 1 GB. Seven tabs exhausted it, and the TDnet index is on
+    course to triple as it fills its 760-day retention window.
+
+    _get_app_cache() is process-wide and already holds the news articles this
+    way, so this is the same pattern rather than a new one.
+
+    An empty result is deliberately not cached: these files are never legitimately
+    empty, so an empty build means the fetch failed, and caching that would leave
+    every later session looking at a blank tab until the app restarted.
+    """
+    cache = _get_app_cache()
+    hit = cache.get(key)
+    if hit:
+        return hit
+    built = build()
+    if built:
+        cache[key] = built
+    return built
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -3260,28 +3297,31 @@ with tab_research:
             unsafe_allow_html=True
         )
 
-    # ── Lazy-load the EDINET index + research links once per session ──
-    if "edinet_filings_idx" not in st.session_state:
+    # ── Lazy-load the EDINET index + research links once per app process ──
+    # These two are the largest structures the app holds, so they go through
+    # _shared() rather than st.session_state -- see the note on _shared().
+    def _build_edinet_idx():
         try:
-            _rows = load_edinet_filings_from_github(_ec_repo, _gh_token)
             _idx = {}
-            for _r in _rows:
+            for _r in load_edinet_filings_from_github(_ec_repo, _gh_token):
                 _idx.setdefault(_r.get("SecCode", ""), []).append(_r)
-            st.session_state.edinet_filings_idx = _idx
+            return _idx
         except Exception as _e:
-            st.session_state.edinet_filings_idx = {}
             print(f"EDINET index load error: {_e}")
+            return {}
 
-    if "tdnet_filings_idx" not in st.session_state:
+    def _build_tdnet_idx():
         try:
-            _trows = load_tdnet_filings_from_github(_ec_repo, _gh_token)
             _tidx = {}
-            for _r in _trows:
+            for _r in load_tdnet_filings_from_github(_ec_repo, _gh_token):
                 _tidx.setdefault(_r.get("Code", ""), []).append(_r)
-            st.session_state.tdnet_filings_idx = _tidx
+            return _tidx
         except Exception as _e:
-            st.session_state.tdnet_filings_idx = {}
             print(f"TDnet index load error: {_e}")
+            return {}
+
+    st.session_state.edinet_filings_idx = _shared("edinet_idx", _build_edinet_idx)
+    st.session_state.tdnet_filings_idx = _shared("tdnet_idx", _build_tdnet_idx)
 
     if "research_links_map" not in st.session_state:
         try:
@@ -4305,12 +4345,20 @@ with tab_research:
         if not st.session_state.consensus_load_attempted:
             st.session_state.consensus_load_attempted = True
             try:
-                st.session_state.consensus_map        = fund.load_consensus_from_github(_ec_repo, _gh_token)
-                st.session_state.fundamentals_map     = fund.load_fundamentals_from_github(_ec_repo, _gh_token)
-                st.session_state.jpx400_map           = fund.load_universe_from_github(_ec_repo, _gh_token)
+                # Shared across sessions: rebuilt weekly by the collector and
+                # only ever read here. The manual override map and the run
+                # manifest stay per-session -- the first is written from the UI,
+                # and the second is small enough not to matter.
+                st.session_state.consensus_map    = _shared(
+                    "consensus_map", lambda: fund.load_consensus_from_github(_ec_repo, _gh_token))
+                st.session_state.fundamentals_map = _shared(
+                    "fundamentals_map", lambda: fund.load_fundamentals_from_github(_ec_repo, _gh_token))
+                st.session_state.jpx400_map       = _shared(
+                    "jpx400_map", lambda: fund.load_universe_from_github(_ec_repo, _gh_token))
+                st.session_state.guidance_history = _shared(
+                    "guidance_history", lambda: fund.load_guidance_history_from_github(_ec_repo, _gh_token))
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
-                st.session_state.guidance_history     = fund.load_guidance_history_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
             except Exception as _ce:
                 print(f"Consensus load error: {_ce}")
@@ -4321,7 +4369,8 @@ with tab_research:
         if not st.session_state.research_prices_map and not st.session_state.research_prices_attempted:
             st.session_state.research_prices_attempted = True
             try:
-                st.session_state.research_prices_map = load_prices_from_github(_ec_repo, _gh_token)
+                st.session_state.research_prices_map = _shared(
+                    "prices_map", lambda: load_prices_from_github(_ec_repo, _gh_token))
             except Exception as _pe:
                 print(f"Research price load error: {_pe}")
 
