@@ -434,6 +434,73 @@ def company_guidance(records: list) -> tuple:
     return out, fund, as_of, fy1, nc
 
 
+def guidance_history(records: list, code: str, name: str,
+                     years: int = HISTORY_YEARS) -> list:
+    """Rows for data/guidance_history.csv: how each guidance figure has moved
+    since it was first filed.
+
+    Built from the same /fins/summary response the rest of the collection uses,
+    so it costs no extra call. Japanese issuers have a reputation for guiding
+    conservatively and revising up through the year; whether a particular
+    management actually does that is a fact sitting in its own filing history,
+    and this is what puts a number on it.
+
+    A *summary* rather than every filed value — first, latest and a count. The
+    full sequence stays re-derivable from the API, which returns a company's
+    whole history, so storing it would multiply the file for nothing.
+
+    Guidance for a fiscal year arrives under two different key families: the
+    NxF* set on the full-year tanshin that first announces it, and the F* set on
+    every quarterly filing afterwards. Both describe the same year, so both are
+    read into the same series — reading only one would show a year's guidance as
+    never having been revised."""
+    series = {}
+    for rec in records:
+        as_of = F.jq_pick_str(rec, "disc_date")[0][:10]
+        if not as_of:
+            continue
+        period = F.jq_pick_str(rec, "period_type")[0].upper()
+        cur_end = F.jq_pick_str(rec, "fy_end")[0][:10]
+        nxt_end = F.jq_pick_str(rec, "nx_fy_end")[0][:10]
+        # (the fiscal year this filing guides, the key prefix it guides under)
+        horizons = []
+        if period.startswith("FY"):
+            horizons.append((fy_label(nxt_end or _plus_one_year(cur_end)), "nx_"))
+        else:
+            horizons.append((fy_label(cur_end), "f_"))
+            if nxt_end:
+                horizons.append((fy_label(nxt_end), "nx_"))
+        for fy, prefix in horizons:
+            if not fy:
+                continue
+            for metric in F.METRICS:
+                if metric == "dps":
+                    val = F.dps_annual(_newest_reader([rec]), prefix)
+                else:
+                    val, _ = F.jq_pick(rec, f"{prefix}{metric}")
+                if val is None:
+                    continue
+                series.setdefault((fy, metric), []).append((as_of, val))
+
+    keep = sorted({fy for fy, _ in series}, reverse=True)[:years]
+    rows = []
+    for (fy, metric), points in sorted(series.items()):
+        if fy not in keep:
+            continue
+        points.sort(key=lambda p: p[0])
+        first_at, first_val = points[0]
+        last_at, last_val = points[-1]
+        # A revision is a *changed* value, not another filing repeating the same
+        # number — most quarterly filings restate unchanged guidance verbatim.
+        revisions = sum(1 for i in range(1, len(points))
+                        if points[i][1] != points[i - 1][1])
+        rows.append({"code": code, "name": name, "fy": fy, "metric": metric,
+                     "first_value": first_val, "first_as_of": first_at,
+                     "latest_value": last_val, "latest_as_of": last_at,
+                     "revisions": revisions})
+    return rows
+
+
 # ── Yahoo ────────────────────────────────────────────────────────────────
 
 def _yahoo_symbol(code: str) -> str:
@@ -775,11 +842,12 @@ def main() -> int:
               "Secrets and variables -> Actions, then re-run. Consensus and "
               "Yahoo balance-sheet data are still collected.")
 
-    cons_rows, fund_rows, failures = [], [], []
+    cons_rows, fund_rows, hist_all, failures = [], [], [], []
     auth_failed = False
     for i, row in enumerate(universe, 1):
         code, name = row["Code"], row.get("Name", "")
         guide, actual, ytd, jq_fund, jq_as_of, fy1 = {}, {}, {}, {}, "", ""
+        hist_rows = []
         nonconsolidated = set()
         if api_key:
             try:
@@ -787,6 +855,7 @@ def main() -> int:
                 guide, jq_fund, jq_as_of, fy1, _nc_g = company_guidance(_records)
                 actual, _fy0, _, _nc_a = company_actuals(_records)
                 ytd, _nc_y = company_ytd(_records)
+                hist_rows = guidance_history(_records, code, name)
                 nonconsolidated = _nc_g | _nc_a | _nc_y
             except JQuantsAuthError as exc:
                 # Stop asking. Every remaining company would fail the same way,
@@ -812,6 +881,7 @@ def main() -> int:
                                     jq_as_of, y_as_of, nonconsolidated))
         fund_rows.append(merge_fundamentals(code, name, jq_fund, y_fund,
                                             jq_as_of or y_as_of))
+        hist_all.extend(hist_rows)
         print(f"  [{i}/{len(universe)}] {code} {name[:36]:36} "
               f"guide={len(guide):2} ytd={len(ytd):2} cons={len(cons):2} "
               f"fy1={fy1 or '?'}")
@@ -858,6 +928,17 @@ def main() -> int:
     F.write_rows(args.out_fundamentals, F.FUNDAMENTALS_COLUMNS,
                  sorted(by_code.values(), key=lambda r: r["code"]))
 
+    # Guidance history is keyed on (code, fy, metric) and rebuilt from the
+    # company's whole filing history each run, so a fresh row supersedes the
+    # stored one; companies not collected this run keep theirs.
+    _hist = {(r["code"], r["fy"], r["metric"]): r
+             for r in F.read_rows(F.GUIDANCE_HISTORY_PATH, F.GUIDANCE_HISTORY_COLUMNS)}
+    for r in hist_all:
+        _hist[(r["code"], r["fy"], r["metric"])] = r
+    F.write_rows(F.GUIDANCE_HISTORY_PATH, F.GUIDANCE_HISTORY_COLUMNS,
+                 sorted(_hist.values(),
+                        key=lambda r: (r["code"], r["fy"], r["metric"])))
+
     import json
     os.makedirs(os.path.dirname(args.out_manifest) or ".", exist_ok=True)
     with open(args.out_manifest, "w", encoding="utf-8") as fh:
@@ -865,6 +946,7 @@ def main() -> int:
 
     print(f"\nWrote {len(merged)} consensus rows -> {args.out_consensus}")
     print(f"Wrote {len(by_code)} fundamentals rows -> {args.out_fundamentals}")
+    print(f"Wrote {len(_hist)} guidance-history rows -> {F.GUIDANCE_HISTORY_PATH}")
     print(f"Wrote run manifest -> {args.out_manifest}")
     return 0
 

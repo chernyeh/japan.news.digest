@@ -612,6 +612,56 @@ def test_year_to_date_rows_are_written_as_filed_data():
     assert {r["unit"] for r in ytd_rows} <= {"jpy", "jpy_abs"}
 
 
+
+# ── Guidance revision history ────────────────────────────────────────────
+
+def _guidance_recs():
+    def rec(per, fy_end, disc, nxt="", **kw):
+        d = {"Code": "7203", "CurPerType": per, "CurFYEn": fy_end,
+             "DiscDate": disc, "NxtFYEn": nxt}
+        d.update({k: str(v) for k, v in kw.items()})
+        return d
+    return [
+        rec("FY", "2026-03-31", "2026-05-13", nxt="2027-03-31",
+            NxFOP=3_000_000, NxFNP=3_000_000),
+        rec("1Q", "2027-03-31", "2026-08-05", FOP=3_000_000, FNP=3_000_000),
+        rec("2Q", "2027-03-31", "2026-11-06", FOP=3_400_000, FNP=3_300_000),
+        rec("3Q", "2027-03-31", "2027-02-05", FOP=3_800_000, FNP=3_300_000),
+    ]
+
+
+def test_guidance_first_filed_on_the_full_year_tanshin_starts_the_series():
+    # A year's guidance is announced under the NxF* family and then restated
+    # under F* on every quarterly filing. Reading only one family would show a
+    # year's guidance as never having been revised.
+    rows = {r["metric"]: r for r in C.guidance_history(_guidance_recs(), "7203", "Toyota")}
+    op = rows["operating_profit"]
+    assert op["first_value"] == 3_000_000 and op["first_as_of"] == "2026-05-13"
+    assert op["latest_value"] == 3_800_000 and op["latest_as_of"] == "2027-02-05"
+
+
+def test_restating_guidance_unchanged_is_not_a_revision():
+    # Most quarterly filings repeat the same number verbatim; counting those
+    # would make every company look like a serial reviser.
+    rows = {r["metric"]: r for r in C.guidance_history(_guidance_recs(), "7203", "Toyota")}
+    assert rows["operating_profit"]["revisions"] == 2   # 3.0 -> 3.4 -> 3.8
+    assert rows["net_profit"]["revisions"] == 1         # 3.0 -> 3.3, then held
+
+
+def test_the_move_is_reported_against_where_guidance_started():
+    rows = {r["metric"]: r for r in C.guidance_history(_guidance_recs(), "7203", "Toyota")}
+    move, direction = F.revision_move(rows["operating_profit"])
+    assert direction == "raised" and move == _near(0.2667, 0.001)
+
+
+def test_no_chip_where_guidance_has_not_moved():
+    assert F.revision_move({"first_value": 100, "latest_value": 100, "revisions": 0}) is None
+    # Nor for a move inside the rounding threshold.
+    assert F.revision_move({"first_value": 1000, "latest_value": 1002, "revisions": 1}) is None
+    assert F.revision_move({}) is None
+    assert F.revision_move({"first_value": 0, "latest_value": 50, "revisions": 1}) is None
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

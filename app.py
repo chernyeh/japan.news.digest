@@ -3523,6 +3523,7 @@ with tab_research:
             _vals, _fundrow = ctx["vals"], ctx["fundrow"]
             _profile = ctx.get("profile", "general")
             _split = ctx.get("split_factor")
+            _revs = ctx.get("revisions") or {}
             _bps = _vals.get("bps")
             # Row set and labels for this company's presentation profile: a
             # bank files no operating profit and calls its top line ordinary
@@ -3730,11 +3731,25 @@ with tab_research:
                             _mark = ("derived" if (_b in ("company_h2", "rest") and _v is not None)
                                      else _src(_m, _y, _b if _b != "ytd"
                                                else _ytd_of.get(_y, ("", ""))[0]))
+                            # How far this guidance has moved since the company
+                            # first filed it. Japanese issuers are known for
+                            # guiding low and revising up; whether *this* one
+                            # does is in its own filing history, and the chip
+                            # puts it beside the number rather than in a note.
+                            _rev = (fund.revision_move(_revs.get((_y, _m)))
+                                    if _b == "company" else None)
+                            _rchip = ('' if not _rev else
+                                      f'<span class="fc-delta {"u" if _rev[0] > 0 else "d"}" '
+                                      f'title="Guidance {_rev[1]} '
+                                      f'{abs(_rev[0]) * 100:.0f}% since it was first filed on '
+                                      f'{_safe_text(_revs[(_y, _m)].get("first_as_of", ""))} '
+                                      f'({_revs[(_y, _m)].get("revisions", 0)} revision(s))">'
+                                      f'{"▲" if _rev[0] > 0 else "▼"}{abs(_rev[0]) * 100:.0f}%</span>')
                             cells.append(f'<div class="fc-cell fc-num{_edge}'
                                          f'{" fc-actual" if _b == "actual" else ""}'
                                          f'{" fc-derived" if _b in ("company_h2", "rest") else ""}">'
                                          + _fnum(_v, _dp, "", _scale)
-                                         + _src_mark(_mark) + '</div>')
+                                         + _src_mark(_mark) + _rchip + '</div>')
                             continue
                         # The gap chip fires only past 5% — consensus sitting on
                         # top of guidance is the normal case and not worth
@@ -3874,6 +3889,16 @@ with tab_research:
                     'so what is shown is the holding company on its own. For a holding company that '
                     'is largely dividends received from its own subsidiaries, and it is not '
                     'comparable with the consolidated figures around it.</div>')
+
+            if any(fund.revision_move(_v) for _v in _revs.values()):
+                _note_html.append(
+                    '<div class="fc-note">A <strong>▲/▼ chip on a company figure</strong> is how far '
+                    'that guidance has moved since the company first filed it for the year — not '
+                    'the gap to the street, which is the chip on the street column. Japanese '
+                    'issuers have a reputation for guiding conservatively and revising up through '
+                    'the year; this says whether <em>this</em> management actually does, from its '
+                    'own filing history. A quarterly filing that restates guidance unchanged is '
+                    'not counted as a revision.</div>')
 
             if _ytd_of:
                 _note_html.append(
@@ -4285,6 +4310,7 @@ with tab_research:
                 st.session_state.jpx400_map           = fund.load_universe_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
+                st.session_state.guidance_history     = fund.load_guidance_history_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
             except Exception as _ce:
                 print(f"Consensus load error: {_ce}")
@@ -4406,6 +4432,7 @@ with tab_research:
                                                         _slots, _profile, _split_factor),
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
                         "profile": _profile, "split_factor": _split_factor,
+                        "revisions": (st.session_state.get("guidance_history") or {}).get(_rcode, {}),
                     })
                     # Folded away by default. Filling gaps is occasional work
                     # — it is the table and the multiples the panel is opened
