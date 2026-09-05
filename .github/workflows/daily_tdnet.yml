@@ -27,19 +27,53 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 lxml
+        # yfinance/pandas/openpyxl are for the consensus refresh below, which
+        # shares collect_consensus.py with the weekly job.
+        run: pip install requests beautifulsoup4 lxml yfinance pandas openpyxl
 
       - name: Run collector (3-day trailing window)
         run: python collect_tdnet.py --days 3
+
+      # data/consensus.csv is rebuilt weekly, on Saturdays. In results season
+      # that leaves the forecast table up to six days stale in exactly the week
+      # it matters, so a company on the watchlist that filed a 決算短信 this
+      # evening gets re-collected now rather than waiting for the weekend.
+      # Quiet days cost nothing: with no matches the collector never runs.
+      - name: Pick watchlist companies that reported today
+        id: pick
+        run: |
+          # A bare `echo "$(...)"` would swallow a crash in the picker and
+          # quietly skip the refresh; assigning first lets `bash -e` fail loudly.
+          codes=$(python select_refresh_codes.py)
+          echo "codes=$codes" >> "$GITHUB_OUTPUT"
+
+      - name: Refresh consensus for those companies
+        if: steps.pick.outputs.codes != ''
+        env:
+          JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+        run: |
+          # --out-manifest /dev/null is load-bearing. The manifest records how
+          # many companies a run covered and the Research tab prints it; an
+          # incremental run that wrote it would leave the panel claiming the
+          # universe is three companies. The CSVs themselves merge by key, so
+          # they are safe to write from a partial run.
+          python collect_consensus.py \
+            --only "${{ steps.pick.outputs.codes }}" \
+            --out-manifest /dev/null
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tdnet_filings.csv
+          # Stage only what exists — `git add` on a missing pathspec is fatal
+          # under `bash -e`, and would throw away the collection above.
+          for f in data/tdnet_filings.csv data/consensus.csv \
+                   data/fundamentals.csv data/guidance_history.csv; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
           if git diff --staged --quiet; then
             echo "No changes"
           else
-            git commit -m "chore: update TDnet filings index [skip ci]"
+            git commit -m "chore: update TDnet filings and post-results consensus [skip ci]"
             git push
           fi

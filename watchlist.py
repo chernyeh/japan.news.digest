@@ -143,6 +143,28 @@ def load_watchlist_codes() -> list:
     return [k for k in _read_local() if not k.startswith(_UNRESOLVED)]
 
 
+def load_codes_from_disk(path: str = WATCHLIST_PATH) -> list:
+    """Watched codes read straight off disk, for a CI runner that has the repo
+    checked out but no session and no token.
+
+    Prefers the durable copy committed to the repo and falls back to the local
+    runtime cache, so this works both in a workflow and on a developer machine.
+    Unresolved entries are skipped: they have no code to collect against."""
+    for candidate in (path, WATCHLIST_FILE):
+        if not candidate or not os.path.exists(candidate):
+            continue
+        try:
+            with open(candidate, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except Exception:
+            continue
+        if isinstance(raw, dict):
+            return [k for k in raw if not k.startswith(_UNRESOLVED)]
+        if isinstance(raw, list):
+            return [c for c in (resolve_code(n) for n in raw if n) if c]
+    return []
+
+
 def save_watchlist(watchlist):
     """Kept for backwards compatibility: accepts either the new dict or the old
     list of names."""

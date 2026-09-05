@@ -662,6 +662,75 @@ def test_no_chip_where_guidance_has_not_moved():
     assert F.revision_move({"first_value": 0, "latest_value": 50, "revisions": 1}) is None
 
 
+# --- Which companies to re-collect the evening they report -------------------
+# The daily TDnet job feeds these codes to `collect_consensus.py --only`, so a
+# wrong answer here either wastes a workflow run or silently leaves the
+# forecast table stale through the week that matters most.
+
+import select_refresh_codes as SR
+
+
+def _filing(code, title, when="2026-08-06 15:00"):
+    return {"Code": code, "Name": "", "Title": title, "PubDateTime": when}
+
+
+# One evening's index, as collect_tdnet.py leaves it: a three-day trailing
+# window, so the same filing is present on the two previous runs too.
+FILINGS = [
+    _filing("7203", "2026年3月期 決算短信〔日本基準〕（連結）"),
+    _filing("6501", "2027年3月期　第１四半期決算短信〔日本基準〕（連結）"),
+    _filing("8306", "剰余金の配当に関するお知らせ"),
+    _filing("9984", "2026年3月期 決算短信〔日本基準〕（連結）"),
+    _filing("7203", "2025年3月期 決算短信〔日本基準〕（連結）", "2026-08-04 15:00"),
+]
+WATCHED = ["7203", "6501", "8306"]
+
+
+def test_a_watchlist_company_that_filed_results_today_is_refreshed():
+    assert SR.select_refresh_codes(FILINGS, WATCHED) == ["7203", "6501"]
+
+
+def test_a_quarterly_tanshin_counts_as_a_results_filing():
+    # 第１四半期決算短信 is the whole point: it carries the year-to-date figures
+    # the progress rate divides by guidance.
+    only_q = [_filing("6501", "2027年3月期　第１四半期決算短信〔日本基準〕（連結）")]
+    assert SR.select_refresh_codes(only_q, ["6501"]) == ["6501"]
+
+
+def test_the_same_filing_from_two_days_ago_is_not_refreshed_again():
+    # The index is a rolling three-day window. Without the date filter a
+    # company would be re-collected on three consecutive evenings.
+    stale_only = [f for f in FILINGS if f["PubDateTime"].startswith("2026-08-04")]
+    assert SR.select_refresh_codes(stale_only, WATCHED, on_date="2026-08-06") == []
+    assert SR.select_refresh_codes(stale_only, WATCHED) == ["7203"]   # it is the newest date there
+
+
+def test_a_company_that_is_not_watched_is_not_refreshed():
+    assert "9984" not in SR.select_refresh_codes(FILINGS, WATCHED)
+
+
+def test_a_filing_that_is_not_results_is_not_refreshed():
+    assert "8306" not in SR.select_refresh_codes(FILINGS, WATCHED)
+
+
+def test_an_empty_watchlist_asks_for_nothing():
+    assert SR.select_refresh_codes(FILINGS, []) == []
+    assert SR.select_refresh_codes([], WATCHED) == []
+
+
+def test_a_heavy_filing_day_is_capped():
+    many = [_filing(str(4000 + i), "2026年3月期 決算短信") for i in range(30)]
+    watched = [str(4000 + i) for i in range(30)]
+    assert len(SR.select_refresh_codes(many, watched)) == 20
+    assert len(SR.select_refresh_codes(many, watched, cap=5)) == 5
+
+
+def test_a_company_filing_twice_in_one_evening_is_asked_for_once():
+    twice = [_filing("7203", "2026年3月期 決算短信"),
+             _filing("7203", "2026年3月期 決算短信（訂正）")]
+    assert SR.select_refresh_codes(twice, ["7203"]) == ["7203"]
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
