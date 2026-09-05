@@ -20,9 +20,12 @@ from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
-from ir_scanner import scan_page_for_documents, build_zip
+from ir_scanner import scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
 import consensus_vision
+import fx_extract
+import fx_store
+import qa_extract
 
 # Batch ZIP downloads are fetched server-side and held in memory, so cap how
 # many documents one ZIP can contain; the UI tells the user what was skipped.
@@ -103,6 +106,7 @@ def calculate_mkt_cap(code, price):
 # Uses st.cache_resource so it's shared across ALL sessions on the same server instance.
 # This means your data persists when you close and reopen the tab.
 CACHE_TTL_HOURS = 3  # Show stale warning after this many hours
+SHARED_TTL_HOURS = 6  # How long _shared() holds a structure before refetching
 
 @st.cache_resource
 def _get_app_cache():
@@ -122,7 +126,57 @@ def _get_app_cache():
         "last_market_fetch":      None,
         "breaking_last_fetch":    None,
         "filings_last_fetch":     None,
+        # Large read-only structures rebuilt weekly by the workflows. These live
+        # here rather than in st.session_state because session state is per
+        # browser tab: see _shared() below for why that mattered.
+        "edinet_idx":       None,
+        "tdnet_idx":        None,
+        "consensus_map":    None,
+        "fundamentals_map": None,
+        "jpx400_map":       None,
+        "guidance_history": None,
+        "prices_map":       None,
     }
+
+
+def _shared(key: str, build):
+    """Build an expensive structure once per app process, not once per tab.
+
+    st.session_state is per browser session, so every tab that opened the app
+    got its own copy of the filing indexes. Measured, that is 85 MB for EDINET
+    (75k rows held as dicts cost roughly 1 KB each -- about 7x their size on
+    disk) plus 14 MB for the consensus map, and Streamlit Community Cloud gives
+    the whole app 1 GB. Seven tabs exhausted it, and the TDnet index is on
+    course to triple as it fills its 760-day retention window.
+
+    _get_app_cache() is process-wide and already holds the news articles this
+    way, so this is the same pattern rather than a new one.
+
+    An empty result is deliberately not cached: these files are never legitimately
+    empty, so an empty build means the fetch failed, and caching that would leave
+    every later session looking at a blank tab until the app restarted.
+
+    Entries expire after SHARED_TTL_HOURS. Without that, a process that stays up
+    for days would keep serving the snapshot it happened to load first, and the
+    daily jobs (prices, TDnet, the post-results consensus refresh) would not
+    reach a reader until the app restarted. Six hours is short enough that a
+    daily commit lands the same day and long enough that everyone reading the
+    app at once still shares one copy.
+    """
+    cache = _get_app_cache()
+    stamps = cache.setdefault("_shared_at", {})
+    fresh = (datetime.now() - stamps[key]).total_seconds() < SHARED_TTL_HOURS * 3600 \
+        if stamps.get(key) else False
+    hit = cache.get(key)
+    if hit and fresh:
+        return hit
+    built = build()
+    if built:
+        cache[key] = built
+        stamps[key] = datetime.now()
+        return built
+    # A failed refresh keeps the last good copy rather than blanking the tab.
+    return hit or built
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -895,6 +949,14 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-rrow { color: #6E5E4C; }
 .fc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.68rem;
              color: #9B8B7A; margin: 6px 0 2px; }
+/* Findings drawn from the company's own filing history. Deliberately louder
+   than .fc-note -- a note explains why a column is empty, these say something
+   about the business -- and deliberately quieter than the table itself. */
+.fc-reads { display: flex; flex-direction: column; gap: 5px; margin: 8px 0 2px; }
+.fc-read { font-size: 0.72rem; color: #5A5044; border-left: 3px solid #B8A98F;
+           padding: 5px 10px; background: #FBF7F0; border-radius: 0 3px 3px 0; }
+.fc-read b { color: #3D3529; font-weight: 600; }
+.fc-read em { color: #9B8B7A; font-style: italic; }
 .fc-note { font-size: 0.72rem; color: #9B8B7A; border-left: 3px solid #D9D3C8;
            padding: 6px 10px; margin: 8px 0; background: #FDFAF7; }
 .fc-note.fc-warn { border-left-color: #E65100; color: #7A4A22; background: #FDF4EE; }
@@ -965,6 +1027,7 @@ a.research-link:hover { background: #F0EDE8; }
     .fc-vcell { padding: 6px 8px; }
     .fc-note { font-size: 0.68rem; padding: 5px 8px; margin: 6px 0; }
     .fc-legend { gap: 9px; font-size: 0.62rem; }
+    .fc-read { font-size: 0.66rem; padding: 5px 8px; }
 }
 
 /* ── Text-size stepper ─────────────────────────────────────────────────
@@ -3260,28 +3323,31 @@ with tab_research:
             unsafe_allow_html=True
         )
 
-    # ── Lazy-load the EDINET index + research links once per session ──
-    if "edinet_filings_idx" not in st.session_state:
+    # ── Lazy-load the EDINET index + research links once per app process ──
+    # These two are the largest structures the app holds, so they go through
+    # _shared() rather than st.session_state -- see the note on _shared().
+    def _build_edinet_idx():
         try:
-            _rows = load_edinet_filings_from_github(_ec_repo, _gh_token)
             _idx = {}
-            for _r in _rows:
+            for _r in load_edinet_filings_from_github(_ec_repo, _gh_token):
                 _idx.setdefault(_r.get("SecCode", ""), []).append(_r)
-            st.session_state.edinet_filings_idx = _idx
+            return _idx
         except Exception as _e:
-            st.session_state.edinet_filings_idx = {}
             print(f"EDINET index load error: {_e}")
+            return {}
 
-    if "tdnet_filings_idx" not in st.session_state:
+    def _build_tdnet_idx():
         try:
-            _trows = load_tdnet_filings_from_github(_ec_repo, _gh_token)
             _tidx = {}
-            for _r in _trows:
+            for _r in load_tdnet_filings_from_github(_ec_repo, _gh_token):
                 _tidx.setdefault(_r.get("Code", ""), []).append(_r)
-            st.session_state.tdnet_filings_idx = _tidx
+            return _tidx
         except Exception as _e:
-            st.session_state.tdnet_filings_idx = {}
             print(f"TDnet index load error: {_e}")
+            return {}
+
+    st.session_state.edinet_filings_idx = _shared("edinet_idx", _build_edinet_idx)
+    st.session_state.tdnet_filings_idx = _shared("tdnet_idx", _build_tdnet_idx)
 
     if "research_links_map" not in st.session_state:
         try:
@@ -3316,6 +3382,18 @@ with tab_research:
         opts = [f"{code} — {name}" for code, name in NAMES_LOOKUP.items() if code and name]
         return sorted(opts, key=lambda s: s.split(" — ", 1)[1].lower())
 
+    # Arriving from an Earnings row's magnifier. Setting a widget's session_state
+    # key before the widget is constructed is how Streamlit preselects one; the
+    # param is consumed rather than left in the URL, so a later manual choice is
+    # not overwritten on every rerun.
+    _req_code = str(st.query_params.get("research", "")).strip()
+    if _req_code:
+        _hit = next((_o for _o in _research_company_options()
+                     if _o.startswith(f"{_req_code} — ")), None)
+        if _hit:
+            st.session_state.research_company_sel = _hit
+        del st.query_params["research"]
+
     _sel = st.selectbox(
         "Search company (name or 4-digit code):", options=_research_company_options(),
         index=None, placeholder="Start typing a company name or code…", key="research_company_sel",
@@ -3344,13 +3422,53 @@ with tab_research:
         _rmcap   = st.session_state.get("mktcap_map", {}).get(_rcode)
 
         _hdr_col1, _hdr_col2 = st.columns([5, 1.4])
+        # The two facts you want before reading anything else about a name:
+        # when it next reports, and how it has done against the index. Both are
+        # already collected for the Earnings tab, which renders *after* this one
+        # (tab_research at ~3207, tab_earnings at ~5600), so on a first paint its
+        # state is still empty. Load them here behind their own sentinel, the way
+        # the price map already is, and through _shared() so two tabs do not each
+        # pay for it.
+        if not st.session_state.get("research_ec_attempted"):
+            st.session_state.research_ec_attempted = True
+            try:
+                st.session_state.perf_3m_map = _shared(
+                    "perf_3m_map", lambda: load_3m_perf_from_github(_ec_repo, _gh_token)
+                ) or st.session_state.get("perf_3m_map") or {}
+                st.session_state.earnings_cal = _shared(
+                    "earnings_cal", lambda: load_earnings_cal_from_github(_ec_repo, _gh_token)
+                ) or st.session_state.get("earnings_cal") or []
+            except Exception as _ee:
+                print(f"Research header cross-link load error: {_ee}")
+
+        def _next_results(code: str):
+            """The company's next scheduled announcement, or None. The calendar
+            holds past dates too, so this filters rather than taking the first."""
+            _today = datetime.now().strftime("%Y-%m-%d")
+            _future = sorted(
+                (_e.get("announcement_date") or "")
+                for _e in (st.session_state.get("earnings_cal") or [])
+                if _e.get("code") == code and (_e.get("announcement_date") or "") >= _today)
+            return _future[0] if _future else None
+
         with _hdr_col1:
             _mcap_str   = f" · ¥{_rmcap:,.0f}B" if _rmcap else ""
             _sector_str = _safe_text(_rsector) if _rsector else ""
+            _nxt = _next_results(_rcode)
+            _p3m = (st.session_state.get("perf_3m_map") or {}).get(_rcode)
+            _meta = []
+            if _nxt:
+                _meta.append(f'📅 next results {_safe_text(_nxt)}')
+            if _p3m is not None:
+                _meta.append(
+                    f'<span style="color:{"#1B7F4F" if _p3m >= 0 else "#B3261E"};">'
+                    f'{_p3m:+.1f}% vs TOPIX 3M</span>')
             st.markdown(
                 f'<div style="font-size:1.1rem;font-weight:700;color:#2B2420;">{_safe_text(_rname)} '
                 f'<span style="font-family:monospace;font-weight:400;font-size:0.85rem;color:#9B8B7A;">({_rcode})</span></div>'
-                f'<div style="font-size:0.75rem;color:#9B8B7A;">{_sector_str}{_mcap_str}</div>',
+                f'<div style="font-size:0.75rem;color:#9B8B7A;">{_sector_str}{_mcap_str}</div>'
+                + (f'<div style="font-size:0.72rem;color:#9B8B7A;margin-top:2px;">'
+                   + " · ".join(_meta) + '</div>' if _meta else ''),
                 unsafe_allow_html=True
             )
         with _hdr_col2:
@@ -3796,6 +3914,162 @@ with tab_research:
                 + '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
                 unsafe_allow_html=True)
 
+            # ── What the company's own record says about its guidance ──
+            # Two readings that only exist because the history is now collected,
+            # and both are findings rather than explanations, so they sit under
+            # the table rather than folding away with the notes.
+            _reads = []
+
+            # 1. Does this management guide low and revise up? The reputation
+            #    belongs to the population; whether it fits this company is in
+            #    its own filings.
+            _cons = fund.conservatism(_revs)
+            if _cons:
+                _dir = ("raises" if _cons["raised"] > _cons["cut"]
+                        else "cuts" if _cons["cut"] > _cons["raised"] else "leaves")
+                _reads.append(
+                    f'<span class="fc-read"><b>Guidance record</b> '
+                    f'{_cons["raised"]} raised / {_cons["cut"]} cut / '
+                    f'{_cons["unchanged"]} unchanged across {_cons["years"]} '
+                    f'year{"s" if _cons["years"] > 1 else ""}'
+                    + (f' · median {_cons["median_move"] * 100:+.0f}%'
+                       if abs(_cons["median_move"]) >= 0.005 else '')
+                    + (' · <em>too few years to call a habit</em>' if _cons["thin"]
+                       else f' · this management typically {_dir} its opening number')
+                    + '</span>')
+
+            # 2. Is the progress rate actually behind, or just seasonal? Only
+            #    years reporting the *same* quarter are comparable — Q1 against
+            #    Q3 would be arithmetic, not a comparison.
+            _prog_year = next((_y for _y in reversed(_shown)
+                               if _y in _ytd_of and _y not in _actual_years), None)
+            if _prog_year:
+                _q = _ytd_of[_prog_year][0]
+                _this = _progress_cell(None, _prog_year, "ytd")
+                _priors = [_p for _p in
+                           (_progress_cell(None, _y, "ytd") for _y in _shown
+                            if _y != _prog_year and _ytd_of.get(_y, (None,))[0] == _q)
+                           if _p is not None]
+                _rank = fund.progress_rank(_this, _priors)
+                if _rank:
+                    _reads.append(
+                        f'<span class="fc-read"><b>Progress at {_q[-2:].upper()}</b> '
+                        f'{_this * 100:.0f}% vs '
+                        + " / ".join(f"{_p * 100:.0f}%" for _p in _rank["priors"])
+                        + f' in the {_rank["n_prior"]} prior year'
+                        f'{"s" if _rank["n_prior"] > 1 else ""} — '
+                        # "range" only means something with more than one point
+                        # behind it; with a single prior year, say so plainly.
+                        + (("ahead of" if _rank["ahead_of"] else "behind")
+                           + " last year" if _rank["n_prior"] == 1 else
+                           ("ahead of" if _rank["ahead_of"] == _rank["n_prior"]
+                            else "behind" if _rank["ahead_of"] == 0 else "inside")
+                           + " its own range")
+                        + '. Two or three years is a read, not a '
+                          'distribution.</span>')
+
+            # 3. Is the share count actually falling? A buyback announcement is
+            #    a press release; a lower share count is the thing itself. Shown
+            #    against treasury stock because shares repurchased and parked
+            #    rather than cancelled still sit in the count.
+            _allmap = ctx.get("allmap") or {}
+            _sh = sorted(
+                ((_fy, _e.get("value")) for (_mt, _fy, _bs), _e in _allmap.items()
+                 if _mt == "shares" and _bs == "actual" and _e.get("value")),
+                key=lambda t: t[0])
+            if len(_sh) >= 2:
+                _first_y, _first_v = _sh[0]
+                _last_y, _last_v = _sh[-1]
+                _chg = (_last_v - _first_v) / _first_v
+                _tr = (_allmap.get(("treasury", _last_y, "actual")) or {}).get("value")
+                _reads.append(
+                    f'<span class="fc-read"><b>Share count</b> '
+                    f'{_last_v / 1e6:,.0f}m, {_chg * 100:+.1f}% since {_first_y}'
+                    + (f' · treasury {_tr / 1e6:,.0f}m '
+                       f'({_tr / _last_v * 100:.1f}% of shares held back, not cancelled)'
+                       if _tr else '')
+                    + ('' if abs(_chg) >= 0.005 else
+                       ' · <em>flat — any buyback has been offset or parked</em>')
+                    + '</span>')
+
+            # 4. Can you get out? Sizing a position without knowing this is the
+            #    gap that mattered most: a thin name needs a higher hurdle and a
+            #    smaller position, and that judgement should not depend on
+            #    remembering to go and look the volume up.
+            _liq = fund.liquidity_read(ctx.get("liquidity") or {})
+            if _liq:
+                _adv_m = _liq["adv_jpy"] / 1e6
+                _reads.append(
+                    f'<span class="fc-read"><b>Liquidity</b> '
+                    + (f'¥{_adv_m / 1000:.1f}bn' if _adv_m >= 1000 else f'¥{_adv_m:,.0f}m')
+                    + f' traded on a median day ({_safe_text(_liq["tier"])}) · '
+                    + (f'{_liq["days"]:.1f} days' if _liq["days"] and _liq["days"] >= 1
+                       else f'under a day')
+                    + f' to exit ¥100m at {_liq["participation"] * 100:.0f}% of volume — '
+                    + _liq["hurdle"]
+                    + (f' · <em>{_liq["obs"]} observation'
+                       f'{"s" if _liq["obs"] != 1 else ""} over {_liq["span_days"]} days — '
+                       f'a thin sample</em>' if _liq["thin_sample"] else '')
+                    + '</span>')
+
+            # 5. What the share price has actually done when the yen moved, as
+            #    against the translation sensitivity a company chooses to
+            #    disclose. The two disagreeing is the interesting case.
+            _fxb = fund.fx_beta_read(ctx.get("fx_beta") or {})
+            if _fxb:
+                _reads.append(
+                    f'<span class="fc-read"><b>FX behaviour</b> '
+                    + _fxb["verdict"]
+                    + f' · beta {_fxb["beta"]:+.2f} vs USD/JPY, r&sup2; {_fxb["r2"]:.2f} '
+                      f'over {_fxb["obs"]} observation{"s" if _fxb["obs"] != 1 else ""}'
+                    + ' · <em>measured from the share price, not from the '
+                      'company&rsquo;s disclosed sensitivity</em></span>')
+
+            # 6. How much of the yen's move since guidance was set the company
+            #    has not yet recognised. This is the payoff of the extraction --
+            #    and the one read that has to carry its caveats on screen,
+            #    because it is the easiest to mistake for a revised forecast.
+            _fx_ent = (ctx.get("fx_assumptions") or {})
+            _spot = {k: v for k, v in (ctx.get("spot") or {}).items() if v}
+            _gap = {}
+            for _gy in reversed(_shown):
+                _gap = fx_store.fx_gap(_fx_ent.get(_gy) or {}, _spot)
+                if _gap:
+                    break
+            if _gap:
+                _bn = _gap["impact_jpy"] / 1e9
+                _reads.append(
+                    f'<span class="fc-read"><b>FX vs guidance</b> guidance assumes '
+                    f'{_gap["pair"]} {_gap["assumed"]:.1f}, spot {_gap["spot"]:.1f} — '
+                    f'a {_gap["move_yen"]:+.1f} yen move the company&rsquo;s own sensitivity '
+                    f'puts at <strong>¥{_bn:+,.1f}bn</strong> of full-year operating profit. '
+                    + '<em>' + _safe_text("; ".join(_gap["caveats"])) + '. '
+                    + _safe_text(_gap["verdict"].capitalize()) + '.</em></span>')
+
+            # 7. What management keeps not answering. One briefing's evasion
+            #    rate is noise; the same topic going unanswered across three
+            #    consecutive briefings is where they do not want to be pinned
+            #    down, and that is usually where the risk is.
+            _qa = qa_extract.across_events(ctx.get("qa_events") or [])
+            if _qa:
+                _reads.append(
+                    f'<span class="fc-read"><b>What is not answered</b> '
+                    f'{_qa["evaded"]} of {_qa["questions"]} questions deflected or left '
+                    f'unanswered across {_qa["events"]} briefing'
+                    f'{"s" if _qa["events"] != 1 else ""} '
+                    f'({_qa["evasion_rate"] * 100:.0f}%)'
+                    + (' · <b>recurring: ' + _safe_text(", ".join(_qa["recurring"])) + '</b>'
+                       if _qa["recurring"] else '')
+                    + (f' · <em>{_qa["questions"]} questions is too few to read a rate '
+                       f'from</em>' if _qa["thin"] else '')
+                    + (' · <em>read from the company&rsquo;s own Q&amp;A summaries, which are '
+                       'edited before publication</em>' if not _qa["verbatim_events"] else '')
+                    + '</span>')
+
+            if _reads:
+                st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
+                            unsafe_allow_html=True)
+
             # Two classes of note sit under this table, and they do not
             # deserve the same room. A missing API key is a broken pipeline the
             # reader has to act on, so it stays on screen. The rest explains
@@ -4154,6 +4428,291 @@ with tab_research:
             _flash("success" if _ok and not _bad else "warning",
                    _msg if _ok else f"Applied for this session, but not saved: {_msg}")
 
+        def _fc_qa(_rcode, _rname):
+            """Read a Q&A document, classify each exchange, review, save findings.
+
+            What management declines to answer is a fact about the business, and
+            it is nowhere in the numbers. See qa_extract.py."""
+            st.markdown(
+                '<div class="fc-note">The most informative moment in a briefing is often the '
+                'question that gets asked twice and answered neither time. Attach the '
+                '<strong>質疑応答</strong> or transcript and each exchange is classified — answered, '
+                'partial, deflected, declined, unanswered — with the quoted span that justifies it. '
+                '<strong>Only the findings are stored, never the document.</strong></div>',
+                unsafe_allow_html=True)
+
+            _api_key = get_secret("ANTHROPIC_API_KEY")
+            _saved = [(i, _l) for i, _l in
+                      enumerate((st.session_state.get("research_links_map") or {}).get(_rcode, []))
+                      if _l.get("doc_type") in ("Transcript", "Q&A") and _l.get("url")]
+            _choices = ["Upload a file", "Paste a URL"] + (
+                ["Use a saved transcript / Q&A link"] if _saved else [])
+            _how = st.radio("Source", _choices, horizontal=True,
+                            key=f"qa_how_{_rcode}", label_visibility="collapsed")
+            _src_name, _src_url, _pdf = "", "", b""
+
+            if _how == "Upload a file":
+                _up = st.file_uploader("Transcript or Q&A (PDF)", type=["pdf"],
+                                       key=f"qa_up_{_rcode}", label_visibility="collapsed")
+                if _up:
+                    _src_name, _pdf = _up.name, _up.getvalue()
+            elif _how == "Paste a URL":
+                _src_url = st.text_input("PDF URL", key=f"qa_url_{_rcode}",
+                                         placeholder="https://…/qa.pdf")
+            else:
+                _pick = st.selectbox(
+                    "Saved document", options=[i for i, _ in _saved],
+                    format_func=lambda i: (dict(_saved)[i].get("title")
+                                           or dict(_saved)[i].get("url", ""))[:90],
+                    key=f"qa_pick_{_rcode}")
+                _src_url = dict(_saved).get(_pick, {}).get("url", "")
+
+            if _src_url and st.button("⬇️ Fetch that document", key=f"qa_fetch_{_rcode}"):
+                try:
+                    st.session_state[f"qa_bytes_{_rcode}"] = fetch_document_bytes(
+                        _src_url, max_bytes=fx_extract.MAX_PDF_BYTES)
+                    st.session_state[f"qa_name_{_rcode}"] = (
+                        _src_url.rsplit("/", 1)[-1] or "document.pdf")
+                except Exception as _fe:
+                    st.warning(f"Could not fetch that document: {_fe}")
+            if not _pdf:
+                _pdf = st.session_state.get(f"qa_bytes_{_rcode}") or b""
+                _src_name = st.session_state.get(f"qa_name_{_rcode}", "")
+
+            if _pdf:
+                _ok, _problems = fx_extract.validate_pdf(_src_name, _pdf)
+                if not _ok:
+                    st.warning(" · ".join(_problems))
+                else:
+                    _est = qa_extract.estimate_cost(_pdf, _api_key)
+                    st.markdown(
+                        f'<div class="fc-note">{_safe_text(_src_name)} — '
+                        f'about ${_est["usd"]:.2f} ({_est["input_tokens"]:,} input tokens, '
+                        + ('counted by the API' if _est["measured"] else 'estimated')
+                        + f'), using <code>{qa_extract.MODEL}</code>.</div>',
+                        unsafe_allow_html=True)
+
+            _qres_key = f"qa_res_{_rcode}"
+            if st.button("🗣️ Read this Q&A", key=f"qa_go_{_rcode}",
+                         disabled=not (_pdf and _api_key)):
+                with st.spinner("Reading the exchange…"):
+                    try:
+                        st.session_state[_qres_key] = qa_extract.extract_from_pdf(
+                            _pdf, _api_key, _rcode, _rname)
+                    except Exception as _xe:
+                        st.session_state.pop(_qres_key, None)
+                        st.error(f"Could not read that document: {_xe}")
+            if not _api_key:
+                st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
+                            'Secrets, so documents cannot be read.</div>',
+                            unsafe_allow_html=True)
+
+            _qres = st.session_state.get(_qres_key)
+            if _qres:
+                _sum = qa_extract.summarise(_qres["exchanges"])
+                # The document kind decides what an empty result means, so it
+                # is stated before the numbers rather than after them.
+                if _qres["document_kind"] == "company_summary":
+                    st.markdown(
+                        '<div class="fc-note">This is the <strong>company&rsquo;s own summary</strong> '
+                        'of the Q&amp;A (質疑応答要旨), not a verbatim transcript. The evasion has '
+                        'usually been edited out before publication, so a low count here says more '
+                        'about the disclosure than about the answers. Look for a verbatim '
+                        'transcript if one exists.</div>', unsafe_allow_html=True)
+                elif _qres["document_kind"] == "unclear":
+                    st.markdown('<div class="fc-note">Could not tell whether this is a verbatim '
+                                'transcript or the company&rsquo;s summary of one — weigh the '
+                                'result accordingly.</div>', unsafe_allow_html=True)
+                if _sum:
+                    st.markdown(
+                        f'**{_sum["total"]} question(s)** · '
+                        f'{_sum["counts"]["answered"]} answered · '
+                        f'{_sum["counts"]["partial"]} partial · '
+                        f'{_sum["counts"]["deflected"]} deflected · '
+                        f'{_sum["counts"]["declined"]} declined openly · '
+                        f'{_sum["counts"]["unanswered"]} unanswered'
+                        + (f'  \n*{_sum["total"]} questions is too few to read a rate from.*'
+                           if _sum["thin"] else
+                           f'  \n{_sum["evasion_rate"] * 100:.0f}% deflected or unanswered.'))
+                    st.markdown(
+                        '<div class="fc-note">An open “we do not disclose that” counts as '
+                        '<strong>declined</strong>, not as evasion — refusing openly is a different '
+                        'act from appearing to answer while not doing so.</div>',
+                        unsafe_allow_html=True)
+                if _qres["exchanges"]:
+                    st.dataframe(pd.DataFrame(_qres["exchanges"])[
+                        ["topic", "classification", "question", "evidence_quote",
+                         "answered_by", "why", "page_number"]],
+                        hide_index=True, use_container_width=True)
+                else:
+                    st.markdown('<div class="fc-note">No question-and-answer exchanges found in '
+                                'this document.</div>', unsafe_allow_html=True)
+                if _qres["unreadable"]:
+                    st.dataframe(pd.DataFrame(_qres["unreadable"]), hide_index=True,
+                                 use_container_width=True)
+                _label = st.text_input("Event label", value=_qres.get("event_label", ""),
+                                       key=f"qa_label_{_rcode}",
+                                       help="Saving again under the same label replaces that "
+                                            "event rather than stacking a second copy.")
+                if st.button("💾 Save these findings", key=f"qa_save_{_rcode}"):
+                    _ok2, _msg = qa_extract.save_event(
+                        _ec_repo, _gh_token or "", _rcode,
+                        {"event_label": _label, "document_kind": _qres["document_kind"],
+                         "summary": _sum, "exchanges": _qres["exchanges"],
+                         "source": {"name": _src_name, "url": _src_url}})
+                    st.toast("Saved." if _ok2 else f"Not saved — {_msg}")
+                    if _ok2:
+                        st.session_state.pop(_qres_key, None)
+                        _get_app_cache()["qa_findings"] = None
+
+        def _fc_fx(_rcode, _rname, _years):
+            """Read a results deck's FX assumptions and sensitivity, review, save.
+
+            On demand and one company at a time: there is no batch job and no
+            standing cost. See fx_extract.py for why the model choice matters
+            here more than the price difference does."""
+            st.markdown(
+                '<div class="fc-note">Japanese issuers state the rate their guidance assumes '
+                '(<strong>前提為替レート</strong>), and many state a sensitivity beside it '
+                '(<strong>感応度</strong>) — what a one-yen move does to full-year operating profit. '
+                'Neither is in any data feed; both are in the results deck. Attach it, or paste a '
+                'link to it, and it is read in one pass. <strong>Nothing is saved until you '
+                'review it.</strong></div>',
+                unsafe_allow_html=True)
+
+            _api_key = get_secret("ANTHROPIC_API_KEY")
+            _src_name, _src_url, _pdf = "", "", b""
+
+            # Three ways to the same bytes: a presentation already saved for this
+            # company, a pasted URL, or an upload. The first is there because
+            # the link library usually already has the deck.
+            _saved = [(i, _l) for i, _l in
+                      enumerate((st.session_state.get("research_links_map") or {}).get(_rcode, []))
+                      if _l.get("doc_type") == "Presentation" and _l.get("url")]
+            _choices = ["Upload a file", "Paste a URL"] + (
+                ["Use a saved presentation link"] if _saved else [])
+            _how = st.radio("Source", _choices, horizontal=True,
+                            key=f"fx_how_{_rcode}", label_visibility="collapsed")
+
+            if _how == "Upload a file":
+                _up = st.file_uploader("Results presentation (PDF)", type=["pdf"],
+                                       key=f"fx_up_{_rcode}", label_visibility="collapsed")
+                if _up:
+                    _src_name, _pdf = _up.name, _up.getvalue()
+            elif _how == "Paste a URL":
+                _src_url = st.text_input("PDF URL", key=f"fx_url_{_rcode}",
+                                         placeholder="https://…/presentation.pdf")
+            else:
+                _pick = st.selectbox(
+                    "Saved presentation",
+                    options=[i for i, _ in _saved],
+                    format_func=lambda i: (dict(_saved)[i].get("title")
+                                           or dict(_saved)[i].get("url", ""))[:90],
+                    key=f"fx_pick_{_rcode}")
+                _src_url = dict(_saved).get(_pick, {}).get("url", "")
+
+            if _src_url and st.button("⬇️ Fetch that document", key=f"fx_fetch_{_rcode}"):
+                try:
+                    # Already used by the IR scanner to pull a document by URL
+                    # with a size cap; today its bytes only ever go into a ZIP.
+                    # Returns bytes, and its own 40MB cap is above what the
+                    # API accepts, so cap at the API's limit instead and fail
+                    # on the download rather than after paying for a request.
+                    _bytes = fetch_document_bytes(
+                        _src_url, max_bytes=fx_extract.MAX_PDF_BYTES)
+                    st.session_state[f"fx_bytes_{_rcode}"] = _bytes
+                    st.session_state[f"fx_name_{_rcode}"] = (
+                        _src_url.rsplit("/", 1)[-1] or "document.pdf")
+                except Exception as _fe:
+                    st.warning(f"Could not fetch that document: {_fe}")
+            if not _pdf:
+                _pdf = st.session_state.get(f"fx_bytes_{_rcode}") or b""
+                _src_name = st.session_state.get(f"fx_name_{_rcode}", "")
+
+            if _pdf:
+                _ok, _problems = fx_extract.validate_pdf(_src_name, _pdf)
+                if not _ok:
+                    st.warning(" · ".join(_problems))
+                else:
+                    _est = fx_extract.estimate_cost(_pdf, _api_key)
+                    _pages = _est.get("pages") or 0
+                    st.markdown(
+                        f'<div class="fc-note">{_safe_text(_src_name)} — '
+                        f'{len(_pdf) / 1048576:.1f} MB'
+                        + (f', about {_pages} pages' if _pages else '')
+                        + f'. Cost of this read: <strong>about ${_est["usd"]:.2f}</strong> '
+                        f'({_est["input_tokens"]:,} input tokens, '
+                        + ('counted by the API' if _est["measured"]
+                           else 'estimated from the page count')
+                        + f'), using <code>{fx_extract.MODEL}</code>.</div>',
+                        unsafe_allow_html=True)
+
+            _res_key = f"fx_res_{_rcode}"
+            _go = st.button("💴 Read FX assumptions", key=f"fx_go_{_rcode}",
+                            disabled=not (_pdf and _api_key), use_container_width=False)
+            if not _api_key:
+                st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
+                            'Secrets, so documents cannot be read.</div>',
+                            unsafe_allow_html=True)
+            if _go and _pdf:
+                with st.spinner("Reading the deck…"):
+                    try:
+                        st.session_state[_res_key] = fx_extract.extract_from_pdf(
+                            _pdf, _api_key, _rcode, _rname)
+                    except Exception as _xe:
+                        st.session_state.pop(_res_key, None)
+                        st.error(f"Could not read that document: {_xe}")
+
+            _res = st.session_state.get(_res_key)
+            if _res:
+                _fy = st.text_input("Fiscal year these apply to",
+                                    value=_res.get("fiscal_year") or (_years[-1] if _years else ""),
+                                    key=f"fx_fy_{_rcode}",
+                                    help="Keyed by year on purpose: the assumption is revised "
+                                         "during the year, and guidance has to be read against "
+                                         "the rate that guidance actually assumed.")
+                if _res["assumptions"]:
+                    st.markdown("**Assumed rates**")
+                    st.dataframe(pd.DataFrame(_res["assumptions"]), hide_index=True,
+                                 use_container_width=True)
+                else:
+                    st.markdown('<div class="fc-note">No assumed rate found in this document. '
+                                'That is a normal outcome, not a failure — try the full results '
+                                'presentation rather than the tanshin.</div>',
+                                unsafe_allow_html=True)
+                if _res["sensitivities"]:
+                    st.markdown("**Disclosed sensitivity** (yen of operating profit per ¥1 move)")
+                    st.dataframe(pd.DataFrame(_res["sensitivities"]), hide_index=True,
+                                 use_container_width=True)
+                else:
+                    st.markdown('<div class="fc-note">No sensitivity disclosed. Many issuers '
+                                'publish an assumed rate and no sensitivity at all — this is the '
+                                'company telling you something, not a gap in the read.</div>',
+                                unsafe_allow_html=True)
+                if _res["unreadable"]:
+                    st.markdown("**Could not be read with confidence** — check these pages yourself")
+                    st.dataframe(pd.DataFrame(_res["unreadable"]), hide_index=True,
+                                 use_container_width=True)
+                if _res.get("notes"):
+                    st.markdown(f'<div class="fc-note">{_safe_text(_res["notes"])}</div>',
+                                unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="fc-note">Page numbers and quotes are <strong>reported by the '
+                    'model</strong>, not verified by the API — citations and a strict output '
+                    'schema cannot both be used on one request. Spot-check a couple before you '
+                    'rely on them.</div>', unsafe_allow_html=True)
+                if st.button("💾 Save these figures", key=f"fx_save_{_rcode}"):
+                    _ok2, _msg = fx_store.save_entry(
+                        _ec_repo, _gh_token or "", _rcode, _fy,
+                        {"assumptions": _res["assumptions"],
+                         "sensitivities": _res["sensitivities"],
+                         "notes": _res.get("notes", ""),
+                         "source": {"name": _src_name, "url": _src_url}})
+                    st.toast("Saved." if _ok2 else f"Not saved — {_msg}")
+                    if _ok2:
+                        st.session_state.pop(_res_key, None)
+                        _get_app_cache()["fx_assumptions"] = None
+
         def _fc_screenshots(_rcode, _rname, _years):
             """Attach terminal screenshots, have them read, review, then save.
 
@@ -4305,12 +4864,28 @@ with tab_research:
         if not st.session_state.consensus_load_attempted:
             st.session_state.consensus_load_attempted = True
             try:
-                st.session_state.consensus_map        = fund.load_consensus_from_github(_ec_repo, _gh_token)
-                st.session_state.fundamentals_map     = fund.load_fundamentals_from_github(_ec_repo, _gh_token)
-                st.session_state.jpx400_map           = fund.load_universe_from_github(_ec_repo, _gh_token)
+                # Shared across sessions: rebuilt weekly by the collector and
+                # only ever read here. The manual override map and the run
+                # manifest stay per-session -- the first is written from the UI,
+                # and the second is small enough not to matter.
+                st.session_state.consensus_map    = _shared(
+                    "consensus_map", lambda: fund.load_consensus_from_github(_ec_repo, _gh_token))
+                st.session_state.fundamentals_map = _shared(
+                    "fundamentals_map", lambda: fund.load_fundamentals_from_github(_ec_repo, _gh_token))
+                st.session_state.jpx400_map       = _shared(
+                    "jpx400_map", lambda: fund.load_universe_from_github(_ec_repo, _gh_token))
+                st.session_state.guidance_history = _shared(
+                    "guidance_history", lambda: fund.load_guidance_history_from_github(_ec_repo, _gh_token))
+                st.session_state.liquidity_map = _shared(
+                    "liquidity_map", lambda: fund.load_liquidity_from_github(_ec_repo, _gh_token))
+                st.session_state.fx_beta_map = _shared(
+                    "fx_beta_map", lambda: fund.load_fx_beta_from_github(_ec_repo, _gh_token))
+                st.session_state.fx_assumptions = _shared(
+                    "fx_assumptions", lambda: fx_store.load_from_github(_ec_repo, _gh_token))
+                st.session_state.qa_findings = _shared(
+                    "qa_findings", lambda: qa_extract.load_from_github(_ec_repo, _gh_token))
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
-                st.session_state.guidance_history     = fund.load_guidance_history_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
             except Exception as _ce:
                 print(f"Consensus load error: {_ce}")
@@ -4321,7 +4896,8 @@ with tab_research:
         if not st.session_state.research_prices_map and not st.session_state.research_prices_attempted:
             st.session_state.research_prices_attempted = True
             try:
-                st.session_state.research_prices_map = load_prices_from_github(_ec_repo, _gh_token)
+                st.session_state.research_prices_map = _shared(
+                    "prices_map", lambda: load_prices_from_github(_ec_repo, _gh_token))
             except Exception as _pe:
                 print(f"Research price load error: {_pe}")
 
@@ -4433,6 +5009,24 @@ with tab_research:
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
                         "profile": _profile, "split_factor": _split_factor,
                         "revisions": (st.session_state.get("guidance_history") or {}).get(_rcode, {}),
+                        "liquidity": (st.session_state.get("liquidity_map") or {}).get(_rcode, {}),
+                        "fx_beta": (st.session_state.get("fx_beta_map") or {}).get(_rcode, {}),
+                        "fx_assumptions": (st.session_state.get("fx_assumptions") or {}).get(_rcode, {}),
+                        "qa_events": (st.session_state.get("qa_findings") or {}).get(_rcode, []),
+                        # Live spot from the Markets tab's own fetch, keyed the
+                        # way fx_store expects. Empty until that tab has run,
+                        # which is the correct behaviour: no spot, no flag.
+                        "spot": {
+                            "USD/JPY": ((st.session_state.get("market_data") or {})
+                                        .get("forex", {}).get("usdjpy", {}) or {}).get("price"),
+                            "EUR/JPY": ((st.session_state.get("market_data") or {})
+                                        .get("forex", {}).get("eurjpy", {}) or {}).get("price"),
+                            "CNY/JPY": ((st.session_state.get("market_data") or {})
+                                        .get("forex", {}).get("cnyjpy", {}) or {}).get("price"),
+                        },
+                        # The table shows a handful of years; the collector keeps
+                        # three of actuals. A share-count trend wants all of them.
+                        "allmap": _fc_map,
                     })
                     # Folded away by default. Filling gaps is occasional work
                     # — it is the table and the multiples the panel is opened
@@ -4448,12 +5042,17 @@ with tab_research:
                         # because it always works — the screenshot reader needs an
                         # API key, and half of what is missing here is a single
                         # figure that is faster typed than captured.
-                        _tab_type, _tab_shot = st.tabs(["✏️ Type or correct values",
-                                                        "📸 Read a screenshot"])
+                        _tab_type, _tab_shot, _tab_fx, _tab_qa = st.tabs(
+                            ["✏️ Type or correct values", "📸 Read a screenshot",
+                             "💴 Read FX assumptions", "🗣️ Read a Q&A"])
                         with _tab_type:
                             _fc_typed(_rcode, _rname, _years, _fc_map, _profile)
                         with _tab_shot:
                             _fc_screenshots(_rcode, _rname, _years)
+                        with _tab_fx:
+                            _fc_fx(_rcode, _rname, _years)
+                        with _tab_qa:
+                            _fc_qa(_rcode, _rname)
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []
@@ -6117,12 +6716,29 @@ with tab_earnings:
                     _mcap_cell = (
                         f'<div style="text-align:right;font-size:0.68rem;color:#1A1A1A;font-family:monospace;">{_mcap_str}</div>'
                     )
+                    # A bare ?research=… would drop every other query parameter,
+                    # and the text-size control keeps its setting in ?z. Carry it
+                    # across so following the link does not silently reset the
+                    # reader's font size.
+                    _keep_zoom = (f"&amp;z={st.session_state.ui_zoom}"
+                                  if st.session_state.get("ui_zoom", ZOOM_DEFAULT) != ZOOM_DEFAULT
+                                  else "")
                     rows_html += (
                         f'<div style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;'
                         f'gap:0.25rem;padding:0.28rem 0.35rem;background:{_bg};{_border}'
                         f'border-bottom:1px solid #EDE8E0;align-items:center;">'
                         f'<div style="color:#F9A825;font-size:0.72rem;">{_star}</div>'
-                        f'<div style="font-size:0.78rem;font-weight:{_weight};text-align:left;"><a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a></div>'
+                        # Two destinations off one cell: the name still goes to
+                        # Yahoo, and the magnifier opens the same company in the
+                        # Research tab. A link rather than a button because these
+                        # rows are one HTML block -- and because Streamlit renders
+                        # Research *before* Earnings, so a button would land a
+                        # frame late while a query param survives the reload.
+                        f'<div style="font-size:0.78rem;font-weight:{_weight};text-align:left;">'
+                        f'<a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a>'
+                        f'<a href="?research={_code}{_keep_zoom}" title="Open {_name} in the Research tab" '
+                        f'style="margin-left:5px;text-decoration:none;font-size:0.72rem;opacity:0.55;">🔎</a>'
+                        f'</div>'
                         f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;text-align:left;">{_code}</div>'
                         f'<div style="font-size:0.68rem;text-align:left;">{_period}</div>'
                         f'<div style="font-size:0.62rem;color:#6B6B6B;text-align:left;">{_sector}</div>'

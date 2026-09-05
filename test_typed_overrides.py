@@ -731,6 +731,426 @@ def test_a_company_filing_twice_in_one_evening_is_asked_for_once():
     assert SR.select_refresh_codes(twice, ["7203"]) == ["7203"]
 
 
+# --- Reading a management's own guidance record -----------------------------
+
+def _hist(*pairs):
+    return {(fy, "operating_profit"): {"first_value": a, "latest_value": b,
+                                       "revisions": 0 if a == b else 1}
+            for fy, a, b in pairs}
+
+
+def test_a_management_that_guides_low_and_revises_up_reads_that_way():
+    c = F.conservatism(_hist(("FY2025", 2000, 2400), ("FY2026", 2200, 2500),
+                             ("FY2027", 2400, 3000)))
+    assert c["years"] == 3 and c["raised"] == 3 and c["cut"] == 0
+    assert c["median_move"] == _near(0.2, 0.01)
+    assert c["thin"] is False
+
+
+def test_a_year_where_guidance_never_moved_counts_as_evidence_not_absence():
+    # Leaving the opening number alone all year is a behaviour, so it belongs in
+    # the denominator; dropping it would flatter a company that revises rarely.
+    c = F.conservatism(_hist(("FY2026", 2500, 2500), ("FY2027", 2400, 3000)))
+    assert c["years"] == 2 and c["unchanged"] == 1 and c["raised"] == 1
+
+
+def test_a_cut_is_not_reported_as_a_raise():
+    c = F.conservatism(_hist(("FY2027", 3200, 3000)))
+    assert c["cut"] == 1 and c["raised"] == 0 and c["median_move"] < 0
+
+
+def test_too_few_years_is_flagged_rather_than_dressed_up():
+    assert F.conservatism(_hist(("FY2027", 2400, 3000)))["thin"] is True
+    assert F.conservatism(_hist(("FY2025", 1, 2), ("FY2026", 1, 2),
+                                ("FY2027", 1, 2)))["thin"] is False
+
+
+def test_conservatism_ignores_other_metrics_and_unusable_rows():
+    mixed = {("FY2027", "net_profit"): {"first_value": 100, "latest_value": 200},
+             ("FY2027", "operating_profit"): {"first_value": 0, "latest_value": 200}}
+    assert F.conservatism(mixed) == {}          # the only OP row divides by zero
+    assert F.conservatism({}) == {}
+
+
+def test_progress_is_ranked_against_the_same_company_not_a_distribution():
+    r = F.progress_rank(0.30, [0.35, 0.28])
+    assert r["n_prior"] == 2 and r["ahead_of"] == 1
+    assert r["priors"] == [0.35, 0.28]
+    # Behind its best year, ahead of its worst: inside its own range.
+    assert r["gap_to_best"] < 0 < r["gap_to_worst"]
+
+
+def test_progress_rank_needs_something_to_compare_against():
+    assert F.progress_rank(0.30, []) == {}
+    assert F.progress_rank(None, [0.35]) == {}
+    assert F.progress_rank(0.30, [None]) == {}
+
+
+def test_share_counts_are_not_labelled_as_yen():
+    import collect_consensus as C
+    rows = C.build_rows("7203", "T",
+                        {("shares", "FY2027", "actual"): 1.3e10,
+                         ("treasury", "FY2027", "actual"): 4.0e8,
+                         ("net_profit", "FY2027", "company"): 3e12}, {},
+                        "2026-08-06", "")
+    units = {r["metric"]: r["unit"] for r in rows}
+    assert units["shares"] == "count" and units["treasury"] == "count"
+    assert units["net_profit"] == "jpy_abs"
+
+
+# --- Liquidity: can you actually get out of this position? -------------------
+
+import compute_liquidity as L
+
+
+def _obs(n, close, vol, start_day=1, step=3):
+    """n snapshots `step` days apart -- the archive is one file per workflow run,
+    not one per trading session, and the gap is the point of the fixture."""
+    from datetime import date, timedelta
+    d0 = date(2026, 6, 1)
+    return [((d0 + timedelta(days=(start_day + i * step))).isoformat(),
+             close, vol, close * vol if vol else None, 100.0)
+            for i in range(n)]
+
+
+def test_days_to_exit_is_the_position_over_the_tradeable_share_of_a_day():
+    # Y48m a day, 20% participation -> Y9.6m a day out -> Y100m takes 10.4 days.
+    r = L.liquidity_row("9999", _obs(30, 800, 60_000))
+    assert r["adv_jpy_20"] == 48_000_000
+    assert r["days_to_exit_100m"] == _near(10.4, 0.05)
+    assert r["tier"] == "very thin"
+
+
+def test_a_deep_name_is_not_reported_as_instant():
+    # Y12bn a day: 0.04 days, not "0.0 days", which would read as no constraint
+    # at all rather than as an afternoon.
+    r = L.liquidity_row("7203", _obs(30, 3000, 4_000_000))
+    assert r["tier"] == "deep"
+    assert 0 < r["days_to_exit_100m"] < 1
+
+
+def test_a_window_of_twenty_observations_reports_the_days_it_actually_spans():
+    r = L.liquidity_row("9999", _obs(30, 800, 60_000, step=3))
+    assert r["obs_20"] == 20
+    # Twenty snapshots three days apart span 57 calendar days, not 20 sessions.
+    assert r["span_days_20"] == 57
+
+
+def test_archives_written_before_volume_was_collected_are_not_an_error():
+    old = [(d, c, None, None, m) for d, c, _v, _t, m in _obs(30, 4665, 0)]
+    r = L.liquidity_row("1301", old)
+    assert r["adv_jpy_20"] == "" and r["days_to_exit_100m"] == ""
+    assert r["tier"] == "unknown"
+    assert r["close"] == 4665.0        # the closes still carry
+
+
+def test_no_observations_yields_no_row_rather_than_a_zero():
+    assert L.liquidity_row("9999", []) == {}
+
+
+def test_participation_is_an_assumption_the_caller_can_change():
+    r10 = L.liquidity_row("9999", _obs(30, 800, 60_000), participation=0.10)
+    r20 = L.liquidity_row("9999", _obs(30, 800, 60_000), participation=0.20)
+    assert r10["days_to_exit_100m"] == _near(r20["days_to_exit_100m"] * 2, 0.1)
+    assert r10["participation"] == 0.10
+
+
+def test_the_hurdle_note_hardens_as_the_exit_lengthens():
+    def note(adv):
+        return F.liquidity_read({"adv_jpy_20": adv, "participation": 0.2,
+                                 "days_to_exit_100m": 100e6 / (adv * 0.2),
+                                 "tier": "x", "obs_20": 20, "span_days_20": 57})["hurdle"]
+    assert "not a constraint" in note(1e10)      # under a day
+    assert "within days" in note(5e8)            # 1 day
+    assert "raise the hurdle rate" in note(5e7)  # 10 days
+    assert "illiquid position" in note(1e7)      # 50 days
+
+
+def test_a_thin_sample_is_flagged_rather_than_averaged_over():
+    read = F.liquidity_read({"adv_jpy_20": 48e6, "participation": 0.2,
+                             "days_to_exit_100m": 10.4, "tier": "very thin",
+                             "obs_20": 4, "span_days_20": 12})
+    assert read["thin_sample"] is True
+
+
+def test_a_position_size_rescales_the_exit_estimate():
+    r = {"adv_jpy_20": 48_000_000, "participation": 0.2, "days_to_exit_100m": 10.4}
+    assert F.liquidity_read(r, position_jpy=20_000_000)["days"] == _near(2.083, 0.01)
+
+
+# --- The yen: archived daily, and regressed against the share price ----------
+
+import fx_history as FXH
+
+
+def test_a_same_day_rerun_corrects_the_row_rather_than_duplicating_it():
+    h = FXH.merge_fx_row({}, "2026-09-05", {"USDJPY": 147.2, "EURJPY": 172.1})
+    h = FXH.merge_fx_row(h, "2026-09-05", {"USDJPY": 147.5})
+    assert list(h) == ["2026-09-05"]
+    assert h["2026-09-05"]["USDJPY"] == 147.5
+    # A pair that failed to fetch leaves the stored value alone rather than
+    # blanking a rate that was collected successfully earlier in the day.
+    assert h["2026-09-05"]["EURJPY"] == 172.1
+
+
+def _walk(n, drift, noise, seed, start=100.0, driver=None):
+    """A price series. With `driver`, each step is `drift` times the driver's
+    same-step return plus its own noise -- so the true beta is known."""
+    import random
+    rng = random.Random(seed)
+    lvl, out, steps = start, {}, []
+    for i in range(n):
+        day = f"2026-{6 + i // 28:02d}-{1 + i % 28:02d}"
+        r = (driver[i] * drift) if driver else rng.gauss(0, noise)
+        if driver:
+            r += rng.gauss(0, noise)
+        steps.append(r)
+        lvl *= (1 + r)
+        out[day] = lvl
+    return out, steps
+
+
+def test_the_regression_recovers_a_known_beta():
+    import random
+    rng = random.Random(3)
+    drivers = [rng.gauss(0, 0.005) for _ in range(90)]
+    fx, _ = _walk(90, 1.0, 0.0, 1, 147.0, drivers)
+    stock, _ = _walk(90, 1.8, 0.002, 2, 3000.0, drivers)
+    res = FXH.fx_beta(stock, fx)
+    assert res["insufficient"] is False
+    assert res["beta"] == _near(1.8, 0.25)
+    assert res["r2"] > 0.5 and res["weak"] is False
+
+
+def test_a_yen_that_barely_moved_gives_no_beta_rather_than_a_confident_one():
+    # sxx is tiny but not zero here, so a bare "if not sxx" guard would divide
+    # noise by noise and return a number that looks like a measurement.
+    days = [f"2026-06-{d:02d}" for d in range(1, 29)] + [f"2026-07-{d:02d}" for d in range(1, 29)]
+    flat = {d: 147.0 for d in days}
+    rising = {d: 3000 * (1.01 ** i) for i, d in enumerate(days)}
+    res = FXH.fx_beta(rising, flat)
+    assert res["insufficient"] is True
+    assert "barely moved" in res.get("reason", "")
+
+
+def test_too_little_overlap_says_so_instead_of_regressing_on_three_points():
+    fx = {"2026-06-01": 147.0, "2026-06-02": 148.0, "2026-06-03": 146.0}
+    st = {"2026-06-01": 3000.0, "2026-06-02": 3050.0, "2026-06-03": 2990.0}
+    res = FXH.fx_beta(st, fx)
+    assert res["insufficient"] is True and res["obs"] < FXH.MIN_OBS
+
+
+def test_returns_are_taken_between_available_observations_not_calendar_days():
+    # The archive is one snapshot per workflow run, so consecutive observations
+    # can be days apart; treating a gap as a missing day would understate moves.
+    gappy = {"2026-06-01": 100.0, "2026-06-08": 110.0, "2026-06-20": 99.0}
+    r = FXH._returns(gappy)
+    assert r["2026-06-08"] == _near(0.10)
+    assert r["2026-06-20"] == _near(-0.10)
+
+
+def test_the_wording_never_states_a_beta_without_its_direction():
+    up = F.fx_beta_read({"fx_beta": 1.8, "r2": 0.9, "obs": 89, "weak": "no"})
+    dn = F.fx_beta_read({"fx_beta": -0.9, "r2": 0.4, "obs": 89, "weak": "no"})
+    assert "weaker yen" in up["verdict"] and "rises" in up["verdict"]
+    assert "weaker yen" in dn["verdict"] and "falls" in dn["verdict"]
+
+
+def test_a_weak_fit_is_reported_as_a_finding_not_hidden():
+    read = F.fx_beta_read({"fx_beta": 0.004, "r2": 0.0, "obs": 89, "weak": "yes"})
+    assert read["weak"] is True
+    assert "explains almost none" in read["verdict"]
+    assert F.fx_beta_read({}) == {}
+
+
+# --- Reading FX assumptions off a company's own deck -------------------------
+
+import fx_extract as FXE
+import fx_store as FXS
+
+
+def test_a_link_that_returned_a_web_page_is_caught_before_the_api_call():
+    # IR links go stale and return an HTML error page from a .pdf URL. Without
+    # the header check this fails deep inside the API call with a message that
+    # does not point at the cause.
+    ok, problems = FXE.validate_pdf("deck.pdf", b"<!DOCTYPE html><html>")
+    assert ok is False and "does not look like a PDF" in problems[0]
+    assert FXE.validate_pdf("deck.pdf", b"%PDF-1.7 ...")[0] is True
+    assert FXE.validate_pdf("deck.pdf", b"")[0] is False
+
+
+def test_an_oversized_document_is_refused_with_its_size():
+    ok, problems = FXE.validate_pdf("big.pdf", b"%PDF-" + b"x" * (33 * 1024 * 1024))
+    assert ok is False and "MB" in problems[0]
+
+
+def test_currency_pairs_are_normalised_however_the_deck_writes_them():
+    assert FXE._pair("USDJPY") == "USD/JPY"
+    assert FXE._pair("usd/jpy") == "USD/JPY"
+    assert FXE._pair("ドル円") == "USD/JPY"
+    assert FXE._pair("ユーロ円") == "EUR/JPY"
+    assert FXE._pair("GBPJPY") == "GBP/JPY"
+
+
+def test_an_unlabelled_pair_is_not_defaulted_to_the_commonest_one():
+    # Filing a euro sensitivity under the dollar would look entirely plausible
+    # in the review grid and be wrong.
+    assert FXE._pair("") == "UNKNOWN"
+    assert FXE._pair(None) == "UNKNOWN"
+
+
+def test_an_invented_scope_is_downgraded_to_unstated():
+    out = FXE.normalise({"sensitivities": [
+        {"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9, "scope": "guessed",
+         "page_number": 4, "source_quote": "感応度"}]})
+    assert out["sensitivities"][0]["scope"] == "unstated"
+
+
+def test_a_deck_that_discloses_nothing_normalises_to_empty_not_to_junk():
+    out = FXE.normalise({"fiscal_year": "FY2027", "assumptions": [],
+                         "sensitivities": [], "unreadable": [], "notes": ""})
+    assert out["assumptions"] == [] and out["sensitivities"] == []
+    assert FXE.normalise({})["assumptions"] == []
+    # A row with no usable number is dropped rather than shown blank.
+    assert FXE.normalise({"assumptions": [{"pair": "USD/JPY", "rate": None}]})["assumptions"] == []
+
+
+def test_the_unreadable_escape_hatch_survives_normalisation():
+    out = FXE.normalise({"unreadable": [
+        {"page_number": 9, "what": "chart label", "why": "too small to read"}]})
+    assert out["unreadable"][0]["page_number"] == 9
+
+
+def test_the_fx_gap_needs_both_halves_and_will_not_invent_the_missing_one():
+    assumption_only = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}]}
+    assert FXS.fx_gap(assumption_only, {"USD/JPY": 152.3}) == {}
+    sens_only = {"sensitivities": [{"pair": "USD/JPY",
+                                    "op_impact_jpy_per_1yen": 4.5e9}]}
+    assert FXS.fx_gap(sens_only, {"USD/JPY": 152.3}) == {}
+    assert FXS.fx_gap({}, {}) == {}
+
+
+def test_the_fx_gap_multiplies_the_move_by_the_disclosed_sensitivity():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "translation"}]}
+    g = FXS.fx_gap(entry, {"USD/JPY": 152.3})
+    assert g["move_yen"] == _near(7.3, 0.001)
+    assert g["impact_jpy"] == _near(32.85e9, 1e6)
+
+
+def test_the_caveats_travel_with_the_number_rather_than_being_optional():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "unstated"}]}
+    g = FXS.fx_gap(entry, {"USD/JPY": 152.3})
+    assert len(g["caveats"]) == 3
+    assert any("hedg" in c for c in g["caveats"])
+    assert any("does not say what this sensitivity covers" in c for c in g["caveats"])
+    assert g["verdict"] == "flag to investigate, not a revised forecast"
+
+
+def test_a_stated_scope_is_reported_instead_of_the_unstated_caveat():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "translation"}]}
+    caveats = FXS.fx_gap(entry, {"USD/JPY": 152.3})["caveats"]
+    assert any("translation exposure only" in c for c in caveats)
+
+
+def test_a_stronger_yen_produces_a_negative_flag_not_an_absolute_one():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 155.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "translation"}]}
+    g = FXS.fx_gap(entry, {"USD/JPY": 145.0})
+    assert g["move_yen"] < 0 and g["impact_jpy"] < 0
+
+
+def test_saving_without_a_token_says_so_rather_than_failing_silently():
+    ok, msg = FXS.save_entry("owner/repo", "", "7203", "FY2027", {})
+    assert ok is False and "session only" in msg
+    ok, msg = FXS.save_entry("owner/repo", "tok", "", "FY2027", {})
+    assert ok is False and "fiscal year" in msg
+
+
+# --- What management did not answer ------------------------------------------
+
+import qa_extract as QA
+
+
+def _ex(topic, cls, quote="…", q="A question?"):
+    return {"question": q, "topic": topic, "answered_by": "CFO",
+            "classification": cls, "evidence_quote": quote, "why": "",
+            "page_number": 3}
+
+
+def test_a_classification_with_no_quote_behind_it_is_dropped():
+    # This is the rule the module rests on: these are claims about named
+    # executives, made from their own words, so a claim with no words is not
+    # shown at all.
+    out = QA.normalise({"exchanges": [
+        _ex("margin", "deflected", quote="環境を注視してまいります"),
+        _ex("buyback", "deflected", quote=""),
+        {"question": "", "topic": "x", "classification": "deflected",
+         "evidence_quote": "something", "why": "", "page_number": 1},
+        _ex("china", "not-a-real-class", quote="something"),
+    ]})
+    assert len(out["exchanges"]) == 1
+    assert out["exchanges"][0]["topic"] == "margin"
+
+
+def test_declining_openly_is_not_counted_as_evasion():
+    # "We do not disclose that" is an honest refusal. Lumping it in with
+    # deflection would punish the more candid answer.
+    rows = [_ex("a", "declined"), _ex("b", "declined"), _ex("c", "answered")]
+    s = QA.summarise(rows)
+    assert s["evaded"] == 0 and s["counts"]["declined"] == 2
+    assert s["topics_evaded"] == []
+
+
+def test_deflected_and_unanswered_are_what_count():
+    rows = [_ex("margin", "deflected"), _ex("china", "unanswered"),
+            _ex("x", "answered"), _ex("y", "partial")]
+    s = QA.summarise(rows)
+    assert s["evaded"] == 2 and s["evasion_rate"] == _near(0.5)
+    assert s["topics_evaded"] == ["china", "margin"]
+
+
+def test_a_handful_of_questions_is_flagged_rather_than_turned_into_a_rate():
+    assert QA.summarise([_ex("a", "deflected")])["thin"] is True
+    assert QA.summarise([_ex(str(i), "answered") for i in range(9)])["thin"] is False
+    assert QA.summarise([]) == {}
+
+
+def test_a_topic_dodged_once_is_noise_and_twice_is_a_pattern():
+    events = [
+        {"summary": {"total": 12, "evaded": 4,
+                     "topics_evaded": ["margin guidance", "China"]}},
+        {"summary": {"total": 10, "evaded": 3,
+                     "topics_evaded": ["margin guidance", "buyback"]}},
+        {"summary": {"total": 8, "evaded": 1, "topics_evaded": ["margin guidance"]}},
+    ]
+    a = QA.across_events(events)
+    assert a["recurring"] == ["margin guidance"]      # China and buyback appear once
+    assert a["questions"] == 30 and a["evaded"] == 8
+    assert a["thin"] is False
+
+
+def test_findings_read_only_from_company_summaries_are_marked_as_such():
+    events = [{"document_kind": "company_summary",
+               "summary": {"total": 20, "evaded": 1, "topics_evaded": []}}]
+    assert QA.across_events(events)["verbatim_events"] == 0
+    events.append({"document_kind": "verbatim_transcript",
+                   "summary": {"total": 12, "evaded": 5, "topics_evaded": ["margin"]}})
+    assert QA.across_events(events)["verbatim_events"] == 1
+
+
+def test_an_unknown_document_kind_falls_back_to_unclear_not_to_verbatim():
+    assert QA.normalise({"document_kind": "something_else"})["document_kind"] == "unclear"
+    assert QA.normalise({})["document_kind"] == "unclear"
+    assert QA.across_events([]) == {}
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

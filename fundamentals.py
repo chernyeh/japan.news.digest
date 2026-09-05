@@ -892,6 +892,181 @@ def revision_move(entry: dict, threshold: float = 0.005):
     return move, ("raised" if move > 0 else "cut")
 
 
+LIQUIDITY_PATH = "data/liquidity.csv"
+
+
+def load_liquidity_from_github(repo: str, token: str = None) -> dict:
+    """{code: row} — average daily turnover and days-to-exit, one row per company.
+
+    Deliberately a summary rather than a time series: compute_liquidity.py
+    reduces two years of daily archives to this so the app never holds the
+    history. See _shared() in app.py for why that matters."""
+    out = {}
+    numeric = {"close", "mcap_b", "adv_jpy_20", "adv_jpy_60", "adv_shares_20",
+               "obs_20", "obs_60", "span_days_20", "participation",
+               "days_to_exit_100m"}
+    for row in _raw_csv(repo, LIQUIDITY_PATH, token):
+        code = str(row.get("code", "")).strip()
+        if not code:
+            continue
+        out[code] = {k: (to_num(v) if k in numeric else v) for k, v in row.items()}
+    return out
+
+
+FX_BETA_PATH = "data/fx_beta.csv"
+
+
+def load_fx_beta_from_github(repo: str, token: str = None) -> dict:
+    """{code: row} — measured share-price sensitivity to USD/JPY, one row each."""
+    out = {}
+    numeric = {"fx_beta", "r2", "obs"}
+    for row in _raw_csv(repo, FX_BETA_PATH, token):
+        code = str(row.get("code", "")).strip()
+        if not code:
+            continue
+        out[code] = {k: (to_num(v) if k in numeric else v) for k, v in row.items()}
+    return out
+
+
+def fx_beta_read(row: dict) -> dict:
+    """One FX-beta row as a sentence, or {} where there is nothing to say.
+
+    The pairs are quoted as yen per unit of foreign currency, so a rising rate
+    is a *weaker* yen. A positive beta therefore means the share price rises as
+    the yen weakens -- the exporter direction. Getting that backwards inverts
+    every conclusion, so the wording never says "beta" without saying which way.
+    """
+    if not row or row.get("fx_beta") is None:
+        return {}
+    beta, r2 = row["fx_beta"], row.get("r2") or 0.0
+    weak = str(row.get("weak", "")).lower() == "yes" or r2 < 0.05
+    if weak:
+        verdict = ("the yen explains almost none of this share price's variance — "
+                   "whatever the company discloses about FX, the market has not "
+                   "been trading it as an FX name")
+    elif abs(beta) < 0.3:
+        verdict = "little share-price sensitivity to the yen"
+    elif beta > 0:
+        verdict = (f"rises {abs(beta):.1f}% for a 1% weaker yen — the exporter "
+                   f"direction, and already in the price")
+    else:
+        verdict = (f"falls {abs(beta):.1f}% for a 1% weaker yen — an importer or "
+                   f"domestic profile, whatever the FX disclosure says")
+    # int, not the float to_num produced when the CSV was loaded: "89.0
+    # observations" is a count rendered as a measurement.
+    return {"beta": beta, "r2": r2, "obs": int(row.get("obs") or 0),
+            "weak": weak, "verdict": verdict,
+            "first": row.get("first_obs", ""), "last": row.get("last_obs", "")}
+
+
+def liquidity_read(row: dict, position_jpy: float = None) -> dict:
+    """Turn one liquidity row into the sentence a position-sizing decision needs.
+
+    `position_jpy` rescales the days-to-exit figure off its ¥100m yardstick. The
+    hurdle note is the point: a name you cannot leave in a week is a name that
+    has to clear a higher bar and be sized smaller, and that judgement should not
+    depend on remembering to look up the ADV."""
+    if not row or not row.get("adv_jpy_20"):
+        return {}
+    adv = row["adv_jpy_20"]
+    part = row.get("participation") or 0.20
+    days = (position_jpy / (adv * part)) if position_jpy else row.get("days_to_exit_100m")
+    tier = row.get("tier", "")
+    # Thresholds stated rather than hidden: a week is the line at which an exit
+    # stops being a decision and starts being a project.
+    if days is None:
+        hurdle = ""
+    elif days >= 20:
+        hurdle = ("size this as an illiquid position — a full exit is a month of "
+                  "trading, and that is in normal conditions, not a drawdown")
+    elif days >= 5:
+        hurdle = ("a week or more to exit: raise the hurdle rate and cap the "
+                  "position accordingly")
+    elif days >= 1:
+        hurdle = "exitable within days at this size"
+    else:
+        hurdle = "liquidity is not a constraint at this size"
+    return {
+        "adv_jpy": adv,
+        "days": days,
+        "tier": tier,
+        "participation": part,
+        "obs": int(row.get("obs_20") or 0),
+        "span_days": int(row.get("span_days_20") or 0),
+        "hurdle": hurdle,
+        # The archive is one snapshot per workflow run, not one per session, so
+        # a window of 20 observations can span three months. Say so.
+        "thin_sample": (row.get("obs_20") or 0) < 10,
+    }
+
+
+def conservatism(entries: dict, metric: str = "operating_profit",
+                 threshold: float = 0.005) -> dict:
+    """How this management has behaved with its own guidance, across the years
+    the history covers.
+
+    Japanese issuers have a reputation for guiding low and revising up. That is
+    a claim about the population, not about the company in front of you, and the
+    only way to tell them apart is the company's own filing record. Returns
+    counts and the median move rather than a single score, because "raised twice
+    out of three years, median +8%" is a statement a reader can check and
+    "conservatism: 7.4" is not.
+
+    `entries` is one company's slice of load_guidance_history_from_github, i.e.
+    {(fy, metric): row}. Years where guidance never moved count as unchanged --
+    they are evidence of behaviour, not missing data.
+    """
+    moves = []
+    for (fy, met), row in sorted((entries or {}).items()):
+        if met != metric:
+            continue
+        first, latest = row.get("first_value"), row.get("latest_value")
+        if first in (None, 0) or latest is None:
+            continue
+        moves.append((fy, (latest - first) / abs(first)))
+    if not moves:
+        return {}
+    raised = [m for _, m in moves if m >= threshold]
+    cut = [m for _, m in moves if m <= -threshold]
+    unchanged = len(moves) - len(raised) - len(cut)
+    ordered = sorted(m for _, m in moves)
+    mid = len(ordered) // 2
+    median = ordered[mid] if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+    return {
+        "years": len(moves),
+        "raised": len(raised),
+        "cut": len(cut),
+        "unchanged": unchanged,
+        "median_move": median,
+        "fys": [fy for fy, _ in moves],
+        # The honest label. Two or three fiscal years is a read, not a track
+        # record, and the caller is expected to say which it has.
+        "thin": len(moves) < 3,
+    }
+
+
+def progress_rank(this_year, prior_years: list) -> dict:
+    """Where this year's progress rate sits against the same company's own
+    progress at the same quarter in earlier years.
+
+    Deliberately not called a percentile. HISTORY_YEARS is 3, so there are at
+    most two prior observations, and presenting two points as a distribution
+    would imply precision that is not there. Returns the comparison and the
+    count, and lets the panel say "vs 2 prior years" in as many words.
+    """
+    priors = [p for p in (prior_years or []) if p is not None]
+    if this_year is None or not priors:
+        return {}
+    ahead = sum(1 for p in priors if this_year > p)
+    return {
+        "n_prior": len(priors),
+        "ahead_of": ahead,
+        "priors": sorted(priors, reverse=True),
+        "gap_to_best": this_year - max(priors),
+        "gap_to_worst": this_year - min(priors),
+    }
+
+
 def load_universe_from_github(repo: str, token: str = None) -> dict:
     """{code: {"name", "market_div", "scale", "sector", "sector33"}} for the
     collected universe.
