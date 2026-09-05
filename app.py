@@ -103,6 +103,7 @@ def calculate_mkt_cap(code, price):
 # Uses st.cache_resource so it's shared across ALL sessions on the same server instance.
 # This means your data persists when you close and reopen the tab.
 CACHE_TTL_HOURS = 3  # Show stale warning after this many hours
+SHARED_TTL_HOURS = 6  # How long _shared() holds a structure before refetching
 
 @st.cache_resource
 def _get_app_cache():
@@ -151,15 +152,28 @@ def _shared(key: str, build):
     An empty result is deliberately not cached: these files are never legitimately
     empty, so an empty build means the fetch failed, and caching that would leave
     every later session looking at a blank tab until the app restarted.
+
+    Entries expire after SHARED_TTL_HOURS. Without that, a process that stays up
+    for days would keep serving the snapshot it happened to load first, and the
+    daily jobs (prices, TDnet, the post-results consensus refresh) would not
+    reach a reader until the app restarted. Six hours is short enough that a
+    daily commit lands the same day and long enough that everyone reading the
+    app at once still shares one copy.
     """
     cache = _get_app_cache()
+    stamps = cache.setdefault("_shared_at", {})
+    fresh = (datetime.now() - stamps[key]).total_seconds() < SHARED_TTL_HOURS * 3600 \
+        if stamps.get(key) else False
     hit = cache.get(key)
-    if hit:
+    if hit and fresh:
         return hit
     built = build()
     if built:
         cache[key] = built
-    return built
+        stamps[key] = datetime.now()
+        return built
+    # A failed refresh keeps the last good copy rather than blanking the tab.
+    return hit or built
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -3365,6 +3379,18 @@ with tab_research:
         opts = [f"{code} — {name}" for code, name in NAMES_LOOKUP.items() if code and name]
         return sorted(opts, key=lambda s: s.split(" — ", 1)[1].lower())
 
+    # Arriving from an Earnings row's magnifier. Setting a widget's session_state
+    # key before the widget is constructed is how Streamlit preselects one; the
+    # param is consumed rather than left in the URL, so a later manual choice is
+    # not overwritten on every rerun.
+    _req_code = str(st.query_params.get("research", "")).strip()
+    if _req_code:
+        _hit = next((_o for _o in _research_company_options()
+                     if _o.startswith(f"{_req_code} — ")), None)
+        if _hit:
+            st.session_state.research_company_sel = _hit
+        del st.query_params["research"]
+
     _sel = st.selectbox(
         "Search company (name or 4-digit code):", options=_research_company_options(),
         index=None, placeholder="Start typing a company name or code…", key="research_company_sel",
@@ -3393,13 +3419,53 @@ with tab_research:
         _rmcap   = st.session_state.get("mktcap_map", {}).get(_rcode)
 
         _hdr_col1, _hdr_col2 = st.columns([5, 1.4])
+        # The two facts you want before reading anything else about a name:
+        # when it next reports, and how it has done against the index. Both are
+        # already collected for the Earnings tab, which renders *after* this one
+        # (tab_research at ~3207, tab_earnings at ~5600), so on a first paint its
+        # state is still empty. Load them here behind their own sentinel, the way
+        # the price map already is, and through _shared() so two tabs do not each
+        # pay for it.
+        if not st.session_state.get("research_ec_attempted"):
+            st.session_state.research_ec_attempted = True
+            try:
+                st.session_state.perf_3m_map = _shared(
+                    "perf_3m_map", lambda: load_3m_perf_from_github(_ec_repo, _gh_token)
+                ) or st.session_state.get("perf_3m_map") or {}
+                st.session_state.earnings_cal = _shared(
+                    "earnings_cal", lambda: load_earnings_cal_from_github(_ec_repo, _gh_token)
+                ) or st.session_state.get("earnings_cal") or []
+            except Exception as _ee:
+                print(f"Research header cross-link load error: {_ee}")
+
+        def _next_results(code: str):
+            """The company's next scheduled announcement, or None. The calendar
+            holds past dates too, so this filters rather than taking the first."""
+            _today = datetime.now().strftime("%Y-%m-%d")
+            _future = sorted(
+                (_e.get("announcement_date") or "")
+                for _e in (st.session_state.get("earnings_cal") or [])
+                if _e.get("code") == code and (_e.get("announcement_date") or "") >= _today)
+            return _future[0] if _future else None
+
         with _hdr_col1:
             _mcap_str   = f" · ¥{_rmcap:,.0f}B" if _rmcap else ""
             _sector_str = _safe_text(_rsector) if _rsector else ""
+            _nxt = _next_results(_rcode)
+            _p3m = (st.session_state.get("perf_3m_map") or {}).get(_rcode)
+            _meta = []
+            if _nxt:
+                _meta.append(f'📅 next results {_safe_text(_nxt)}')
+            if _p3m is not None:
+                _meta.append(
+                    f'<span style="color:{"#1B7F4F" if _p3m >= 0 else "#B3261E"};">'
+                    f'{_p3m:+.1f}% vs TOPIX 3M</span>')
             st.markdown(
                 f'<div style="font-size:1.1rem;font-weight:700;color:#2B2420;">{_safe_text(_rname)} '
                 f'<span style="font-family:monospace;font-weight:400;font-size:0.85rem;color:#9B8B7A;">({_rcode})</span></div>'
-                f'<div style="font-size:0.75rem;color:#9B8B7A;">{_sector_str}{_mcap_str}</div>',
+                f'<div style="font-size:0.75rem;color:#9B8B7A;">{_sector_str}{_mcap_str}</div>'
+                + (f'<div style="font-size:0.72rem;color:#9B8B7A;margin-top:2px;">'
+                   + " · ".join(_meta) + '</div>' if _meta else ''),
                 unsafe_allow_html=True
             )
         with _hdr_col2:
@@ -6260,12 +6326,29 @@ with tab_earnings:
                     _mcap_cell = (
                         f'<div style="text-align:right;font-size:0.68rem;color:#1A1A1A;font-family:monospace;">{_mcap_str}</div>'
                     )
+                    # A bare ?research=… would drop every other query parameter,
+                    # and the text-size control keeps its setting in ?z. Carry it
+                    # across so following the link does not silently reset the
+                    # reader's font size.
+                    _keep_zoom = (f"&amp;z={st.session_state.ui_zoom}"
+                                  if st.session_state.get("ui_zoom", ZOOM_DEFAULT) != ZOOM_DEFAULT
+                                  else "")
                     rows_html += (
                         f'<div style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;'
                         f'gap:0.25rem;padding:0.28rem 0.35rem;background:{_bg};{_border}'
                         f'border-bottom:1px solid #EDE8E0;align-items:center;">'
                         f'<div style="color:#F9A825;font-size:0.72rem;">{_star}</div>'
-                        f'<div style="font-size:0.78rem;font-weight:{_weight};text-align:left;"><a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a></div>'
+                        # Two destinations off one cell: the name still goes to
+                        # Yahoo, and the magnifier opens the same company in the
+                        # Research tab. A link rather than a button because these
+                        # rows are one HTML block -- and because Streamlit renders
+                        # Research *before* Earnings, so a button would land a
+                        # frame late while a query param survives the reload.
+                        f'<div style="font-size:0.78rem;font-weight:{_weight};text-align:left;">'
+                        f'<a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a>'
+                        f'<a href="?research={_code}{_keep_zoom}" title="Open {_name} in the Research tab" '
+                        f'style="margin-left:5px;text-decoration:none;font-size:0.72rem;opacity:0.55;">🔎</a>'
+                        f'</div>'
                         f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;text-align:left;">{_code}</div>'
                         f'<div style="font-size:0.68rem;text-align:left;">{_period}</div>'
                         f'<div style="font-size:0.62rem;color:#6B6B6B;text-align:left;">{_sector}</div>'
