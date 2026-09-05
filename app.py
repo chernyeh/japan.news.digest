@@ -25,6 +25,7 @@ import fundamentals as fund
 import consensus_vision
 import fx_extract
 import fx_store
+import qa_extract
 
 # Batch ZIP downloads are fetched server-side and held in memory, so cap how
 # many documents one ZIP can contain; the UI tells the user what was skipped.
@@ -4045,6 +4046,26 @@ with tab_research:
                     + '<em>' + _safe_text("; ".join(_gap["caveats"])) + '. '
                     + _safe_text(_gap["verdict"].capitalize()) + '.</em></span>')
 
+            # 7. What management keeps not answering. One briefing's evasion
+            #    rate is noise; the same topic going unanswered across three
+            #    consecutive briefings is where they do not want to be pinned
+            #    down, and that is usually where the risk is.
+            _qa = qa_extract.across_events(ctx.get("qa_events") or [])
+            if _qa:
+                _reads.append(
+                    f'<span class="fc-read"><b>What is not answered</b> '
+                    f'{_qa["evaded"]} of {_qa["questions"]} questions deflected or left '
+                    f'unanswered across {_qa["events"]} briefing'
+                    f'{"s" if _qa["events"] != 1 else ""} '
+                    f'({_qa["evasion_rate"] * 100:.0f}%)'
+                    + (' · <b>recurring: ' + _safe_text(", ".join(_qa["recurring"])) + '</b>'
+                       if _qa["recurring"] else '')
+                    + (f' · <em>{_qa["questions"]} questions is too few to read a rate '
+                       f'from</em>' if _qa["thin"] else '')
+                    + (' · <em>read from the company&rsquo;s own Q&amp;A summaries, which are '
+                       'edited before publication</em>' if not _qa["verbatim_events"] else '')
+                    + '</span>')
+
             if _reads:
                 st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
                             unsafe_allow_html=True)
@@ -4407,6 +4428,143 @@ with tab_research:
             _flash("success" if _ok and not _bad else "warning",
                    _msg if _ok else f"Applied for this session, but not saved: {_msg}")
 
+        def _fc_qa(_rcode, _rname):
+            """Read a Q&A document, classify each exchange, review, save findings.
+
+            What management declines to answer is a fact about the business, and
+            it is nowhere in the numbers. See qa_extract.py."""
+            st.markdown(
+                '<div class="fc-note">The most informative moment in a briefing is often the '
+                'question that gets asked twice and answered neither time. Attach the '
+                '<strong>質疑応答</strong> or transcript and each exchange is classified — answered, '
+                'partial, deflected, declined, unanswered — with the quoted span that justifies it. '
+                '<strong>Only the findings are stored, never the document.</strong></div>',
+                unsafe_allow_html=True)
+
+            _api_key = get_secret("ANTHROPIC_API_KEY")
+            _saved = [(i, _l) for i, _l in
+                      enumerate((st.session_state.get("research_links_map") or {}).get(_rcode, []))
+                      if _l.get("doc_type") in ("Transcript", "Q&A") and _l.get("url")]
+            _choices = ["Upload a file", "Paste a URL"] + (
+                ["Use a saved transcript / Q&A link"] if _saved else [])
+            _how = st.radio("Source", _choices, horizontal=True,
+                            key=f"qa_how_{_rcode}", label_visibility="collapsed")
+            _src_name, _src_url, _pdf = "", "", b""
+
+            if _how == "Upload a file":
+                _up = st.file_uploader("Transcript or Q&A (PDF)", type=["pdf"],
+                                       key=f"qa_up_{_rcode}", label_visibility="collapsed")
+                if _up:
+                    _src_name, _pdf = _up.name, _up.getvalue()
+            elif _how == "Paste a URL":
+                _src_url = st.text_input("PDF URL", key=f"qa_url_{_rcode}",
+                                         placeholder="https://…/qa.pdf")
+            else:
+                _pick = st.selectbox(
+                    "Saved document", options=[i for i, _ in _saved],
+                    format_func=lambda i: (dict(_saved)[i].get("title")
+                                           or dict(_saved)[i].get("url", ""))[:90],
+                    key=f"qa_pick_{_rcode}")
+                _src_url = dict(_saved).get(_pick, {}).get("url", "")
+
+            if _src_url and st.button("⬇️ Fetch that document", key=f"qa_fetch_{_rcode}"):
+                try:
+                    st.session_state[f"qa_bytes_{_rcode}"] = fetch_document_bytes(
+                        _src_url, max_bytes=fx_extract.MAX_PDF_BYTES)
+                    st.session_state[f"qa_name_{_rcode}"] = (
+                        _src_url.rsplit("/", 1)[-1] or "document.pdf")
+                except Exception as _fe:
+                    st.warning(f"Could not fetch that document: {_fe}")
+            if not _pdf:
+                _pdf = st.session_state.get(f"qa_bytes_{_rcode}") or b""
+                _src_name = st.session_state.get(f"qa_name_{_rcode}", "")
+
+            if _pdf:
+                _ok, _problems = fx_extract.validate_pdf(_src_name, _pdf)
+                if not _ok:
+                    st.warning(" · ".join(_problems))
+                else:
+                    _est = qa_extract.estimate_cost(_pdf, _api_key)
+                    st.markdown(
+                        f'<div class="fc-note">{_safe_text(_src_name)} — '
+                        f'about ${_est["usd"]:.2f} ({_est["input_tokens"]:,} input tokens, '
+                        + ('counted by the API' if _est["measured"] else 'estimated')
+                        + f'), using <code>{qa_extract.MODEL}</code>.</div>',
+                        unsafe_allow_html=True)
+
+            _qres_key = f"qa_res_{_rcode}"
+            if st.button("🗣️ Read this Q&A", key=f"qa_go_{_rcode}",
+                         disabled=not (_pdf and _api_key)):
+                with st.spinner("Reading the exchange…"):
+                    try:
+                        st.session_state[_qres_key] = qa_extract.extract_from_pdf(
+                            _pdf, _api_key, _rcode, _rname)
+                    except Exception as _xe:
+                        st.session_state.pop(_qres_key, None)
+                        st.error(f"Could not read that document: {_xe}")
+            if not _api_key:
+                st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
+                            'Secrets, so documents cannot be read.</div>',
+                            unsafe_allow_html=True)
+
+            _qres = st.session_state.get(_qres_key)
+            if _qres:
+                _sum = qa_extract.summarise(_qres["exchanges"])
+                # The document kind decides what an empty result means, so it
+                # is stated before the numbers rather than after them.
+                if _qres["document_kind"] == "company_summary":
+                    st.markdown(
+                        '<div class="fc-note">This is the <strong>company&rsquo;s own summary</strong> '
+                        'of the Q&amp;A (質疑応答要旨), not a verbatim transcript. The evasion has '
+                        'usually been edited out before publication, so a low count here says more '
+                        'about the disclosure than about the answers. Look for a verbatim '
+                        'transcript if one exists.</div>', unsafe_allow_html=True)
+                elif _qres["document_kind"] == "unclear":
+                    st.markdown('<div class="fc-note">Could not tell whether this is a verbatim '
+                                'transcript or the company&rsquo;s summary of one — weigh the '
+                                'result accordingly.</div>', unsafe_allow_html=True)
+                if _sum:
+                    st.markdown(
+                        f'**{_sum["total"]} question(s)** · '
+                        f'{_sum["counts"]["answered"]} answered · '
+                        f'{_sum["counts"]["partial"]} partial · '
+                        f'{_sum["counts"]["deflected"]} deflected · '
+                        f'{_sum["counts"]["declined"]} declined openly · '
+                        f'{_sum["counts"]["unanswered"]} unanswered'
+                        + (f'  \n*{_sum["total"]} questions is too few to read a rate from.*'
+                           if _sum["thin"] else
+                           f'  \n{_sum["evasion_rate"] * 100:.0f}% deflected or unanswered.'))
+                    st.markdown(
+                        '<div class="fc-note">An open “we do not disclose that” counts as '
+                        '<strong>declined</strong>, not as evasion — refusing openly is a different '
+                        'act from appearing to answer while not doing so.</div>',
+                        unsafe_allow_html=True)
+                if _qres["exchanges"]:
+                    st.dataframe(pd.DataFrame(_qres["exchanges"])[
+                        ["topic", "classification", "question", "evidence_quote",
+                         "answered_by", "why", "page_number"]],
+                        hide_index=True, use_container_width=True)
+                else:
+                    st.markdown('<div class="fc-note">No question-and-answer exchanges found in '
+                                'this document.</div>', unsafe_allow_html=True)
+                if _qres["unreadable"]:
+                    st.dataframe(pd.DataFrame(_qres["unreadable"]), hide_index=True,
+                                 use_container_width=True)
+                _label = st.text_input("Event label", value=_qres.get("event_label", ""),
+                                       key=f"qa_label_{_rcode}",
+                                       help="Saving again under the same label replaces that "
+                                            "event rather than stacking a second copy.")
+                if st.button("💾 Save these findings", key=f"qa_save_{_rcode}"):
+                    _ok2, _msg = qa_extract.save_event(
+                        _ec_repo, _gh_token or "", _rcode,
+                        {"event_label": _label, "document_kind": _qres["document_kind"],
+                         "summary": _sum, "exchanges": _qres["exchanges"],
+                         "source": {"name": _src_name, "url": _src_url}})
+                    st.toast("Saved." if _ok2 else f"Not saved — {_msg}")
+                    if _ok2:
+                        st.session_state.pop(_qres_key, None)
+                        _get_app_cache()["qa_findings"] = None
+
         def _fc_fx(_rcode, _rname, _years):
             """Read a results deck's FX assumptions and sensitivity, review, save.
 
@@ -4724,6 +4882,8 @@ with tab_research:
                     "fx_beta_map", lambda: fund.load_fx_beta_from_github(_ec_repo, _gh_token))
                 st.session_state.fx_assumptions = _shared(
                     "fx_assumptions", lambda: fx_store.load_from_github(_ec_repo, _gh_token))
+                st.session_state.qa_findings = _shared(
+                    "qa_findings", lambda: qa_extract.load_from_github(_ec_repo, _gh_token))
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
@@ -4852,6 +5012,7 @@ with tab_research:
                         "liquidity": (st.session_state.get("liquidity_map") or {}).get(_rcode, {}),
                         "fx_beta": (st.session_state.get("fx_beta_map") or {}).get(_rcode, {}),
                         "fx_assumptions": (st.session_state.get("fx_assumptions") or {}).get(_rcode, {}),
+                        "qa_events": (st.session_state.get("qa_findings") or {}).get(_rcode, []),
                         # Live spot from the Markets tab's own fetch, keyed the
                         # way fx_store expects. Empty until that tab has run,
                         # which is the correct behaviour: no spot, no flag.
@@ -4881,15 +5042,17 @@ with tab_research:
                         # because it always works — the screenshot reader needs an
                         # API key, and half of what is missing here is a single
                         # figure that is faster typed than captured.
-                        _tab_type, _tab_shot, _tab_fx = st.tabs(
+                        _tab_type, _tab_shot, _tab_fx, _tab_qa = st.tabs(
                             ["✏️ Type or correct values", "📸 Read a screenshot",
-                             "💴 Read FX assumptions"])
+                             "💴 Read FX assumptions", "🗣️ Read a Q&A"])
                         with _tab_type:
                             _fc_typed(_rcode, _rname, _years, _fc_map, _profile)
                         with _tab_shot:
                             _fc_screenshots(_rcode, _rname, _years)
                         with _tab_fx:
                             _fc_fx(_rcode, _rname, _years)
+                        with _tab_qa:
+                            _fc_qa(_rcode, _rname)
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []

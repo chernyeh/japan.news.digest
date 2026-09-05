@@ -1073,6 +1073,84 @@ def test_saving_without_a_token_says_so_rather_than_failing_silently():
     assert ok is False and "fiscal year" in msg
 
 
+# --- What management did not answer ------------------------------------------
+
+import qa_extract as QA
+
+
+def _ex(topic, cls, quote="…", q="A question?"):
+    return {"question": q, "topic": topic, "answered_by": "CFO",
+            "classification": cls, "evidence_quote": quote, "why": "",
+            "page_number": 3}
+
+
+def test_a_classification_with_no_quote_behind_it_is_dropped():
+    # This is the rule the module rests on: these are claims about named
+    # executives, made from their own words, so a claim with no words is not
+    # shown at all.
+    out = QA.normalise({"exchanges": [
+        _ex("margin", "deflected", quote="環境を注視してまいります"),
+        _ex("buyback", "deflected", quote=""),
+        {"question": "", "topic": "x", "classification": "deflected",
+         "evidence_quote": "something", "why": "", "page_number": 1},
+        _ex("china", "not-a-real-class", quote="something"),
+    ]})
+    assert len(out["exchanges"]) == 1
+    assert out["exchanges"][0]["topic"] == "margin"
+
+
+def test_declining_openly_is_not_counted_as_evasion():
+    # "We do not disclose that" is an honest refusal. Lumping it in with
+    # deflection would punish the more candid answer.
+    rows = [_ex("a", "declined"), _ex("b", "declined"), _ex("c", "answered")]
+    s = QA.summarise(rows)
+    assert s["evaded"] == 0 and s["counts"]["declined"] == 2
+    assert s["topics_evaded"] == []
+
+
+def test_deflected_and_unanswered_are_what_count():
+    rows = [_ex("margin", "deflected"), _ex("china", "unanswered"),
+            _ex("x", "answered"), _ex("y", "partial")]
+    s = QA.summarise(rows)
+    assert s["evaded"] == 2 and s["evasion_rate"] == _near(0.5)
+    assert s["topics_evaded"] == ["china", "margin"]
+
+
+def test_a_handful_of_questions_is_flagged_rather_than_turned_into_a_rate():
+    assert QA.summarise([_ex("a", "deflected")])["thin"] is True
+    assert QA.summarise([_ex(str(i), "answered") for i in range(9)])["thin"] is False
+    assert QA.summarise([]) == {}
+
+
+def test_a_topic_dodged_once_is_noise_and_twice_is_a_pattern():
+    events = [
+        {"summary": {"total": 12, "evaded": 4,
+                     "topics_evaded": ["margin guidance", "China"]}},
+        {"summary": {"total": 10, "evaded": 3,
+                     "topics_evaded": ["margin guidance", "buyback"]}},
+        {"summary": {"total": 8, "evaded": 1, "topics_evaded": ["margin guidance"]}},
+    ]
+    a = QA.across_events(events)
+    assert a["recurring"] == ["margin guidance"]      # China and buyback appear once
+    assert a["questions"] == 30 and a["evaded"] == 8
+    assert a["thin"] is False
+
+
+def test_findings_read_only_from_company_summaries_are_marked_as_such():
+    events = [{"document_kind": "company_summary",
+               "summary": {"total": 20, "evaded": 1, "topics_evaded": []}}]
+    assert QA.across_events(events)["verbatim_events"] == 0
+    events.append({"document_kind": "verbatim_transcript",
+                   "summary": {"total": 12, "evaded": 5, "topics_evaded": ["margin"]}})
+    assert QA.across_events(events)["verbatim_events"] == 1
+
+
+def test_an_unknown_document_kind_falls_back_to_unclear_not_to_verbatim():
+    assert QA.normalise({"document_kind": "something_else"})["document_kind"] == "unclear"
+    assert QA.normalise({})["document_kind"] == "unclear"
+    assert QA.across_events([]) == {}
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
