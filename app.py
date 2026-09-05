@@ -52,7 +52,14 @@ def load_metadata_brain():
         try:
             df = _pd.read_csv(path, dtype={"Code": str})
             shares  = df.set_index("Code")["Shares"].to_dict()
-            names   = df.set_index("Code")["Name"].to_dict()
+            # 134 of the ~3,400 rows have no Name, which pandas reads as float
+            # NaN rather than an empty string. NaN is truthy, so it survives
+            # every `if name:` guard downstream and then fails on the first
+            # string method -- which is what broke favouriting a company from
+            # the Research tab. Blank them here, once, rather than defending
+            # against a float in each of the places this map is read.
+            names   = {c: ("" if _pd.isna(n) else str(n))
+                       for c, n in df.set_index("Code")["Name"].to_dict().items()}
             sectors = df.set_index("Code")["Sector"].to_dict() if "Sector" in df.columns else {}
             return shares, names, _augment_with_jpx400(names, sectors)
         except Exception as e:

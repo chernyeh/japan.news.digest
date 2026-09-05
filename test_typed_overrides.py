@@ -1151,6 +1151,43 @@ def test_an_unknown_document_kind_falls_back_to_unclear_not_to_verbatim():
     assert QA.across_events([]) == {}
 
 
+# --- A blank company name is a float, and floats have no .strip() -----------
+# metadata.csv has 134 rows with no Name out of ~3,400. pandas reads those as
+# float NaN, NaN is truthy, so it walked past every `if name:` guard in
+# resolve_code and died on .strip() -- which is what "AttributeError: 'float'
+# object has no attribute 'strip'" was when favouriting a company.
+
+import watchlist as WL
+
+NAN = float("nan")
+LOOKUP_WITH_HOLES = {"6504": "Fuji Electric Co., Ltd.", "7203": "TOYOTA MOTOR CORPORATION",
+                     "296A": NAN, "9023": NAN, "8303": None}
+
+
+def test_a_name_lookup_containing_blanks_still_resolves():
+    assert WL.resolve_code("Fuji Electric Co., Ltd.", LOOKUP_WITH_HOLES) == "6504"
+    assert WL.resolve_code("6504", LOOKUP_WITH_HOLES) == "6504"
+
+
+def test_a_substring_search_steps_over_the_blanks():
+    assert WL.resolve_code("TOYOTA MOTOR", LOOKUP_WITH_HOLES) == "7203"
+    assert WL.resolve_code("Not A Company", LOOKUP_WITH_HOLES) == ""
+
+
+def test_a_nan_handed_in_as_the_company_is_not_an_error():
+    assert WL.resolve_code(NAN, LOOKUP_WITH_HOLES) == ""
+    assert WL.key_for(NAN, LOOKUP_WITH_HOLES) == WL._UNRESOLVED
+    assert WL.add_to_watchlist(NAN)[0] is False
+    assert WL.add_to_watchlist(None)[0] is False
+
+
+def test_blank_names_never_match_a_blank_search():
+    # The holes must not all collide into one match on an empty string, which
+    # would resolve any unknown name to whichever blank row came first.
+    assert WL.resolve_code("", LOOKUP_WITH_HOLES) == ""
+    assert WL._text(NAN) == "" and WL._text(None) == "" and WL._text("  x ") == "x"
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
