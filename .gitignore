@@ -8,3 +8,7 @@ dist/
 build/
 .DS_Store
 .claude/
+
+# Local watchlist cache. The durable copy is data/watchlist.json,
+# written through the GitHub Contents API — this one is per-machine scratch.
+/watchlist.json

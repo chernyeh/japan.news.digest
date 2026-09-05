@@ -13,7 +13,9 @@ from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_
                           fetch_jpx_daily_movers, fetch_topix_returns,
                           fetch_underperformance_screen, TSE_STOCKS)
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
-                       scan_all_watchlist, KNOWN_COMPANIES)
+                       scan_all_watchlist, KNOWN_COMPANIES,
+                       sync_from_github as sync_watchlist_from_github,
+                       load_watchlist_codes)
 from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
@@ -1168,6 +1170,18 @@ try:
     _gh_token = st.secrets.get("GITHUB_TOKEN", None)
 except Exception:
     _ec_repo = _ec_repo_default
+
+# ── Watchlist: pull the durable copy down once per session ────────────────────
+# The local watchlist.json is only a cache and is wiped on every Streamlit Cloud
+# restart; data/watchlist.json in the repo is the copy that survives. Done once
+# per session behind a sentinel, because load_watchlist() runs several times per
+# rerun and cannot afford an HTTP round trip each time.
+if "watchlist_synced" not in st.session_state:
+    st.session_state.watchlist_synced = True
+    try:
+        sync_watchlist_from_github(_ec_repo, _gh_token or "")
+    except Exception as _wl_e:
+        print(f"Watchlist sync error: {_wl_e}")
 
 # ── Restore from shared cache on first page load of a new session ─────────────
 if "_cache_loaded" not in st.session_state:
@@ -2650,7 +2664,12 @@ with tab_watchlist:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         if st.button("➕ Add", use_container_width=True):
             if add_input.strip():
-                add_to_watchlist(add_input.strip())
+                _ok, _msg = add_to_watchlist(add_input.strip(), _ec_repo,
+                                             _gh_token or "", NAMES_LOOKUP)
+                if not _ok:
+                    # The cache is already updated, so the entry is usable now;
+                    # what failed is the durable write. Say which.
+                    st.session_state.research_flash = ("warning", _msg)
                 st.rerun()
 
     st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
@@ -2671,7 +2690,10 @@ with tab_watchlist:
                 )
             with c2:
                 if st.button("Remove", key=f"rm_{company}"):
-                    remove_from_watchlist(company)
+                    _ok, _msg = remove_from_watchlist(company, _ec_repo,
+                                                      _gh_token or "", NAMES_LOOKUP)
+                    if not _ok:
+                        st.session_state.research_flash = ("warning", _msg)
                     st.rerun()
 
     if st.session_state.watchlist_hits:
@@ -3326,8 +3348,10 @@ with tab_research:
             )
         with _hdr_col2:
             if st.button("⭐ Add to Watchlist", key=f"research_wl_{_rcode}", use_container_width=True):
-                add_to_watchlist(_rname)
-                st.toast(f"Added {_rname} to Watchlist")
+                _wl_ok, _wl_msg = add_to_watchlist(_rname, _ec_repo, _gh_token or "",
+                                                   NAMES_LOOKUP)
+                st.toast(f"Added {_rname} to Watchlist" if _wl_ok
+                         else f"Added for this session only — {_wl_msg}")
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
@@ -5863,7 +5887,10 @@ with tab_earnings:
                 # Sort: watchlist first, then by selected sort key
                 _ec_sort_key = st.session_state.get("ec_sort", "Date")
                 def _sort_key_fn(e):
-                    _wl_flag = 0 if e.get("code","") in wl else 1
+                    # _wl_codes, not wl: wl holds company *names*, so comparing a
+                    # 4-digit code against it never matched and the watchlist-first
+                    # sort silently did nothing.
+                    _wl_flag = 0 if e.get("code", "") in _wl_codes else 1
                     _code = e.get("code", "")
                     
                     # Try calculated first
@@ -5898,10 +5925,11 @@ with tab_earnings:
                 for _idx, _e in enumerate(_sorted_entries):
                     _code   = _e.get("code", "")
                     _name_raw = _e.get("name", "")
-                    try:
-                        _name = NAMES_LOOKUP.get(int(_code), _name_raw)
-                    except:
-                        _name = _name_raw
+                    # NAMES_LOOKUP is keyed by the 4-digit code as a *string*
+                    # (load_metadata_brain reads with dtype={"Code": str}), so the
+                    # old int(_code) lookup missed every time and every row quietly
+                    # fell back to the raw JPX name.
+                    _name = NAMES_LOOKUP.get(_code) or _name_raw
                         
                     _period = _e.get("period_type", "")
                     _sector = (_e.get("sector") or "")[:22]

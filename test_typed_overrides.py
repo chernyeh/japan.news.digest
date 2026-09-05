@@ -10,6 +10,7 @@ value-less key behind — so they are checked here rather than by clicking.
 
 import base64
 import json
+import os
 import sys
 import types
 
@@ -423,6 +424,109 @@ def test_no_regulatory_capital_metric_exists_anywhere():
         assert not any(name in m for m in V._METRICS), name
         assert not any(name in c for c in F._JQ_ALIASES), name
     assert "not a regulatory capital ratio" in F.CAPITAL_DISCLAIMER
+
+
+
+# ── Watchlist: durable, code-keyed storage ───────────────────────────────
+# The old store was a local-only list of bare company names. On Streamlit Cloud
+# the file is written at runtime and wiped on every restart, so the watchlist
+# emptied itself silently; and with no ticker on an entry, a freehand name could
+# never be joined to a company. Both are load-bearing for anything scoped "to my
+# watchlist", so both are checked here.
+
+import watchlist as W
+
+_NAMES = {"7203": "TOYOTA MOTOR CORPORATION", "8766": "Tokio Marine Holdings, Inc.",
+          "6758": "SONY GROUP CORPORATION"}
+
+
+def _fresh_watchlist(tmp_state=None):
+    """Point the module at a scratch cache file and seed it."""
+    import tempfile
+    W.WATCHLIST_FILE = os.path.join(tempfile.mkdtemp(), "watchlist.json")
+    if tmp_state is not None:
+        with open(W.WATCHLIST_FILE, "w", encoding="utf-8") as fh:
+            json.dump(tmp_state, fh)
+
+
+def test_codes_resolve_from_a_name_a_code_or_a_japanese_alias():
+    assert W.resolve_code("7203", _NAMES) == "7203"
+    assert W.resolve_code("Toyota", _NAMES) == "7203"          # KNOWN_COMPANIES
+    assert W.resolve_code("トヨタ", _NAMES) == "7203"            # Japanese alias
+    assert W.resolve_code("Tokio Marine Holdings, Inc.", _NAMES) == "8766"  # exact name
+    assert W.resolve_code("", _NAMES) == ""
+
+
+def test_an_ambiguous_name_resolves_to_nothing_rather_than_a_coin_flip():
+    # Two companies contain "corporation"; picking either would silently attach
+    # the watchlist entry to the wrong ticker.
+    assert W.resolve_code("corporation", _NAMES) == ""
+    # A unique substring is still allowed to match.
+    assert W.resolve_code("tokio marine", _NAMES) == "8766"
+
+
+def test_a_legacy_list_of_names_is_migrated_not_lost():
+    _fresh_watchlist(["Toyota", "Sony", "My Unlisted Co"])
+    entries = W.load_watchlist_entries()
+    assert entries["7203"]["name"] == "Toyota"
+    assert entries["6758"]["name"] == "Sony"
+    # An unresolvable name is kept under a marker key, never dropped.
+    assert any(k.startswith("_unresolved:") for k in entries)
+    # And the name-based contract every existing caller depends on is unchanged.
+    assert sorted(W.load_watchlist()) == ["My Unlisted Co", "Sony", "Toyota"]
+    assert sorted(W.load_watchlist_codes()) == ["6758", "7203"]
+
+
+def test_add_and_remove_work_by_either_name_or_code():
+    _fresh_watchlist({})
+    W.add_to_watchlist("Toyota", "", "", _NAMES)
+    assert W.load_watchlist_codes() == ["7203"]
+    W.add_to_watchlist("Toyota", "", "", _NAMES)          # duplicate
+    assert W.load_watchlist_codes() == ["7203"], "adding twice must not duplicate"
+    W.remove_from_watchlist("7203", "", "", _NAMES)       # by code
+    assert W.load_watchlist_codes() == []
+    W.add_to_watchlist("8766", "", "", _NAMES)
+    W.remove_from_watchlist("Tokio Marine Holdings, Inc.", "", "", _NAMES)  # by name
+    assert W.load_watchlist_codes() == []
+
+
+def test_without_a_token_the_entry_still_works_but_says_it_is_not_durable():
+    _fresh_watchlist({})
+    ok, msg = W.add_to_watchlist("Toyota", "", "", _NAMES)
+    assert not ok and "session only" in msg
+    assert W.load_watchlist_codes() == ["7203"], "the cache must still be usable"
+
+
+def test_a_durable_write_commits_the_whole_store():
+    _fresh_watchlist({})
+    puts = _stub_github({})
+    ok, msg = W.add_to_watchlist("Toyota", "o/r", "tok", _NAMES)
+    assert ok and msg == "Saved."
+    assert "7203" in _written(puts)
+    assert puts[-1]["branch"] == "main" and "[skip ci]" in puts[-1]["message"]
+
+
+def test_sync_unions_rather_than_overwriting_the_cache():
+    # A company added while the token was missing exists only locally. A blind
+    # overwrite from GitHub would throw it away.
+    _fresh_watchlist({"7203": {"name": "Toyota", "added_at": "2026-01-01"}})
+    module = types.ModuleType("requests")
+    module.get = lambda url, headers=None, timeout=None: _Resp(
+        200, {"8766": {"name": "Tokio Marine", "added_at": "2026-02-02"}})
+    module.put = lambda *a, **k: _Resp(200)
+    sys.modules["requests"] = module
+    merged = W.sync_from_github("o/r", "tok")
+    assert sorted(merged) == ["7203", "8766"]
+    assert sorted(W.load_watchlist_codes()) == ["7203", "8766"]
+
+
+def test_sync_survives_a_repo_with_no_watchlist_yet():
+    _fresh_watchlist({})
+    module = types.ModuleType("requests")
+    module.get = lambda url, headers=None, timeout=None: _Resp(404, None)
+    module.put = lambda *a, **k: _Resp(200)
+    sys.modules["requests"] = module
+    assert W.sync_from_github("o/r", "tok") == {}
 
 
 if __name__ == "__main__":
