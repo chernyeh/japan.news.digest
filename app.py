@@ -3989,6 +3989,26 @@ with tab_research:
                        ' · <em>flat — any buyback has been offset or parked</em>')
                     + '</span>')
 
+            # 4. Can you get out? Sizing a position without knowing this is the
+            #    gap that mattered most: a thin name needs a higher hurdle and a
+            #    smaller position, and that judgement should not depend on
+            #    remembering to go and look the volume up.
+            _liq = fund.liquidity_read(ctx.get("liquidity") or {})
+            if _liq:
+                _adv_m = _liq["adv_jpy"] / 1e6
+                _reads.append(
+                    f'<span class="fc-read"><b>Liquidity</b> '
+                    + (f'¥{_adv_m / 1000:.1f}bn' if _adv_m >= 1000 else f'¥{_adv_m:,.0f}m')
+                    + f' traded on a median day ({_safe_text(_liq["tier"])}) · '
+                    + (f'{_liq["days"]:.1f} days' if _liq["days"] and _liq["days"] >= 1
+                       else f'under a day')
+                    + f' to exit ¥100m at {_liq["participation"] * 100:.0f}% of volume — '
+                    + _liq["hurdle"]
+                    + (f' · <em>{_liq["obs"]} observation'
+                       f'{"s" if _liq["obs"] != 1 else ""} over {_liq["span_days"]} days — '
+                       f'a thin sample</em>' if _liq["thin_sample"] else '')
+                    + '</span>')
+
             if _reads:
                 st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
                             unsafe_allow_html=True)
@@ -4514,6 +4534,8 @@ with tab_research:
                     "jpx400_map", lambda: fund.load_universe_from_github(_ec_repo, _gh_token))
                 st.session_state.guidance_history = _shared(
                     "guidance_history", lambda: fund.load_guidance_history_from_github(_ec_repo, _gh_token))
+                st.session_state.liquidity_map = _shared(
+                    "liquidity_map", lambda: fund.load_liquidity_from_github(_ec_repo, _gh_token))
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
@@ -4639,6 +4661,7 @@ with tab_research:
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
                         "profile": _profile, "split_factor": _split_factor,
                         "revisions": (st.session_state.get("guidance_history") or {}).get(_rcode, {}),
+                        "liquidity": (st.session_state.get("liquidity_map") or {}).get(_rcode, {}),
                         # The table shows a handful of years; the collector keeps
                         # three of actuals. A share-count trend wants all of them.
                         "allmap": _fc_map,

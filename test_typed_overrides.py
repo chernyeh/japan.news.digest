@@ -798,6 +798,86 @@ def test_share_counts_are_not_labelled_as_yen():
     assert units["net_profit"] == "jpy_abs"
 
 
+# --- Liquidity: can you actually get out of this position? -------------------
+
+import compute_liquidity as L
+
+
+def _obs(n, close, vol, start_day=1, step=3):
+    """n snapshots `step` days apart -- the archive is one file per workflow run,
+    not one per trading session, and the gap is the point of the fixture."""
+    from datetime import date, timedelta
+    d0 = date(2026, 6, 1)
+    return [((d0 + timedelta(days=(start_day + i * step))).isoformat(),
+             close, vol, close * vol if vol else None, 100.0)
+            for i in range(n)]
+
+
+def test_days_to_exit_is_the_position_over_the_tradeable_share_of_a_day():
+    # Y48m a day, 20% participation -> Y9.6m a day out -> Y100m takes 10.4 days.
+    r = L.liquidity_row("9999", _obs(30, 800, 60_000))
+    assert r["adv_jpy_20"] == 48_000_000
+    assert r["days_to_exit_100m"] == _near(10.4, 0.05)
+    assert r["tier"] == "very thin"
+
+
+def test_a_deep_name_is_not_reported_as_instant():
+    # Y12bn a day: 0.04 days, not "0.0 days", which would read as no constraint
+    # at all rather than as an afternoon.
+    r = L.liquidity_row("7203", _obs(30, 3000, 4_000_000))
+    assert r["tier"] == "deep"
+    assert 0 < r["days_to_exit_100m"] < 1
+
+
+def test_a_window_of_twenty_observations_reports_the_days_it_actually_spans():
+    r = L.liquidity_row("9999", _obs(30, 800, 60_000, step=3))
+    assert r["obs_20"] == 20
+    # Twenty snapshots three days apart span 57 calendar days, not 20 sessions.
+    assert r["span_days_20"] == 57
+
+
+def test_archives_written_before_volume_was_collected_are_not_an_error():
+    old = [(d, c, None, None, m) for d, c, _v, _t, m in _obs(30, 4665, 0)]
+    r = L.liquidity_row("1301", old)
+    assert r["adv_jpy_20"] == "" and r["days_to_exit_100m"] == ""
+    assert r["tier"] == "unknown"
+    assert r["close"] == 4665.0        # the closes still carry
+
+
+def test_no_observations_yields_no_row_rather_than_a_zero():
+    assert L.liquidity_row("9999", []) == {}
+
+
+def test_participation_is_an_assumption_the_caller_can_change():
+    r10 = L.liquidity_row("9999", _obs(30, 800, 60_000), participation=0.10)
+    r20 = L.liquidity_row("9999", _obs(30, 800, 60_000), participation=0.20)
+    assert r10["days_to_exit_100m"] == _near(r20["days_to_exit_100m"] * 2, 0.1)
+    assert r10["participation"] == 0.10
+
+
+def test_the_hurdle_note_hardens_as_the_exit_lengthens():
+    def note(adv):
+        return F.liquidity_read({"adv_jpy_20": adv, "participation": 0.2,
+                                 "days_to_exit_100m": 100e6 / (adv * 0.2),
+                                 "tier": "x", "obs_20": 20, "span_days_20": 57})["hurdle"]
+    assert "not a constraint" in note(1e10)      # under a day
+    assert "within days" in note(5e8)            # 1 day
+    assert "raise the hurdle rate" in note(5e7)  # 10 days
+    assert "illiquid position" in note(1e7)      # 50 days
+
+
+def test_a_thin_sample_is_flagged_rather_than_averaged_over():
+    read = F.liquidity_read({"adv_jpy_20": 48e6, "participation": 0.2,
+                             "days_to_exit_100m": 10.4, "tier": "very thin",
+                             "obs_20": 4, "span_days_20": 12})
+    assert read["thin_sample"] is True
+
+
+def test_a_position_size_rescales_the_exit_estimate():
+    r = {"adv_jpy_20": 48_000_000, "participation": 0.2, "days_to_exit_100m": 10.4}
+    assert F.liquidity_read(r, position_jpy=20_000_000)["days"] == _near(2.083, 0.01)
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

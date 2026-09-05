@@ -37,6 +37,11 @@ jobs:
           from datetime import datetime, date, timedelta
 
           price_map = {}
+          # yfinance returns Volume in the same frame as Close; until now
+          # only Close was kept. Average daily volume is what decides how
+          # long a position takes to exit, which is the input the
+          # position-sizing rule needs and never had.
+          vol_map = {}
           mcap_map  = {}
 
           # ── Load shares ───────────────────────────────────────────────────────
@@ -132,10 +137,18 @@ jobs:
                       for t in batch:
                           code = t.replace(".T","")
                           try:
-                              cl = (raw[t]["Close"] if isinstance(raw.columns, pd.MultiIndex)
-                                    else raw["Close"]).dropna()
+                              sub = raw[t] if isinstance(raw.columns, pd.MultiIndex) else raw
+                              cl = sub["Close"].dropna()
                               if not cl.empty:
                                   price_map[code] = float(cl.iloc[-1])
+                              # The 5-day window is deliberate: a single day's
+                              # volume is noise, and a median over the window
+                              # survives one halted or untraded session.
+                              if "Volume" in sub:
+                                  vl = sub["Volume"].dropna()
+                                  vl = vl[vl > 0]
+                                  if not vl.empty:
+                                      vol_map[code] = float(vl.median())
                           except Exception:
                               pass
               except Exception as e:
@@ -189,12 +202,23 @@ jobs:
           os.makedirs("data", exist_ok=True)
           today_str = datetime.utcnow().strftime("%Y-%m-%d")
           all_codes = sorted(set(list(price_map.keys()) + list(mcap_map.keys())))
-          rows = [[code, today_str, price_map.get(code,""), mcap_map.get(code,"")]
+          def _turnover(code):
+              """Yen traded on a median day. Volume alone is not comparable
+              across companies -- a million shares of a Y300 stock and of a
+              Y30,000 stock are two very different positions to get out of."""
+              px, vol = price_map.get(code), vol_map.get(code)
+              return round(px * vol) if (px and vol) else ""
+          rows = [[code, today_str, price_map.get(code,""), mcap_map.get(code,""),
+                   round(vol_map.get(code)) if vol_map.get(code) else "", _turnover(code)]
                   for code in all_codes if price_map.get(code,"") or mcap_map.get(code,"")]
+          HEADER = ["Code","Date","Close","MarketCapB","Volume","TurnoverJPY"]
 
+          # Both readers of these files use csv.DictReader, so the two new
+          # columns are invisible to anything that does not ask for them, and
+          # the 187 archives written before this change stay readable.
           with open("data/jquants_prices_latest.csv","w",newline="",encoding="utf-8") as f:
               w = csv.writer(f)
-              w.writerow(["Code","Date","Close","MarketCapB"])
+              w.writerow(HEADER)
               w.writerows(rows)
 
           mc = sum(1 for c in all_codes if mcap_map.get(c))
@@ -205,9 +229,32 @@ jobs:
           archive_path = f"data/archive/prices_{today_str}.csv"
           with open(archive_path,"w",newline="",encoding="utf-8") as f:
               w = csv.writer(f)
-              w.writerow(["Code","Date","Close","MarketCapB"])
+              w.writerow(HEADER)
               w.writerows(rows)
           print(f"Archived: {archive_path}")
+          vn = sum(1 for r in rows if r[4] != "")
+          print(f"  with volume: {vn}/{len(rows)} ({round(vn/max(len(rows),1)*100,1)}%)")
+
+          # ── Prune the archive ─────────────────────────────────────────────────
+          # Nothing has ever removed these and they accumulate about 7.5 MB a
+          # year. 760 days is the retention edinet.py and tdnet.py already use,
+          # so the three stores age out together, and it is comfortably longer
+          # than the 12-month lookback compute_3m_perf.py needs.
+          RETENTION_DAYS = 760
+          cutoff = date.today() - timedelta(days=RETENTION_DAYS)
+          pruned = 0
+          for fname in sorted(os.listdir("data/archive")):
+              if not (fname.startswith("prices_") and fname.endswith(".csv")):
+                  continue
+              try:
+                  fdate = date.fromisoformat(fname[7:-4])
+              except Exception:
+                  continue
+              if fdate < cutoff:
+                  os.remove(os.path.join("data/archive", fname))
+                  pruned += 1
+          if pruned:
+              print(f"Pruned {pruned} archive file(s) older than {cutoff}")
 
           # ── Backfill missing historical snapshots ─────────────────────────────
           # Ensures 3M/6M/12M windows are always covered so the compute script
@@ -486,11 +533,18 @@ jobs:
       - name: Run 3M/6M/12M perf script
         run: python compute_3m_perf.py
 
+      # Reduces the archive to one row per company, so the app can show average
+      # daily turnover and days-to-exit without ever loading a time series.
+      - name: Compute liquidity summary
+        run: python compute_liquidity.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/jquants_prices_latest.csv data/jquants_shares.csv data/archive/ data/jquants_3m_perf.csv
+          # -A so the archive prune's deletions are staged, not just the writes.
+          git add -A data/jquants_prices_latest.csv data/jquants_shares.csv \
+                     data/archive/ data/jquants_3m_perf.csv data/liquidity.csv
           if git diff --staged --quiet; then
             echo "No changes"
           else

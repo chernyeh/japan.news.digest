@@ -892,6 +892,68 @@ def revision_move(entry: dict, threshold: float = 0.005):
     return move, ("raised" if move > 0 else "cut")
 
 
+LIQUIDITY_PATH = "data/liquidity.csv"
+
+
+def load_liquidity_from_github(repo: str, token: str = None) -> dict:
+    """{code: row} — average daily turnover and days-to-exit, one row per company.
+
+    Deliberately a summary rather than a time series: compute_liquidity.py
+    reduces two years of daily archives to this so the app never holds the
+    history. See _shared() in app.py for why that matters."""
+    out = {}
+    numeric = {"close", "mcap_b", "adv_jpy_20", "adv_jpy_60", "adv_shares_20",
+               "obs_20", "obs_60", "span_days_20", "participation",
+               "days_to_exit_100m"}
+    for row in _raw_csv(repo, LIQUIDITY_PATH, token):
+        code = str(row.get("code", "")).strip()
+        if not code:
+            continue
+        out[code] = {k: (to_num(v) if k in numeric else v) for k, v in row.items()}
+    return out
+
+
+def liquidity_read(row: dict, position_jpy: float = None) -> dict:
+    """Turn one liquidity row into the sentence a position-sizing decision needs.
+
+    `position_jpy` rescales the days-to-exit figure off its ¥100m yardstick. The
+    hurdle note is the point: a name you cannot leave in a week is a name that
+    has to clear a higher bar and be sized smaller, and that judgement should not
+    depend on remembering to look up the ADV."""
+    if not row or not row.get("adv_jpy_20"):
+        return {}
+    adv = row["adv_jpy_20"]
+    part = row.get("participation") or 0.20
+    days = (position_jpy / (adv * part)) if position_jpy else row.get("days_to_exit_100m")
+    tier = row.get("tier", "")
+    # Thresholds stated rather than hidden: a week is the line at which an exit
+    # stops being a decision and starts being a project.
+    if days is None:
+        hurdle = ""
+    elif days >= 20:
+        hurdle = ("size this as an illiquid position — a full exit is a month of "
+                  "trading, and that is in normal conditions, not a drawdown")
+    elif days >= 5:
+        hurdle = ("a week or more to exit: raise the hurdle rate and cap the "
+                  "position accordingly")
+    elif days >= 1:
+        hurdle = "exitable within days at this size"
+    else:
+        hurdle = "liquidity is not a constraint at this size"
+    return {
+        "adv_jpy": adv,
+        "days": days,
+        "tier": tier,
+        "participation": part,
+        "obs": row.get("obs_20") or 0,
+        "span_days": row.get("span_days_20") or 0,
+        "hurdle": hurdle,
+        # The archive is one snapshot per workflow run, not one per session, so
+        # a window of 20 observations can span three months. Say so.
+        "thin_sample": (row.get("obs_20") or 0) < 10,
+    }
+
+
 def conservatism(entries: dict, metric: str = "operating_profit",
                  threshold: float = 0.005) -> dict:
     """How this management has behaved with its own guidance, across the years
