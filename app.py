@@ -932,6 +932,14 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-rrow { color: #6E5E4C; }
 .fc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.68rem;
              color: #9B8B7A; margin: 6px 0 2px; }
+/* Findings drawn from the company's own filing history. Deliberately louder
+   than .fc-note -- a note explains why a column is empty, these say something
+   about the business -- and deliberately quieter than the table itself. */
+.fc-reads { display: flex; flex-direction: column; gap: 5px; margin: 8px 0 2px; }
+.fc-read { font-size: 0.72rem; color: #5A5044; border-left: 3px solid #B8A98F;
+           padding: 5px 10px; background: #FBF7F0; border-radius: 0 3px 3px 0; }
+.fc-read b { color: #3D3529; font-weight: 600; }
+.fc-read em { color: #9B8B7A; font-style: italic; }
 .fc-note { font-size: 0.72rem; color: #9B8B7A; border-left: 3px solid #D9D3C8;
            padding: 6px 10px; margin: 8px 0; background: #FDFAF7; }
 .fc-note.fc-warn { border-left-color: #E65100; color: #7A4A22; background: #FDF4EE; }
@@ -1002,6 +1010,7 @@ a.research-link:hover { background: #F0EDE8; }
     .fc-vcell { padding: 6px 8px; }
     .fc-note { font-size: 0.68rem; padding: 5px 8px; margin: 6px 0; }
     .fc-legend { gap: 9px; font-size: 0.62rem; }
+    .fc-read { font-size: 0.66rem; padding: 5px 8px; }
 }
 
 /* ── Text-size stepper ─────────────────────────────────────────────────
@@ -3836,6 +3845,88 @@ with tab_research:
                 + '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
                 unsafe_allow_html=True)
 
+            # ── What the company's own record says about its guidance ──
+            # Two readings that only exist because the history is now collected,
+            # and both are findings rather than explanations, so they sit under
+            # the table rather than folding away with the notes.
+            _reads = []
+
+            # 1. Does this management guide low and revise up? The reputation
+            #    belongs to the population; whether it fits this company is in
+            #    its own filings.
+            _cons = fund.conservatism(_revs)
+            if _cons:
+                _dir = ("raises" if _cons["raised"] > _cons["cut"]
+                        else "cuts" if _cons["cut"] > _cons["raised"] else "leaves")
+                _reads.append(
+                    f'<span class="fc-read"><b>Guidance record</b> '
+                    f'{_cons["raised"]} raised / {_cons["cut"]} cut / '
+                    f'{_cons["unchanged"]} unchanged across {_cons["years"]} '
+                    f'year{"s" if _cons["years"] > 1 else ""}'
+                    + (f' · median {_cons["median_move"] * 100:+.0f}%'
+                       if abs(_cons["median_move"]) >= 0.005 else '')
+                    + (' · <em>too few years to call a habit</em>' if _cons["thin"]
+                       else f' · this management typically {_dir} its opening number')
+                    + '</span>')
+
+            # 2. Is the progress rate actually behind, or just seasonal? Only
+            #    years reporting the *same* quarter are comparable — Q1 against
+            #    Q3 would be arithmetic, not a comparison.
+            _prog_year = next((_y for _y in reversed(_shown)
+                               if _y in _ytd_of and _y not in _actual_years), None)
+            if _prog_year:
+                _q = _ytd_of[_prog_year][0]
+                _this = _progress_cell(None, _prog_year, "ytd")
+                _priors = [_p for _p in
+                           (_progress_cell(None, _y, "ytd") for _y in _shown
+                            if _y != _prog_year and _ytd_of.get(_y, (None,))[0] == _q)
+                           if _p is not None]
+                _rank = fund.progress_rank(_this, _priors)
+                if _rank:
+                    _reads.append(
+                        f'<span class="fc-read"><b>Progress at {_q[-2:].upper()}</b> '
+                        f'{_this * 100:.0f}% vs '
+                        + " / ".join(f"{_p * 100:.0f}%" for _p in _rank["priors"])
+                        + f' in the {_rank["n_prior"]} prior year'
+                        f'{"s" if _rank["n_prior"] > 1 else ""} — '
+                        # "range" only means something with more than one point
+                        # behind it; with a single prior year, say so plainly.
+                        + (("ahead of" if _rank["ahead_of"] else "behind")
+                           + " last year" if _rank["n_prior"] == 1 else
+                           ("ahead of" if _rank["ahead_of"] == _rank["n_prior"]
+                            else "behind" if _rank["ahead_of"] == 0 else "inside")
+                           + " its own range")
+                        + '. Two or three years is a read, not a '
+                          'distribution.</span>')
+
+            # 3. Is the share count actually falling? A buyback announcement is
+            #    a press release; a lower share count is the thing itself. Shown
+            #    against treasury stock because shares repurchased and parked
+            #    rather than cancelled still sit in the count.
+            _allmap = ctx.get("allmap") or {}
+            _sh = sorted(
+                ((_fy, _e.get("value")) for (_mt, _fy, _bs), _e in _allmap.items()
+                 if _mt == "shares" and _bs == "actual" and _e.get("value")),
+                key=lambda t: t[0])
+            if len(_sh) >= 2:
+                _first_y, _first_v = _sh[0]
+                _last_y, _last_v = _sh[-1]
+                _chg = (_last_v - _first_v) / _first_v
+                _tr = (_allmap.get(("treasury", _last_y, "actual")) or {}).get("value")
+                _reads.append(
+                    f'<span class="fc-read"><b>Share count</b> '
+                    f'{_last_v / 1e6:,.0f}m, {_chg * 100:+.1f}% since {_first_y}'
+                    + (f' · treasury {_tr / 1e6:,.0f}m '
+                       f'({_tr / _last_v * 100:.1f}% of shares held back, not cancelled)'
+                       if _tr else '')
+                    + ('' if abs(_chg) >= 0.005 else
+                       ' · <em>flat — any buyback has been offset or parked</em>')
+                    + '</span>')
+
+            if _reads:
+                st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
+                            unsafe_allow_html=True)
+
             # Two classes of note sit under this table, and they do not
             # deserve the same room. A missing API key is a broken pipeline the
             # reader has to act on, so it stays on screen. The rest explains
@@ -4482,6 +4573,9 @@ with tab_research:
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
                         "profile": _profile, "split_factor": _split_factor,
                         "revisions": (st.session_state.get("guidance_history") or {}).get(_rcode, {}),
+                        # The table shows a handful of years; the collector keeps
+                        # three of actuals. A share-count trend wants all of them.
+                        "allmap": _fc_map,
                     })
                     # Folded away by default. Filling gaps is occasional work
                     # — it is the table and the multiples the panel is opened

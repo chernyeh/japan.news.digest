@@ -197,6 +197,10 @@ def _plus_one_year(iso: str) -> str:
 # at Q1 is not "behind" for a company that earns its profit in the second half,
 # and the only way to know which is to have last year's Q1 to compare it to.
 HISTORY_YEARS = 3
+# Collected per fiscal year alongside F.METRICS, but kept separate from it:
+# these are counts, not money, so they must not pick up the ¥bn scaling or the
+# per-share formatting that every consumer of F.METRICS applies.
+SHARE_METRICS = ("shares", "treasury")
 
 # The quarterly period types a tanshin is filed under. 4Q is deliberately absent
 # — a 4Q filing is the full year, and it is picked up as an actual.
@@ -261,6 +265,17 @@ def company_actuals(records: list, years: int = HISTORY_YEARS) -> tuple:
                 val, key = F.dps_annual(newest, ""), ""
             else:
                 val, key = newest(metric)
+            if val is not None:
+                out[(metric, label, "actual")] = val
+                if key in F.NONCONSOLIDATED_KEYS:
+                    nc.add((metric, label, "actual"))
+        # Share count and treasury stock per year, which is the only way to see
+        # whether a buyback is retiring shares or just parking them. Both
+        # aliases were already in _JQ_ALIASES and neither was ever read -- the
+        # same gap `cfo` had. They ride in the existing long format rather than
+        # a new file, so nothing new is loaded at run time.
+        for metric in SHARE_METRICS:
+            val, key = newest(metric)
             if val is not None:
                 out[(metric, label, "actual")] = val
                 if key in F.NONCONSOLIDATED_KEYS:
@@ -632,7 +647,10 @@ def build_rows(code: str, name: str, guide: dict, cons: dict,
         rows.append({
             "code": code, "name": name, "metric": metric, "fy": fy, "basis": basis,
             "value": value,
-            "unit": "jpy" if metric in ("eps", "dps") else "jpy_abs",
+            # Share counts are counts. Tagging them jpy_abs would be a lie the
+            # next consumer of this file has no way to catch.
+            "unit": ("count" if metric in SHARE_METRICS
+                     else "jpy" if metric in ("eps", "dps") else "jpy_abs"),
             "source": source,
             "as_of": jq_as_of if filed else y_as_of,
         })

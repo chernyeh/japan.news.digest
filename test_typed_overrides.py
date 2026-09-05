@@ -731,6 +731,73 @@ def test_a_company_filing_twice_in_one_evening_is_asked_for_once():
     assert SR.select_refresh_codes(twice, ["7203"]) == ["7203"]
 
 
+# --- Reading a management's own guidance record -----------------------------
+
+def _hist(*pairs):
+    return {(fy, "operating_profit"): {"first_value": a, "latest_value": b,
+                                       "revisions": 0 if a == b else 1}
+            for fy, a, b in pairs}
+
+
+def test_a_management_that_guides_low_and_revises_up_reads_that_way():
+    c = F.conservatism(_hist(("FY2025", 2000, 2400), ("FY2026", 2200, 2500),
+                             ("FY2027", 2400, 3000)))
+    assert c["years"] == 3 and c["raised"] == 3 and c["cut"] == 0
+    assert c["median_move"] == _near(0.2, 0.01)
+    assert c["thin"] is False
+
+
+def test_a_year_where_guidance_never_moved_counts_as_evidence_not_absence():
+    # Leaving the opening number alone all year is a behaviour, so it belongs in
+    # the denominator; dropping it would flatter a company that revises rarely.
+    c = F.conservatism(_hist(("FY2026", 2500, 2500), ("FY2027", 2400, 3000)))
+    assert c["years"] == 2 and c["unchanged"] == 1 and c["raised"] == 1
+
+
+def test_a_cut_is_not_reported_as_a_raise():
+    c = F.conservatism(_hist(("FY2027", 3200, 3000)))
+    assert c["cut"] == 1 and c["raised"] == 0 and c["median_move"] < 0
+
+
+def test_too_few_years_is_flagged_rather_than_dressed_up():
+    assert F.conservatism(_hist(("FY2027", 2400, 3000)))["thin"] is True
+    assert F.conservatism(_hist(("FY2025", 1, 2), ("FY2026", 1, 2),
+                                ("FY2027", 1, 2)))["thin"] is False
+
+
+def test_conservatism_ignores_other_metrics_and_unusable_rows():
+    mixed = {("FY2027", "net_profit"): {"first_value": 100, "latest_value": 200},
+             ("FY2027", "operating_profit"): {"first_value": 0, "latest_value": 200}}
+    assert F.conservatism(mixed) == {}          # the only OP row divides by zero
+    assert F.conservatism({}) == {}
+
+
+def test_progress_is_ranked_against_the_same_company_not_a_distribution():
+    r = F.progress_rank(0.30, [0.35, 0.28])
+    assert r["n_prior"] == 2 and r["ahead_of"] == 1
+    assert r["priors"] == [0.35, 0.28]
+    # Behind its best year, ahead of its worst: inside its own range.
+    assert r["gap_to_best"] < 0 < r["gap_to_worst"]
+
+
+def test_progress_rank_needs_something_to_compare_against():
+    assert F.progress_rank(0.30, []) == {}
+    assert F.progress_rank(None, [0.35]) == {}
+    assert F.progress_rank(0.30, [None]) == {}
+
+
+def test_share_counts_are_not_labelled_as_yen():
+    import collect_consensus as C
+    rows = C.build_rows("7203", "T",
+                        {("shares", "FY2027", "actual"): 1.3e10,
+                         ("treasury", "FY2027", "actual"): 4.0e8,
+                         ("net_profit", "FY2027", "company"): 3e12}, {},
+                        "2026-08-06", "")
+    units = {r["metric"]: r["unit"] for r in rows}
+    assert units["shares"] == "count" and units["treasury"] == "count"
+    assert units["net_profit"] == "jpy_abs"
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

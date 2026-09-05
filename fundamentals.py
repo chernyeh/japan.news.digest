@@ -892,6 +892,73 @@ def revision_move(entry: dict, threshold: float = 0.005):
     return move, ("raised" if move > 0 else "cut")
 
 
+def conservatism(entries: dict, metric: str = "operating_profit",
+                 threshold: float = 0.005) -> dict:
+    """How this management has behaved with its own guidance, across the years
+    the history covers.
+
+    Japanese issuers have a reputation for guiding low and revising up. That is
+    a claim about the population, not about the company in front of you, and the
+    only way to tell them apart is the company's own filing record. Returns
+    counts and the median move rather than a single score, because "raised twice
+    out of three years, median +8%" is a statement a reader can check and
+    "conservatism: 7.4" is not.
+
+    `entries` is one company's slice of load_guidance_history_from_github, i.e.
+    {(fy, metric): row}. Years where guidance never moved count as unchanged --
+    they are evidence of behaviour, not missing data.
+    """
+    moves = []
+    for (fy, met), row in sorted((entries or {}).items()):
+        if met != metric:
+            continue
+        first, latest = row.get("first_value"), row.get("latest_value")
+        if first in (None, 0) or latest is None:
+            continue
+        moves.append((fy, (latest - first) / abs(first)))
+    if not moves:
+        return {}
+    raised = [m for _, m in moves if m >= threshold]
+    cut = [m for _, m in moves if m <= -threshold]
+    unchanged = len(moves) - len(raised) - len(cut)
+    ordered = sorted(m for _, m in moves)
+    mid = len(ordered) // 2
+    median = ordered[mid] if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+    return {
+        "years": len(moves),
+        "raised": len(raised),
+        "cut": len(cut),
+        "unchanged": unchanged,
+        "median_move": median,
+        "fys": [fy for fy, _ in moves],
+        # The honest label. Two or three fiscal years is a read, not a track
+        # record, and the caller is expected to say which it has.
+        "thin": len(moves) < 3,
+    }
+
+
+def progress_rank(this_year, prior_years: list) -> dict:
+    """Where this year's progress rate sits against the same company's own
+    progress at the same quarter in earlier years.
+
+    Deliberately not called a percentile. HISTORY_YEARS is 3, so there are at
+    most two prior observations, and presenting two points as a distribution
+    would imply precision that is not there. Returns the comparison and the
+    count, and lets the panel say "vs 2 prior years" in as many words.
+    """
+    priors = [p for p in (prior_years or []) if p is not None]
+    if this_year is None or not priors:
+        return {}
+    ahead = sum(1 for p in priors if this_year > p)
+    return {
+        "n_prior": len(priors),
+        "ahead_of": ahead,
+        "priors": sorted(priors, reverse=True),
+        "gap_to_best": this_year - max(priors),
+        "gap_to_worst": this_year - min(priors),
+    }
+
+
 def load_universe_from_github(repo: str, token: str = None) -> dict:
     """{code: {"name", "market_div", "scale", "sector", "sector33"}} for the
     collected universe.
