@@ -192,48 +192,131 @@ def _plus_one_year(iso: str) -> str:
         return ""
 
 
-def company_actuals(records: list) -> tuple:
-    """({(metric, fy_label, "actual"): value}, fy_label, as_of) for the most
-    recent *completed* fiscal year.
+# How many completed fiscal years of actuals to keep. Three, because a progress
+# rate is only readable against the same company's own history: 24% of guidance
+# at Q1 is not "behind" for a company that earns its profit in the second half,
+# and the only way to know which is to have last year's Q1 to compare it to.
+HISTORY_YEARS = 3
 
-    Taken only from a full-year filing. A quarterly tanshin also carries
-    Sales/OP/NP, but those are the year to date — three months of it, in a Q1 —
-    and putting them in a column headed by a fiscal year would read as a full
-    year's trading. Where no full-year filing is in range there is simply no
-    actual column."""
-    fy_records = [r for r in records
-                  if F.jq_pick_str(r, "period_type")[0].upper().startswith("FY")]
-    if not fy_records:
-        return {}, "", ""
-    latest = fy_records[-1]
-    fy_end = F.jq_pick_str(latest, "fy_end")[0][:10]
-    label = fy_label(fy_end)
-    if not label:
-        return {}, "", ""
+# The quarterly period types a tanshin is filed under. 4Q is deliberately absent
+# — a 4Q filing is the full year, and it is picked up as an actual.
+_YTD_PERIODS = ("1Q", "2Q", "3Q")
 
-    # Same across-filings read as the guidance side: a full-year tanshin and
-    # the amended one filed a week later carry different subsets.
-    same_fy = [r for r in reversed(fy_records)
-               if F.jq_pick_str(r, "fy_end")[0][:10] == fy_end]
 
+def _newest_reader(records: list):
+    """A (value, matched_key) reader over `records`, newest first.
+
+    Factored out because the same across-filings read is wanted in four places:
+    a full-year tanshin and the amended one filed a week later carry different
+    subsets, so reading one record wholesale silently drops fields."""
     def newest(concept):
-        for rec in same_fy:
+        for rec in records:
             val, key = F.jq_pick(rec, concept)
             if val is not None:
                 return val, key
         return None, ""
+    return newest
+
+
+def _fy_ends_newest_first(records: list, limit: int) -> list:
+    """The distinct fiscal-year ends in `records`, newest first, capped."""
+    ends = []
+    for rec in reversed(records):
+        end = F.jq_pick_str(rec, "fy_end")[0][:10]
+        if end and end not in ends:
+            ends.append(end)
+    return ends[:limit]
+
+
+def company_actuals(records: list, years: int = HISTORY_YEARS) -> tuple:
+    """({(metric, fy_label, "actual"): value}, newest_fy_label, as_of, nc) for
+    the last `years` *completed* fiscal years.
+
+    Taken only from full-year filings. A quarterly tanshin also carries
+    Sales/OP/NP, but those are the year to date — three months of it, in a Q1 —
+    and putting them in a column headed by a fiscal year would read as a full
+    year's trading. Those are collected separately by company_ytd(), which
+    labels them as the year-to-date figures they are.
+
+    More than one year is kept because a prior year's full-year actual is the
+    denominator of that year's progress rate; without it the seasonality
+    comparison has nothing to divide by."""
+    fy_records = [r for r in records
+                  if F.jq_pick_str(r, "period_type")[0].upper().startswith("FY")]
+    if not fy_records:
+        return {}, "", "", set()
+    ends = _fy_ends_newest_first(fy_records, years)
+    if not ends or not fy_label(ends[0]):
+        return {}, "", "", set()
 
     out, nc = {}, set()
-    for metric in F.METRICS:
-        if metric == "dps":
-            val, key = F.dps_annual(newest, ""), ""
-        else:
-            val, key = newest(metric)
-        if val is not None:
-            out[(metric, label, "actual")] = val
-            if key in F.NONCONSOLIDATED_KEYS:
-                nc.add((metric, label, "actual"))
-    return out, label, F.jq_pick_str(latest, "disc_date")[0][:10], nc
+    for end in ends:
+        label = fy_label(end)
+        if not label:
+            continue
+        newest = _newest_reader([r for r in reversed(fy_records)
+                                 if F.jq_pick_str(r, "fy_end")[0][:10] == end])
+        for metric in F.METRICS:
+            if metric == "dps":
+                val, key = F.dps_annual(newest, ""), ""
+            else:
+                val, key = newest(metric)
+            if val is not None:
+                out[(metric, label, "actual")] = val
+                if key in F.NONCONSOLIDATED_KEYS:
+                    nc.add((metric, label, "actual"))
+
+    latest = fy_records[-1]
+    return out, fy_label(ends[0]), F.jq_pick_str(latest, "disc_date")[0][:10], nc
+
+
+def company_ytd(records: list, years: int = HISTORY_YEARS) -> tuple:
+    """({(metric, fy_label, "ytd_1q"|"ytd_2q"|"ytd_3q"): value}, nc).
+
+    The cumulative year-to-date figures every quarterly tanshin carries and the
+    collector previously threw away — they were filtered out one line into
+    company_actuals and never looked at again, even though they arrive in the
+    same /fins/summary response and cost nothing extra to fetch.
+
+    They are what makes 進捗率 computable: year to date over the full-year
+    guidance, which is the first number the market quotes off a Japanese
+    quarterly result.
+
+    Note the fiscal-year labelling differs from a full-year filing. On a
+    quarterly tanshin CurFYEn is the year *in progress*, so its label is the
+    year the figures belong to; on a full-year tanshin CurFYEn is the year just
+    closed. Conflating the two is what put a whole column out by a year in
+    forecast_horizon(), and the same trap applies here."""
+    q_records = [r for r in records
+                 if F.jq_pick_str(r, "period_type")[0].upper() in _YTD_PERIODS]
+    if not q_records:
+        return {}, set()
+
+    out, nc = {}, set()
+    for end in _fy_ends_newest_first(q_records, years):
+        label = fy_label(end)
+        if not label:
+            continue
+        for period in _YTD_PERIODS:
+            same = [r for r in reversed(q_records)
+                    if F.jq_pick_str(r, "fy_end")[0][:10] == end
+                    and F.jq_pick_str(r, "period_type")[0].upper() == period]
+            if not same:
+                continue
+            newest = _newest_reader(same)
+            basis = f"ytd_{period.lower()}"
+            for metric in F.METRICS:
+                # No year-to-date dividend: an annual DPS is a rate for the
+                # year, not a flow that accumulates quarter by quarter, which
+                # is the same reason there is no implied-2H dividend.
+                if metric == "dps":
+                    continue
+                val, key = newest(metric)
+                if val is not None:
+                    out[(metric, label, basis)] = val
+                    if key in F.NONCONSOLIDATED_KEYS:
+                        nc.add((metric, label, basis))
+    return out, nc
 
 
 def company_guidance(records: list) -> tuple:
@@ -349,6 +432,73 @@ def company_guidance(records: list) -> tuple:
     if doc_type:
         fund["doc_type"] = doc_type
     return out, fund, as_of, fy1, nc
+
+
+def guidance_history(records: list, code: str, name: str,
+                     years: int = HISTORY_YEARS) -> list:
+    """Rows for data/guidance_history.csv: how each guidance figure has moved
+    since it was first filed.
+
+    Built from the same /fins/summary response the rest of the collection uses,
+    so it costs no extra call. Japanese issuers have a reputation for guiding
+    conservatively and revising up through the year; whether a particular
+    management actually does that is a fact sitting in its own filing history,
+    and this is what puts a number on it.
+
+    A *summary* rather than every filed value — first, latest and a count. The
+    full sequence stays re-derivable from the API, which returns a company's
+    whole history, so storing it would multiply the file for nothing.
+
+    Guidance for a fiscal year arrives under two different key families: the
+    NxF* set on the full-year tanshin that first announces it, and the F* set on
+    every quarterly filing afterwards. Both describe the same year, so both are
+    read into the same series — reading only one would show a year's guidance as
+    never having been revised."""
+    series = {}
+    for rec in records:
+        as_of = F.jq_pick_str(rec, "disc_date")[0][:10]
+        if not as_of:
+            continue
+        period = F.jq_pick_str(rec, "period_type")[0].upper()
+        cur_end = F.jq_pick_str(rec, "fy_end")[0][:10]
+        nxt_end = F.jq_pick_str(rec, "nx_fy_end")[0][:10]
+        # (the fiscal year this filing guides, the key prefix it guides under)
+        horizons = []
+        if period.startswith("FY"):
+            horizons.append((fy_label(nxt_end or _plus_one_year(cur_end)), "nx_"))
+        else:
+            horizons.append((fy_label(cur_end), "f_"))
+            if nxt_end:
+                horizons.append((fy_label(nxt_end), "nx_"))
+        for fy, prefix in horizons:
+            if not fy:
+                continue
+            for metric in F.METRICS:
+                if metric == "dps":
+                    val = F.dps_annual(_newest_reader([rec]), prefix)
+                else:
+                    val, _ = F.jq_pick(rec, f"{prefix}{metric}")
+                if val is None:
+                    continue
+                series.setdefault((fy, metric), []).append((as_of, val))
+
+    keep = sorted({fy for fy, _ in series}, reverse=True)[:years]
+    rows = []
+    for (fy, metric), points in sorted(series.items()):
+        if fy not in keep:
+            continue
+        points.sort(key=lambda p: p[0])
+        first_at, first_val = points[0]
+        last_at, last_val = points[-1]
+        # A revision is a *changed* value, not another filing repeating the same
+        # number — most quarterly filings restate unchanged guidance verbatim.
+        revisions = sum(1 for i in range(1, len(points))
+                        if points[i][1] != points[i - 1][1])
+        rows.append({"code": code, "name": name, "fy": fy, "metric": metric,
+                     "first_value": first_val, "first_as_of": first_at,
+                     "latest_value": last_val, "latest_as_of": last_at,
+                     "revisions": revisions})
+    return rows
 
 
 # ── Yahoo ────────────────────────────────────────────────────────────────
@@ -473,7 +623,8 @@ def build_rows(code: str, name: str, guide: dict, cons: dict,
     nc = set(nonconsolidated or ())
     rows = []
     for (metric, fy, basis), value in list(guide.items()) + list(cons.items()):
-        filed = basis.startswith("company") or basis == "actual"
+        filed = (basis.startswith("company") or basis == "actual"
+                 or basis.startswith("ytd_"))
         source = "yfinance"
         if filed:
             source = ("jquants:nonconsolidated" if (metric, fy, basis) in nc
@@ -691,18 +842,21 @@ def main() -> int:
               "Secrets and variables -> Actions, then re-run. Consensus and "
               "Yahoo balance-sheet data are still collected.")
 
-    cons_rows, fund_rows, failures = [], [], []
+    cons_rows, fund_rows, hist_all, failures = [], [], [], []
     auth_failed = False
     for i, row in enumerate(universe, 1):
         code, name = row["Code"], row.get("Name", "")
-        guide, actual, jq_fund, jq_as_of, fy1 = {}, {}, {}, "", ""
+        guide, actual, ytd, jq_fund, jq_as_of, fy1 = {}, {}, {}, {}, "", ""
+        hist_rows = []
         nonconsolidated = set()
         if api_key:
             try:
                 _records = fetch_jq_summary(api_key, code)
                 guide, jq_fund, jq_as_of, fy1, _nc_g = company_guidance(_records)
                 actual, _fy0, _, _nc_a = company_actuals(_records)
-                nonconsolidated = _nc_g | _nc_a
+                ytd, _nc_y = company_ytd(_records)
+                hist_rows = guidance_history(_records, code, name)
+                nonconsolidated = _nc_g | _nc_a | _nc_y
             except JQuantsAuthError as exc:
                 # Stop asking. Every remaining company would fail the same way,
                 # and burying one configuration error under 400 identical
@@ -723,12 +877,14 @@ def main() -> int:
             failures.append((code, f"yahoo: {exc}"))
             cons, y_fund, y_as_of = {}, {}, date.today().isoformat()
 
-        cons_rows.extend(build_rows(code, name, {**actual, **guide}, cons,
+        cons_rows.extend(build_rows(code, name, {**actual, **ytd, **guide}, cons,
                                     jq_as_of, y_as_of, nonconsolidated))
         fund_rows.append(merge_fundamentals(code, name, jq_fund, y_fund,
                                             jq_as_of or y_as_of))
+        hist_all.extend(hist_rows)
         print(f"  [{i}/{len(universe)}] {code} {name[:36]:36} "
-              f"guide={len(guide):2} cons={len(cons):2} fy1={fy1 or '?'}")
+              f"guide={len(guide):2} ytd={len(ytd):2} cons={len(cons):2} "
+              f"fy1={fy1 or '?'}")
         if i < len(universe):
             time.sleep(args.sleep)
 
@@ -772,6 +928,17 @@ def main() -> int:
     F.write_rows(args.out_fundamentals, F.FUNDAMENTALS_COLUMNS,
                  sorted(by_code.values(), key=lambda r: r["code"]))
 
+    # Guidance history is keyed on (code, fy, metric) and rebuilt from the
+    # company's whole filing history each run, so a fresh row supersedes the
+    # stored one; companies not collected this run keep theirs.
+    _hist = {(r["code"], r["fy"], r["metric"]): r
+             for r in F.read_rows(F.GUIDANCE_HISTORY_PATH, F.GUIDANCE_HISTORY_COLUMNS)}
+    for r in hist_all:
+        _hist[(r["code"], r["fy"], r["metric"])] = r
+    F.write_rows(F.GUIDANCE_HISTORY_PATH, F.GUIDANCE_HISTORY_COLUMNS,
+                 sorted(_hist.values(),
+                        key=lambda r: (r["code"], r["fy"], r["metric"])))
+
     import json
     os.makedirs(os.path.dirname(args.out_manifest) or ".", exist_ok=True)
     with open(args.out_manifest, "w", encoding="utf-8") as fh:
@@ -779,6 +946,7 @@ def main() -> int:
 
     print(f"\nWrote {len(merged)} consensus rows -> {args.out_consensus}")
     print(f"Wrote {len(by_code)} fundamentals rows -> {args.out_fundamentals}")
+    print(f"Wrote {len(_hist)} guidance-history rows -> {F.GUIDANCE_HISTORY_PATH}")
     print(f"Wrote run manifest -> {args.out_manifest}")
     return 0
 

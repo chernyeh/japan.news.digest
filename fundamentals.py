@@ -49,6 +49,11 @@ MANUAL_PATH = "data/consensus_manual.json"
 UNIVERSE_PATH = "data/universe.csv"
 UNIVERSE_FALLBACK_PATH = "data/jpxnikkei400.csv"
 RUN_MANIFEST_PATH = "data/consensus_run.json"
+# How company guidance for a given fiscal year has moved since it was first
+# filed. Japanese issuers are known for guiding conservatively and revising up,
+# and whether *this* management does that is a fact about them, not a vibe —
+# it is in the filing history J-Quants already returns.
+GUIDANCE_HISTORY_PATH = "data/guidance_history.csv"
 
 _UA = "japan-news-digest-fundamentals"
 
@@ -69,6 +74,16 @@ FUNDAMENTALS_COLUMNS = ["code", "name", "shares", "bps", "equity", "total_assets
                         "debt", "cash", "ebitda", "dep_amort", "op_actual",
                         "equity_to_assets", "cfo", "doc_type",
                         "fy_end", "fy_end_next", "ebitda_basis", "sources", "as_of"]
+
+# One row per company x fiscal year x metric. Deliberately a *summary* of the
+# revision path rather than every filed value: the full sequence is always
+# re-derivable from /fins/summary, which returns a company's whole filing
+# history, so storing it would multiply the file size for nothing. First and
+# latest plus a count is what answers "has this been raised, how often, and by
+# how much".
+GUIDANCE_HISTORY_COLUMNS = ["code", "name", "fy", "metric",
+                            "first_value", "first_as_of",
+                            "latest_value", "latest_as_of", "revisions"]
 
 # Ordinary (recurring) profit sits between operating and net profit in every
 # Japanese earnings table and is the line the market quotes; /fins/summary has
@@ -841,6 +856,40 @@ def load_fundamentals_from_github(repo: str, token: str = None) -> dict:
             continue
         out[code] = {k: (to_num(v) if k in numeric else v) for k, v in row.items()}
     return out
+
+
+def load_guidance_history_from_github(repo: str, token: str = None) -> dict:
+    """{code: {(fy, metric): row}} — how each guidance figure has moved."""
+    out = {}
+    for row in _raw_csv(repo, GUIDANCE_HISTORY_PATH, token):
+        code, fy, metric = row.get("code", ""), row.get("fy", ""), row.get("metric", "")
+        if not (code and fy and metric):
+            continue
+        out.setdefault(code, {})[(fy, metric)] = {
+            "first_value": to_num(row.get("first_value")),
+            "first_as_of": row.get("first_as_of", ""),
+            "latest_value": to_num(row.get("latest_value")),
+            "latest_as_of": row.get("latest_as_of", ""),
+            "revisions": int(to_num(row.get("revisions")) or 0),
+        }
+    return out
+
+
+def revision_move(entry: dict, threshold: float = 0.005):
+    """(fraction, direction) for how far guidance has moved since it was first
+    filed, or None where it has not moved or there is nothing to compare.
+
+    The 0.5% threshold matches jquants.guidance_direction, so a rounding-level
+    difference is not dressed up as a revision."""
+    if not entry:
+        return None
+    first, latest = entry.get("first_value"), entry.get("latest_value")
+    if first in (None, 0) or latest is None or not entry.get("revisions"):
+        return None
+    move = (latest - first) / abs(first)
+    if abs(move) < threshold:
+        return None
+    return move, ("raised" if move > 0 else "cut")
 
 
 def load_universe_from_github(repo: str, token: str = None) -> dict:

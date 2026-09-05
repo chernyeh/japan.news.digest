@@ -101,7 +101,8 @@ jobs:
           # collection by throwing away everything it had just written —
           # because data/universe.csv had not been produced.
           for f in data/consensus.csv data/fundamentals.csv \
-                   data/consensus_run.json data/universe.csv; do
+                   data/consensus_run.json data/universe.csv \
+                   data/guidance_history.csv; do
             if [ -f "$f" ]; then git add "$f"; fi
           done
           if git diff --staged --quiet; then
