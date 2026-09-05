@@ -4009,6 +4009,19 @@ with tab_research:
                        f'a thin sample</em>' if _liq["thin_sample"] else '')
                     + '</span>')
 
+            # 5. What the share price has actually done when the yen moved, as
+            #    against the translation sensitivity a company chooses to
+            #    disclose. The two disagreeing is the interesting case.
+            _fxb = fund.fx_beta_read(ctx.get("fx_beta") or {})
+            if _fxb:
+                _reads.append(
+                    f'<span class="fc-read"><b>FX behaviour</b> '
+                    + _fxb["verdict"]
+                    + f' · beta {_fxb["beta"]:+.2f} vs USD/JPY, r&sup2; {_fxb["r2"]:.2f} '
+                      f'over {_fxb["obs"]} observation{"s" if _fxb["obs"] != 1 else ""}'
+                    + ' · <em>measured from the share price, not from the '
+                      'company&rsquo;s disclosed sensitivity</em></span>')
+
             if _reads:
                 st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
                             unsafe_allow_html=True)
@@ -4536,6 +4549,8 @@ with tab_research:
                     "guidance_history", lambda: fund.load_guidance_history_from_github(_ec_repo, _gh_token))
                 st.session_state.liquidity_map = _shared(
                     "liquidity_map", lambda: fund.load_liquidity_from_github(_ec_repo, _gh_token))
+                st.session_state.fx_beta_map = _shared(
+                    "fx_beta_map", lambda: fund.load_fx_beta_from_github(_ec_repo, _gh_token))
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
@@ -4662,6 +4677,7 @@ with tab_research:
                         "profile": _profile, "split_factor": _split_factor,
                         "revisions": (st.session_state.get("guidance_history") or {}).get(_rcode, {}),
                         "liquidity": (st.session_state.get("liquidity_map") or {}).get(_rcode, {}),
+                        "fx_beta": (st.session_state.get("fx_beta_map") or {}).get(_rcode, {}),
                         # The table shows a handful of years; the collector keeps
                         # three of actuals. A share-count trend wants all of them.
                         "allmap": _fc_map,

@@ -235,6 +235,32 @@ jobs:
           vn = sum(1 for r in rows if r[4] != "")
           print(f"  with volume: {vn}/{len(rows)} ({round(vn/max(len(rows),1)*100,1)}%)")
 
+          # ── Archive the yen ───────────────────────────────────────────────────
+          # market_data.py fetches USD/JPY live for the Markets tab and throws it
+          # away. Nothing has ever kept a history, so no question of the form
+          # "how does this company move when the yen does" could be answered at
+          # all. A day not archived cannot be recovered later, so this starts now
+          # even though the analysis that uses it needs months of it. ~11 KB/year.
+          # The merge and write live in fx_history.py so they can be tested
+          # without a network; only the fetch is here.
+          import fx_history as FXH
+          FX_TICKERS = {"USDJPY": "JPY=X", "EURJPY": "EURJPY=X", "CNYJPY": "CNYJPY=X"}
+          fx_row = {}
+          for name, tkr in FX_TICKERS.items():
+              try:
+                  h = yf.Ticker(tkr).history(period="5d", auto_adjust=False)
+                  cl = h["Close"].dropna() if not h.empty else None
+                  if cl is not None and not cl.empty:
+                      fx_row[name] = round(float(cl.iloc[-1]), 4)
+              except Exception as e:
+                  print(f"FX {name}: {e}")
+          if fx_row:
+              hist = FXH.merge_fx_row(FXH.load_fx_history(), today_str, fx_row)
+              FXH.write_fx_history(hist)
+              print(f"FX archived {today_str}: {fx_row} ({len(hist)} rows)")
+          else:
+              print("FX: no rates fetched this run")
+
           # ── Prune the archive ─────────────────────────────────────────────────
           # Nothing has ever removed these and they accumulate about 7.5 MB a
           # year. 760 days is the retention edinet.py and tdnet.py already use,
@@ -538,13 +564,26 @@ jobs:
       - name: Compute liquidity summary
         run: python compute_liquidity.py
 
+      # Measured FX sensitivity, as opposed to the translation figure a company
+      # discloses. No-ops until the FX archive above has ~30 paired observations.
+      - name: Compute FX beta
+        run: python compute_fx_beta.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # -A so the archive prune's deletions are staged, not just the writes.
-          git add -A data/jquants_prices_latest.csv data/jquants_shares.csv \
-                     data/archive/ data/jquants_3m_perf.csv data/liquidity.csv
+          # Stage only what exists. `git add` on a missing pathspec is fatal,
+          # not a warning, and under `bash -e` that would throw away the whole
+          # run -- data/fx_beta.csv is absent until the FX archive has enough
+          # history to regress, which is weeks away on a fresh repo.
+          # -A on the archive directory so the prune's deletions are staged too.
+          git add -A data/archive/ || true
+          for f in data/jquants_prices_latest.csv data/jquants_shares.csv \
+                   data/jquants_3m_perf.csv data/liquidity.csv \
+                   data/fx_history.csv data/fx_beta.csv; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
           if git diff --staged --quiet; then
             echo "No changes"
           else

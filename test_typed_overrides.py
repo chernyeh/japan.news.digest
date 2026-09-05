@@ -878,6 +878,91 @@ def test_a_position_size_rescales_the_exit_estimate():
     assert F.liquidity_read(r, position_jpy=20_000_000)["days"] == _near(2.083, 0.01)
 
 
+# --- The yen: archived daily, and regressed against the share price ----------
+
+import fx_history as FXH
+
+
+def test_a_same_day_rerun_corrects_the_row_rather_than_duplicating_it():
+    h = FXH.merge_fx_row({}, "2026-09-05", {"USDJPY": 147.2, "EURJPY": 172.1})
+    h = FXH.merge_fx_row(h, "2026-09-05", {"USDJPY": 147.5})
+    assert list(h) == ["2026-09-05"]
+    assert h["2026-09-05"]["USDJPY"] == 147.5
+    # A pair that failed to fetch leaves the stored value alone rather than
+    # blanking a rate that was collected successfully earlier in the day.
+    assert h["2026-09-05"]["EURJPY"] == 172.1
+
+
+def _walk(n, drift, noise, seed, start=100.0, driver=None):
+    """A price series. With `driver`, each step is `drift` times the driver's
+    same-step return plus its own noise -- so the true beta is known."""
+    import random
+    rng = random.Random(seed)
+    lvl, out, steps = start, {}, []
+    for i in range(n):
+        day = f"2026-{6 + i // 28:02d}-{1 + i % 28:02d}"
+        r = (driver[i] * drift) if driver else rng.gauss(0, noise)
+        if driver:
+            r += rng.gauss(0, noise)
+        steps.append(r)
+        lvl *= (1 + r)
+        out[day] = lvl
+    return out, steps
+
+
+def test_the_regression_recovers_a_known_beta():
+    import random
+    rng = random.Random(3)
+    drivers = [rng.gauss(0, 0.005) for _ in range(90)]
+    fx, _ = _walk(90, 1.0, 0.0, 1, 147.0, drivers)
+    stock, _ = _walk(90, 1.8, 0.002, 2, 3000.0, drivers)
+    res = FXH.fx_beta(stock, fx)
+    assert res["insufficient"] is False
+    assert res["beta"] == _near(1.8, 0.25)
+    assert res["r2"] > 0.5 and res["weak"] is False
+
+
+def test_a_yen_that_barely_moved_gives_no_beta_rather_than_a_confident_one():
+    # sxx is tiny but not zero here, so a bare "if not sxx" guard would divide
+    # noise by noise and return a number that looks like a measurement.
+    days = [f"2026-06-{d:02d}" for d in range(1, 29)] + [f"2026-07-{d:02d}" for d in range(1, 29)]
+    flat = {d: 147.0 for d in days}
+    rising = {d: 3000 * (1.01 ** i) for i, d in enumerate(days)}
+    res = FXH.fx_beta(rising, flat)
+    assert res["insufficient"] is True
+    assert "barely moved" in res.get("reason", "")
+
+
+def test_too_little_overlap_says_so_instead_of_regressing_on_three_points():
+    fx = {"2026-06-01": 147.0, "2026-06-02": 148.0, "2026-06-03": 146.0}
+    st = {"2026-06-01": 3000.0, "2026-06-02": 3050.0, "2026-06-03": 2990.0}
+    res = FXH.fx_beta(st, fx)
+    assert res["insufficient"] is True and res["obs"] < FXH.MIN_OBS
+
+
+def test_returns_are_taken_between_available_observations_not_calendar_days():
+    # The archive is one snapshot per workflow run, so consecutive observations
+    # can be days apart; treating a gap as a missing day would understate moves.
+    gappy = {"2026-06-01": 100.0, "2026-06-08": 110.0, "2026-06-20": 99.0}
+    r = FXH._returns(gappy)
+    assert r["2026-06-08"] == _near(0.10)
+    assert r["2026-06-20"] == _near(-0.10)
+
+
+def test_the_wording_never_states_a_beta_without_its_direction():
+    up = F.fx_beta_read({"fx_beta": 1.8, "r2": 0.9, "obs": 89, "weak": "no"})
+    dn = F.fx_beta_read({"fx_beta": -0.9, "r2": 0.4, "obs": 89, "weak": "no"})
+    assert "weaker yen" in up["verdict"] and "rises" in up["verdict"]
+    assert "weaker yen" in dn["verdict"] and "falls" in dn["verdict"]
+
+
+def test_a_weak_fit_is_reported_as_a_finding_not_hidden():
+    read = F.fx_beta_read({"fx_beta": 0.004, "r2": 0.0, "obs": 89, "weak": "yes"})
+    assert read["weak"] is True
+    assert "explains almost none" in read["verdict"]
+    assert F.fx_beta_read({}) == {}
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

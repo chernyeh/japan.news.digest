@@ -913,6 +913,50 @@ def load_liquidity_from_github(repo: str, token: str = None) -> dict:
     return out
 
 
+FX_BETA_PATH = "data/fx_beta.csv"
+
+
+def load_fx_beta_from_github(repo: str, token: str = None) -> dict:
+    """{code: row} — measured share-price sensitivity to USD/JPY, one row each."""
+    out = {}
+    numeric = {"fx_beta", "r2", "obs"}
+    for row in _raw_csv(repo, FX_BETA_PATH, token):
+        code = str(row.get("code", "")).strip()
+        if not code:
+            continue
+        out[code] = {k: (to_num(v) if k in numeric else v) for k, v in row.items()}
+    return out
+
+
+def fx_beta_read(row: dict) -> dict:
+    """One FX-beta row as a sentence, or {} where there is nothing to say.
+
+    The pairs are quoted as yen per unit of foreign currency, so a rising rate
+    is a *weaker* yen. A positive beta therefore means the share price rises as
+    the yen weakens -- the exporter direction. Getting that backwards inverts
+    every conclusion, so the wording never says "beta" without saying which way.
+    """
+    if not row or row.get("fx_beta") is None:
+        return {}
+    beta, r2 = row["fx_beta"], row.get("r2") or 0.0
+    weak = str(row.get("weak", "")).lower() == "yes" or r2 < 0.05
+    if weak:
+        verdict = ("the yen explains almost none of this share price's variance — "
+                   "whatever the company discloses about FX, the market has not "
+                   "been trading it as an FX name")
+    elif abs(beta) < 0.3:
+        verdict = "little share-price sensitivity to the yen"
+    elif beta > 0:
+        verdict = (f"rises {abs(beta):.1f}% for a 1% weaker yen — the exporter "
+                   f"direction, and already in the price")
+    else:
+        verdict = (f"falls {abs(beta):.1f}% for a 1% weaker yen — an importer or "
+                   f"domestic profile, whatever the FX disclosure says")
+    return {"beta": beta, "r2": r2, "obs": row.get("obs") or 0,
+            "weak": weak, "verdict": verdict,
+            "first": row.get("first_obs", ""), "last": row.get("last_obs", "")}
+
+
 def liquidity_read(row: dict, position_jpy: float = None) -> dict:
     """Turn one liquidity row into the sentence a position-sizing decision needs.
 
