@@ -952,7 +952,9 @@ def fx_beta_read(row: dict) -> dict:
     else:
         verdict = (f"falls {abs(beta):.1f}% for a 1% weaker yen — an importer or "
                    f"domestic profile, whatever the FX disclosure says")
-    return {"beta": beta, "r2": r2, "obs": row.get("obs") or 0,
+    # int, not the float to_num produced when the CSV was loaded: "89.0
+    # observations" is a count rendered as a measurement.
+    return {"beta": beta, "r2": r2, "obs": int(row.get("obs") or 0),
             "weak": weak, "verdict": verdict,
             "first": row.get("first_obs", ""), "last": row.get("last_obs", "")}
 
@@ -989,8 +991,8 @@ def liquidity_read(row: dict, position_jpy: float = None) -> dict:
         "days": days,
         "tier": tier,
         "participation": part,
-        "obs": row.get("obs_20") or 0,
-        "span_days": row.get("span_days_20") or 0,
+        "obs": int(row.get("obs_20") or 0),
+        "span_days": int(row.get("span_days_20") or 0),
         "hurdle": hurdle,
         # The archive is one snapshot per workflow run, not one per session, so
         # a window of 20 observations can span three months. Say so.

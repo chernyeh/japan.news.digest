@@ -963,6 +963,116 @@ def test_a_weak_fit_is_reported_as_a_finding_not_hidden():
     assert F.fx_beta_read({}) == {}
 
 
+# --- Reading FX assumptions off a company's own deck -------------------------
+
+import fx_extract as FXE
+import fx_store as FXS
+
+
+def test_a_link_that_returned_a_web_page_is_caught_before_the_api_call():
+    # IR links go stale and return an HTML error page from a .pdf URL. Without
+    # the header check this fails deep inside the API call with a message that
+    # does not point at the cause.
+    ok, problems = FXE.validate_pdf("deck.pdf", b"<!DOCTYPE html><html>")
+    assert ok is False and "does not look like a PDF" in problems[0]
+    assert FXE.validate_pdf("deck.pdf", b"%PDF-1.7 ...")[0] is True
+    assert FXE.validate_pdf("deck.pdf", b"")[0] is False
+
+
+def test_an_oversized_document_is_refused_with_its_size():
+    ok, problems = FXE.validate_pdf("big.pdf", b"%PDF-" + b"x" * (33 * 1024 * 1024))
+    assert ok is False and "MB" in problems[0]
+
+
+def test_currency_pairs_are_normalised_however_the_deck_writes_them():
+    assert FXE._pair("USDJPY") == "USD/JPY"
+    assert FXE._pair("usd/jpy") == "USD/JPY"
+    assert FXE._pair("ドル円") == "USD/JPY"
+    assert FXE._pair("ユーロ円") == "EUR/JPY"
+    assert FXE._pair("GBPJPY") == "GBP/JPY"
+
+
+def test_an_unlabelled_pair_is_not_defaulted_to_the_commonest_one():
+    # Filing a euro sensitivity under the dollar would look entirely plausible
+    # in the review grid and be wrong.
+    assert FXE._pair("") == "UNKNOWN"
+    assert FXE._pair(None) == "UNKNOWN"
+
+
+def test_an_invented_scope_is_downgraded_to_unstated():
+    out = FXE.normalise({"sensitivities": [
+        {"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9, "scope": "guessed",
+         "page_number": 4, "source_quote": "感応度"}]})
+    assert out["sensitivities"][0]["scope"] == "unstated"
+
+
+def test_a_deck_that_discloses_nothing_normalises_to_empty_not_to_junk():
+    out = FXE.normalise({"fiscal_year": "FY2027", "assumptions": [],
+                         "sensitivities": [], "unreadable": [], "notes": ""})
+    assert out["assumptions"] == [] and out["sensitivities"] == []
+    assert FXE.normalise({})["assumptions"] == []
+    # A row with no usable number is dropped rather than shown blank.
+    assert FXE.normalise({"assumptions": [{"pair": "USD/JPY", "rate": None}]})["assumptions"] == []
+
+
+def test_the_unreadable_escape_hatch_survives_normalisation():
+    out = FXE.normalise({"unreadable": [
+        {"page_number": 9, "what": "chart label", "why": "too small to read"}]})
+    assert out["unreadable"][0]["page_number"] == 9
+
+
+def test_the_fx_gap_needs_both_halves_and_will_not_invent_the_missing_one():
+    assumption_only = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}]}
+    assert FXS.fx_gap(assumption_only, {"USD/JPY": 152.3}) == {}
+    sens_only = {"sensitivities": [{"pair": "USD/JPY",
+                                    "op_impact_jpy_per_1yen": 4.5e9}]}
+    assert FXS.fx_gap(sens_only, {"USD/JPY": 152.3}) == {}
+    assert FXS.fx_gap({}, {}) == {}
+
+
+def test_the_fx_gap_multiplies_the_move_by_the_disclosed_sensitivity():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "translation"}]}
+    g = FXS.fx_gap(entry, {"USD/JPY": 152.3})
+    assert g["move_yen"] == _near(7.3, 0.001)
+    assert g["impact_jpy"] == _near(32.85e9, 1e6)
+
+
+def test_the_caveats_travel_with_the_number_rather_than_being_optional():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "unstated"}]}
+    g = FXS.fx_gap(entry, {"USD/JPY": 152.3})
+    assert len(g["caveats"]) == 3
+    assert any("hedg" in c for c in g["caveats"])
+    assert any("does not say what this sensitivity covers" in c for c in g["caveats"])
+    assert g["verdict"] == "flag to investigate, not a revised forecast"
+
+
+def test_a_stated_scope_is_reported_instead_of_the_unstated_caveat():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 145.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "translation"}]}
+    caveats = FXS.fx_gap(entry, {"USD/JPY": 152.3})["caveats"]
+    assert any("translation exposure only" in c for c in caveats)
+
+
+def test_a_stronger_yen_produces_a_negative_flag_not_an_absolute_one():
+    entry = {"assumptions": [{"pair": "USD/JPY", "rate": 155.0}],
+             "sensitivities": [{"pair": "USD/JPY", "op_impact_jpy_per_1yen": 4.5e9,
+                                "scope": "translation"}]}
+    g = FXS.fx_gap(entry, {"USD/JPY": 145.0})
+    assert g["move_yen"] < 0 and g["impact_jpy"] < 0
+
+
+def test_saving_without_a_token_says_so_rather_than_failing_silently():
+    ok, msg = FXS.save_entry("owner/repo", "", "7203", "FY2027", {})
+    assert ok is False and "session only" in msg
+    ok, msg = FXS.save_entry("owner/repo", "tok", "", "FY2027", {})
+    assert ok is False and "fiscal year" in msg
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

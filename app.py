@@ -20,9 +20,11 @@ from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
-from ir_scanner import scan_page_for_documents, build_zip
+from ir_scanner import scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
 import consensus_vision
+import fx_extract
+import fx_store
 
 # Batch ZIP downloads are fetched server-side and held in memory, so cap how
 # many documents one ZIP can contain; the UI tells the user what was skipped.
@@ -4022,6 +4024,27 @@ with tab_research:
                     + ' · <em>measured from the share price, not from the '
                       'company&rsquo;s disclosed sensitivity</em></span>')
 
+            # 6. How much of the yen's move since guidance was set the company
+            #    has not yet recognised. This is the payoff of the extraction --
+            #    and the one read that has to carry its caveats on screen,
+            #    because it is the easiest to mistake for a revised forecast.
+            _fx_ent = (ctx.get("fx_assumptions") or {})
+            _spot = {k: v for k, v in (ctx.get("spot") or {}).items() if v}
+            _gap = {}
+            for _gy in reversed(_shown):
+                _gap = fx_store.fx_gap(_fx_ent.get(_gy) or {}, _spot)
+                if _gap:
+                    break
+            if _gap:
+                _bn = _gap["impact_jpy"] / 1e9
+                _reads.append(
+                    f'<span class="fc-read"><b>FX vs guidance</b> guidance assumes '
+                    f'{_gap["pair"]} {_gap["assumed"]:.1f}, spot {_gap["spot"]:.1f} — '
+                    f'a {_gap["move_yen"]:+.1f} yen move the company&rsquo;s own sensitivity '
+                    f'puts at <strong>¥{_bn:+,.1f}bn</strong> of full-year operating profit. '
+                    + '<em>' + _safe_text("; ".join(_gap["caveats"])) + '. '
+                    + _safe_text(_gap["verdict"].capitalize()) + '.</em></span>')
+
             if _reads:
                 st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
                             unsafe_allow_html=True)
@@ -4384,6 +4407,154 @@ with tab_research:
             _flash("success" if _ok and not _bad else "warning",
                    _msg if _ok else f"Applied for this session, but not saved: {_msg}")
 
+        def _fc_fx(_rcode, _rname, _years):
+            """Read a results deck's FX assumptions and sensitivity, review, save.
+
+            On demand and one company at a time: there is no batch job and no
+            standing cost. See fx_extract.py for why the model choice matters
+            here more than the price difference does."""
+            st.markdown(
+                '<div class="fc-note">Japanese issuers state the rate their guidance assumes '
+                '(<strong>前提為替レート</strong>), and many state a sensitivity beside it '
+                '(<strong>感応度</strong>) — what a one-yen move does to full-year operating profit. '
+                'Neither is in any data feed; both are in the results deck. Attach it, or paste a '
+                'link to it, and it is read in one pass. <strong>Nothing is saved until you '
+                'review it.</strong></div>',
+                unsafe_allow_html=True)
+
+            _api_key = get_secret("ANTHROPIC_API_KEY")
+            _src_name, _src_url, _pdf = "", "", b""
+
+            # Three ways to the same bytes: a presentation already saved for this
+            # company, a pasted URL, or an upload. The first is there because
+            # the link library usually already has the deck.
+            _saved = [(i, _l) for i, _l in
+                      enumerate((st.session_state.get("research_links_map") or {}).get(_rcode, []))
+                      if _l.get("doc_type") == "Presentation" and _l.get("url")]
+            _choices = ["Upload a file", "Paste a URL"] + (
+                ["Use a saved presentation link"] if _saved else [])
+            _how = st.radio("Source", _choices, horizontal=True,
+                            key=f"fx_how_{_rcode}", label_visibility="collapsed")
+
+            if _how == "Upload a file":
+                _up = st.file_uploader("Results presentation (PDF)", type=["pdf"],
+                                       key=f"fx_up_{_rcode}", label_visibility="collapsed")
+                if _up:
+                    _src_name, _pdf = _up.name, _up.getvalue()
+            elif _how == "Paste a URL":
+                _src_url = st.text_input("PDF URL", key=f"fx_url_{_rcode}",
+                                         placeholder="https://…/presentation.pdf")
+            else:
+                _pick = st.selectbox(
+                    "Saved presentation",
+                    options=[i for i, _ in _saved],
+                    format_func=lambda i: (dict(_saved)[i].get("title")
+                                           or dict(_saved)[i].get("url", ""))[:90],
+                    key=f"fx_pick_{_rcode}")
+                _src_url = dict(_saved).get(_pick, {}).get("url", "")
+
+            if _src_url and st.button("⬇️ Fetch that document", key=f"fx_fetch_{_rcode}"):
+                try:
+                    # Already used by the IR scanner to pull a document by URL
+                    # with a size cap; today its bytes only ever go into a ZIP.
+                    # Returns bytes, and its own 40MB cap is above what the
+                    # API accepts, so cap at the API's limit instead and fail
+                    # on the download rather than after paying for a request.
+                    _bytes = fetch_document_bytes(
+                        _src_url, max_bytes=fx_extract.MAX_PDF_BYTES)
+                    st.session_state[f"fx_bytes_{_rcode}"] = _bytes
+                    st.session_state[f"fx_name_{_rcode}"] = (
+                        _src_url.rsplit("/", 1)[-1] or "document.pdf")
+                except Exception as _fe:
+                    st.warning(f"Could not fetch that document: {_fe}")
+            if not _pdf:
+                _pdf = st.session_state.get(f"fx_bytes_{_rcode}") or b""
+                _src_name = st.session_state.get(f"fx_name_{_rcode}", "")
+
+            if _pdf:
+                _ok, _problems = fx_extract.validate_pdf(_src_name, _pdf)
+                if not _ok:
+                    st.warning(" · ".join(_problems))
+                else:
+                    _est = fx_extract.estimate_cost(_pdf, _api_key)
+                    _pages = _est.get("pages") or 0
+                    st.markdown(
+                        f'<div class="fc-note">{_safe_text(_src_name)} — '
+                        f'{len(_pdf) / 1048576:.1f} MB'
+                        + (f', about {_pages} pages' if _pages else '')
+                        + f'. Cost of this read: <strong>about ${_est["usd"]:.2f}</strong> '
+                        f'({_est["input_tokens"]:,} input tokens, '
+                        + ('counted by the API' if _est["measured"]
+                           else 'estimated from the page count')
+                        + f'), using <code>{fx_extract.MODEL}</code>.</div>',
+                        unsafe_allow_html=True)
+
+            _res_key = f"fx_res_{_rcode}"
+            _go = st.button("💴 Read FX assumptions", key=f"fx_go_{_rcode}",
+                            disabled=not (_pdf and _api_key), use_container_width=False)
+            if not _api_key:
+                st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
+                            'Secrets, so documents cannot be read.</div>',
+                            unsafe_allow_html=True)
+            if _go and _pdf:
+                with st.spinner("Reading the deck…"):
+                    try:
+                        st.session_state[_res_key] = fx_extract.extract_from_pdf(
+                            _pdf, _api_key, _rcode, _rname)
+                    except Exception as _xe:
+                        st.session_state.pop(_res_key, None)
+                        st.error(f"Could not read that document: {_xe}")
+
+            _res = st.session_state.get(_res_key)
+            if _res:
+                _fy = st.text_input("Fiscal year these apply to",
+                                    value=_res.get("fiscal_year") or (_years[-1] if _years else ""),
+                                    key=f"fx_fy_{_rcode}",
+                                    help="Keyed by year on purpose: the assumption is revised "
+                                         "during the year, and guidance has to be read against "
+                                         "the rate that guidance actually assumed.")
+                if _res["assumptions"]:
+                    st.markdown("**Assumed rates**")
+                    st.dataframe(pd.DataFrame(_res["assumptions"]), hide_index=True,
+                                 use_container_width=True)
+                else:
+                    st.markdown('<div class="fc-note">No assumed rate found in this document. '
+                                'That is a normal outcome, not a failure — try the full results '
+                                'presentation rather than the tanshin.</div>',
+                                unsafe_allow_html=True)
+                if _res["sensitivities"]:
+                    st.markdown("**Disclosed sensitivity** (yen of operating profit per ¥1 move)")
+                    st.dataframe(pd.DataFrame(_res["sensitivities"]), hide_index=True,
+                                 use_container_width=True)
+                else:
+                    st.markdown('<div class="fc-note">No sensitivity disclosed. Many issuers '
+                                'publish an assumed rate and no sensitivity at all — this is the '
+                                'company telling you something, not a gap in the read.</div>',
+                                unsafe_allow_html=True)
+                if _res["unreadable"]:
+                    st.markdown("**Could not be read with confidence** — check these pages yourself")
+                    st.dataframe(pd.DataFrame(_res["unreadable"]), hide_index=True,
+                                 use_container_width=True)
+                if _res.get("notes"):
+                    st.markdown(f'<div class="fc-note">{_safe_text(_res["notes"])}</div>',
+                                unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="fc-note">Page numbers and quotes are <strong>reported by the '
+                    'model</strong>, not verified by the API — citations and a strict output '
+                    'schema cannot both be used on one request. Spot-check a couple before you '
+                    'rely on them.</div>', unsafe_allow_html=True)
+                if st.button("💾 Save these figures", key=f"fx_save_{_rcode}"):
+                    _ok2, _msg = fx_store.save_entry(
+                        _ec_repo, _gh_token or "", _rcode, _fy,
+                        {"assumptions": _res["assumptions"],
+                         "sensitivities": _res["sensitivities"],
+                         "notes": _res.get("notes", ""),
+                         "source": {"name": _src_name, "url": _src_url}})
+                    st.toast("Saved." if _ok2 else f"Not saved — {_msg}")
+                    if _ok2:
+                        st.session_state.pop(_res_key, None)
+                        _get_app_cache()["fx_assumptions"] = None
+
         def _fc_screenshots(_rcode, _rname, _years):
             """Attach terminal screenshots, have them read, review, then save.
 
@@ -4551,6 +4722,8 @@ with tab_research:
                     "liquidity_map", lambda: fund.load_liquidity_from_github(_ec_repo, _gh_token))
                 st.session_state.fx_beta_map = _shared(
                     "fx_beta_map", lambda: fund.load_fx_beta_from_github(_ec_repo, _gh_token))
+                st.session_state.fx_assumptions = _shared(
+                    "fx_assumptions", lambda: fx_store.load_from_github(_ec_repo, _gh_token))
                 st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_run        = fund.load_run_manifest_from_github(_ec_repo, _gh_token)
                 st.session_state.consensus_loaded_ts  = now_local()
@@ -4678,6 +4851,18 @@ with tab_research:
                         "revisions": (st.session_state.get("guidance_history") or {}).get(_rcode, {}),
                         "liquidity": (st.session_state.get("liquidity_map") or {}).get(_rcode, {}),
                         "fx_beta": (st.session_state.get("fx_beta_map") or {}).get(_rcode, {}),
+                        "fx_assumptions": (st.session_state.get("fx_assumptions") or {}).get(_rcode, {}),
+                        # Live spot from the Markets tab's own fetch, keyed the
+                        # way fx_store expects. Empty until that tab has run,
+                        # which is the correct behaviour: no spot, no flag.
+                        "spot": {
+                            "USD/JPY": ((st.session_state.get("market_data") or {})
+                                        .get("forex", {}).get("usdjpy", {}) or {}).get("price"),
+                            "EUR/JPY": ((st.session_state.get("market_data") or {})
+                                        .get("forex", {}).get("eurjpy", {}) or {}).get("price"),
+                            "CNY/JPY": ((st.session_state.get("market_data") or {})
+                                        .get("forex", {}).get("cnyjpy", {}) or {}).get("price"),
+                        },
                         # The table shows a handful of years; the collector keeps
                         # three of actuals. A share-count trend wants all of them.
                         "allmap": _fc_map,
@@ -4696,12 +4881,15 @@ with tab_research:
                         # because it always works — the screenshot reader needs an
                         # API key, and half of what is missing here is a single
                         # figure that is faster typed than captured.
-                        _tab_type, _tab_shot = st.tabs(["✏️ Type or correct values",
-                                                        "📸 Read a screenshot"])
+                        _tab_type, _tab_shot, _tab_fx = st.tabs(
+                            ["✏️ Type or correct values", "📸 Read a screenshot",
+                             "💴 Read FX assumptions"])
                         with _tab_type:
                             _fc_typed(_rcode, _rname, _years, _fc_map, _profile)
                         with _tab_shot:
                             _fc_screenshots(_rcode, _rname, _years)
+                        with _tab_fx:
+                            _fc_fx(_rcode, _rname, _years)
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []
