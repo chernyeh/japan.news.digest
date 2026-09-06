@@ -35,21 +35,8 @@ DOC_TYPES = [
 
 def load_links_from_github(repo: str, token: str = None) -> dict:
     """Returns {sec_code: [link_dict, ...]}."""
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{LINKS_PATH}"
-    r = requests.get(url, headers=headers, timeout=15)
-    if r.status_code == 404:
-        return {}
-    if r.status_code != 200:
-        print(f"Research links fetch error: {r.status_code}")
-        return {}
-    try:
-        return r.json()
-    except ValueError:
-        return {}
+    import gh_read
+    return gh_read.raw_json(repo, LINKS_PATH, token, {})
 
 
 def _get_current(api_url: str, headers: dict):

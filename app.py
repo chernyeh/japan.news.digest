@@ -23,6 +23,7 @@ from research_links import load_links_from_github, save_link, delete_link, DOC_T
 from ir_scanner import scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
 import consensus_vision
+import gh_read
 import fx_extract
 import fx_store
 import qa_extract
@@ -3366,6 +3367,16 @@ with tab_research:
     _edinet_idx = st.session_state.edinet_filings_idx
     _tdnet_idx  = st.session_state.tdnet_filings_idx
     _links_map  = st.session_state.research_links_map
+
+    # A rejected token makes GitHub answer 404 for every file in a public repo,
+    # so the notes below would otherwise tell the reader to run backfill actions
+    # that cannot fix anything. gh_read detects it by retrying anonymously; say
+    # so here, once, above the symptoms it causes.
+    _tok_warn = gh_read.token_warning()
+    if _tok_warn:
+        st.markdown(
+            '<div class="fc-note fc-warn">⚠️ ' + _safe_text(_tok_warn) + '</div>',
+            unsafe_allow_html=True)
 
     if not _edinet_idx:
         st.markdown(

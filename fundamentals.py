@@ -815,17 +815,11 @@ def merge_consensus(existing: list, fresh: list) -> list:
 # ── GitHub-backed loaders (same pattern as jquants.load_*_from_github) ────
 
 def _raw_csv(repo: str, path: str, token: str = None):
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{path}"
-    r = requests.get(url, headers=headers, timeout=15)
-    if r.status_code != 200:
-        if r.status_code != 404:
-            print(f"{path} fetch error: {r.status_code}")
-        return []
-    return list(csv.DictReader(r.text.splitlines()))
+    """One CSV from the repo. Goes through gh_read so that a rejected token --
+    which GitHub answers with 404, not 401 -- does not read as "this file does
+    not exist" for every data file at once."""
+    import gh_read
+    return gh_read.raw_csv(repo, path, token)
 
 
 def load_consensus_from_github(repo: str, token: str = None) -> dict:
@@ -1085,33 +1079,15 @@ def load_universe_from_github(repo: str, token: str = None) -> dict:
 
 def load_manual_from_github(repo: str, token: str = None) -> dict:
     """{code: {"<metric>|<fy>|<basis>": {"value","unit","source","as_of"}}}"""
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{MANUAL_PATH}"
-    r = requests.get(url, headers=headers, timeout=15)
-    if r.status_code != 200:
-        return {}
-    try:
-        return r.json()
-    except ValueError:
-        return {}
+    import gh_read
+    return gh_read.raw_json(repo, MANUAL_PATH, token, {})
 
 
 def load_run_manifest_from_github(repo: str, token: str = None) -> dict:
     """What the last collector run reached. Lets the panel say *why* a column
     is empty instead of showing dashes that could mean three different things."""
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{RUN_MANIFEST_PATH}"
-    try:
-        r = requests.get(url, headers=headers, timeout=15)
-        return r.json() if r.status_code == 200 else {}
-    except Exception:
-        return {}
+    import gh_read
+    return gh_read.raw_json(repo, RUN_MANIFEST_PATH, token, {})
 
 
 def apply_manual_overrides(auto: dict, manual_for_code: dict) -> dict:

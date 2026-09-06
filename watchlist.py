@@ -230,25 +230,8 @@ def remove_from_watchlist(company: str, repo: str = "", token: str = "",
 
 def load_from_github(repo: str, token: str = "") -> dict:
     """{code: entry} from data/watchlist.json, or {} if it is not there yet."""
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{WATCHLIST_PATH}"
-    try:
-        r = requests.get(url, headers=headers, timeout=15)
-    except Exception as exc:
-        print(f"Watchlist fetch error: {exc}")
-        return {}
-    if r.status_code == 404:
-        return {}
-    if r.status_code != 200:
-        print(f"Watchlist fetch error: {r.status_code}")
-        return {}
-    try:
-        data = r.json()
-    except ValueError:
-        return {}
+    import gh_read
+    data = gh_read.raw_json(repo, WATCHLIST_PATH, token, {})
     return data if isinstance(data, dict) else {}
 
 

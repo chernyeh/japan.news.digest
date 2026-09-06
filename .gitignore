@@ -12,3 +12,8 @@ build/
 # Local watchlist cache. The durable copy is data/watchlist.json,
 # written through the GitHub Contents API — this one is per-machine scratch.
 /watchlist.json
+
+# Streamlit secrets. GITHUB_TOKEN, ANTHROPIC_API_KEY and JQUANTS_API_KEY live
+# here when running locally; on Streamlit Cloud they come from the Secrets UI
+# instead. Committing this file would publish live credentials.
+.streamlit/secrets.toml

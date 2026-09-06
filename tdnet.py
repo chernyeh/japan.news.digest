@@ -197,22 +197,10 @@ def fetch_tdnet_range(d_from: str, d_to: str, en_lookup: dict = None, session=No
 def load_tdnet_filings_from_github(repo: str, token: str = None) -> list:
     """Load the pre-built rolling TDnet index from data/tdnet_filings.csv
     (maintained by daily_tdnet.yml / backfill_tdnet.yml)."""
-    import requests
-
-    headers = {}
-    if token:
-        headers["Authorization"] = f"token {token}"
-
-    url = f"https://raw.githubusercontent.com/{repo}/main/data/tdnet_filings.csv"
-    r = requests.get(url, headers=headers, timeout=15)
-    if r.status_code == 404:
-        return []
-    if r.status_code != 200:
-        print(f"TDnet filings fetch error: {r.status_code}")
-        return []
+    import gh_read
 
     out = []
-    for row in csv.DictReader(io.StringIO(r.text)):
+    for row in gh_read.raw_csv(repo, "data/tdnet_filings.csv", token):
         code = _normalize_code(row.get("Code", ""))
         if not code:
             continue

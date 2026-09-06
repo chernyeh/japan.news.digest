@@ -115,8 +115,15 @@ def test_override_reaches_the_panel_marked_typed():
 # ── save_manual_overrides, against a stubbed contents API ────────────────
 
 class _Resp:
+    """A stand-in for a requests response.
+
+    `text` is derived from the payload when it is not given explicitly: reads
+    go through gh_read now, which parses the body itself rather than calling
+    .json() on the response, so a stub that only implemented .json() would
+    look like an empty file."""
     def __init__(self, status, payload=None, text=""):
-        self.status_code, self._payload, self.text = status, payload, text
+        self.status_code, self._payload = status, payload
+        self.text = text or ("" if payload is None else json.dumps(payload))
 
     def json(self):
         return self._payload
@@ -1186,6 +1193,83 @@ def test_blank_names_never_match_a_blank_search():
     # would resolve any unknown name to whichever blank row came first.
     assert WL.resolve_code("", LOOKUP_WITH_HOLES) == ""
     assert WL._text(NAN) == "" and WL._text(None) == "" and WL._text("  x ") == "x"
+
+
+# --- A rejected token reads as "file not found", not as "unauthorised" -------
+# GitHub answers 404, not 401, when an Authorization header is invalid -- even
+# for a file that is plainly present in a public repo. Every loader treated 404
+# as "not generated yet", so one expired GITHUB_TOKEN silently emptied the
+# forecast table, both filing indexes, market caps and the link library at once,
+# and the app then advised running backfill actions that could not have helped.
+
+import gh_read
+
+
+class _GHStub:
+    """requests, with GitHub's actual behaviour: 404 whenever a token is sent."""
+    def __init__(self, body='{"7203": {"name": "Toyota"}}', anon_status=200):
+        self.body, self.anon_status, self.calls = body, anon_status, []
+
+    def get(self, url, headers=None, timeout=None):
+        authed = "Authorization" in (headers or {})
+        self.calls.append("authed" if authed else "anon")
+        if authed:
+            return _Resp(404, None, "404: Not Found")
+        return _Resp(self.anon_status, None,
+                     self.body if self.anon_status == 200 else "")
+
+
+def _with_stub(stub, fn):
+    real = sys.modules.get("requests")
+    sys.modules["requests"] = types.SimpleNamespace(get=stub.get)
+    gh_read.TOKEN_STATE.update({"bad": False, "checked": False})
+    try:
+        return fn()
+    finally:
+        if real is not None:
+            sys.modules["requests"] = real
+        else:
+            sys.modules.pop("requests", None)
+
+
+def test_a_rejected_token_falls_back_to_an_anonymous_read():
+    stub = _GHStub()
+    out = _with_stub(stub, lambda: gh_read.raw_json("o/r", "data/x.json", "ghp_bad"))
+    assert out == {"7203": {"name": "Toyota"}}      # the data still arrives
+    assert stub.calls == ["authed", "anon"]         # exactly one retry
+    assert gh_read.TOKEN_STATE["bad"] is True
+
+
+def test_a_genuinely_missing_file_is_still_reported_missing():
+    # Both reads 404, so the file really is absent -- do not blame the token.
+    stub = _GHStub(anon_status=404)
+    out = _with_stub(stub, lambda: gh_read.raw_json("o/r", "data/nope.json", "ghp_bad"))
+    assert out == {}
+    assert gh_read.TOKEN_STATE["bad"] is False
+
+
+def test_no_token_means_no_retry_and_no_accusation():
+    stub = _GHStub()
+    out = _with_stub(stub, lambda: gh_read.raw_json("o/r", "data/x.json", None))
+    assert out == {"7203": {"name": "Toyota"}}
+    assert stub.calls == ["anon"]
+    assert gh_read.TOKEN_STATE["bad"] is False
+
+
+def test_the_warning_names_what_actually_stops_working():
+    stub = _GHStub()
+    _with_stub(stub, lambda: gh_read.raw_json("o/r", "data/x.json", "ghp_bad"))
+    warn = gh_read.token_warning()
+    # Reads keep working; writes are what the reader loses.
+    assert "watchlist" in warn and "persist" in warn
+    gh_read.TOKEN_STATE.update({"bad": False, "checked": False})
+    assert gh_read.token_warning() == ""
+
+
+def test_csv_reads_recover_through_a_bad_token_too():
+    stub = _GHStub(body="code,name\n7203,Toyota\n")
+    rows = _with_stub(stub, lambda: gh_read.raw_csv("o/r", "data/x.csv", "ghp_bad"))
+    assert rows == [{"code": "7203", "name": "Toyota"}]
 
 
 if __name__ == "__main__":
