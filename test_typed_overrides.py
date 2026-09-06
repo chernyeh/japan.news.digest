@@ -1431,6 +1431,75 @@ def test_the_live_year_is_still_compared_with_the_same_quarter_above_it():
     assert priors == ["FY2025", "FY2026"]
 
 
+# --- IR page period grouping: "FY2026 1Q Financial Results (announced on ---
+# July 30, 2026)" and "Business Strategy Meeting (announced on May 27, 2026)"
+# are the exact titles a real IR library used, and both exposed the same gap:
+# extract_period() had no rule for the "1Q"/"2Q" shorthand (only the spelled-
+# out "first quarter" form), so a quarterly title fell back to _fy_token alone
+# and was labelled as if it covered the whole year; and a non-fiscal event
+# name in front of a bare announcement date was discarded entirely, grouping
+# the event under its date with no indication what happened on it.
+
+import ir_scanner as IRS
+
+
+def test_the_1q_shorthand_is_read_as_a_quarter_not_a_full_year():
+    p = IRS.extract_period("FY2026 1Q Financial Results (announced on July 30, 2026)")
+    assert p["period_label"] == "Q1 FY2026"
+    assert p["fiscal"] is True and p["span"] == "quarter" and p["quarter"] == 1
+    assert p["date"] == "2026-07-30"     # the announcement date is not lost
+
+
+def test_all_four_quarter_shorthands_and_both_orderings_are_read():
+    assert IRS.extract_period("FY2026 2Q Financial Results")["period_label"] == "Q2 FY2026"
+    assert IRS.extract_period("FY2026 3Q Financial Results")["period_label"] == "Q3 FY2026"
+    assert IRS.extract_period("FY2026 4Q Financial Results")["period_label"] == "Q4 FY2026"
+    # Q-before-number reads the same as number-before-Q.
+    assert IRS.extract_period("Q1 FY2026 Supplementary Data")["period_label"] == "Q1 FY2026"
+
+
+def test_the_compact_1q26_form_is_untouched_by_the_shorthand_change():
+    # Already handled earlier in extract_period, by _FY_Q_RE -- confirms the
+    # new \b1Q\b rule doesn't also fire and produce a second, conflicting read.
+    p = IRS.extract_period("fy26q1_presentation.pdf")
+    assert p["period_label"] == "Q1 FY2026" and p["fiscal"] is True
+
+
+def test_a_bare_number_is_not_mistaken_for_a_quarter_marker():
+    # "21Q" must not read as "1Q" with a stray "2" in front of it.
+    assert IRS._span_phrase("Room 21Q Booking Notice") is None
+
+
+def test_a_non_fiscal_event_keeps_its_name_ahead_of_its_date():
+    p = IRS.extract_period("Business Strategy Meeting (announced on May 27, 2026)")
+    assert p["period_label"] == "Business Strategy Meeting"
+    assert p["period_note"] == "announced May 27, 2026"
+    assert p["date"] == "2026-05-27"
+    assert not p.get("fiscal")     # a plain date, not a fiscal period
+
+
+def test_a_bare_date_with_no_name_in_front_of_it_still_falls_back_to_the_date():
+    p = IRS.extract_period("(announced on May 27, 2026)")
+    assert p["period_label"] == "May 27, 2026"
+    assert "period_note" not in p
+
+
+def test_a_short_or_numeric_lead_in_does_not_pass_as_an_event_name():
+    assert IRS._event_name_before_date(
+        "12 (announced on May 27, 2026)",
+        IRS._EN_DATE_RE.search("12 (announced on May 27, 2026)")) == ""
+    assert IRS._event_name_before_date(
+        "- (announced on May 27, 2026)",
+        IRS._EN_DATE_RE.search("- (announced on May 27, 2026)")) == ""
+
+
+def test_the_event_name_survives_into_the_group_note_scan_page_writes():
+    # The field scan_page_for_documents used to hardcode to "" regardless of
+    # what extract_period found -- confirms it now actually carries through.
+    period = IRS.extract_period("ESG meeting (announced on March 3, 2026)")
+    assert period["period_note"] == "announced Mar 3, 2026"
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
