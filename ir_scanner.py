@@ -132,6 +132,29 @@ _EN_QUARTER_WORDS = {
 }
 
 
+# A parenthetical date is usually announcement metadata tacked onto an
+# event's own name -- "Business Strategy Meeting (announced on May 27,
+# 2026)" -- not part of the name itself. Many IR events (a strategy
+# briefing, an ESG day, a mid-term plan update) carry no fiscal-year or
+# quarter wording anywhere, so every check earlier in extract_period()
+# misses them entirely and they fall through to this file's plain
+# calendar-date match — which used to discard the name and group the
+# whole event under its bare date instead.
+def _event_name_before_date(text: str, date_match) -> str:
+    """The descriptive text in front of a bare date match, with the
+    enclosing parenthesis (ASCII or full-width) and everything from it
+    onward dropped. "" if what's left is too short to be a real name —
+    a lone dash or a stray digit — rather than an actual event title."""
+    before = text[:date_match.start()]
+    for open_paren in ("(", "\uff08"):
+        if open_paren in before:
+            before = before.rsplit(open_paren, 1)[0]
+    before = before.strip(" \u3000-\u2013\u2014\u30fb\uff1a:\u3001\u3002")
+    if len(before) < 4 or before.replace(" ", "").isdigit():
+        return ""
+    return before
+
+
 def _valid_date(year: int, month: int, day: int):
     """(iso_str, human_label) for a real calendar date, or (None, None)."""
     import datetime as _dt
@@ -186,10 +209,18 @@ _FY_TOKEN_RE = re.compile(
 # Deliberately does NOT include "mid-term"/"中期": on these pages that is a
 # *plan* horizon ("Mid-Term Business Plan"), not an interim reporting period.
 _SPAN_PHRASES = [
-    (r"(?:first|1st)\s+quarter|第\s*1\s*四半期", ("quarter", 1)),
-    (r"(?:second|2nd)\s+quarter|第\s*2\s*四半期", ("quarter", 2)),
-    (r"(?:third|3rd)\s+quarter|第\s*3\s*四半期", ("quarter", 3)),
-    (r"(?:fourth|4th)\s+quarter|第\s*4\s*四半期", ("quarter", 4)),
+    # "1Q"/"2Q"/... is the shorthand IR sites use just as often as the spelled-
+    # out "first quarter" — "FY2026 1Q Financial Results" is a title format
+    # entire companies build their whole IR library around. Without it, every
+    # such title fell through to _fy_token alone and was labelled "FY2026", as
+    # if it covered the full year rather than one quarter of it. \b on both
+    # sides keeps this from matching inside a larger token like "21Q" or a
+    # compact "1Q26" (that form is caught earlier, by _FY_Q_RE, before this
+    # function is ever reached).
+    (r"(?:first|1st)\s+quarter|第\s*1\s*四半期|\b1Q\b|\bQ1\b", ("quarter", 1)),
+    (r"(?:second|2nd)\s+quarter|第\s*2\s*四半期|\b2Q\b|\bQ2\b", ("quarter", 2)),
+    (r"(?:third|3rd)\s+quarter|第\s*3\s*四半期|\b3Q\b|\bQ3\b", ("quarter", 3)),
+    (r"(?:fourth|4th)\s+quarter|第\s*4\s*四半期|\b4Q\b|\bQ4\b", ("quarter", 4)),
     (r"first\s+six\s+months|(?:first|1st)\s+half|half[\s-]?year|interim\s+"
      r"(?:results|report|period)|上期|中間期", ("half", 2)),
     (r"(?:first\s+)?nine\s+months|third\s+quarter\s+cumulative", ("nine_months", 3)),
@@ -367,6 +398,15 @@ def extract_period(text: str):
             continue
         date_iso, label = _valid_date(int(m.group("year")), month, int(m.group("day")))
         if date_iso:
+            # Reaching here means no FY token, no quarter phrase, no Japanese
+            # fiscal notation matched anywhere above — the strongest thing
+            # this text says is a plain date. If there is a real name in
+            # front of it, that name is what should head the group; the date
+            # becomes the note beside it rather than replacing it outright.
+            event_name = _event_name_before_date(text, m)
+            if event_name:
+                return {"date": date_iso, "period_label": event_name,
+                        "period_sort": date_iso, "period_note": f"announced {label}"}
             return {"date": date_iso, "period_label": label, "period_sort": date_iso}
 
     return None
@@ -1436,7 +1476,13 @@ def scan_page_for_documents(url: str, max_results: int = MAX_SCAN_RESULTS,
             "date": (period or {}).get("date") or "",
             "period_label": (period or {}).get("period_label") or "",
             "period_sort": (period or {}).get("period_sort") or "",
-            "period_note": "",
+            # Usually overwritten below by normalise_periods once a fiscal
+            # calendar is known ("to Mar 2026"); left as extract_period set it
+            # for the entries normalise_periods skips outright — a plain event
+            # name with a bare announcement date and no fiscal wording at all
+            # (see _event_name_before_date), which is not a period it could
+            # rewrite onto a calendar in the first place.
+            "period_note": (period or {}).get("period_note") or "",
             # Raw fiscal facts, kept only until normalise_periods folds them
             # onto one calendar below; stripped before the results are returned.
             "_month_end": (period or {}).get("month_end"),

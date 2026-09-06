@@ -828,6 +828,16 @@ a.research-link:hover { background: #F0EDE8; }
 [class*="st-key-research_item_row_"] > div:first-child {
     position: absolute; top: 0.28rem; right: 0; width: auto !important;
     display: flex !important; flex-flow: row nowrap; align-items: center; gap: 0.25rem;
+    /* Positioned siblings paint in DOM order when both have z-index:auto, and
+       a Streamlit release since this was written started giving its own
+       .stElementContainer wrapper `position: relative` by default — which
+       makes the title (the *next* sibling, added after this one) win that
+       order and paint over these buttons. Invisibly: the title's own text
+       doesn't reach this corner, but its element box spans the full row width
+       and swallows every click aimed here regardless. z-index settles the
+       stacking outright so a future Streamlit default can't silently do this
+       again to a sibling that never had position:relative in its own right. */
+    z-index: 2;
 }
 [class*="st-key-research_item_actions_"] {
     display: flex !important; flex-flow: row nowrap; align-items: center;
@@ -836,8 +846,13 @@ a.research-link:hover { background: #F0EDE8; }
 [class*="st-key-research_item_actions_"] .stElementContainer { width: auto !important; }
 /* Right gutter reserved for the pinned actions. Sized for the widest group
    the row can show (an open-link chip plus a delete button); the JP/EN pair
-   and the save-icon pair both fit inside it. */
-[class*="st-key-research_item_row_"] > .stElementContainer { padding-right: 5.4rem; }
+   and the save-icon pair both fit inside it. position:static is the other
+   half of the z-index fix above: this div has no reason to be a positioned
+   element at all, and taking that away is what stops it from ever being able
+   to out-stack an absolutely positioned sibling again. */
+[class*="st-key-research_item_row_"] > .stElementContainer {
+    padding-right: 5.4rem; position: static !important;
+}
 /* Streamlit wraps markdown in its own display:flex div; nested inside a
    sized box that makes the text block a flex item measured at its
    max-content width. Forcing plain blocks makes height follow the wrapped
@@ -975,13 +990,20 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-vgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
             border: 1px solid #D9D3C8; border-radius: 5px; overflow: hidden;
             margin-top: 0.6rem; background: #FDFAF7; max-width: 760px; }
-.fc-vcell { background: #FDFAF7; padding: 8px 10px;
+.fc-vcell { background: #FDFAF7; padding: 5px 9px;
             box-shadow: inset -1px 0 0 #E8E3DC, inset 0 -1px 0 #E8E3DC; }
+/* Three stacked lines (label, value, sub-label), each its own block so they
+   wrap independently — but with no line-height set, each inherited the
+   ambient ~1.5-1.6 of the page's body text, which is generous for prose and
+   nearly doubles a one-line label's own height. Tightened to fit the number
+   the tile exists to show, not a paragraph. */
 .fc-k { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
-        color: #9B8B7A; font-weight: 600; display: block; }
+        color: #9B8B7A; font-weight: 600; display: block; line-height: 1.15; }
 .fc-v { font-family: monospace; font-size: 1.02rem; font-weight: 700;
-        font-variant-numeric: tabular-nums; display: block; color: #1A1A1A; }
-.fc-vsub { font-size: 0.6rem; color: #9B8B7A; font-family: monospace; }
+        font-variant-numeric: tabular-nums; display: block; color: #1A1A1A;
+        line-height: 1.2; margin: 1px 0; }
+.fc-vsub { font-size: 0.6rem; color: #9B8B7A; font-family: monospace;
+           display: block; line-height: 1.15; }
 .research-scan-group {
     font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.15rem;
@@ -4202,20 +4224,19 @@ with tab_research:
                 # works, and saying so once stops the reader hunting for a
                 # company column that was never going to exist.
                 _note_html.append(
-                    '<div class="fc-note">Japanese issuers guide one year at a time, so the '
-                    f'company columns all belong to {_safe_text(_y1)}. The years beyond it are the '
-                    'street\'s — and the street\'s own second year is typed or screenshotted in, '
-                    'since Yahoo publishes only the current year and the next.</div>')
+                    '<div class="fc-note">Japanese issuers guide one year at a time — company '
+                    f'figures are for {_safe_text(_y1)} only. Later years are street estimates '
+                    '(the second year typed or screenshotted in, since Yahoo covers just the '
+                    'current year and the next).</div>')
 
             # Yahoo's estimate frames carry EPS and revenue only, so operating
             # profit, net profit and DPS never have a consensus side. Saying so
             # once beats three rows of unexplained dashes.
             if any(_get(m, y, "consensus") is not None for m in ("eps", "net_sales") for y in _shown):
                 _note_html.append(
-                    '<div class="fc-note">Consensus covers EPS and net sales only — those are the '
-                    'two estimate frames Yahoo carries, so there is no street operating profit, net '
-                    'profit or DPS to collect for Japanese names. Those come from company guidance, '
-                    'or from what you type or screenshot in below.</div>')
+                    '<div class="fc-note">Consensus covers EPS and net sales only (Yahoo\'s two '
+                    'estimate frames) — no street operating profit, net profit or DPS. Those come '
+                    'from company guidance, or from what you type or screenshot in below.</div>')
 
             # Why this company's rows look different from the last one's. Said
             # once, folded away with the rest — but said, because a reader who
@@ -4229,81 +4250,64 @@ with tab_research:
                          "other_finance": "a finance company"}.get(
                              _profile, "a financial issuer")
                 _note_html.append(
-                    f'<div class="fc-note">Laid out for {_safe_text(_what)}. Japanese banks and '
-                    'insurers file 経常収益 (ordinary income) where an industrial files net sales, '
-                    'and file no operating profit at all — so that row is absent rather than empty. '
-                    'The line the market quotes is ordinary profit, above net profit.'
+                    f'<div class="fc-note">Laid out for {_safe_text(_what)}: 経常収益 (ordinary '
+                    'income) replaces net sales, and there is no operating-profit line — absent, '
+                    'not empty. The market\'s headline line is ordinary profit, above net profit.'
                     + ('' if _profile != "insurer_ifrs" else
-                       ' Under IFRS there is no ordinary profit: the line shown is profit before '
-                       'tax, and the top line is insurance revenue.')
+                       ' Under IFRS: no ordinary profit — profit before tax instead, with '
+                       'insurance revenue as the top line.')
                     + '</div>')
                 _note_html.append(
                     '<div class="fc-note"><strong>Regulatory capital is not shown.</strong> '
                     + _safe_text(fund.CAPITAL_DISCLAIMER)
-                    + ' Those figures live in the Basel Pillar 3 disclosure (自己資本の充実の状況), '
-                      'the 有価証券報告書 and IR presentations — all of them documents this panel '
-                      'does not read. Rather than show an estimate, it shows none.</div>')
+                    + ' Found only in Basel Pillar 3 filings, 有価証券報告書 and IR decks — none '
+                      'of which this panel reads.</div>')
 
             if _suppress_street_top:
                 _note_html.append(
-                    '<div class="fc-note">The street cell on the top line reads <strong>n/c</strong> '
-                    'because Yahoo publishes a <em>net</em> revenue estimate for this issuer — '
-                    'interest income net of interest expense, plus fees — while the filed figure '
-                    'beside it is gross ordinary income. Across this universe the two run about a '
-                    'factor of two apart for banks and securities houses, so they are not put on '
-                    'one row.</div>')
+                    '<div class="fc-note">Top-line street cell reads <strong>n/c</strong>: '
+                    'Yahoo\'s estimate is <em>net</em> revenue (interest income net of expense, '
+                    'plus fees), while the filed figure is gross ordinary income — roughly 2× '
+                    'apart for banks and securities houses, so not shown on one row.</div>')
 
             if _has_nc:
                 _note_html.append(
-                    '<div class="fc-note">A <strong>P</strong> marks a <strong>parent-company-only '
-                    '(単体)</strong> figure: J-Quants carried no consolidated value for that line, '
-                    'so what is shown is the holding company on its own. For a holding company that '
-                    'is largely dividends received from its own subsidiaries, and it is not '
-                    'comparable with the consolidated figures around it.</div>')
+                    '<div class="fc-note"><strong>P</strong> marks a parent-only (単体) figure — '
+                    'no consolidated value was filed, so this is the holding company alone (often '
+                    'just dividends from subsidiaries), not comparable with the consolidated '
+                    'figures around it.</div>')
 
             if any(fund.revision_move(_v) for _v in _revs.values()):
                 _note_html.append(
-                    '<div class="fc-note">A <strong>▲/▼ chip on a company figure</strong> is how far '
-                    'that guidance has moved since the company first filed it for the year — not '
-                    'the gap to the street, which is the chip on the street column. Japanese '
-                    'issuers have a reputation for guiding conservatively and revising up through '
-                    'the year; this says whether <em>this</em> management actually does, from its '
-                    'own filing history. A quarterly filing that restates guidance unchanged is '
-                    'not counted as a revision.</div>')
+                    '<div class="fc-note"><strong>▲/▼</strong> on a company figure shows how far '
+                    'guidance has moved since first filed this year — not the gap to the street '
+                    '(that\'s the street column\'s own chip). Says whether <em>this</em> '
+                    'management actually revises up through the year, from its own history; an '
+                    'unchanged restatement doesn\'t count.</div>')
 
             if _expand_q and _ytd_of:
                 _note_html.append(
-                    '<div class="fc-note"><strong>Every quarter is shown.</strong> Each year\'s '
-                    'YTD 1Q / 2Q / 3Q are cumulative from the start of that year, so they run '
-                    '25% → 50% → 75% of the way through it and the full-year column is the '
-                    'fourth point. Read the <strong>Progress %</strong> row across a reported '
-                    'year and it is that company\'s seasonal shape — where the profit actually '
-                    'lands. Compare the year in progress against the same quarter above it, not '
-                    'against the year-end.</div>')
+                    '<div class="fc-note"><strong>Every quarter shown:</strong> YTD 1Q/2Q/3Q are '
+                    'cumulative (≈25%/50%/75% through the year), full year is the fourth point. '
+                    '<strong>Progress %</strong> across a reported year traces the company\'s '
+                    'seasonal shape. Compare the live year to the same quarter above it, not to '
+                    'year-end.</div>')
 
             if _ytd_of:
                 _note_html.append(
-                    '<div class="fc-note"><strong>YTD</strong> is the cumulative figure from the '
-                    'company\'s quarterly tanshin — Q2 already contains Q1, so each column is '
-                    'the whole year to that point and the header says which quarter it is. '
-                    '<strong>Progress %</strong> is that over the full year (guidance for a year '
-                    'still running, the reported actual for one that has closed), which is the '
-                    '進捗率 the market quotes off a Japanese quarterly result. '
-                    '<strong>Read it across, not on its own:</strong> 30% at Q1 is not "behind" '
-                    'for a company that earns its profit in the second half — the reported year\'s '
-                    'own column at the same quarter is what says whether it is. '
-                    '<strong>Rest of yr</strong> is the full year less the year to date: what is '
-                    'still to be earned. It is arithmetic on two filed numbers, not a filing, and '
-                    'it is shown only for a year still running.</div>')
+                    '<div class="fc-note"><strong>YTD</strong> is cumulative from the tanshin '
+                    '(Q2 includes Q1); the header names the quarter. <strong>Progress %</strong> '
+                    'is that over the full year — the 進捗率 the market quotes. Read across, not '
+                    'alone: 30% at Q1 isn\'t "behind" for an H2-weighted earner — compare against '
+                    'the same quarter in a reported year. <strong>Rest of yr</strong> = full year '
+                    'minus YTD (arithmetic, not filed), shown only while the year runs.</div>')
 
             if _has_h2:
                 _note_html.append(
-                    '<div class="fc-note"><strong>Impl. 2H</strong> is the full-year guidance less '
-                    'the guided first half — the run rate the company is implicitly committing to '
-                    'for the back half, which no issuer prints. It is arithmetic on two filed '
-                    'numbers, not a filing: a company that revises only its full year leaves an '
-                    'implied 2H that moves with it. There is no implied DPS — an annual dividend '
-                    'is a rate, not a flow to split.</div>')
+                    '<div class="fc-note"><strong>Impl. 2H</strong> = full-year guidance minus '
+                    'the guided 1H — the back-half run rate implied, not filed. Moves if the '
+                    'company revises only its full year. No implied DPS: an annual dividend is a '
+                    'rate, not a flow to split.</div>')
 
             # A stock split straddling the filing and the share price is the
             # one condition that makes every per-share multiple below wrong by
