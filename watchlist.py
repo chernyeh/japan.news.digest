@@ -92,6 +92,20 @@ def _write_local(entries: dict):
         print(f"Watchlist cache write failed: {exc}")
 
 
+def _text(value) -> str:
+    """A trimmed string for anything, including the things that are not strings.
+
+    NAMES_LOOKUP is built from a pandas frame, and 134 of the 3,394 rows in
+    metadata.csv have no Name -- which pandas reads as float NaN, not as an
+    empty string. NaN is truthy, so it walks straight past an `if nm:` guard
+    and only fails on `.strip()`, which is how favouriting a company from the
+    Research tab died with "'float' object has no attribute 'strip'".
+    """
+    if value is None or isinstance(value, float):   # float covers NaN
+        return ""
+    return str(value).strip()
+
+
 def resolve_code(name_or_code: str, names_lookup: dict = None) -> str:
     """A 4-digit TSE code for a name or code, or "" if it cannot be resolved.
 
@@ -99,7 +113,7 @@ def resolve_code(name_or_code: str, names_lookup: dict = None) -> str:
     KNOWN_COMPANIES aliases, then the full name map the app loads from
     metadata.csv (passed in rather than imported, so this module stays free of
     any dependency on app.py)."""
-    text = (name_or_code or "").strip()
+    text = _text(name_or_code)
     if not text:
         return ""
     if re.fullmatch(r"\d{4}", text) or re.fullmatch(r"\d{3}[A-Z]", text):
@@ -111,20 +125,20 @@ def resolve_code(name_or_code: str, names_lookup: dict = None) -> str:
             if code:
                 return code
     for code, nm in (names_lookup or {}).items():
-        if nm and nm.strip().lower() == low:
+        if _text(nm).lower() == low and _text(nm):
             return str(code)
     # Last resort: a unique substring match, so "Toyota" finds "TOYOTA MOTOR
     # CORPORATION". Ambiguous matches resolve to nothing rather than to a
     # coin flip between two companies.
     hits = [str(c) for c, nm in (names_lookup or {}).items()
-            if nm and low in nm.strip().lower()]
+            if _text(nm) and low in _text(nm).lower()]
     return hits[0] if len(hits) == 1 else ""
 
 
 def key_for(name_or_code: str, names_lookup: dict = None) -> str:
     """The store key for an entry: its code, or an `_unresolved:` marker."""
     code = resolve_code(name_or_code, names_lookup)
-    return code or f"{_UNRESOLVED}{(name_or_code or '').strip()}"
+    return code or f"{_UNRESOLVED}{_text(name_or_code)}"
 
 
 def load_watchlist_entries() -> dict:
@@ -178,7 +192,9 @@ def add_to_watchlist(company: str, repo: str = "", token: str = "",
     """Add a company. Returns (ok, message) — ok refers to the *durable* write,
     so a False with the cache updated means "kept for this session only", the
     same contract research_links.save_link uses."""
-    company = (company or "").strip()
+    # _text rather than .strip(): a caller reading a name out of a pandas frame
+    # can hand this a NaN, which is truthy and has no .strip().
+    company = _text(company)
     if not company:
         return False, "Nothing to add."
     entries = _read_local()
