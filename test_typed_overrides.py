@@ -1272,6 +1272,90 @@ def test_csv_reads_recover_through_a_bad_token_too():
     assert rows == [{"code": "7203", "name": "Toyota"}]
 
 
+# --- An interim dividend is not an annual one -------------------------------
+# Fuji Electric's FY3/27 forecast came through as JPY 107 against JPY 200 paid
+# the year before, which reads as a 47% cut. It is the interim instalment; the
+# year-end was not yet declared, and the prior interim was JPY 91, so the real
+# signal is +18%.
+
+def _pick(d):
+    return lambda concept: (d.get(concept), "")
+
+
+def test_an_interim_with_no_year_end_is_not_reported_as_a_full_year():
+    assert F.dps_annual(_pick({"nx_div_q2": 107.0}), "nx_") is None
+
+
+def test_a_complete_schedule_still_sums():
+    assert F.dps_annual(_pick({"nx_div_q2": 107.0, "nx_div_fy": 107.0}), "nx_") == 214.0
+    # A year-end-only payer files just that instalment, and it is complete.
+    assert F.dps_annual(_pick({"nx_div_fy": 160.0}), "nx_") == 160.0
+    # A quarterly payer files all four.
+    assert F.dps_annual(_pick({"nx_div_q1": 25.0, "nx_div_q2": 25.0,
+                               "nx_div_q3": 25.0, "nx_div_fy": 25.0}), "nx_") == 100.0
+
+
+def test_a_filed_annual_total_beats_the_instalments():
+    # Where the company files the total outright, take it and do not re-derive.
+    assert F.dps_annual(_pick({"nx_dps": 214.0, "nx_div_q2": 107.0}), "nx_") == 214.0
+
+
+def test_a_company_paying_nothing_at_the_year_end_is_not_suppressed():
+    # A real zero is filed as 0, not left blank, so the schedule is complete.
+    assert F.dps_annual(_pick({"nx_div_q2": 107.0, "nx_div_fy": 0.0}), "nx_") == 107.0
+
+
+def test_no_dividend_data_at_all_is_none_not_zero():
+    assert F.dps_annual(_pick({}), "nx_") is None
+
+
+# --- The year-to-date column reports one quarter, set by the live year -------
+# Showing each year its own newest quarter put Q1 beside the prior years' Q3 --
+# 25% of a year next to 75% of one -- and called the difference a progress rate.
+
+def _getter(cells):
+    """cells: {(metric, year, basis): value} -> a _get-shaped callable."""
+    return lambda m, y, b: cells.get((m, y, b))
+
+
+_YTD_ROWS = [("net_sales",), ("operating_profit",)]
+
+
+def _quarter(cells, years, reported):
+    """Mirror of app.py's _ytd_quarter, which lives inside the tab body."""
+    YTD_BASES = ("ytd_3q", "ytd_2q", "ytd_1q")
+    get = _getter(cells)
+    for y in [y for y in years if y not in reported]:
+        for basis in YTD_BASES:
+            if any(get(m[0], y, basis) is not None for m in _YTD_ROWS):
+                return basis
+    return None
+
+
+def test_the_quarter_comes_from_the_year_still_running():
+    cells = {("net_sales", "FY2025", "ytd_3q"): 791.0,
+             ("net_sales", "FY2026", "ytd_3q"): 851.0,
+             ("net_sales", "FY2026", "ytd_1q"): 247.0,
+             ("net_sales", "FY2027", "ytd_1q"): 260.0}
+    got = _quarter(cells, ["FY2025", "FY2026", "FY2027"], {"FY2025", "FY2026"})
+    assert got == "ytd_1q"      # not 3q, even though prior years have one
+
+
+def test_no_quarter_reported_yet_means_no_ytd_column_at_all():
+    # Fuji Electric in September: the year in progress has filed nothing, and a
+    # completed year's "progress" is 100% by construction.
+    cells = {("net_sales", "FY2025", "ytd_3q"): 791.0,
+             ("net_sales", "FY2026", "ytd_3q"): 851.0}
+    assert _quarter(cells, ["FY2025", "FY2026", "FY2027"], {"FY2025", "FY2026"}) is None
+
+
+def test_the_newest_quarter_wins_within_the_live_year():
+    # Cumulative figures: Q2 already contains Q1, so Q2 is the one to show.
+    cells = {("net_sales", "FY2027", "ytd_1q"): 260.0,
+             ("net_sales", "FY2027", "ytd_2q"): 540.0}
+    assert _quarter(cells, ["FY2026", "FY2027"], {"FY2026"}) == "ytd_2q"
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

@@ -3616,14 +3616,35 @@ with tab_research:
         # panel shows one year-to-date column per year and this picks which.
         _YTD_BASES = ("ytd_3q", "ytd_2q", "ytd_1q")
 
-        def _latest_ytd(get, year):
-            """(basis, label) for the newest year-to-date filing in `year`, or
-            (None, "") — e.g. ("ytd_2q", "YTD Q2"). Newest wins because the
-            figures are cumulative: Q2 already contains Q1."""
+        def _newest_ytd_basis(get, year):
+            """The newest year-to-date basis filed for `year`, or None. Newest
+            wins within a year because the figures are cumulative: Q2 already
+            contains Q1."""
             for basis in _YTD_BASES:
                 if any(get(m, year, basis) is not None for m, *_ in _FC_BASE_ROWS):
-                    return basis, f"YTD {basis[-2:].upper()}"
-            return None, ""
+                    return basis
+            return None
+
+        def _ytd_quarter(get, years, actual_years):
+            """The one quarter every year's YTD column reports, or None.
+
+            Set by the year still running, not by each year independently. A
+            company three months into its year has reported Q1; showing Q1
+            beside the prior years' Q3 would put 25% of a year next to 75% of
+            one and call the difference a progress rate. Matching quarters is
+            the whole point of the column — 進捗率 means nothing except against
+            the same quarter last year.
+
+            When the year in progress has not reported yet, there is no YTD
+            column at all. The completed years' own quarterly splits say
+            nothing here that their full-year actuals do not already say, and a
+            "progress rate" for a finished year is 100% by construction."""
+            live = [y for y in years if y not in actual_years]
+            for y in live:                      # earliest live year first
+                basis = _newest_ytd_basis(get, y)
+                if basis:
+                    return basis
+            return None
 
         def _full_year(get, year):
             """The denominator a progress rate divides by: the company's own
@@ -3665,12 +3686,22 @@ with tab_research:
             # bank files no operating profit and calls its top line ordinary
             # income, so the row is dropped rather than shown as a line of
             # dashes, and the survivors are named as the company names them.
-            # Which year-to-date column, if any, each year has filed.
+            # Which quarter the year-to-date columns report, and which years can
+            # show it. One quarter across the whole table, set by the year still
+            # running — see _ytd_quarter. Whether a year is already reported does
+            # not depend on the presentation profile, so this can be settled
+            # before the row set is chosen.
+            _reported = {_y for _y in _years
+                         if any(_get(_m, _y, "actual") is not None
+                                for _m, *_ in _FC_BASE_ROWS)}
+            _ytd_basis = _ytd_quarter(_get, _years, _reported)
             _ytd_of = {}
-            for _y in _years:
-                _b, _lbl = _latest_ytd(_get, _y)
-                if _b:
-                    _ytd_of[_y] = (_b, _lbl)
+            if _ytd_basis:
+                _ytd_lbl = f"YTD {_ytd_basis[-2:].upper()}"
+                for _y in _years:
+                    if any(_get(_m, _y, _ytd_basis) is not None
+                           for _m, *_ in _FC_BASE_ROWS):
+                        _ytd_of[_y] = (_ytd_basis, _ytd_lbl)
             _ROWS = _fc_rows(_profile, with_progress=bool(_ytd_of))
             _MONEY_ROWS = [r for r in _ROWS if r[4] == "flow"]
             _std = fund.accounting_standard(_fundrow.get("doc_type", ""))
@@ -3772,7 +3803,10 @@ with tab_research:
             # Japanese issuers guide one year at a time, so in practice that is
             # the first column; the years beyond it are the street's alone,
             # which is exactly what makes room for a third of them.
-            _cols = {_y: [_b for _b in ("actual", "ytd", "company_h1", "company_h2",
+            # "ytd" ahead of "actual": the year to date is the earlier, partial
+            # period, and reading left to right should go from what has been
+            # reported so far to what the whole year came to.
+            _cols = {_y: [_b for _b in ("ytd", "actual", "company_h1", "company_h2",
                                         "company", "rest", "consensus")
                            if any(_cell(_m, _y, _b) is not None for _m, *_ in _ROWS)]
                      for _y in _shown}
