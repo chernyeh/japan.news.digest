@@ -28,25 +28,8 @@ _UA = "japan-news-digest-fx"
 
 def load_from_github(repo: str, token: str = "") -> dict:
     """{code: {fy: entry}} from the store, or {} if it is not there yet."""
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{FX_ASSUMPTIONS_PATH}"
-    try:
-        r = requests.get(url, headers=headers, timeout=15)
-    except Exception as exc:
-        print(f"FX assumptions fetch error: {exc}")
-        return {}
-    if r.status_code == 404:
-        return {}
-    if r.status_code != 200:
-        print(f"FX assumptions fetch error: {r.status_code}")
-        return {}
-    try:
-        data = r.json()
-    except ValueError:
-        return {}
+    import gh_read
+    data = gh_read.raw_json(repo, FX_ASSUMPTIONS_PATH, token, {})
     return data if isinstance(data, dict) else {}
 
 

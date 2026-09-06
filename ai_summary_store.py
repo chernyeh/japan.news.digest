@@ -22,21 +22,8 @@ _UA = "japan-news-digest-ai-summaries"
 
 def load_summaries_from_github(repo: str, token: str = None) -> dict:
     """Returns {session_key: {"text": str, "ts": iso str, "idx": {int: {...}}}}."""
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{SUMMARIES_PATH}"
-    r = requests.get(url, headers=headers, timeout=15)
-    if r.status_code == 404:
-        return {}
-    if r.status_code != 200:
-        print(f"AI summaries fetch error: {r.status_code}")
-        return {}
-    try:
-        raw = r.json()
-    except ValueError:
-        return {}
+    import gh_read
+    raw = gh_read.raw_json(repo, SUMMARIES_PATH, token, {})
 
     out = {}
     for key, entry in raw.items():

@@ -302,25 +302,8 @@ _UA = "japan-news-digest-qa"
 
 def load_from_github(repo: str, token: str = "") -> dict:
     """{code: [event, ...]} of stored findings, or {}."""
-    import requests
-    headers = {"User-Agent": _UA}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    url = f"https://raw.githubusercontent.com/{repo}/main/{QA_FINDINGS_PATH}"
-    try:
-        r = requests.get(url, headers=headers, timeout=15)
-    except Exception as exc:
-        print(f"Q&A findings fetch error: {exc}")
-        return {}
-    if r.status_code == 404:
-        return {}
-    if r.status_code != 200:
-        print(f"Q&A findings fetch error: {r.status_code}")
-        return {}
-    try:
-        data = r.json()
-    except ValueError:
-        return {}
+    import gh_read
+    data = gh_read.raw_json(repo, QA_FINDINGS_PATH, token, {})
     return data if isinstance(data, dict) else {}
 
 
