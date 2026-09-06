@@ -3615,6 +3615,11 @@ with tab_research:
         # The cumulative quarters a company may have filed, latest first — the
         # panel shows one year-to-date column per year and this picks which.
         _YTD_BASES = ("ytd_3q", "ytd_2q", "ytd_1q")
+        # The same three in reading order, for a table that shows all of them.
+        _YTD_ORDER = ("ytd_1q", "ytd_2q", "ytd_3q")
+
+        def _ytd_label(basis: str) -> str:
+            return f"YTD {basis[-2:].upper()}"
 
         def _newest_ytd_basis(get, year):
             """The newest year-to-date basis filed for `year`, or None. Newest
@@ -3682,26 +3687,52 @@ with tab_research:
             _split = ctx.get("split_factor")
             _revs = ctx.get("revisions") or {}
             _bps = _vals.get("bps")
+            # Off by default: three years of quarters is a wide table, and most
+            # visits want the one comparison rather than the whole curve. The
+            # key is shared across companies, so a reader who wants the curve
+            # keeps it when they search the next name.
+            _expand_q = st.checkbox(
+                "Show every quarter", key="research_fc_all_quarters",
+                help="Each year's Q1, Q2 and Q3 cumulative figures beside its full "
+                     "year, so the Progress % row reads as the company's seasonal "
+                     "curve rather than a single quarter's comparison.")
             # Row set and labels for this company's presentation profile: a
             # bank files no operating profit and calls its top line ordinary
             # income, so the row is dropped rather than shown as a line of
             # dashes, and the survivors are named as the company names them.
-            # Which quarter the year-to-date columns report, and which years can
-            # show it. One quarter across the whole table, set by the year still
-            # running — see _ytd_quarter. Whether a year is already reported does
-            # not depend on the presentation profile, so this can be settled
-            # before the row set is chosen.
+            # Which year-to-date columns each year gets, as an ordered list of
+            # real bases (earliest quarter first). Two modes:
+            #
+            #   collapsed — one quarter across the whole table, the one the year
+            #     still running has reached, so like is compared with like.
+            #   expanded  — every quarter each year filed, which turns the
+            #     Progress % row from a single comparison into the company's
+            #     whole seasonal curve: 15% → 35% → 58% → 100%.
+            #
+            # Whether a year is already reported does not depend on the
+            # presentation profile, so this is settled before the row set is.
             _reported = {_y for _y in _years
                          if any(_get(_m, _y, "actual") is not None
                                 for _m, *_ in _FC_BASE_ROWS)}
-            _ytd_basis = _ytd_quarter(_get, _years, _reported)
+
+            def _filed_quarters(_y):
+                """Every cumulative quarter `_y` filed, earliest first."""
+                return [_b for _b in _YTD_ORDER
+                        if any(_get(_m, _y, _b) is not None for _m, *_ in _FC_BASE_ROWS)]
+
             _ytd_of = {}
-            if _ytd_basis:
-                _ytd_lbl = f"YTD {_ytd_basis[-2:].upper()}"
+            if _expand_q:
                 for _y in _years:
-                    if any(_get(_m, _y, _ytd_basis) is not None
-                           for _m, *_ in _FC_BASE_ROWS):
-                        _ytd_of[_y] = (_ytd_basis, _ytd_lbl)
+                    _qs = _filed_quarters(_y)
+                    if _qs:
+                        _ytd_of[_y] = _qs
+            else:
+                _ytd_basis = _ytd_quarter(_get, _years, _reported)
+                if _ytd_basis:
+                    for _y in _years:
+                        if any(_get(_m, _y, _ytd_basis) is not None
+                               for _m, *_ in _FC_BASE_ROWS):
+                            _ytd_of[_y] = [_ytd_basis]
             _ROWS = _fc_rows(_profile, with_progress=bool(_ytd_of))
             _MONEY_ROWS = [r for r in _ROWS if r[4] == "flow"]
             _std = fund.accounting_standard(_fundrow.get("doc_type", ""))
@@ -3716,29 +3747,37 @@ with tab_research:
                     return _progress_cell(_m, _y, _b)
                 if _m in ("roe", "payout"):
                     return _ratio_cell(_m, _get, _y, _b, _bps, _split)
-                if _b == "ytd":
-                    _yb = _ytd_of.get(_y, (None, ""))[0]
-                    return _get(_m, _y, _yb) if _yb else None
+                if _b.startswith("ytd_"):
+                    return _get(_m, _y, _b)
                 if _b == "rest":
                     # Only for a year still running. On a closed year the same
                     # subtraction gives the second half that already happened,
                     # which is a real number but not "what is left to earn" —
                     # and a column headed "Rest of yr" on a finished year reads
                     # as a company that still has something to do.
-                    _yb = _ytd_of.get(_y, (None, ""))[0]
-                    if not _yb or _y in _actual_years:
+                    # Against the newest quarter filed: what is left to earn is
+                    # measured from as far through the year as the company has
+                    # reported, whatever else the table is showing.
+                    _qs = _ytd_of.get(_y) or []
+                    if not _qs or _y in _actual_years:
                         return None
                     return fund.implied_h2(_full_year(_get, _y)(_m),
-                                           _get(_m, _y, _yb))
+                                           _get(_m, _y, _qs[-1]))
                 return _get(_m, _y, _b)
 
             def _progress_cell(_m, _y, _b):
-                """進捗率 for one cell: year to date over the full year. Only in
-                the year-to-date column — a progress rate against anything else
-                would be dividing a number by itself."""
-                if _b != "ytd" or _y not in _ytd_of:
+                """進捗率 for one cell: year to date over the full year."""
+                if _y not in _ytd_of:
                     return None
-                _yb = _ytd_of[_y][0]
+                # The closed year's own full-year column is the fourth point on
+                # the curve. Shown only when the quarters beside it are, where
+                # it completes 15% → 35% → 58% → 100%; on its own it would be a
+                # column that always reads 100%.
+                if _b == "actual":
+                    return 1.0 if (_expand_q and _y in _actual_years) else None
+                if not _b.startswith("ytd_"):
+                    return None
+                _yb = _b
                 _whole = _full_year(_get, _y)
                 # Operating profit where the issuer files one, else the top
                 # profit line it does file: the row has to mean the same thing
@@ -3803,21 +3842,20 @@ with tab_research:
             # Japanese issuers guide one year at a time, so in practice that is
             # the first column; the years beyond it are the street's alone,
             # which is exactly what makes room for a third of them.
-            # "ytd" ahead of "actual": the year to date is the earlier, partial
-            # period, and reading left to right should go from what has been
-            # reported so far to what the whole year came to.
-            _cols = {_y: [_b for _b in ("ytd", "actual", "company_h1", "company_h2",
-                                        "company", "rest", "consensus")
+            # Quarters ahead of "actual": the year to date is the earlier,
+            # partial period, and reading left to right should go from what had
+            # been reported at each stage to what the whole year came to.
+            _cols = {_y: [_b for _b in (list(_ytd_of.get(_y, ()))
+                                        + ["actual", "company_h1", "company_h2",
+                                           "company", "rest", "consensus"])
                            if any(_cell(_m, _y, _b) is not None for _m, *_ in _ROWS)]
                      for _y in _shown}
             _cols = {_y: _c for _y, _c in _cols.items() if _c}
             _shown = [_y for _y in _shown if _y in _cols]
-            _basis_label = {"actual": "Actual", "ytd": "YTD", "company_h1": "1H",
+            _basis_label = {"actual": "Actual", "company_h1": "1H",
                             "company_h2": "Impl. 2H", "company": "Full yr",
                             "rest": "Rest of yr", "consensus": "Street"}
             _basis_help = {"actual": "Reported, as filed",
-                           "ytd": "Cumulative year to date, as filed on the company's "
-                                  "latest quarterly tanshin",
                            "company_h1": "Company guidance — first half",
                            "company_h2": "Implied second half — the full-year guidance "
                                          "less the first half. Derived here; not a figure "
@@ -3826,6 +3864,11 @@ with tab_research:
                            "rest": "What is left to earn — the full year less the year to "
                                    "date. Derived here; not a figure the company files.",
                            "consensus": "Street consensus"}
+            for _qb in _YTD_ORDER:
+                _basis_label[_qb] = _ytd_label(_qb)
+                _basis_help[_qb] = (f"Cumulative from the start of the year to the end "
+                                    f"of {_qb[-2:].upper()}, as filed on that quarter's "
+                                    f"tanshin")
             _has_h2 = any("company_h2" in _c for _c in _cols.values())
             _has_nc = any(_src(_m, _y, _b) == "jquants:nonconsolidated"
                           for _m, *_ in _MONEY_ROWS for _y in _shown
@@ -3842,8 +3885,7 @@ with tab_research:
                              f'title="{_safe_text(_y)}">{_safe_text(_short)}</div>')
             for _y in _shown:
                 for _i, _b in enumerate(_cols[_y]):
-                    _sub = (_ytd_of[_y][1] if (_b == "ytd" and _y in _ytd_of)
-                            else _basis_label[_b])
+                    _sub = _basis_label[_b]
                     cells.append(f'<div class="fc-cell fc-h fc-sub'
                                  f'{" fc-cons" if _b == "consensus" else ""}'
                                  f'{" fc-derived" if _b in ("company_h2", "rest") else ""}'
@@ -3899,8 +3941,7 @@ with tab_research:
                             # there is a number, or an empty cell would carry a
                             # provenance mark for a value that isn't there.
                             _mark = ("derived" if (_b in ("company_h2", "rest") and _v is not None)
-                                     else _src(_m, _y, _b if _b != "ytd"
-                                               else _ytd_of.get(_y, ("", ""))[0]))
+                                     else _src(_m, _y, _b))
                             # How far this guidance has moved since the company
                             # first filed it. Japanese issuers are known for
                             # guiding low and revising up; whether *this* one
@@ -3996,11 +4037,15 @@ with tab_research:
             _prog_year = next((_y for _y in reversed(_shown)
                                if _y in _ytd_of and _y not in _actual_years), None)
             if _prog_year:
-                _q = _ytd_of[_prog_year][0]
-                _this = _progress_cell(None, _prog_year, "ytd")
+                # The newest quarter the live year has reached, and the same
+                # quarter in every other year that filed one. In the expanded
+                # view a year carries several quarters; the comparison is still
+                # like for like.
+                _q = _ytd_of[_prog_year][-1]
+                _this = _progress_cell(None, _prog_year, _q)
                 _priors = [_p for _p in
-                           (_progress_cell(None, _y, "ytd") for _y in _shown
-                            if _y != _prog_year and _ytd_of.get(_y, (None,))[0] == _q)
+                           (_progress_cell(None, _y, _q) for _y in _shown
+                            if _y != _prog_year and _q in _ytd_of.get(_y, ()))
                            if _p is not None]
                 _rank = fund.progress_rank(_this, _priors)
                 if _rank:
@@ -4226,11 +4271,21 @@ with tab_research:
                     'own filing history. A quarterly filing that restates guidance unchanged is '
                     'not counted as a revision.</div>')
 
+            if _expand_q and _ytd_of:
+                _note_html.append(
+                    '<div class="fc-note"><strong>Every quarter is shown.</strong> Each year\'s '
+                    'YTD 1Q / 2Q / 3Q are cumulative from the start of that year, so they run '
+                    '25% → 50% → 75% of the way through it and the full-year column is the '
+                    'fourth point. Read the <strong>Progress %</strong> row across a reported '
+                    'year and it is that company\'s seasonal shape — where the profit actually '
+                    'lands. Compare the year in progress against the same quarter above it, not '
+                    'against the year-end.</div>')
+
             if _ytd_of:
                 _note_html.append(
                     '<div class="fc-note"><strong>YTD</strong> is the cumulative figure from the '
-                    'company\'s latest quarterly tanshin — Q2 already contains Q1, so the newest '
-                    'filing is the one shown and the header says which quarter it is. '
+                    'company\'s quarterly tanshin — Q2 already contains Q1, so each column is '
+                    'the whole year to that point and the header says which quarter it is. '
                     '<strong>Progress %</strong> is that over the full year (guidance for a year '
                     'still running, the reported actual for one that has closed), which is the '
                     '進捗率 the market quotes off a Japanese quarterly result. '
