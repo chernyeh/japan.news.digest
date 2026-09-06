@@ -401,6 +401,14 @@ def company_guidance(records: list) -> tuple:
         for metric in F.INTERIM_METRICS:
             val, key = newest(f"{interim_prefix}{metric}")
             keep(metric, fy1, "company_h1", val, key)
+        # The interim dividend, which is a different shape from the rest: it is
+        # not a "first half" forecast field but the 2Q instalment of the
+        # dividend schedule. It is filed months before the year-end instalment,
+        # so this is often the only dividend figure a company has declared for
+        # the year — and dps_annual now declines to pass it off as an annual
+        # total. Keeping it here is what stops that honesty losing the number.
+        _int_dps, _int_key = newest(f"{prefix}{F.DIV_INTERIM}")
+        keep("dps", fy1, "company_h1", _int_dps, _int_key)
 
     # A quarterly filing occasionally carries next-year fields too. Where it
     # does, that is a genuine second company year and worth keeping.

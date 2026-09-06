@@ -100,6 +100,12 @@ INTERIM_METRICS = ("net_sales", "operating_profit", "ordinary_profit",
 # annual dividend only exists as the sum of these — which is why the DPS row
 # was empty for the companies that file no current-year total either.
 DIV_QUARTERS = ("div_q1", "div_q2", "div_q3", "div_fy")
+# The last instalment to be declared, and so the one that says whether a
+# dividend schedule is complete. In the tanshin table these four are the
+# 期末 columns (1Q-end … year-end); the 合計 annual total is DivAnn.
+DIV_YEAR_END = "div_fy"
+# The interim instalment, which is what a company declares first.
+DIV_INTERIM = "div_q2"
 
 _MONTH_ABBR = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -115,14 +121,28 @@ def dps_annual(pick, prefix: str = "f_"):
     The filed annual total is used where there is one. Where there is not, the
     four instalments are summed: /fins/summary has no next-year annual total at
     all, only NxFDiv1Q…NxFDivFY, so a company's next-year dividend forecast is
-    invisible unless it is added up. A partial set still sums — a company
-    paying nothing at Q1 and Q3 files those as 0, not as blanks — but a set
-    that is entirely empty returns None rather than a spurious zero."""
+    invisible unless it is added up.
+
+    **The year-end instalment must be present for the sum to be an annual
+    figure.** A Japanese issuer routinely declares the interim and leaves the
+    year-end 未定 until later in the year, filing it as blank rather than zero.
+    Summing what is there then returns the interim dressed as a full year:
+    Fuji Electric's FY3/27 forecast came through as ¥107 against ¥200 paid the
+    year before, which reads as a 47% dividend cut. It is an interim, and it is
+    up 18% on the prior interim of ¥91 — the opposite signal. So an incomplete
+    schedule returns None, and the panel shows a dash rather than a number that
+    means something else. The declared interim is not lost: company_guidance
+    files it as the H1 figure, where it is labelled as one.
+
+    A company that genuinely pays nothing at the year end files a 0, not a
+    blank, so this does not suppress a real full-year total."""
     total, _ = pick(f"{prefix}dps")
     if total is not None:
         return total
-    parts = [pick(f"{prefix}{q}")[0] for q in DIV_QUARTERS]  # "" prefix = the actuals
-    present = [p for p in parts if p is not None]
+    parts = {q: pick(f"{prefix}{q}")[0] for q in DIV_QUARTERS}
+    if parts.get(DIV_YEAR_END) is None:
+        return None
+    present = [p for p in parts.values() if p is not None]
     return sum(present) if present else None
 
 
