@@ -1356,6 +1356,81 @@ def test_the_newest_quarter_wins_within_the_live_year():
     assert _quarter(cells, ["FY2026", "FY2027"], {"FY2026"}) == "ytd_2q"
 
 
+# --- The expanded view: every quarter, so Progress % reads as a curve --------
+# Collapsed, one matched quarter answers "is this year behind?". Expanded, each
+# reported year shows 1Q/2Q/3Q beside its full year, and the row becomes the
+# company's seasonal shape -- for Fuji Electric 15% / 34% / 58% / 100%, i.e.
+# nearly half the year's operating profit lands in Q4.
+
+_YTD_READ_ORDER = ("ytd_1q", "ytd_2q", "ytd_3q")
+
+
+def _filed_quarters(cells, year, metrics=("net_sales", "operating_profit")):
+    """Mirror of app.py's _filed_quarters, which lives inside the tab body."""
+    return [b for b in _YTD_READ_ORDER
+            if any(cells.get((m, year, b)) is not None for m in metrics)]
+
+
+FUJI = {
+    ("operating_profit", "FY2025", "ytd_1q"): 17.254,
+    ("operating_profit", "FY2025", "ytd_2q"): 40.336,
+    ("operating_profit", "FY2025", "ytd_3q"): 68.431,
+    ("operating_profit", "FY2025", "actual"): 117.646,
+    ("operating_profit", "FY2026", "ytd_1q"): 18.091,
+    ("operating_profit", "FY2026", "ytd_2q"): 42.759,
+    ("operating_profit", "FY2026", "ytd_3q"): 74.027,
+    ("operating_profit", "FY2026", "actual"): 136.620,
+    ("operating_profit", "FY2027", "company"): 142.5,
+}
+
+
+def test_a_reported_year_offers_every_quarter_it_filed():
+    assert _filed_quarters(FUJI, "FY2025", ("operating_profit",)) == list(_YTD_READ_ORDER)
+    # The year in progress has filed none of them yet.
+    assert _filed_quarters(FUJI, "FY2027", ("operating_profit",)) == []
+
+
+def test_a_year_that_filed_only_some_quarters_shows_only_those():
+    partial = {("operating_profit", "FY2027", "ytd_1q"): 20.5}
+    assert _filed_quarters(partial, "FY2027", ("operating_profit",)) == ["ytd_1q"]
+
+
+def test_the_progress_curve_is_cumulative_and_reaches_the_full_year():
+    def progress(year, basis):
+        num = FUJI.get(("operating_profit", year, basis))
+        den = FUJI.get(("operating_profit", year, "actual"))
+        return None if (num is None or not den) else num / den
+
+    curve25 = [progress("FY2025", b) for b in _YTD_READ_ORDER]
+    assert [round(p * 100) for p in curve25] == [15, 34, 58]
+    curve26 = [progress("FY2026", b) for b in _YTD_READ_ORDER]
+    assert [round(p * 100) for p in curve26] == [13, 31, 54]
+    # Cumulative, so each quarter is at least the one before it.
+    assert curve25 == sorted(curve25) and curve26 == sorted(curve26)
+    # And the fourth point is the full year itself.
+    assert progress("FY2025", "actual") == 1.0
+
+
+def test_the_curve_says_where_the_profit_actually_lands():
+    # The finding the expanded view exists to surface: Q4 alone carries more of
+    # the year than the first three quarters' increments do individually.
+    q4 = 1.0 - (FUJI[("operating_profit", "FY2025", "ytd_3q")]
+                / FUJI[("operating_profit", "FY2025", "actual")])
+    assert q4 == _near(0.418, 0.01)      # ~42% of operating profit in Q4
+
+
+def test_the_live_year_is_still_compared_with_the_same_quarter_above_it():
+    # Expanding the view must not make the read compare Q1 against Q3.
+    cells = dict(FUJI)
+    cells[("operating_profit", "FY2027", "ytd_1q")] = 20.5
+    live_qs = _filed_quarters(cells, "FY2027", ("operating_profit",))
+    newest = live_qs[-1]
+    assert newest == "ytd_1q"
+    priors = [y for y in ("FY2025", "FY2026")
+              if newest in _filed_quarters(cells, y, ("operating_profit",))]
+    assert priors == ["FY2025", "FY2026"]
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
