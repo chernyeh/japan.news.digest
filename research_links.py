@@ -42,11 +42,12 @@ def load_links_from_github(repo: str, token: str = None) -> dict:
 def _get_current(api_url: str, headers: dict):
     """Returns (sha_or_None, data_dict). 404 -> (None, {})."""
     import requests
+    import gh_read
     r = requests.get(api_url, headers=headers, timeout=15)
     if r.status_code == 404:
         return None, {}
     if r.status_code != 200:
-        raise RuntimeError(f"GitHub read error: HTTP {r.status_code}")
+        raise RuntimeError(gh_read.write_error(r.status_code, r.text))
     payload = r.json()
     sha = payload.get("sha")
     try:
@@ -91,7 +92,8 @@ def save_link(repo: str, token: str, sec_code: str, link: dict) -> tuple:
             return True, "Saved."
         if put.status_code == 409 and attempt == 0:
             continue  # sha changed under us — re-fetch and retry once
-        return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:200]}"
+        import gh_read
+        return False, gh_read.write_error(put.status_code, put.text)
 
     return False, "GitHub write failed after retry (concurrent edit)."
 
@@ -121,6 +123,7 @@ def delete_link(repo: str, token: str, sec_code: str, index: int) -> tuple:
             return True, "Removed."
         if put.status_code == 409 and attempt == 0:
             continue
-        return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:200]}"
+        import gh_read
+        return False, gh_read.write_error(put.status_code, put.text)
 
     return False, "GitHub write failed after retry (concurrent edit)."

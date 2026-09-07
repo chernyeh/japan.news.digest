@@ -261,6 +261,7 @@ def _push(entries: dict, repo: str, token: str, what: str) -> tuple:
         return False, "No GITHUB_TOKEN configured — watchlist kept for this session only."
     import base64
     import requests
+    import gh_read
     api_url = f"https://api.github.com/repos/{repo}/contents/{WATCHLIST_PATH}"
     headers = {"User-Agent": _UA, "Authorization": f"token {token}",
                "Accept": "application/vnd.github+json"}
@@ -274,7 +275,7 @@ def _push(entries: dict, repo: str, token: str, what: str) -> tuple:
             if r.status_code == 200:
                 sha = r.json().get("sha")
             elif r.status_code != 404:
-                return False, f"GitHub read error: HTTP {r.status_code}"
+                return False, gh_read.write_error(r.status_code, r.text)
         except Exception as exc:
             return False, f"GitHub read error: {exc}"
         body = {"message": f"chore: watchlist — {what} [skip ci]",
@@ -289,7 +290,7 @@ def _push(entries: dict, repo: str, token: str, what: str) -> tuple:
             return True, "Saved."
         if put.status_code == 409 and attempt == 0:
             continue
-        return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:200]}"
+        return False, gh_read.write_error(put.status_code, put.text)
     return False, "GitHub write failed after retry (concurrent edit)."
 
 

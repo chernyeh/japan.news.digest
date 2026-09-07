@@ -513,6 +513,30 @@ def test_a_durable_write_commits_the_whole_store():
     assert puts[-1]["branch"] == "main" and "[skip ci]" in puts[-1]["message"]
 
 
+def test_a_token_with_no_write_access_says_so_in_plain_english():
+    # GitHub answers this exact 403 when a token authenticates fine but was
+    # never granted write access to the repo -- the common case, and the one
+    # the raw "Resource not accessible by personal access token" body leaves
+    # a reader with no next step for.
+    _fresh_watchlist({})
+
+    def get(url, headers=None, timeout=None):
+        return _Resp(200, {"sha": "sha1", "content": base64.b64encode(b"{}").decode()})
+
+    def put(url, headers=None, json=None, timeout=None):
+        return _Resp(403, text='{"message":"Resource not accessible by personal access token"}')
+
+    sys.modules["requests"] = types.ModuleType("requests")
+    sys.modules["requests"].get, sys.modules["requests"].put = get, put
+
+    ok, msg = W.add_to_watchlist("Toyota", "o/r", "tok", _NAMES)
+    assert not ok
+    assert "Contents: Read and write" in msg and "Streamlit" in msg
+    assert "Resource not accessible" not in msg, "the raw GitHub body must not reach the reader unexplained"
+    # The cache is still usable even though the durable write failed.
+    assert W.load_watchlist_codes() == ["7203"]
+
+
 def test_sync_unions_rather_than_overwriting_the_cache():
     # A company added while the token was missing exists only locally. A blind
     # overwrite from GitHub would throw it away.
@@ -1270,6 +1294,30 @@ def test_csv_reads_recover_through_a_bad_token_too():
     stub = _GHStub(body="code,name\n7203,Toyota\n")
     rows = _with_stub(stub, lambda: gh_read.raw_csv("o/r", "data/x.csv", "ghp_bad"))
     assert rows == [{"code": "7203", "name": "Toyota"}]
+
+
+# --- A write failure says what to fix, not just what GitHub said -----------
+# 403 on a Contents API write means the token authenticates but was never
+# granted write access -- a different, more common problem than the expired/
+# revoked-token 404 the module otherwise exists for. Distinguished by status
+# code alone, since GitHub's own body text is aimed at API clients, not readers.
+
+def test_a_permission_denied_write_names_the_fix():
+    msg = gh_read.write_error(403, '{"message":"Resource not accessible by personal access token"}')
+    assert "Contents: Read and write" in msg
+    assert "Streamlit" in msg
+    assert "Resource not accessible" not in msg
+
+
+def test_an_invalid_token_write_points_at_replacing_it():
+    msg = gh_read.write_error(401, "Bad credentials")
+    assert "expired, revoked, or mistyped" in msg
+    assert "Streamlit" in msg
+
+
+def test_an_unrecognised_write_status_still_carries_the_raw_detail():
+    msg = gh_read.write_error(500, "Internal Server Error")
+    assert "500" in msg and "Internal Server Error" in msg
 
 
 # --- An interim dividend is not an annual one -------------------------------

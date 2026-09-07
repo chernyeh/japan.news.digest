@@ -101,3 +101,31 @@ def token_warning() -> str:
             "anything that saves — the watchlist, saved links, manual "
             "overrides — will not persist until it is replaced in Streamlit "
             "Secrets.")
+
+
+def write_error(status_code: int, response_text: str = "") -> str:
+    """A plain-English reason a GitHub Contents API write (PUT/read-before-PUT)
+    failed, for a UI whose only other option is dumping GitHub's raw JSON error
+    body at the reader. 403 specifically means the token authenticates fine but
+    was not granted write access — a different, more common problem than the
+    expired/revoked-token 404 this module otherwise exists for, and one that
+    the raw "Resource not accessible by personal access token" text does not
+    explain on its own."""
+    if status_code == 403:
+        return ('GITHUB_TOKEN does not have permission to save here — GitHub '
+                'accepted it but rejected the write because it lacks access '
+                'to this repo. It needs write access: a fine-grained personal '
+                'access token scoped to this repo with "Contents: Read and '
+                'write" permission, or a classic token with the "repo" '
+                'scope. Replace GITHUB_TOKEN under the app\'s Manage app → '
+                'Settings → Secrets on Streamlit Community Cloud, then '
+                'reboot the app.')
+    if status_code == 401:
+        return ('GITHUB_TOKEN was rejected as invalid (expired, revoked, or '
+                'mistyped). Generate a new one and replace it under the '
+                'app\'s Manage app → Settings → Secrets on Streamlit '
+                'Community Cloud, then reboot the app.')
+    if status_code == 404:
+        return "GitHub could not find that repo or file to write to (HTTP 404) — check the repo name."
+    return (f"GitHub write error: HTTP {status_code}"
+            + (f" — {response_text[:200]}" if response_text else ""))
