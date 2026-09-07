@@ -3520,11 +3520,22 @@ with tab_research:
                 unsafe_allow_html=True
             )
         with _hdr_col2:
-            if st.button("⭐ Add to Watchlist", key=f"research_wl_{_rcode}", use_container_width=True):
+            # A toast alone was easy to miss — it disappears in a few seconds
+            # and leaves no trace on screen. Checking membership up front lets
+            # the button itself carry the state permanently (not just right
+            # after clicking it), and the rerun after a click hands the result
+            # to the same flash-message banner every other action here uses,
+            # so a failed durable write is not silently swallowed either.
+            if _rcode in load_watchlist_codes():
+                st.button("⭐ In Watchlist", key=f"research_wl_{_rcode}",
+                          use_container_width=True, disabled=True)
+            elif st.button("☆ Add to Watchlist", key=f"research_wl_{_rcode}", use_container_width=True):
                 _wl_ok, _wl_msg = add_to_watchlist(_rname, _ec_repo, _gh_token or "",
                                                    NAMES_LOOKUP)
-                st.toast(f"Added {_rname} to Watchlist" if _wl_ok
-                         else f"Added for this session only — {_wl_msg}")
+                st.session_state.research_flash = (
+                    ("success", f"Added {_rname} to the watchlist.") if _wl_ok
+                    else ("warning", f"Added for this session only — {_wl_msg}"))
+                st.rerun()
 
         st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
 
