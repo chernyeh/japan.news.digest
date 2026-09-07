@@ -315,6 +315,14 @@ span[data-testid="stIconMaterial"], [data-testid*="stIconMaterial"],
 
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 1rem; padding-bottom: 3rem; max-width: 1060px; }
+/* Streamlit's own default vertical rhythm (1rem between every element in a
+   vertical block) reads as generous whitespace once a section is doing its
+   own tight, custom-CSS layout around it — a lone checkbox or a row of
+   collapsed toggles ends up floating in its own visible box of air. Halved
+   app-wide; every spot that needs the full rhythm back, or none at all
+   (the item-list rows above), already carries its own !important override
+   and wins over this un-important default regardless of source order. */
+[data-testid="stVerticalBlock"] { gap: 0.5rem; }
 
 /* Masthead */
 .masthead {
@@ -4014,19 +4022,19 @@ with tab_research:
                 f'style="--fc-cols:{_ncols};">'
                 + "".join(cells) + '</div></div>'
                 '<div class="fc-legend">'
-                '<span><b class="fc-src fc-src-a">A</b> auto</span>'
-                '<span><b class="fc-src fc-src-s">S</b> screenshot</span>'
-                '<span><b class="fc-src fc-src-t">T</b> typed</span>'
-                + ('<span><b class="fc-src fc-src-d">D</b> implied 2H '
-                   '= full yr &minus; 1H</span>' if _has_h2 else '')
-                + ('<span><b class="fc-src fc-src-p">P</b> parent only '
-                   '(単体)</span>' if _has_nc else '')
+                '<span title="Automatically fetched"><b class="fc-src fc-src-a">A</b> auto</span>'
+                '<span title="Read from a screenshot"><b class="fc-src fc-src-s">S</b> screenshot</span>'
+                '<span title="Typed in"><b class="fc-src fc-src-t">T</b> typed</span>'
+                + ('<span title="Full-year guidance minus guided 1H, not filed">'
+                   '<b class="fc-src fc-src-d">D</b> impl. 2H</span>' if _has_h2 else '')
+                + ('<span title="Parent-only (単体) — no consolidated figure filed">'
+                   '<b class="fc-src fc-src-p">P</b> parent only</span>' if _has_nc else '')
                 # Which accounting standard the rows are drawn from, where the
                 # filing said so. It is what decides whether "Ord. profit"
                 # means ordinary profit or profit before tax, so it belongs
                 # beside the table rather than in a note nobody opens.
                 + (f'<span>basis: {_safe_text(_std)}</span>' if _std else '')
-                + '<span>¥bn except per-share · gap chip at &gt;5%</span></div>',
+                + '<span title="¥bn except per-share; colored chip flags a gap over 5%">ⓘ units</span></div>',
                 unsafe_allow_html=True)
 
             # ── What the company's own record says about its guidance ──
@@ -4189,16 +4197,16 @@ with tab_research:
                 st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
                             unsafe_allow_html=True)
 
-            # Two classes of note sit under this table, and they do not
-            # deserve the same room. A missing API key is a broken pipeline the
-            # reader has to act on, so it stays on screen. The rest explains
-            # why a column or a row is empty — true, worth saying once, and
-            # read once — so it folds away behind a toggle instead of standing
-            # between the table and the multiples below it.
+            # A missing API key is a broken pipeline the reader has to act
+            # on, so it stays on screen unconditionally. Everything that used
+            # to sit here as a foldable "how to read this table" explanation
+            # has been removed — the column headers and source-letter legend
+            # carry what a reader needs, and the rest was read once and then
+            # in the way.
             _run = st.session_state.get("consensus_run") or {}
             _no_guidance_at_all = all(
                 _get(m, y, "company") is None for m, *_ in _MONEY_ROWS for y in _shown)
-            _warn_html, _note_html = "", []
+            _warn_html = ""
             if _no_guidance_at_all and _run.get("jquants_key_rejected"):
                 _warn_html = (
                     '<div class="fc-note fc-warn">Company guidance is missing for every company: '
@@ -4214,105 +4222,10 @@ with tab_research:
                     'Add it under <em>Settings → Secrets and variables → Actions</em> and re-run '
                     '<em>Weekly Consensus and Fundamentals</em>. Consensus and the balance sheet '
                     'below come from Yahoo and are unaffected.</div>')
-            elif _no_guidance_at_all and _run.get("companies_with_guidance"):
-                _note_html.append(
-                    '<div class="fc-note">No company guidance collected for this company, though '
-                    f'other companies have it ({_run["companies_with_guidance"]} of '
-                    f'{_run.get("universe", "?")}). Its filing may not be in J-Quants yet.</div>')
-            elif len(_shown) > 1:
-                # Not a gap to apologise for — it is how Japanese disclosure
-                # works, and saying so once stops the reader hunting for a
-                # company column that was never going to exist.
-                _note_html.append(
-                    '<div class="fc-note">Japanese issuers guide one year at a time — company '
-                    f'figures are for {_safe_text(_y1)} only. Later years are street estimates '
-                    '(the second year typed or screenshotted in, since Yahoo covers just the '
-                    'current year and the next).</div>')
-
-            # Yahoo's estimate frames carry EPS and revenue only, so operating
-            # profit, net profit and DPS never have a consensus side. Saying so
-            # once beats three rows of unexplained dashes.
-            if any(_get(m, y, "consensus") is not None for m in ("eps", "net_sales") for y in _shown):
-                _note_html.append(
-                    '<div class="fc-note">Consensus covers EPS and net sales only (Yahoo\'s two '
-                    'estimate frames) — no street operating profit, net profit or DPS. Those come '
-                    'from company guidance, or from what you type or screenshot in below.</div>')
-
-            # Why this company's rows look different from the last one's. Said
-            # once, folded away with the rest — but said, because a reader who
-            # does not know the panel switched layouts will read a missing
-            # operating-profit row as missing data rather than as a line the
-            # company does not file.
-            if _profile in fund.FINANCIAL_PROFILES:
-                _what = {"bank": "a bank", "insurer": "an insurer",
-                         "insurer_ifrs": "an IFRS-reporting insurer",
-                         "securities": "a securities house",
-                         "other_finance": "a finance company"}.get(
-                             _profile, "a financial issuer")
-                _note_html.append(
-                    f'<div class="fc-note">Laid out for {_safe_text(_what)}: 経常収益 (ordinary '
-                    'income) replaces net sales, and there is no operating-profit line — absent, '
-                    'not empty. The market\'s headline line is ordinary profit, above net profit.'
-                    + ('' if _profile != "insurer_ifrs" else
-                       ' Under IFRS: no ordinary profit — profit before tax instead, with '
-                       'insurance revenue as the top line.')
-                    + '</div>')
-                _note_html.append(
-                    '<div class="fc-note"><strong>Regulatory capital is not shown.</strong> '
-                    + _safe_text(fund.CAPITAL_DISCLAIMER)
-                    + ' Found only in Basel Pillar 3 filings, 有価証券報告書 and IR decks — none '
-                      'of which this panel reads.</div>')
-
-            if _suppress_street_top:
-                _note_html.append(
-                    '<div class="fc-note">Top-line street cell reads <strong>n/c</strong>: '
-                    'Yahoo\'s estimate is <em>net</em> revenue (interest income net of expense, '
-                    'plus fees), while the filed figure is gross ordinary income — roughly 2× '
-                    'apart for banks and securities houses, so not shown on one row.</div>')
-
-            if _has_nc:
-                _note_html.append(
-                    '<div class="fc-note"><strong>P</strong> marks a parent-only (単体) figure — '
-                    'no consolidated value was filed, so this is the holding company alone (often '
-                    'just dividends from subsidiaries), not comparable with the consolidated '
-                    'figures around it.</div>')
-
-            if any(fund.revision_move(_v) for _v in _revs.values()):
-                _note_html.append(
-                    '<div class="fc-note"><strong>▲/▼</strong> on a company figure shows how far '
-                    'guidance has moved since first filed this year — not the gap to the street '
-                    '(that\'s the street column\'s own chip). Says whether <em>this</em> '
-                    'management actually revises up through the year, from its own history; an '
-                    'unchanged restatement doesn\'t count.</div>')
-
-            if _expand_q and _ytd_of:
-                _note_html.append(
-                    '<div class="fc-note"><strong>Every quarter shown:</strong> YTD 1Q/2Q/3Q are '
-                    'cumulative (≈25%/50%/75% through the year), full year is the fourth point. '
-                    '<strong>Progress %</strong> across a reported year traces the company\'s '
-                    'seasonal shape. Compare the live year to the same quarter above it, not to '
-                    'year-end.</div>')
-
-            if _ytd_of:
-                _note_html.append(
-                    '<div class="fc-note"><strong>YTD</strong> is cumulative from the tanshin '
-                    '(Q2 includes Q1); the header names the quarter. <strong>Progress %</strong> '
-                    'is that over the full year — the 進捗率 the market quotes. Read across, not '
-                    'alone: 30% at Q1 isn\'t "behind" for an H2-weighted earner — compare against '
-                    'the same quarter in a reported year. <strong>Rest of yr</strong> = full year '
-                    'minus YTD (arithmetic, not filed), shown only while the year runs.</div>')
-
-            if _has_h2:
-                _note_html.append(
-                    '<div class="fc-note"><strong>Impl. 2H</strong> = full-year guidance minus '
-                    'the guided 1H — the back-half run rate implied, not filed. Moves if the '
-                    'company revises only its full year. No implied DPS: an annual dividend is a '
-                    'rate, not a flow to split.</div>')
 
             # A stock split straddling the filing and the share price is the
             # one condition that makes every per-share multiple below wrong by
-            # a known factor, so it is stated on screen rather than folded away
-            # with the explanatory notes.
+            # a known factor, so it is stated on screen rather than folded away.
             if _split:
                 _ratio_txt = (f"{_split:g}-for-1" if _split >= 1
                               else f"1-for-{1 / _split:g}")
@@ -4376,14 +4289,6 @@ with tab_research:
                 + f'><span class="fc-k">{_safe_text(k)}</span>'
                 f'<span class="fc-v">{v}</span><span class="fc-vsub">{_safe_text(sub)}</span></div>'
                 for k, v, sub in _tiles) + '</div>', unsafe_allow_html=True)
-
-            # Folded, and below the multiples rather than between them and the
-            # table: the numbers are what the panel is for, and prose that
-            # explains an empty column is read once and then in the way.
-            if _note_html and _toggle_section(
-                    f"ℹ️  How to read this table ({len(_note_html)} note"
-                    f"{'s' if len(_note_html) > 1 else ''})", "research_fc_notes_open"):
-                st.markdown("".join(_note_html), unsafe_allow_html=True)
 
         def _fc_exports(_rcode, _rname, _fc_map):
             _rows = fund.export_rows(_rcode, _rname, _fc_map)
@@ -5144,7 +5049,7 @@ with tab_research:
                     # for — and a data-editor grid plus a file uploader below
                     # them is most of a screen the reader has to scroll past
                     # every time to reach the sections beneath.
-                    if _toggle_section("✏️  Fill gaps, correct values & export",
+                    if _toggle_section("🛠️  Edit & export",
                                        "research_fc_edit_open"):
                         _fc_exports(_rcode, _rname, _fc_map)
                         st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
@@ -5224,7 +5129,7 @@ with tab_research:
         # Collapsible like every other section here: for a company with a long
         # EDINET history this list runs to hundreds of rows, and it should not
         # be the thing standing between the reader and the sections below it.
-        if _toggle_section(f"📄 Filings & saved links ({len(_items)})",
+        if _toggle_section(f"📄 Filings & documents ({len(_items)})",
                            "research_filings_open"):
             # ── Sort / filter / show-limit controls ──────────────────────────
             with st.container(key="research_filter_row"):
@@ -5333,13 +5238,17 @@ with tab_research:
                                                 help=f"Save the {_label} document",
                                             )
                             elif it["source"] == "tdnet":
+                                # JP before EN, matching the EDINET pair above —
+                                # a TDnet disclosure (e.g. a merger notice) used
+                                # to list EN first, the one row in the list that
+                                # broke the app's own left-to-right convention.
                                 _tl = []
-                                if it.get("url_en"):
-                                    _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" '
-                                               f'class="research-link">EN</a>')
                                 if it.get("url_jp"):
                                     _tl.append(f'<a href="{_safe_url(it["url_jp"])}" target="_blank" '
                                                f'class="research-link">JP</a>')
+                                if it.get("url_en"):
+                                    _tl.append(f'<a href="{_safe_url(it["url_en"])}" target="_blank" '
+                                               f'class="research-link">EN</a>')
                                 if _tl:
                                     st.markdown(" ".join(_tl), unsafe_allow_html=True)
                             else:  # custom link
@@ -5434,7 +5343,7 @@ with tab_research:
                 + (f'🔖 Saved: <a href="{_safe_url(_saved_ir_pages[-1])}" target="_blank" '
                    f'class="research-link">open ↗</a> '
                    f'<span style="color:#B0A798;">· remove it from '
-                   f'<em>Filings &amp; saved links</em> above</span> · '
+                   f'<em>Filings &amp; documents</em> above</span> · '
                    if _saved_ir_pages else 'No IR page saved for this company yet · ')
                 + f'<a href="{_safe_url(_ir_search_url)}" target="_blank" '
                   f'class="research-link">find on google ↗</a></div>',
