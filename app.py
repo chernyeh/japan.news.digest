@@ -194,21 +194,44 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ── Local timezone (Petaling Jaya = MYT = UTC+8) ─────────────────────────────
-LOCAL_TZ = pytz.timezone("Asia/Kuala_Lumpur")
+# ── Viewer's local timezone ───────────────────────────────────────────────────
+# Detected from the browser (Intl API) via a one-time redirect that appends
+# ?tz=<IANA name> to the URL. Falls back to Malaysia time until that redirect
+# lands (first paint only) or if detection fails for any reason.
+_tz_name = st.query_params.get("tz")
+try:
+    LOCAL_TZ = pytz.timezone(_tz_name) if _tz_name else pytz.timezone("Asia/Kuala_Lumpur")
+except pytz.UnknownTimeZoneError:
+    LOCAL_TZ = pytz.timezone("Asia/Kuala_Lumpur")
+
+if not _tz_name:
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const url = new URL(window.parent.location.href);
+        if (url.searchParams.get('tz') !== tz) {
+            url.searchParams.set('tz', tz);
+            window.parent.location.replace(url.toString());
+        }
+        </script>
+        """,
+        height=0,
+    )
 
 def now_local():
     return datetime.now(LOCAL_TZ)
 
 def format_local_dt(dt):
-    """Format a datetime in local time."""
+    """Format a datetime in the viewer's local time."""
     if dt is None:
         return "—"
     if dt.tzinfo is None:
         dt = pytz.utc.localize(dt).astimezone(LOCAL_TZ)
     else:
         dt = dt.astimezone(LOCAL_TZ)
-    return dt.strftime("%a, %d %b %Y · %H:%M MYT")
+    return dt.strftime("%a, %d %b %Y · %H:%M %Z")
 
 def format_mkt_ts(dt):
     """Compact market data timestamp for inline display, e.g. '16 Apr · 22:32'."""
@@ -1715,27 +1738,28 @@ def render_ai_summary(articles: list, context: str, session_key: str, max_articl
         st.session_state[session_key + "_ts"]   = _ai_cache.get(session_key + "_ts")
         st.session_state[session_key + "_idx"]  = _ai_cache.get(session_key + "_idx", {})
 
+    # Sync from shared cache *before* anything below reads session_state, so
+    # every element rendered this run (the button row and the summary body)
+    # agrees on the same "generated at" timestamp — picks up results/errors
+    # from the background thread, whether kicked off by this session or another.
+    if _ai_cache.get(session_key) and _ai_cache.get(session_key + "_ts") != st.session_state.get(session_key + "_ts"):
+        st.session_state[session_key]          = _ai_cache.get(session_key)
+        st.session_state[session_key + "_ts"]  = _ai_cache.get(session_key + "_ts")
+        st.session_state[session_key + "_idx"] = _ai_cache.get(session_key + "_idx", {})
+
     if _override_btn is not None:
-        # Button already rendered by caller — do NOT create another one
+        # Button already rendered by caller — do NOT create another one.
+        # The "generated at" timestamp is shown once, in the summary body below.
         gen_btn = _override_btn
-        if st.session_state.get(session_key):
-            _sum_ts = st.session_state.get(session_key + "_ts")
-            _sum_ts_str = (" · " + format_local_dt(_sum_ts)) if _sum_ts else ""
-            st.markdown(
-                f'<div style="font-size:0.65rem;color:#9B8B7A;">✨ briefing generated{_sum_ts_str}</div>',
-                unsafe_allow_html=True
-            )
     else:
         col_s1, col_s2 = st.columns([4, 1])
         with col_s2:
             gen_btn = st.button("✨ Summarise", key=f"btn_{session_key}", use_container_width=True)
         with col_s1:
             if st.session_state.get(session_key):
-                _sum_ts = st.session_state.get(session_key + "_ts")
-                _sum_ts_str = (" · generated " + format_local_dt(_sum_ts)) if _sum_ts else ""
                 st.markdown(
-                    f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'
-                    f'✨ AI briefing{_sum_ts_str} · click Summarise to refresh</div>',
+                    '<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.45rem;">'
+                    '✨ AI briefing · click Summarise to refresh</div>',
                     unsafe_allow_html=True
                 )
 
@@ -1853,13 +1877,6 @@ Respond only with the briefing."""
 
                 threading.Thread(target=_bg_generate, daemon=True).start()
 
-    # ── Sync from shared cache: picks up results/errors from the background
-    #    thread, whether it was kicked off by this session or another one ──
-    if _ai_cache.get(session_key) and _ai_cache.get(session_key + "_ts") != st.session_state.get(session_key + "_ts"):
-        st.session_state[session_key]          = _ai_cache.get(session_key)
-        st.session_state[session_key + "_ts"]  = _ai_cache.get(session_key + "_ts")
-        st.session_state[session_key + "_idx"] = _ai_cache.get(session_key + "_idx", {})
-
     if _ai_cache.get(_status_key) == "running":
         _render_ai_summary_progress(session_key)
     elif _ai_cache.get(_status_key) == "error":
@@ -1884,7 +1901,7 @@ st.markdown(f"""
 <div class="masthead">
     <div class="masthead-title">Japan Investment Digest</div>
     <div class="masthead-sub">Japan equities · macro · corporate news · TDnet filings · JPY rates</div>
-    <div class="masthead-date">{now_local().strftime('%A, %d %B %Y · %H:%M MYT')}</div>
+    <div class="masthead-date">{now_local().strftime('%A, %d %B %Y · %H:%M %Z')}</div>
 </div>
 <div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 42 News Sources</div>
 """, unsafe_allow_html=True)
@@ -2046,7 +2063,7 @@ if _stale_news or _stale_market:
         '<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:3px;'
         'padding:0.35rem 0.8rem;font-size:0.75rem;color:#795548;margin-bottom:0.4rem;">'
         '⏱ Data may be stale — last fetched: ' + " · ".join(_stale_parts) +
-        '. Click <strong>📈 Markets</strong> or <strong>🔄 News</strong> to refresh.</div>',
+        '. Click <strong>🔄 Refresh</strong> above to update.</div>',
         unsafe_allow_html=True
     )
 elif _from_cache and not _stale_news and not _stale_market:
@@ -2375,7 +2392,7 @@ with tab_breaking:
 # ════════════════════════════════════════════════════════════
 with tab_news:
     if not st.session_state.articles:
-        st.markdown('<div class="empty-state">Click <strong>🔄 News</strong> above to load today\'s headlines.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="empty-state">Click <strong>🔄 Refresh</strong> above to load today\'s headlines.</div>', unsafe_allow_html=True)
     else:
         available_sectors = [
             (name, icon, len(st.session_state.articles.get(name, [])))
@@ -2500,7 +2517,7 @@ with tab_market:
     md = st.session_state.market_data
 
     if not md:
-        st.markdown('<div class="empty-state">Click <strong>📈 Markets</strong> above to load live data.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="empty-state">Click <strong>🔄 Refresh</strong> above to load live data.</div>', unsafe_allow_html=True)
     elif md.get("_source") == "error":
         err = md.get("_error", "Unknown error")
         st.warning("⚠️ " + err)
