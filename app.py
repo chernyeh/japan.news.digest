@@ -347,6 +347,74 @@ span[data-testid="stIconMaterial"], [data-testid*="stIconMaterial"],
    and wins over this un-important default regardless of source order. */
 [data-testid="stVerticalBlock"] { gap: 0.5rem; }
 
+/* ── Spacing scale ──────────────────────────────────────────────────────
+   The page had grown fifteen section dividers carrying five different
+   margins and a hundred-odd one-off paddings between 0.1 and 1rem, so
+   nothing on it shared a rhythm: two sections the reader treats as equals
+   were 0.5rem apart in one tab and 0.9rem apart in the next. These five
+   steps are the vocabulary for anything structural from here on — the
+   dividers, section headers and callout boxes below are all expressed in
+   them. Component-internal padding (a badge, a chip, a table cell) is left
+   alone: it answers to the type inside it, not to the page's rhythm. */
+:root {
+    --sp-1: 0.25rem;
+    --sp-2: 0.5rem;
+    --sp-3: 0.75rem;
+    --sp-4: 1rem;
+    --sp-6: 1.5rem;
+}
+/* Two dividers, two jobs. Major separates one section of a tab from the
+   next; minor separates parts within one section, and is lighter in both
+   colour and spacing so the hierarchy is visible rather than implied.
+   Both sit modestly below the step you would pick in isolation, because
+   the 0.5rem block gap above and below is already part of the gap the
+   reader sees: a major rule really separates by 2rem, not by 0.5rem.
+
+   Qualified by the markdown container these are always rendered into, to
+   outrank Streamlit's own `<emotion class> hr { margin: 2em 0 }` — which is
+   specificity (0,1,1) and beats a bare `.rule-major` (0,1,0). The inline
+   styles these classes replaced won that fight for free by being inline, so
+   an unqualified class here would have quietly made every divider on the
+   page looser than the ones it was tidying up. */
+[data-testid="stMarkdownContainer"] hr.rule-major {
+    border: 0; border-top: 1px solid #D9D3C8; margin: var(--sp-2) 0;
+}
+[data-testid="stMarkdownContainer"] hr.rule-minor {
+    border: 0; border-top: 1px solid #E8E3DC; margin: var(--sp-1) 0;
+}
+
+/* ── Control rows: put the buttons on the line they belong to ───────────
+   A Streamlit column holding a bare button, sitting beside one holding a
+   labelled input, starts 13px higher than it: the input's column spends
+   that height on its label and the button's column has nothing to spend it
+   on. Every filter row in the app was landing its buttons above the boxes
+   they act on -- Watchlist's "Add", Reg Filings' "Refresh"/"Summarise".
+   Bottom-aligning the row fixes it without a magic offset, so it holds at
+   any font size the text-size stepper is set to.
+
+   Scoped to rows that carry a widget label at all, which in this app means
+   a control row: the row is stretch-aligned by default, so every column is
+   as tall as the tallest and short content sits at the top of its own box.
+   Bottom-aligning collapses each column to its content and lines the
+   controls up on one baseline. A row of equals (all labelled, or none) is
+   unaffected either way, and a browser without :has() keeps today's look.
+
+   Note for anyone tightening this further: :not(:has(...)) is not a valid
+   selector -- an earlier attempt to exclude labelled columns that way made
+   the whole rule invalid, and the browser dropped it silently. */
+[data-testid="stHorizontalBlock"]:has([data-testid="stWidgetLabel"]) {
+    align-items: flex-end;
+}
+/* ...except when the columns are forms rather than controls. Two forms side
+   by side are cards, and cards line up along their top edge: bottom-aligning
+   the Subscribe/Unsubscribe pair dropped the shorter one 28px down the page
+   for no reason a reader could see. Stretching makes them equal-height
+   instead, which is what a pair of cards should be. Source order does the
+   overriding here -- same specificity, later rule wins. */
+[data-testid="stHorizontalBlock"]:has([data-testid="stForm"]) {
+    align-items: stretch;
+}
+
 /* Masthead */
 .masthead {
     border-top: 4px solid #1A1A1A; border-bottom: 1px solid #1A1A1A;
@@ -433,11 +501,11 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
 .section-title {
     font-family: 'Spectral', serif; font-size: 1.1rem; font-weight: 700;
     color: #1A1A1A; border-bottom: 2px solid #1A1A1A;
-    padding-bottom: 0.3rem; margin-bottom: 0.7rem;
+    padding-bottom: var(--sp-1); margin-bottom: var(--sp-2);
 }
 .section-subtitle {
     font-size: 0.66rem; font-weight: 600; letter-spacing: 0.12em;
-    text-transform: uppercase; color: #9B8B7A; margin-bottom: 0.7rem;
+    text-transform: uppercase; color: #9B8B7A; margin-bottom: var(--sp-2);
 }
 
 /* Market boxes */
@@ -635,14 +703,17 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
 
 /* Info box */
 .info-box {
-    background: #EDE8E0; border-radius: 3px; padding: 0.55rem 0.8rem;
-    font-size: 0.76rem; color: #6B6B6B; margin-bottom: 0.5rem;
+    background: #EDE8E0; border-radius: 3px; padding: var(--sp-2) var(--sp-3);
+    font-size: 0.76rem; color: #6B6B6B; margin-bottom: var(--sp-2);
 }
 
-/* Empty state */
+/* Empty state. Roomy on purpose — it is the whole content of the panel when
+   it shows, so it is centred in space rather than squeezed against the
+   section above it. */
 .empty-state {
     font-family: 'Spectral', serif; font-size: 0.95rem;
-    color: #6B6B6B; text-align: center; padding: 2rem 1rem; line-height: 1.8;
+    color: #6B6B6B; text-align: center; padding: var(--sp-6) var(--sp-4);
+    line-height: 1.7;
 }
 
 /* Instrument cards (Markets tab) */
@@ -1101,7 +1172,7 @@ a.research-link:hover { background: #F0EDE8; }
 .st-key-zoombar {
     flex-direction: row !important; align-items: center;
     justify-content: flex-end; gap: 0.4rem;
-    margin: 0.15rem 0 0.1rem;
+    margin: 0;   /* the toolbar row centres it; its own margin would fight that */
 }
 .st-key-zoombar > [data-testid="stElementContainer"] {
     width: auto !important; flex: 0 0 auto !important;
@@ -1213,11 +1284,11 @@ def _zoom_step(delta: int):
 
 
 def render_text_size_control():
-    """A −/+ stepper, set small and right-aligned under the dateline strip.
+    """A −/+ stepper, set small and right-aligned in the toolbar row.
 
-    Above the tabs, so it is reachable whichever tab you are reading, and
-    quiet enough to disappear until you go looking for it — which is the whole
-    brief: this is set once, not read.
+    Sits with Refresh and Clear, above the tabs, so it is reachable whichever
+    tab you are reading, and quiet enough to disappear until you go looking
+    for it — which is the whole brief: this is set once, not read.
 
     Not inside an expander. An expander re-asserts its collapsed state on every
     rerun, so the panel snapped shut after the first tap and had to be reopened
@@ -1906,8 +1977,6 @@ st.markdown(f"""
 <div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 42 News Sources</div>
 """, unsafe_allow_html=True)
 
-render_text_size_control()
-
 # ── Market ticker strip ───────────────────────────────────────────────────────
 def render_ticker(label, data):
     if not data or data.get("price", 0) == 0:
@@ -1966,16 +2035,26 @@ if st.session_state.market_data and st.session_state.market_data.get("_source") 
     st.markdown(ticker_html, unsafe_allow_html=True)
 
 # ── Toolbar ───────────────────────────────────────────────────────────────────
-col_info, col_spacer, col_refresh, col_clear = st.columns([3, 0.5, 0.9, 0.7])
+# The text-size stepper used to sit in a band of its own between the dateline
+# strip and the ticker, which cost ~50px of the fold on every tab to hold one
+# control that is set once and then never read. It belongs with the other
+# controls: this row already had an empty spacer column the width of it, and
+# grouping the three together says they are the same kind of thing.
+# vertical_alignment centres them against the timestamp properly, in place of
+# the hand-tuned padding-top that used to approximate it.
+col_info, col_zoom, col_refresh, col_clear = st.columns(
+    [2.6, 1.0, 0.9, 0.7], vertical_alignment="center")
 with col_info:
     if st.session_state.last_fetch:
         total = sum(len(v) for v in st.session_state.articles.values())
         st.markdown(
-            '<div style="font-size:0.72rem;color:#9B8B7A;padding-top:0.35rem;">News: '
+            '<div style="font-size:0.72rem;color:#9B8B7A;">News: '
             + format_local_dt(st.session_state.last_fetch)
             + ' · ' + str(total) + ' articles</div>',
             unsafe_allow_html=True
         )
+with col_zoom:
+    render_text_size_control()
 with col_refresh:
     _do_refresh = st.button("🔄 Refresh", use_container_width=True)
     if not st.session_state.get("_auto_fetch_done") and not st.session_state.articles:
@@ -2220,7 +2299,7 @@ with tab_bytime:
         if _in_brief_html:
             st.markdown(_in_brief_html, unsafe_allow_html=True)
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
         # Ensure high_value flags are set
         all_articles = flag_high_value_articles(all_articles)
@@ -2370,7 +2449,7 @@ with tab_breaking:
     else:
         st.markdown('<div class="section-title" style="font-size:0.78rem;margin-top:0.2rem;">✨ AI Briefing</div>', unsafe_allow_html=True)
         render_ai_summary(items, "Nikkei Shimbun breaking news", "summary_breaking")
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
         html = ""
         for a in items[:60]:
             title  = a.get("title") or a.get("translated_title") or a.get("original_title","")
@@ -2620,7 +2699,7 @@ with tab_market:
             sub_html += '</div>'
             st.markdown(sub_html, unsafe_allow_html=True)
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
         # ── Forex — compact 4-column row ─────────────────────
         st.markdown('<div class="section-title">💱 Currency Pairs vs JPY</div>', unsafe_allow_html=True)
@@ -2646,7 +2725,7 @@ with tab_market:
             fx_html += '</div>'
             st.markdown(fx_html, unsafe_allow_html=True)
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
 
     # ── TSE Movers ───────────────────────────────────────
@@ -2715,7 +2794,7 @@ with tab_market:
                             f'<span style="font-size:0.72rem;">{_sn}</span>'
                             f'<span style="font-size:0.72rem;font-weight:700;color:#C62828;">▼ {abs(_sv):.2f}%</span>'
                             f'</div>', unsafe_allow_html=True)
-                st.markdown("<hr style='border-color:#D9D3C8;margin:0.9rem 0'>", unsafe_allow_html=True)
+                st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
     col3, col4 = st.columns(2)
     with col3:
@@ -2797,7 +2876,7 @@ with tab_watchlist:
                     st.session_state.research_flash = ("warning", _msg)
                 st.rerun()
 
-    st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
+    st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
     watchlist = load_watchlist()
 
     if not watchlist:
@@ -2822,7 +2901,7 @@ with tab_watchlist:
                     st.rerun()
 
     if st.session_state.watchlist_hits:
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
         st.markdown('<div class="section-title">📌 Watchlist Mentions</div>', unsafe_allow_html=True)
         for company, arts in st.session_state.watchlist_hits.items():
             html = '<div style="font-size:0.78rem;font-weight:700;color:#F9A825;letter-spacing:0.07em;text-transform:uppercase;margin:0.5rem 0 0.25rem;">★ ' + company + '</div>'
@@ -2851,7 +2930,7 @@ with tab_watchlist:
             st.markdown(html, unsafe_allow_html=True)
 
     # ── Underperformance vs TOPIX ─────────────────────────────────────────────
-    st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
+    st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
     st.markdown('<div class="section-title" style="font-size:0.95rem;">📉 Underperformance vs TOPIX</div>', unsafe_allow_html=True)
 
     topix_ret = st.session_state.get("topix_returns", {})
@@ -3297,7 +3376,7 @@ with tab_filings:
                 "Work down through mid-cap and smaller companies as coverage allows."
             ),
         )
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
         # ── Table ──
         table_html = """
@@ -3554,7 +3633,7 @@ with tab_research:
                     else ("warning", f"Added for this session only — {_wl_msg}"))
                 st.rerun()
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.5rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
         def _toggle_section(label: str, state_key: str, default: bool = False) -> bool:
             """Collapsible section header using a plain-character arrow instead
@@ -5080,7 +5159,7 @@ with tab_research:
                     if _toggle_section("🛠️  Edit & export",
                                        "research_fc_edit_open"):
                         _fc_exports(_rcode, _rname, _fc_map)
-                        st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
+                        st.markdown("<hr class='rule-minor'>",
                                     unsafe_allow_html=True)
                         # Two ways into the same override store. Typing is first
                         # because it always works — the screenshot reader needs an
@@ -5316,7 +5395,7 @@ with tab_research:
                     key=f"research_export_{_rcode}",
                 )
 
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.7rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
         # ── IR page & documents ───────────────────────────────────────────
         # One section for one URL. Finding the company's IR page, remembering
@@ -5683,7 +5762,7 @@ with tab_research:
             # same job — get a document into the library — done by hand when
             # the page can't be read. Bookmarking the IR page is no longer
             # part of this form; that is the button at the top of the section.
-            st.markdown("<hr style='border-color:#E8E3DC;margin:0.7rem 0'>",
+            st.markdown("<hr class='rule-minor'>",
                         unsafe_allow_html=True)
             if _toggle_section("➕  Add a document by hand", "research_addlink_open"):
                 st.markdown(
@@ -6149,6 +6228,11 @@ with tab_screener:
             _rows_html += (
                 f'<div style="display:grid;grid-template-columns:2.2fr 1.2fr 0.9fr 0.9fr 0.9fr 0.9fr;'
                 f'gap:0.3rem;padding:0.32rem 0.5rem;background:{_bg};{_border}'
+                # The page's ambient line-height is set for prose and made each
+                # of these one-line rows ~37px tall, so a screen of a screener
+                # built for scanning held 25 names. Set to the type, not to the
+                # paragraph it is not.
+                f'line-height:1.3;'
                 f'border-bottom:1px solid #EDE8E0;">'
                 f'<div><a href="{_yf_url}" target="_blank" style="font-size:0.78rem;font-weight:600;'
                 f'color:#1A1A1A;text-decoration:none;">{_s["name"]}</a>'
@@ -6958,7 +7042,7 @@ Current webhook token: `{tok_display}`
                 else:
                     st.error("Enter a valid email address.")
 
-    st.markdown("<hr style='border-color:#D9D3C8;margin:1rem 0'>", unsafe_allow_html=True)
+    st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
 
     st.markdown("""
     <div style="font-size:0.72rem;color:#9B8B7A;line-height:1.7;">
@@ -6984,7 +7068,7 @@ Current webhook token: `{tok_display}`
 
     # ── Manual send (for admin use) ──
     if get_secret("SENDGRID_API_KEY"):
-        st.markdown("<hr style='border-color:#D9D3C8;margin:0.8rem 0'>", unsafe_allow_html=True)
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
         st.markdown('<div style="font-size:0.72rem;font-weight:700;color:#8B4513;margin-bottom:0.4rem;">Send Digest Now</div>', unsafe_allow_html=True)
         _adm_col1, _adm_col2, _adm_col3 = st.columns([3, 1, 1])
         with _adm_col1:
