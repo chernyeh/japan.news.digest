@@ -27,6 +27,8 @@ and the schema captures which kind of document it was looking at.
 import json
 import re
 
+import models
+
 from fx_extract import (MAX_PDF_BYTES, validate_pdf, page_count, _b64,
                         _loads_lenient, _usd, INPUT_USD_PER_MTOK,
                         OUTPUT_USD_PER_MTOK)
@@ -35,7 +37,7 @@ from fx_extract import (MAX_PDF_BYTES, validate_pdf, page_count, _b64,
 # addressed the question is a harder call than reading a number off a table,
 # and the failure mode is worse: a false "evaded" is an accusation about named
 # executives, made from their own words.
-MODEL = "claude-opus-5"
+MODEL = models.DOC_EXTRACT_MODEL
 _REPLY_TOKENS = 2500          # several exchanges with quoted spans
 
 ANSWER_KINDS = ("answered", "partial", "deflected", "declined", "unanswered")

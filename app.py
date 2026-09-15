@@ -22,6 +22,7 @@ from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdn
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
 from ir_scanner import scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
+import models
 import consensus_vision
 import gh_read
 import fx_extract
@@ -1791,7 +1792,9 @@ def _render_ai_summary_progress(session_key: str):
         st.rerun()
 
 
-def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60, _override_btn=None, model: str = "claude-haiku-4-5-20251001", max_tokens: int = 8192, prompt_extra: str = ""):
+def render_ai_summary(articles: list, context: str, session_key: str, max_articles: int = 60,
+                      _override_btn=None, model: str = models.SUMMARY_MODEL_FAST,
+                      max_tokens: int = models.SUMMARY_MAX_TOKENS_FAST, prompt_extra: str = ""):
     """
     Renders an AI-powered summary panel with a Generate button.
     Uses the Anthropic API (ANTHROPIC_API_KEY in Streamlit Secrets).
@@ -1916,17 +1919,17 @@ Respond only with the briefing."""
                 _ai_cache[_status_key] = "running"
                 _ai_cache.pop(_error_key, None)
 
+                _effort = models.summary_effort(get_secret("SUMMARY_EFFORT", ""))
+
                 def _bg_generate(_prompt=prompt, _idx=_art_index, _model=model, _max_tokens=max_tokens,
-                                  _api_key=api_key, _session_key=session_key,
+                                  _effort=_effort, _api_key=api_key, _session_key=session_key,
                                   _status_key=_status_key, _error_key=_error_key, _ai_cache=_ai_cache):
                     try:
                         _client = _anthropic.Anthropic(api_key=_api_key)
-                        _msg = _client.messages.create(
-                            model=_model,
-                            max_tokens=_max_tokens,
-                            messages=[{"role": "user", "content": _prompt}]
-                        )
-                        _text  = _msg.content[0].text
+                        # models.call streams and picks the request options this
+                        # model accepts — the deep model thinks before it writes,
+                        # so the reply is not simply content[0].
+                        _text = models.call(_client, _model, _prompt, _max_tokens, _effort)
                         _ts_dt = now_local()
                         _ai_cache[_session_key]          = _text
                         _ai_cache[_session_key + "_ts"]  = _ts_dt
@@ -2275,7 +2278,8 @@ with tab_bytime:
             "the last 24 hours of Japan business news across all sources",
             "summary_bytime",
             max_articles=75,
-            max_tokens=12000,
+            model=models.SUMMARY_MODEL_DEEP,
+            max_tokens=models.SUMMARY_MAX_TOKENS_DEEP,
             _override_btn=_bytime_gen_btn,
         )
 
@@ -3354,14 +3358,12 @@ with tab_filings:
                 "translated_title": f.get("title_en") or f.get("title", ""),
                 "original_title":   f.get("title", ""),
             })
-        if len(filing_articles) > 100:
-            _briefing_model      = "claude-sonnet-4-6"
-            _briefing_max_tokens = 16000
-            _briefing_cap        = 200
-        else:
-            _briefing_model      = "claude-haiku-4-5-20251001"
-            _briefing_max_tokens = 8192
-            _briefing_cap        = 100
+        # The model no longer changes with the size of the pool — both branches
+        # read the same kind of filing and want the same judgment — but a heavy
+        # day still doubles the cap, and 200 filings need the deeper coverage.
+        _briefing_model      = models.SUMMARY_MODEL_DEEP
+        _briefing_max_tokens = models.SUMMARY_MAX_TOKENS_DEEP
+        _briefing_cap        = 200 if len(filing_articles) > 100 else 100
         render_ai_summary(
             filing_articles,
             f"TDnet corporate filings — last {_win_label}",

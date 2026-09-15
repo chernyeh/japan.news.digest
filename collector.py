@@ -17,6 +17,8 @@ import os
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import models
+
 # ── Bot-bypass HTTP session (cloudscraper) ─────────────────────────────────────
 # cloudscraper rotates TLS fingerprints and solves Cloudflare JS challenges.
 # Falls back to plain requests when the package is unavailable so the app still
@@ -717,7 +719,7 @@ def classify_articles_batch(articles: list, api_key: str) -> list:
             "https://api.anthropic.com/v1/messages",
             headers={"Content-Type": "application/json"},
             json={
-                "model": "claude-haiku-4-5-20251001",
+                "model": models.CLASSIFY_MODEL,
                 "max_tokens": 2000,
                 "system": system,
                 "messages": [{"role": "user", "content": prompt}],
@@ -878,7 +880,7 @@ Headlines:
             headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
                      "content-type": "application/json"},
             json={
-                "model": "claude-haiku-4-5-20251001",
+                "model": models.CLASSIFY_MODEL,
                 "max_tokens": 4000,
                 "messages": [{"role": "user", "content": prompt}]
             },
