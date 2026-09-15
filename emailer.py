@@ -10,6 +10,8 @@ Each edition includes: market data, AI briefing, filings summary, sector news.
 import os, json
 from datetime import datetime
 
+import models
+
 SUBSCRIBERS_FILE = "subscribers.json"
 # NOTE: Streamlit Community Cloud has an ephemeral filesystem — subscribers.json
 # is lost on every app restart/redeploy. For persistent storage, add a
@@ -108,12 +110,8 @@ Write a complete briefing covering all significant stories that:
 Use markdown. Be factual. No filler."""
 
         client = anthropic.Anthropic(api_key=api_key)
-        msg    = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return msg.content[0].text
+        return models.call(client, models.SUMMARY_MODEL_FAST, prompt,
+                           models.EMAIL_BRIEFING_MAX_TOKENS)
     except Exception as e:
         return f"AI briefing unavailable: {e}"
 

@@ -21,16 +21,18 @@ import base64
 import json
 import re
 
+import models
+
 # Vision-capable formats the Messages API accepts.
 SUPPORTED_MEDIA = ("image/png", "image/jpeg", "image/gif", "image/webp")
 MAX_IMAGES = 8
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
-# Deliberately not the claude-haiku-4-5 used elsewhere in this app for news
-# summarisation. Transcribing financial figures is the one task here where a
-# single misread digit silently corrupts the output, and the cost difference
-# on a handful of screenshots is irrelevant next to that.
-MODEL = "claude-opus-5"
+# Deliberately not models.SUMMARY_MODEL_FAST, which still reads the
+# high-frequency news panels. Transcribing financial figures is the one task
+# here where a single misread digit silently corrupts the output, and the cost
+# difference on a handful of screenshots is irrelevant next to that.
+MODEL = models.DOC_EXTRACT_MODEL
 
 # ── What a screenshot costs to read ──────────────────────────────────────
 # Claude bills an image by area, not by file size: it is cut into 28×28-pixel
@@ -46,8 +48,7 @@ MODEL = "claude-opus-5"
 PATCH_PX = 28
 MAX_LONG_EDGE = 2576          # high-resolution tier (Claude 4.7 and later)
 MAX_VISUAL_TOKENS = 4784
-INPUT_USD_PER_MTOK = 5.00     # claude-opus-5
-OUTPUT_USD_PER_MTOK = 25.00
+INPUT_USD_PER_MTOK, OUTPUT_USD_PER_MTOK = models.price(MODEL)
 
 # The instructions above travel with every request, and a filled-in review grid
 # comes back as JSON preceded by the model's reasoning, which bills as output.
