@@ -65,6 +65,12 @@ EMAIL_BRIEFING_MAX_TOKENS = 2048
 # the bill, "high"/"xhigh" on a heavy filings day. Ignored by models that
 # don't take it (see below).
 DEFAULT_SUMMARY_EFFORT = "medium"
+
+# Statuses that mean the request shape is wrong for this deployment rather
+# than something being wrong with the account or the service: an unknown
+# parameter (400), an endpoint or model this key cannot route to (404), a
+# parameter the API parsed but would not accept (422).
+_SHAPE_ERRORS = (400, 404, 422)
 _EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 
 # Adaptive thinking and output_config.effort arrived with the 4.6 generation.
@@ -77,11 +83,14 @@ ADAPTIVE_THINKING_MODELS = frozenset({
     "claude-opus-4-7",
 })
 
-# Opus 5 can decline a request outright (stop_reason "refusal"). It is
-# unlikely on a headline list, but a briefing pool does carry cyber-breach
-# and geopolitics stories. Server-side fallbacks re-run the same request on
-# another model inside the same call rather than handing the user an error.
-_FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# There is deliberately no server-side-fallback rung here. It was tried: it
+# asks for a beta on the beta endpoint, and a deployment whose account does
+# not have that beta gets a 404 or 403 rather than the 400 the ladder below
+# degrades on, which took the briefing panels down outright. The thing it
+# bought — an automatic re-run when the model declines — is worth very little
+# on a list of news headlines, and nothing at all next to a panel that works.
+# A refusal is now surfaced as a plain error instead, which is honest and
+# roughly never happens.
 
 # ── Prices, USD per million tokens ────────────────────────────────────────
 # From claude.com/pricing. These move; a stale figure belongs here, visible
@@ -112,17 +121,15 @@ def summary_effort(configured: str = "") -> str:
 def _attempts(model: str, effort: str) -> tuple:
     """Request options to try, best first. requirements.txt pins an SDK floor
     old enough that a deployment could still be running one that has never
-    heard of output_config, adaptive thinking or server-side fallbacks, so
-    each rung drops what the rung above it needs — same ladder as
-    fx_extract.extract, which has the reasoning in full."""
+    heard of output_config or adaptive thinking, so each rung drops what the
+    rung above it needs — same ladder as fx_extract.extract, which has the
+    reasoning in full. Every rung here is on the stable endpoint: a rung that
+    needs a beta can fail in ways the ladder cannot catch (see above)."""
     if model not in ADAPTIVE_THINKING_MODELS:
-        return (("std", {}),)
-    thinking = {"thinking": {"type": "adaptive"},
-                "output_config": {"effort": effort}}
+        return ({},)
     return (
-        ("beta", dict(thinking, betas=[_FALLBACK_BETA], fallbacks="default")),
-        ("std", thinking),
-        ("std", {}),
+        {"thinking": {"type": "adaptive"}, "output_config": {"effort": effort}},
+        {},
     )
 
 
@@ -138,21 +145,33 @@ def call(client, model: str, prompt: str, max_tokens: int, effort: str = "") -> 
     effort = summary_effort(effort)
     last_exc = None
 
-    for namespace, extra in _attempts(model, effort):
+    attempts = _attempts(model, effort)
+    for rung, extra in enumerate(attempts, 1):
         try:
-            target = client.beta.messages if namespace == "beta" else client.messages
-            with target.stream(model=model, max_tokens=max_tokens,
-                               messages=messages, **extra) as stream:
+            with client.messages.stream(model=model, max_tokens=max_tokens,
+                                        messages=messages, **extra) as stream:
                 msg = stream.get_final_message()
             break
         except TypeError as exc:                    # kwarg unknown to this SDK
             last_exc = exc
-        except AttributeError as exc:               # no beta namespace on this SDK
+        except anthropic.APIStatusError as exc:
+            # Degrade only on the statuses that mean "this deployment cannot
+            # send this request shape". An expired key, a rate limit or an
+            # outage is not fixed by dropping a parameter, and retrying the
+            # whole ladder against it just triples the wait before the panel
+            # shows an error — so those are raised as themselves, with the
+            # API's own message intact.
+            if getattr(exc, "status_code", 0) not in _SHAPE_ERRORS:
+                raise
             last_exc = exc
-        except anthropic.BadRequestError as exc:    # param unknown to the API
-            last_exc = exc
+        # Logged, not swallowed: when a deployment quietly runs on the bottom
+        # rung the briefings get worse (no effort dial) with nothing on screen
+        # to say so. This is the only trace of that.
+        if rung < len(attempts):
+            print(f"models.call: {model} rejected {sorted(extra)} "
+                  f"({type(last_exc).__name__}: {last_exc}) — retrying simpler")
     else:
-        raise RuntimeError(f"Could not call the model: {last_exc}")
+        raise RuntimeError(f"Could not call {model}: {last_exc}")
 
     if getattr(msg, "stop_reason", "") == "refusal":
         raise RuntimeError("The model declined to write this briefing.")
