@@ -275,7 +275,8 @@ def _push(entries: dict, repo: str, token: str, what: str) -> tuple:
             if r.status_code == 200:
                 sha = r.json().get("sha")
             elif r.status_code != 404:
-                return False, gh_read.write_error(r.status_code, r.text)
+                return False, gh_read.write_error(r.status_code, r.text, token,
+                                                  r.headers, repo)
         except Exception as exc:
             return False, f"GitHub read error: {exc}"
         body = {"message": f"chore: watchlist — {what} [skip ci]",
@@ -290,7 +291,8 @@ def _push(entries: dict, repo: str, token: str, what: str) -> tuple:
             return True, "Saved."
         if put.status_code == 409 and attempt == 0:
             continue
-        return False, gh_read.write_error(put.status_code, put.text)
+        return False, gh_read.write_error(put.status_code, put.text, token,
+                                          put.headers, repo)
     return False, "GitHub write failed after retry (concurrent edit)."
 
 

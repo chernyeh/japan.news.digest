@@ -39,7 +39,7 @@ def load_links_from_github(repo: str, token: str = None) -> dict:
     return gh_read.raw_json(repo, LINKS_PATH, token, {})
 
 
-def _get_current(api_url: str, headers: dict):
+def _get_current(api_url: str, headers: dict, token: str = "", repo: str = ""):
     """Returns (sha_or_None, data_dict). 404 -> (None, {})."""
     import requests
     import gh_read
@@ -47,7 +47,8 @@ def _get_current(api_url: str, headers: dict):
     if r.status_code == 404:
         return None, {}
     if r.status_code != 200:
-        raise RuntimeError(gh_read.write_error(r.status_code, r.text))
+        raise RuntimeError(gh_read.write_error(r.status_code, r.text, token,
+                                               r.headers, repo))
     payload = r.json()
     sha = payload.get("sha")
     try:
@@ -82,7 +83,7 @@ def save_link(repo: str, token: str, sec_code: str, link: dict) -> tuple:
 
     for attempt in range(2):
         try:
-            sha, data = _get_current(api_url, headers)
+            sha, data = _get_current(api_url, headers, token, repo)
         except RuntimeError as exc:
             return False, str(exc)
         data.setdefault(sec_code, []).append(link)
@@ -93,7 +94,8 @@ def save_link(repo: str, token: str, sec_code: str, link: dict) -> tuple:
         if put.status_code == 409 and attempt == 0:
             continue  # sha changed under us — re-fetch and retry once
         import gh_read
-        return False, gh_read.write_error(put.status_code, put.text)
+        return False, gh_read.write_error(put.status_code, put.text, token,
+                                          put.headers, repo)
 
     return False, "GitHub write failed after retry (concurrent edit)."
 
@@ -109,7 +111,7 @@ def delete_link(repo: str, token: str, sec_code: str, index: int) -> tuple:
 
     for attempt in range(2):
         try:
-            sha, data = _get_current(api_url, headers)
+            sha, data = _get_current(api_url, headers, token, repo)
         except RuntimeError as exc:
             return False, str(exc)
         entries = data.get(sec_code, [])
@@ -124,6 +126,7 @@ def delete_link(repo: str, token: str, sec_code: str, index: int) -> tuple:
         if put.status_code == 409 and attempt == 0:
             continue
         import gh_read
-        return False, gh_read.write_error(put.status_code, put.text)
+        return False, gh_read.write_error(put.status_code, put.text, token,
+                                          put.headers, repo)
 
     return False, "GitHub write failed after retry (concurrent edit)."
