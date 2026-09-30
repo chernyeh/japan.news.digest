@@ -6461,7 +6461,7 @@ with tab_screener:
         st.markdown(
             f'<div style="font-size:0.63rem;color:#9B8B7A;margin-top:0.4rem;">'
             f'Showing {len(_rows):,} stocks · red = underperforms · green = outperforms TOPIX · '
-            f'Data from daily price archive (same source as Earnings Calendar)</div>',
+            f'Data from daily price archive (same source as Earnings Calendar), adjusted for stock splits</div>',
             unsafe_allow_html=True
         )
 

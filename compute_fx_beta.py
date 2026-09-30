@@ -26,19 +26,46 @@ import sys
 
 import compute_liquidity as CL
 import fx_history as FXH
+import splits as S
 
 OUT_PATH = "data/fx_beta.csv"
 COLUMNS = ["code", "fx_beta", "r2", "obs", "first_obs", "last_obs", "weak", "as_of"]
 
 
-def beta_rows(series: dict, fx: dict, min_obs: int = FXH.MIN_OBS) -> list:
+def split_adjusted(closes: dict, notices: list = None) -> dict:
+    """{"YYYY-MM-DD": close} restated across stock splits.
+
+    The archive keeps raw closes, so a 5:1 split entered the regression as a
+    single -80% return on the ex-date -- one point that can swamp a year of
+    genuine yen sensitivity. splits.py finds the event; closes before it are
+    restated on the post-split basis. Behind a move it could not resolve, the
+    series restarts: no return is measured across it."""
+    from datetime import date
+    try:
+        dated = {date.fromisoformat(d): c for d, c in closes.items()}
+    except ValueError:
+        return closes
+    events = S.detect_events(list(dated.items()), notices)
+    if not events:
+        return closes
+    unresolved = [e["ex_date"] for e in events if e["status"] == "unresolved"]
+    if unresolved:
+        start = max(unresolved)
+        dated = {d: c for d, c in dated.items() if d >= start}
+    return {d.isoformat(): c for d, c in S.adjust_closes(dated, events).items()}
+
+
+def beta_rows(series: dict, fx: dict, min_obs: int = FXH.MIN_OBS,
+              notices: dict = None) -> list:
     """One row per company that has enough overlap with the FX history."""
     from datetime import date
+    notices = notices or {}
     fx_levels = {d: r.get("USDJPY") for d, r in fx.items() if r.get("USDJPY")}
     today = date.today().isoformat()
     rows = []
     for code, obs in sorted(series.items()):
-        closes = {d: c for d, c, _v, _t, _m in obs if c}
+        closes = split_adjusted({d: c for d, c, _v, _t, _m in obs if c},
+                                notices.get(code, []))
         res = FXH.fx_beta(closes, fx_levels, min_obs)
         if res.get("insufficient"):
             continue
@@ -79,16 +106,18 @@ def main() -> int:
     series = CL.read_archive(args.archive)
     print(f"{len(series)} companies, {len(fx)} FX day(s)")
 
+    notices = S.tdnet_split_notices()
     if args.probe:
         obs = series.get(args.probe, [])
-        closes = {d: c for d, c, _v, _t, _m in obs if c}
+        closes = split_adjusted({d: c for d, c, _v, _t, _m in obs if c},
+                                notices.get(args.probe, []))
         fxl = {d: r.get("USDJPY") for d, r in fx.items() if r.get("USDJPY")}
         print(f"\n{args.probe}: {len(closes)} close(s), {len(fxl)} FX level(s), "
               f"{len(set(closes) & set(fxl))} shared date(s)")
         print(f"  {FXH.fx_beta(closes, fxl, args.min_obs)}")
         return 0
 
-    rows = beta_rows(series, fx, args.min_obs)
+    rows = beta_rows(series, fx, args.min_obs, notices)
     print(f"{len(rows)} company/ies with a usable regression "
           f"(min {args.min_obs} paired observations)")
     if rows:
