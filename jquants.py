@@ -788,8 +788,30 @@ def compute_perf_map_inline(prices_map: dict, repo: str = None, token: str = Non
 
     today = date.today()
 
+    # Splits found by compute_3m_perf.py. The archive holds raw closes, so
+    # without these a split inside the window reads as a crash (splits.py).
+    # A missing file just means no adjustment -- the old behaviour.
+    try:
+        import gh_read as _gh
+        import splits as _splits
+        _events = _splits.parse_events(_gh.raw_csv(repo, "data/split_events.csv", token))
+    except Exception as _se:
+        print(f"compute_perf_map_inline: split events unavailable ({_se})")
+        _splits, _events = None, {}
+
+    def _adj_then(code, p_then, base_date):
+        """Base close restated across later splits; None if the window spans
+        a move that could not be resolved."""
+        if not _splits:
+            return p_then
+        evs = _events.get(code, [])
+        if _splits.unresolved_between(evs, base_date, today):
+            return None
+        return p_then / _splits.cumulative_factor(evs, base_date, today)
+
     # ── Find best archive for each period ─────────────────────────────────────
     past_prices = {}
+    past_dates = {}
     topix_returns = {}
 
     for period, (target_days, tolerance) in PERIODS.items():
@@ -812,6 +834,7 @@ def compute_perf_map_inline(prices_map: dict, repo: str = None, token: str = Non
             continue
 
         past_prices[period] = arch
+        past_dates[period] = best_date
         print(f"compute_perf_map_inline: {period} → {fname} ({best_delta}d from target, "
               f"{len(arch)} stocks)")
 
@@ -819,6 +842,8 @@ def compute_perf_map_inline(prices_map: dict, repo: str = None, token: str = Non
         for tc in TOPIX_CODES:
             t_today = prices_map.get(tc)
             t_past = arch.get(tc)
+            if t_past:
+                t_past = _adj_then(tc, t_past, best_date)
             if t_today and t_past and t_past > 0:
                 cand = round((t_today / t_past - 1) * 100, 2)
                 if abs(cand) <= 80:
@@ -863,6 +888,8 @@ def compute_perf_map_inline(prices_map: dict, repo: str = None, token: str = Non
             if period not in topix_returns or period not in past_prices:
                 continue
             p_then = past_prices[period].get(code)
+            if p_then:
+                p_then = _adj_then(code, p_then, past_dates[period])
             if p_then and p_then > 0 and p_now and p_now > 0:
                 r_stock = (p_now / p_then - 1) * 100
                 rel = _geo_rel(r_stock, topix_returns[period])

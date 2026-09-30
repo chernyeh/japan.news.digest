@@ -200,6 +200,16 @@ st.set_page_config(
 # ?tz=<IANA name> to the URL. Falls back to Malaysia time until that redirect
 # lands (first paint only) or if detection fails for any reason.
 _tz_name = st.query_params.get("tz")
+if not _tz_name:
+    # The browser reports its own zone to Streamlit on connect, so no redirect
+    # is needed on any release that exposes it. The redirect below cannot work
+    # on current releases anyway: components run in a sandboxed iframe without
+    # allow-top-navigation, so the browser refuses location.replace() and every
+    # visitor silently got the Malaysia fallback. It stays for older releases.
+    try:
+        _tz_name = st.context.timezone or None
+    except Exception:
+        _tz_name = None
 try:
     LOCAL_TZ = pytz.timezone(_tz_name) if _tz_name else pytz.timezone("Asia/Kuala_Lumpur")
 except pytz.UnknownTimeZoneError:
@@ -632,6 +642,16 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
     font-size: 0.6rem; font-weight: 700; padding: 0.06rem 0.32rem;
     border-radius: 2px; margin-right: 0.25rem; vertical-align: middle;
 }
+/* The company chip doubles as a link into the Research tab. */
+[data-testid="stMarkdownContainer"] a.signal-company {
+    color: #0D47A1; text-decoration: none;
+}
+[data-testid="stMarkdownContainer"] a.signal-company:hover { background: #D6EAF8; }
+/* The small magnifier after a company name that opens it in Research. */
+[data-testid="stMarkdownContainer"] a.research-jump {
+    margin-left: 5px; text-decoration: none; font-size: 0.72rem; opacity: 0.55;
+}
+[data-testid="stMarkdownContainer"] a.research-jump:hover { opacity: 1; }
 .signal-card {
     border-left: 4px solid #D9D3C8;
     padding: 0.55rem 0.6rem 0.45rem;
@@ -666,6 +686,9 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
     transition: border-color 0.15s, background 0.15s;
 }
 .media-card:hover { border-color: #8B4513; background: #FFF8F5; }
+/* Streamlit's own markdown link style outranks the bare class and underlined
+   every card; these are tiles, not inline links. */
+[data-testid="stMarkdownContainer"] a.media-card { text-decoration: none; color: #1A1A1A; }
 .media-icon { font-size: 0.9rem; flex-shrink: 0; }
 .media-name {
     font-size: 0.72rem; font-weight: 600; color: #1A1A1A;
@@ -717,10 +740,13 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
     line-height: 1.7;
 }
 
-/* Instrument cards (Markets tab) */
+/* Instrument cards (Markets tab). auto-fit, not auto-fill: with only the
+   Nikkei and TOPIX cards, auto-fill kept an empty third track open and the
+   pair sat in two-thirds of the row, out of line with the full-width rows of
+   sub-index and FX cards below. auto-fit collapses the empty track. */
 .instrument-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.5rem;
     margin-bottom: 0.3rem;
 }
@@ -751,8 +777,10 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
 .inst-change {
     font-size: 0.72rem; font-weight: 600;
 }
+/* One column per period, however many are shown: a fixed repeat(6) left an
+   empty sixth column once the card settled on five periods. */
 .ret-grid {
-    display: grid; grid-template-columns: repeat(6, 1fr);
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
     gap: 0.15rem; border-top: 1px solid #EDE8E0; padding-top: 0.3rem;
 }
 .ret-cell { text-align: center; }
@@ -781,6 +809,10 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
     border-bottom: 2px solid #EDE8E0; padding-bottom: 0.2rem;
 }
 .ai-h2:first-child { margin-top: 0; }
+.ai-h3 {
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em;
+    color: #5C4033; margin: 0.7rem 0 0.1rem 0;
+}
 .ai-summary ul { margin: 0.4rem 0 0.6rem 1.2rem; padding: 0; }
 .ai-summary li { margin-bottom: 0.55rem; font-size: 1.0rem; line-height: 1.75; }
 .ai-summary li strong, .ai-summary strong { font-weight: 700; color: #1A1A1A; }
@@ -1008,6 +1040,11 @@ a.research-link:hover { background: #F0EDE8; }
 [class*="st-key-research_section_toggle"] button {
     text-align: left !important; justify-content: flex-start !important;
 }
+/* Streamlit now wraps the label in a full-width flex <div> of its own that
+   centres it, so left-aligning the button alone no longer moved the text. */
+[class*="st-key-research_section_toggle"] button > div {
+    justify-content: flex-start !important;
+}
 /* IR-scan results — grouped candidate list */
 /* ── Forecast / consensus / valuation panel (Research tab) ───────────── */
 /* Capped rather than full-bleed: six numbers spread over 1800px of a desktop
@@ -1018,7 +1055,10 @@ a.research-link:hover { background: #F0EDE8; }
             grid-template-columns: minmax(88px, 1.1fr)
                                    repeat(var(--fc-cols, 2), minmax(72px, 1fr)); }
 .fc-cell { padding: 5px 8px; text-align: right; border-bottom: 1px solid #E8E3DC;
-           font-variant-numeric: tabular-nums; }
+           font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* nowrap above keeps a figure and its source marker on one line: on a phone
+   "48,036.7" used to wrap its superscript "A" onto a line of its own. The
+   table already scrolls sideways under the pinned metric column. */
 .fc-h { font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase;
         color: #9B8B7A; font-weight: 600; background: #F0EDE8;
         border-bottom: 1px solid #D9D3C8; white-space: nowrap; }
@@ -1078,13 +1118,14 @@ a.research-link:hover { background: #F0EDE8; }
 /* Findings drawn from the company's own filing history. Deliberately louder
    than .fc-note -- a note explains why a column is empty, these say something
    about the business -- and deliberately quieter than the table itself. */
-.fc-reads { display: flex; flex-direction: column; gap: 5px; margin: 8px 0 2px; }
+.fc-reads { display: flex; flex-direction: column; gap: 5px; margin: 8px 0 2px;
+            max-width: 760px; }   /* same right edge as the table and tiles */
 .fc-read { font-size: 0.72rem; color: #5A5044; border-left: 3px solid #B8A98F;
            padding: 5px 10px; background: #FBF7F0; border-radius: 0 3px 3px 0; }
 .fc-read b { color: #3D3529; font-weight: 600; }
 .fc-read em { color: #9B8B7A; font-style: italic; }
 .fc-note { font-size: 0.72rem; color: #9B8B7A; border-left: 3px solid #D9D3C8;
-           padding: 6px 10px; margin: 8px 0; background: #FDFAF7; }
+           padding: 6px 10px; margin: 8px 0; background: #FDFAF7; max-width: 760px; }
 .fc-note.fc-warn { border-left-color: #E65100; color: #7A4A22; background: #FDF4EE; }
 .fc-note code { font-family: monospace; font-size: 0.95em; }
 /* Separators drawn inside the cells rather than as a 1px grid gap over a dark
@@ -1169,6 +1210,12 @@ a.research-link:hover { background: #F0EDE8; }
     .media-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
     .stTabs [data-baseweb="tab"] { font-size: 0.58rem; padding: 0.25rem 0.35rem; }
 
+    /* Earnings calendar: seven columns on a phone left the company name
+       wrapping over four lines. Sector is the one a reader can spare here;
+       the Research tab carries it. Inline grid templates need !important. */
+    .ec-grid { grid-template-columns: 0.9rem 1.7fr 0.6fr 0.55fr 0.9fr 0.9fr !important; }
+    .ec-grid > :nth-child(5) { display: none; }
+
     /* Forecast panel on a phone. The table keeps its shape and scrolls
        sideways under a pinned metric column — turning it into stacked cards
        would cost the side-by-side comparison the table exists for — while
@@ -1189,6 +1236,30 @@ a.research-link:hover { background: #F0EDE8; }
     .fc-note { font-size: 0.68rem; padding: 5px 8px; margin: 6px 0; }
     .fc-legend { gap: 9px; font-size: 0.62rem; }
     .fc-read { font-size: 0.66rem; padding: 5px 8px; }
+}
+
+/* The toolbar's timestamp is a raw <div> in a markdown container, which
+   keeps Streamlit's -1rem margin meant to cancel a trailing <p> (see the
+   research_item_row_ note). Uncancelled, its column measured 2px tall: on a
+   desktop the text hung ~8px below the buttons it is centred against, and on
+   a phone, where it sits on a line of its own, it rode up into the ticker. */
+.st-key-toolbar [data-testid="stColumn"]:first-child [data-testid="stMarkdownContainer"] {
+    margin-bottom: 0 !important;
+}
+/* ── Toolbar on a phone ─────────────────────────────────────────────────
+   Below 640px Streamlit stacks every column to full width, which gave the
+   stepper, Refresh and Clear a full-width row each: ~150px of controls
+   between the ticker and the tabs on every visit. Keep the timestamp on a
+   line of its own and the three controls on the next. */
+@media (max-width: 640px) {
+    .st-key-toolbar [data-testid="stHorizontalBlock"] {
+        flex-flow: row wrap !important; gap: 0.5rem !important;
+    }
+    .st-key-toolbar [data-testid="stColumn"] {
+        flex: 1 1 0 !important; min-width: 0 !important; width: auto !important;
+    }
+    .st-key-toolbar [data-testid="stColumn"]:first-child { flex: 1 1 100% !important; }
+    .st-key-toolbar [data-testid="stColumn"]:nth-child(2) { flex: 0 0 auto !important; }
 }
 
 /* ── Text-size stepper ─────────────────────────────────────────────────
@@ -1298,6 +1369,16 @@ if st.session_state.ui_zoom != ZOOM_DEFAULT:
     st.markdown(
         f"<style>html {{ font-size: {st.session_state.ui_zoom}% !important; }}</style>",
         unsafe_allow_html=True)
+
+
+def _research_href(code: str) -> str:
+    """Link that reopens the app on the Research tab with `code` selected.
+
+    A bare ?research=… would drop every other query parameter, and the
+    text-size control keeps its setting in ?z. Carry it across so following
+    the link does not silently reset the reader's font size."""
+    _z = st.session_state.get("ui_zoom", ZOOM_DEFAULT)
+    return f"?research={code}" + (f"&amp;z={_z}" if _z != ZOOM_DEFAULT else "")
 
 
 def _zoom_step(delta: int):
@@ -1662,6 +1743,12 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
     out    = []
     in_ul  = False
     in_intro = True   # first paragraph(s) before any ## header get styled as intro
+    # Whether the intro-block <div> is actually open. Tracked explicitly: the
+    # old test ("has any <div class> been emitted?") was fooled by a leading
+    # "# Title" line, so the intro never opened but its </div> was still
+    # written -- closing the enclosing .ai-summary box instead, which left
+    # every section after the intro rendered outside the panel.
+    intro_open = False
 
     for line in lines:
         line = line.rstrip()
@@ -1714,24 +1801,38 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
             return f'<a class="summary-link" href="{_safe_url(_u)}" target="_blank">{_display}</a>'
         line = _re2.sub(r"\[([^\]]+)\]\(([^)]+)\)", _make_link, line)
 
-        if line.startswith("## "):
+        if line.startswith("### "):
+            # Sub-heading inside a section (the Company Briefs block uses
+            # them); without this branch the "###" printed as literal text.
             if in_ul:
                 out.append("</ul>"); in_ul = False
-            if in_intro:
-                if out: out.append("</div>")
-                in_intro = False
+            if intro_open:
+                out.append("</div>"); intro_open = False
+            in_intro = False
+            out.append(f'<div class="ai-h3">{line[4:]}</div>')
+
+        elif line.startswith("## "):
+            if in_ul:
+                out.append("</ul>"); in_ul = False
+            if intro_open:
+                out.append("</div>"); intro_open = False
+            in_intro = False
             out.append(f'<div class="ai-h2">{line[3:]}</div>')
 
         elif line.startswith("# "):
             if in_ul:
                 out.append("</ul>"); in_ul = False
-            if in_intro and out:
-                out.append("</div>"); in_intro = False
+            if intro_open:
+                out.append("</div>"); intro_open = False
+            # A leading title keeps the paragraph under it styled as the intro.
+            if out:
+                in_intro = False
             out.append(f'<div class="ai-h2">{line[2:]}</div>')
 
         elif line.startswith("- ") or line.startswith("* "):
-            if in_intro and out:
-                out.append("</div>"); in_intro = False
+            if intro_open:
+                out.append("</div>"); intro_open = False
+            in_intro = False
             if not in_ul:
                 out.append("<ul>"); in_ul = True
             bullet_text = line[2:]
@@ -1766,18 +1867,28 @@ def _summary_to_html(text: str, art_index: dict = None) -> str:
         else:
             if in_ul:
                 out.append("</ul>"); in_ul = False
-            if in_intro:
-                if not any("<div class" in o for o in out):
-                    out.append('<div class="intro-block">')
-                out.append(f"<p>{line}</p>")
-            else:
-                out.append(f"<p>{line}</p>")
+            if in_intro and not intro_open:
+                out.append('<div class="intro-block">'); intro_open = True
+            out.append(f"<p>{line}</p>")
 
     if in_ul:
         out.append("</ul>")
-    if in_intro and any("<div class" in o for o in out):
+    if intro_open:
         out.append("</div>")
     return "\n".join(out)
+
+
+def _action_badge(a, css_class: str = "hv-badge") -> str:
+    """Headline badge for a corporate action.
+
+    Prefers the classifier's own label ("🔄 Buyback", "🎯 Guidance ▲") over
+    the generic star, which only says a keyword matched. Falls back to that
+    star for articles the classifier never saw."""
+    _act = a.get("corp_action") or "none"
+    _meta = CORP_ACTION_META.get(_act) or {}
+    if _act != "none" and _meta.get("label"):
+        return f'<span class="{css_class}">{_meta.get("emoji", "")} {_meta["label"]}</span>'
+    return f'<span class="{css_class}">★ Corp Action</span>' if a.get("high_value") else ""
 
 
 def _safe_url(url: str) -> str:
@@ -1988,10 +2099,26 @@ Respond only with the briefing."""
     if st.session_state[session_key]:
         _art_idx_stored = st.session_state.get(session_key + "_idx", {})
         _ts_val = st.session_state.get(session_key + "_ts")
+        # A briefing restored from the durable store can be weeks old while the
+        # heading above it still says "Last 24 Hours", so say its age outright
+        # once it is past a day rather than leaving the reader to do the sum.
+        _age_note, _bar_bg, _bar_col = "", "#F0EDE8", "#9B8B7A"
+        if _ts_val:
+            try:
+                _ts_aware = _ts_val if _ts_val.tzinfo else pytz.utc.localize(_ts_val)
+                _age_h = (now_local() - _ts_aware).total_seconds() / 3600
+                if _age_h >= 24:
+                    _age_d = int(_age_h // 24)
+                    _age_note = (f' · <strong>{_age_d} day{"s" if _age_d != 1 else ""} old</strong>'
+                                 ' — press ✨ Summarise for a fresh one')
+                    _bar_bg, _bar_col = "#FFF8E1", "#795548"
+            except (TypeError, AttributeError):
+                pass
         _ts_bar = (
-            f'<div style="font-size:0.65rem;color:#9B8B7A;margin-bottom:0.5rem;'
-            f'padding:0.3rem 0.5rem;background:#F0EDE8;border-radius:3px;'
-            f'border-left:3px solid #8B4513;">✨ Briefing generated: {format_local_dt(_ts_val)}</div>'
+            f'<div style="font-size:0.65rem;color:{_bar_col};margin-bottom:0.5rem;'
+            f'padding:0.3rem 0.5rem;background:{_bar_bg};border-radius:3px;'
+            f'border-left:3px solid #8B4513;">✨ Briefing generated: {format_local_dt(_ts_val)}'
+            f'{_age_note}</div>'
         ) if _ts_val else ""
         st.markdown(
             '<div class="ai-summary">' + _ts_bar + _summary_to_html(st.session_state[session_key], _art_idx_stored) + '</div>',
@@ -2019,8 +2146,11 @@ def render_ticker(label, data):
         )
     price = data["price"]
     pct = data.get("pct_change", 0)
+    # Every item used to repeat the same fetch time the strip's own "Updated"
+    # column already shows. Only a source-provided state (no fetch time known)
+    # still says something the strip does not.
     _lmf = st.session_state.get("last_market_fetch")
-    state = format_mkt_ts(_lmf) if _lmf else data.get("state_label", "")
+    state = "" if _lmf else data.get("state_label", "")
     chg_class = "ticker-change-up" if pct >= 0 else "ticker-change-dn"
     arrow = "▲" if pct >= 0 else "▼"
     # Format: JPY pairs get 1dp; other large numbers as integers; small as 2dp
@@ -2061,7 +2191,7 @@ if st.session_state.market_data and st.session_state.market_data.get("_source") 
         first = False
     last_mkt = st.session_state.last_market_fetch
     updated_str = format_local_dt(last_mkt) if last_mkt else "—"
-    ticker_html += '<div style="margin-left:auto;font-size:0.55rem;color:#555;align-self:center;">Updated<br>' + updated_str + '</div>'
+    ticker_html += '<div style="margin-left:auto;font-size:0.55rem;color:#9B8B7A;align-self:center;">Updated<br>' + updated_str + '</div>'
     ticker_html += '</div>'
     st.markdown(ticker_html, unsafe_allow_html=True)
 
@@ -2073,8 +2203,9 @@ if st.session_state.market_data and st.session_state.market_data.get("_source") 
 # grouping the three together says they are the same kind of thing.
 # vertical_alignment centres them against the timestamp properly, in place of
 # the hand-tuned padding-top that used to approximate it.
-col_info, col_zoom, col_refresh, col_clear = st.columns(
-    [2.6, 1.0, 0.9, 0.7], vertical_alignment="center")
+with st.container(key="toolbar"):   # keyed for the phone layout rule in the CSS
+    col_info, col_zoom, col_refresh, col_clear = st.columns(
+        [2.6, 1.0, 0.9, 0.7], vertical_alignment="center")
 with col_info:
     if st.session_state.last_fetch:
         total = sum(len(v) for v in st.session_state.articles.values())
@@ -2231,6 +2362,34 @@ if _digest_trigger in ("premarket", "close"):
     "📰 By Publication", "🏭 By Sector", "⭐ Watchlist",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
+
+# Arriving from a ?research=CODE link (the 🔎 beside a company in Earnings,
+# Screener or Signals). The Research tab preselects the company, but Streamlit
+# always opens on the first tab, so the reader landed on Markets and had to go
+# looking. Click the Research tab for them. The param is consumed further down
+# in this same run, so this fires once per arrival, not on every rerun.
+if st.query_params.get("research"):
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+        (function () {
+            const doc = window.parent.document;
+            let tries = 0;
+            (function go() {
+                const tab = [...doc.querySelectorAll('[role="tab"]')]
+                    .find(t => t.innerText.includes('Research'));
+                if (tab) {
+                    if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+                } else if (tries++ < 50) {
+                    setTimeout(go, 200);
+                }
+            })();
+        })();
+        </script>
+        """,
+        height=0,
+    )
 
 # ════════════════════════════════════════════════════════════
 # ════════════════════════════════════════════════════════════
@@ -2390,7 +2549,7 @@ with tab_bytime:
             is_jp  = a.get("language", "en") == "ja"
             hv = a.get("high_value", False)
             news_type = a.get("news_type", "macro")
-            badge_html = '<span class="hv-badge">★ Corp Action</span>' if hv else ""
+            badge_html = _action_badge(a, "hv-badge")
             nt_badge = ('<span class="badge-micro">🏢 Co</span>' if news_type == "micro"
                         else '<span class="badge-macro">🌐 Macro</span>')
 
@@ -2407,7 +2566,7 @@ with tab_bytime:
                 '<div class="article-title"><a href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a>'
                 + nt_badge + (badge_html if badge_html else '')
                 + '</div>'
-                + ('<div class="article-title-jp">' + orig + '</div>' if is_jp and orig and orig != title else '')
+                + ('<div class="article-title-jp">' + _safe_text(orig) + '</div>' if is_jp and orig and orig != title else '')
                 + '</div>'
             )
         if last_date:
@@ -2494,7 +2653,7 @@ with tab_breaking:
                 '<div class="article-meta">Nikkei Shimbun'
                 + (' · ' + time_str if time_str else '') + '</div>'
                 '<div class="article-title"><a href="' + _safe_url(url) + '" target="_blank">' + _safe_text(title) + '</a></div>'
-                + ('<div class="article-title-jp">' + orig + '</div>' if orig and orig != title else '')
+                + ('<div class="article-title-jp">' + _safe_text(orig) + '</div>' if orig and orig != title else '')
                 + '</div>'
             )
         st.markdown(html, unsafe_allow_html=True)
@@ -2600,10 +2759,10 @@ with tab_news:
             hv        = article.get("high_value", False)
             news_type = article.get("news_type", "macro")
 
-            hv_tag    = '<span class="high-value-tag">★ Corp Action</span>' if hv else ""
+            hv_tag    = _action_badge(article, "high-value-tag")
             nt_badge  = ('<span class="badge-micro">🏢 Co</span>' if news_type == "micro"
                          else '<span class="badge-macro">🌐 Macro</span>')
-            orig_part = '<div class="article-title-jp">' + orig + '</div>' if orig and orig != trans else ""
+            orig_part = '<div class="article-title-jp">' + _safe_text(orig) + '</div>' if orig and orig != trans else ""
             date_part = '<div class="article-meta">' + date + '</div>' if date else ""
 
             cards.append(
@@ -3076,7 +3235,7 @@ with tab_watchlist:
 with tab_filings:
     st.markdown('<div class="section-title">📋 Corporate Filings — TDnet Timely Disclosures</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="info-box">Timely disclosures (&#9002;&#26178;&#38283;&#31034;) from the Tokyo Stock Exchange &mdash; '
+        '<div class="info-box">Timely disclosures (適時開示) from the Tokyo Stock Exchange &mdash; '
         'last 3 days. Where an official English filing exists it is shown directly; Japanese-only filings are '
         'machine-translated. <strong>ENG</strong> / <strong>JPN</strong> open the respective PDFs. '
         'Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a> '
@@ -3349,7 +3508,7 @@ with tab_filings:
         filings = [f for f in filings if f.get("mktcap") and f["mktcap"] >= _mcap_min]
 
     if not filings:
-        st.markdown('<div class="empty-state">No filings found. Click 🔄 Load to fetch disclosures.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="empty-state">No filings found. Click <strong>🔄 Refresh</strong> to fetch disclosures.</div>', unsafe_allow_html=True)
     else:
         # ── AI summary: user-selected window ──
         from datetime import datetime as _dt3, timedelta as _td3
@@ -5951,7 +6110,7 @@ with tab_bysource:
 
         if articles is None:
             st.markdown(
-                '<div class="empty-state">Click <strong>🔄 Load Headlines</strong> to fetch from ' + selected_source + '.</div>',
+                '<div class="empty-state">Click <strong>🔄 Load</strong> to fetch from ' + selected_source + '.</div>',
                 unsafe_allow_html=True
             )
         elif len(articles) == 0:
@@ -6034,22 +6193,34 @@ with tab_sources:
     st.markdown('<div class="section-title">🔗 News Sources</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-subtitle">Tap any source to open its business section</div>', unsafe_allow_html=True)
 
-    # General news
-    st.markdown('<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8B4513;margin-bottom:0.4rem;">General &amp; Business News</div>', unsafe_allow_html=True)
-    general = [s for s in MEDIA_SOURCES if s[2] in ["🗞️","📊","📡","📺","🔎","📈","💎"]]
-    grid = '<div class="media-grid">'
-    for name, url, icon in general:
-        grid += '<a href="' + _safe_url(url) + '" target="_blank" class="media-card"><span class="media-icon">' + icon + '</span><span class="media-name">' + name + '</span></a>'
-    grid += '</div>'
-    st.markdown(grid, unsafe_allow_html=True)
-
-    st.markdown('<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8B4513;margin:1rem 0 0.4rem 0;">Specialist Trade Papers</div>', unsafe_allow_html=True)
-    trade = [s for s in MEDIA_SOURCES if s[2] not in ["🗞️","📊","📡","📺","🔎","📈","💎"]]
-    grid2 = '<div class="media-grid">'
-    for name, url, icon in trade:
-        grid2 += '<a href="' + _safe_url(url) + '" target="_blank" class="media-card"><span class="media-icon">' + icon + '</span><span class="media-name">' + name + '</span></a>'
-    grid2 += '</div>'
-    st.markdown(grid2, unsafe_allow_html=True)
+    # Grouped by name, not by icon: the old test sorted on the emoji each
+    # source happened to carry, which filed Nikkei.com, Bloomberg, Kabutan's
+    # peers and President Online under "Specialist Trade Papers".
+    _SRC_TRADE = {"Nikkei Xtech", "Nikkan Kogyo", "Nikkan Jidosha", "Denki Shimbun",
+                  "Dempa Shimbun", "Kagaku Kogyo Nippo", "Japan Marine Daily",
+                  "Nikkan Kensetsu", "Nihon Nogyo", "IT Media Business",
+                  "Japan Industry News", "Rakumachi"}
+    _SRC_ANALYSIS = {"Toyo Keizai", "Diamond Online", "Nikkei Business", "President Online",
+                     "JBpress", "Zaikai Online", "FACTA", "TSE Manebu"}
+    _src_groups = [
+        ("General, Wire &amp; Markets News",
+         [s_ for s_ in MEDIA_SOURCES if s_[0] not in _SRC_TRADE | _SRC_ANALYSIS]),
+        ("Business Magazines &amp; Analysis",
+         [s_ for s_ in MEDIA_SOURCES if s_[0] in _SRC_ANALYSIS]),
+        ("Specialist Trade Papers",
+         [s_ for s_ in MEDIA_SOURCES if s_[0] in _SRC_TRADE]),
+    ]
+    for _gi, (_glabel, _gsources) in enumerate(_src_groups):
+        st.markdown(
+            '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;'
+            f'color:#8B4513;margin:{"0" if _gi == 0 else "1rem"} 0 0.4rem 0;">{_glabel}</div>',
+            unsafe_allow_html=True)
+        grid = '<div class="media-grid">'
+        for name, url, icon in _gsources:
+            grid += ('<a href="' + _safe_url(url) + '" target="_blank" class="media-card">'
+                     '<span class="media-icon">' + icon + '</span><span class="media-name">' + name + '</span></a>')
+        grid += '</div>'
+        st.markdown(grid, unsafe_allow_html=True)
 
     # ── Official Data Sources ──────────────────────────────
     st.markdown('<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8B4513;margin:1rem 0 0.4rem 0;">Official Regulatory & Earnings Data</div>', unsafe_allow_html=True)
@@ -6217,13 +6388,17 @@ with tab_screener:
         _t3  = _scr_topix.get("3M")
         _t6  = _scr_topix.get("6M")
         _t12 = _scr_topix.get("12M")
+        # Built outside the f-string: a backslash-escaped quote inside an
+        # f-string expression is Python 3.12+ only, and the devcontainer runs 3.11.
+        _scr_depth_note = ('  · <em style="color:#9B8B7A;">6M/12M data builds up over time '
+                           'as price archives deepen</em>') if _t6 is None else ""
         st.markdown(
             f'<div class="info-box">'
             f'{len(_rows):,} stocks &nbsp;·&nbsp; '
             f'TOPIX: 3M <strong>{_fmt_tr(_t3)}</strong>'
             f'{"  ·  6M <strong>" + _fmt_tr(_t6) + "</strong>" if _t6 is not None else ""}'
             f'{"  ·  12M <strong>" + _fmt_tr(_t12) + "</strong>" if _t12 is not None else ""}'
-            f'{"  · <em style=\"color:#9B8B7A;\">6M/12M data builds up over time as price archives deepen</em>" if _t6 is None else ""}'
+            f'{_scr_depth_note}'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -6272,7 +6447,9 @@ with tab_screener:
                 f'border-bottom:1px solid #EDE8E0;">'
                 f'<div><a href="{_yf_url}" target="_blank" style="font-size:0.78rem;font-weight:600;'
                 f'color:#1A1A1A;text-decoration:none;">{_s["name"]}</a>'
-                f'&nbsp;<span style="font-size:0.60rem;color:#9B8B7A;">{_s["code"]}</span></div>'
+                f'&nbsp;<span style="font-size:0.60rem;color:#9B8B7A;">{_s["code"]}</span>'
+                f'<a class="research-jump" href="{_research_href(_s["code"])}" '
+                f'title="Open {_s["name"]} in the Research tab">🔎</a></div>'
                 f'<div style="font-size:0.68rem;color:#6B6B6B;">{_sector_short}</div>'
                 f'<div style="text-align:right;font-size:0.72rem;color:#4A4A4A;">{_mc_str}</div>'
                 + _perf_cell(_s.get("vs3m"))
@@ -6284,7 +6461,7 @@ with tab_screener:
         st.markdown(
             f'<div style="font-size:0.63rem;color:#9B8B7A;margin-top:0.4rem;">'
             f'Showing {len(_rows):,} stocks · red = underperforms · green = outperforms TOPIX · '
-            f'Data from daily price archive (same source as Earnings Calendar)</div>',
+            f'Data from daily price archive (same source as Earnings Calendar), adjusted for stock splits</div>',
             unsafe_allow_html=True
         )
 
@@ -6424,9 +6601,15 @@ with tab_signals:
                     f'{meta.get("emoji","")} {meta.get("label","")}'
                     f'</span>'
                 ) if meta.get("label") else ""
-                co_badge = (
-                    f'<span class="signal-company">{co_code} {co_name}</span>'
-                ) if co_code or co_name else ""
+                if co_code and len(co_code) == 4 and co_code.isalnum():
+                    co_badge = (
+                        f'<a class="signal-company" href="{_research_href(co_code)}" '
+                        f'title="Open in the Research tab">{co_code} {_safe_text(co_name)} 🔎</a>'
+                    )
+                else:
+                    co_badge = (
+                        f'<span class="signal-company">{co_code} {_safe_text(co_name)}</span>'
+                    ) if co_code or co_name else ""
                 conf_dot = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(conf, "")
                 orig_part = (
                     f'<div style="font-size:0.68rem;color:#9B8B7A;margin-top:0.1rem;">{orig}</div>'
@@ -6779,8 +6962,8 @@ with tab_earnings:
 
                 # Table header
                 st.markdown(
-                    '<div style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;"'
-                    ' gap:0.25rem;padding:0.2rem 0.35rem;background:#1A1A1A;color:#F7F4EF;'
+                    '<div class="ec-grid" style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;'
+                    'gap:0.25rem;padding:0.2rem 0.35rem;background:#1A1A1A;color:#F7F4EF;'
                     'font-size:0.50rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;'
                     'border-radius:3px 3px 0 0;">'
                     '<div></div>'
@@ -6884,15 +7067,8 @@ with tab_earnings:
                     _mcap_cell = (
                         f'<div style="text-align:right;font-size:0.68rem;color:#1A1A1A;font-family:monospace;">{_mcap_str}</div>'
                     )
-                    # A bare ?research=… would drop every other query parameter,
-                    # and the text-size control keeps its setting in ?z. Carry it
-                    # across so following the link does not silently reset the
-                    # reader's font size.
-                    _keep_zoom = (f"&amp;z={st.session_state.ui_zoom}"
-                                  if st.session_state.get("ui_zoom", ZOOM_DEFAULT) != ZOOM_DEFAULT
-                                  else "")
                     rows_html += (
-                        f'<div style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;'
+                        f'<div class="ec-grid" style="display:grid;grid-template-columns:1.5rem 0.9fr 0.5fr 0.65fr 0.9fr 0.8fr 0.9fr;'
                         f'gap:0.25rem;padding:0.28rem 0.35rem;background:{_bg};{_border}'
                         f'border-bottom:1px solid #EDE8E0;align-items:center;">'
                         f'<div style="color:#F9A825;font-size:0.72rem;">{_star}</div>'
@@ -6904,8 +7080,8 @@ with tab_earnings:
                         # frame late while a query param survives the reload.
                         f'<div style="font-size:0.78rem;font-weight:{_weight};text-align:left;">'
                         f'<a href="https://finance.yahoo.com/quote/{_code}.T/" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9B8B7A;">{_name}</a>'
-                        f'<a href="?research={_code}{_keep_zoom}" title="Open {_name} in the Research tab" '
-                        f'style="margin-left:5px;text-decoration:none;font-size:0.72rem;opacity:0.55;">🔎</a>'
+                        f'<a class="research-jump" href="{_research_href(_code)}" '
+                        f'title="Open {_name} in the Research tab">🔎</a>'
                         f'</div>'
                         f'<div style="font-size:0.68rem;color:#6B6B6B;font-family:monospace;text-align:left;">{_code}</div>'
                         f'<div style="font-size:0.68rem;text-align:left;">{_period}</div>'
@@ -7138,6 +7314,6 @@ st.markdown("""
 <div style="text-align:center;margin-top:2rem;padding-top:0.7rem;
             border-top:1px solid #D9D3C8;font-size:0.66rem;color:#9B8B7A;letter-spacing:0.07em;">
     JAPAN INVESTMENT DIGEST<br>
-    Market data via Stooq / Alpha Vantage · News via RSS · TDnet filings via Yanoshin · For informational purposes only · Not financial advice.
+    Market data via Yahoo Finance · Fundamentals via J-Quants · News via RSS · Filings via TDnet (Yanoshin) &amp; EDINET · For informational purposes only · Not financial advice.
 </div>
 """, unsafe_allow_html=True)

@@ -4,3 +4,7 @@ backgroundColor = "#F7F4EF"
 secondaryBackgroundColor = "#EDE8E0"
 textColor = "#1A1A1A"
 font = "serif"
+# Accent for selected radios, checkboxes, sliders, multiselect chips, focus
+# rings and the active-tab underline. Unset, Streamlit used its default red,
+# which clashed with the palette and read as "negative" on the Signals chips.
+primaryColor = "#8B4513"
