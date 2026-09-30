@@ -1107,6 +1107,34 @@ a.research-link:hover { background: #F0EDE8; }
         line-height: 1.2; margin: 1px 0; }
 .fc-vsub { font-size: 0.6rem; color: #9B8B7A; font-family: monospace;
            display: block; line-height: 1.15; }
+/* The tiles are a raw <div> in a markdown container, so they inherit the
+   -1rem margin-bottom Streamlit sets to cancel a trailing <p>'s margin (see
+   the research_item_row_ note above). With no <p> to cancel, the next
+   element rode 16px up over the grid and cut through the bottom row's
+   sub-labels. Zeroed here so the block gap alone separates them. */
+[data-testid="stMarkdownContainer"]:has(> .fc-vgrid) { margin-bottom: 0 !important; }
+/* Export chips under the tiles: one right-aligned row, sized to their labels
+   and muted, because exporting is a footnote to the panel rather than a
+   section of it. max-width matches the tile grid so the row ends on the
+   grid's right edge instead of the page's. */
+[class*="st-key-fc_export_row_"] {
+    display: flex !important; flex-flow: row wrap; align-items: center;
+    justify-content: flex-end; gap: var(--sp-1) !important;
+    max-width: 760px; margin-bottom: var(--sp-2);
+}
+[class*="st-key-fc_export_row_"] > div { width: auto !important; flex: 0 0 auto; }
+[class*="st-key-fc_export_row_"] [data-testid="stMarkdownContainer"] { margin-bottom: 0 !important; }
+.fc-export-label { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
+                   color: #B0A798; font-weight: 600; margin-right: 0.15rem; line-height: 1; }
+[class*="st-key-fc_export_row_"] button {
+    font-size: 0.64rem !important; padding: 0.05rem 0.5rem !important;
+    min-height: 1.45rem !important; height: 1.45rem !important;
+    line-height: 1.1 !important; white-space: nowrap; width: auto !important;
+    background: transparent !important; color: #7A6A57 !important;
+    border: 1px solid #E0DAD1 !important; box-shadow: none !important;
+}
+[class*="st-key-fc_export_row_"] button:hover { border-color: #B8A98F !important; color: #3D3529 !important; }
+[class*="st-key-fc_export_row_"] button p { font-size: 0.64rem !important; }
 .research-scan-group {
     font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.15rem;
@@ -4400,28 +4428,35 @@ with tab_research:
                 for k, v, sub in _tiles) + '</div>', unsafe_allow_html=True)
 
         def _fc_exports(_rcode, _rname, _fc_map):
+            """Copy / CSV / Excel as a row of small chips under the tiles.
+
+            They used to share a fold with the editing tools, which hid a
+            one-click action behind the panel's heaviest section, and they
+            were full-width buttons the size of a section header for what is
+            a footnote action. The row is laid out by CSS on its keyed
+            container (st-key-fc_export_row_), not st.columns, so the chips
+            size to their labels and sit on the tiles' right edge."""
             _rows = fund.export_rows(_rcode, _rname, _fc_map)
-            _e1, _e2, _e3 = st.columns([1.6, 1, 1])
-            with _e1:
-                _show = st.toggle("📋 Copy for spreadsheet", key=f"fc_tsv_{_rcode}")
-            with _e2:
+            with st.container(key=f"fc_export_row_{_rcode}"):
+                st.markdown('<div class="fc-export-label">Export</div>',
+                            unsafe_allow_html=True)
+                # A popover rather than a toggle that pushes the page down:
+                # st.code ships its own copy button, and tab-separated text
+                # pastes into Sheets/Excel as columns with no import dialog.
+                with st.popover("⧉ Copy"):
+                    st.code(fund.to_tsv(_rows), language=None)
+                    st.markdown(
+                        '<div class="fc-note">Copy, then paste straight into Google Sheets or Excel. '
+                        'These are raw numbers, not the formatted figures above, so the sheet can '
+                        'compute on them.</div>', unsafe_allow_html=True)
                 st.download_button("⬇ CSV", data=fund.to_csv_bytes(_rows),
                                     file_name=f"{_rcode}_consensus.csv", mime="text/csv",
-                                    key=f"fc_csv_{_rcode}", use_container_width=True)
-            with _e3:
+                                    key=f"fc_csv_{_rcode}")
                 st.download_button("⬇ Excel", data=fund.to_xlsx_bytes(_rows),
                                     file_name=f"{_rcode}_consensus.xlsx",
                                     mime="application/vnd.openxmlformats-officedocument."
                                          "spreadsheetml.sheet",
-                                    key=f"fc_xlsx_{_rcode}", use_container_width=True)
-            if _show:
-                # st.code ships its own copy button, and tab-separated text
-                # pastes into Sheets/Excel as columns with no import dialog.
-                st.code(fund.to_tsv(_rows), language=None)
-                st.markdown(
-                    '<div class="fc-note">Copy, then paste straight into Google Sheets or Excel. '
-                    'These are raw numbers, not the formatted figures above, so the sheet can '
-                    'compute on them.</div>', unsafe_allow_html=True)
+                                    key=f"fc_xlsx_{_rcode}")
 
         def _fc_typed(_rcode, _rname, _years, _fc_map, _profile="general"):
             """Type any cell in the table by hand, or correct a collected one.
@@ -5153,16 +5188,15 @@ with tab_research:
                         # three of actuals. A share-count trend wants all of them.
                         "allmap": _fc_map,
                     })
+                    # Exporting is one click on what is already on screen, so
+                    # it stays out in the open; editing gets a fold of its own.
+                    _fc_exports(_rcode, _rname, _fc_map)
                     # Folded away by default. Filling gaps is occasional work
                     # — it is the table and the multiples the panel is opened
                     # for — and a data-editor grid plus a file uploader below
                     # them is most of a screen the reader has to scroll past
                     # every time to reach the sections beneath.
-                    if _toggle_section("🛠️  Edit & export",
-                                       "research_fc_edit_open"):
-                        _fc_exports(_rcode, _rname, _fc_map)
-                        st.markdown("<hr class='rule-minor'>",
-                                    unsafe_allow_html=True)
+                    if _toggle_section("🛠️  Edit", "research_fc_edit_open"):
                         # Two ways into the same override store. Typing is first
                         # because it always works — the screenshot reader needs an
                         # API key, and half of what is missing here is a single

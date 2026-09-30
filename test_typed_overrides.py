@@ -120,10 +120,12 @@ class _Resp:
     `text` is derived from the payload when it is not given explicitly: reads
     go through gh_read now, which parses the body itself rather than calling
     .json() on the response, so a stub that only implemented .json() would
-    look like an empty file."""
-    def __init__(self, status, payload=None, text=""):
+    look like an empty file. `headers` because a write failure is explained
+    from them (a classic token's scopes come back in X-OAuth-Scopes)."""
+    def __init__(self, status, payload=None, text="", headers=None):
         self.status_code, self._payload = status, payload
         self.text = text or ("" if payload is None else json.dumps(payload))
+        self.headers = headers or {}
 
     def json(self):
         return self._payload
@@ -1318,6 +1320,64 @@ def test_an_invalid_token_write_points_at_replacing_it():
 def test_an_unrecognised_write_status_still_carries_the_raw_detail():
     msg = gh_read.write_error(500, "Internal Server Error")
     assert "500" in msg and "Internal Server Error" in msg
+
+
+# --- ...and, given the token, which of the 403's causes it is ---------------
+# The generic message was not enough to fix it: the usual culprit is a
+# fine-grained token left on "Public repositories", which is read-only by
+# design and looks from the outside exactly like a token with write access.
+
+_DENIED = '{"message":"Resource not accessible by personal access token"}'
+
+
+def test_a_refused_fine_grained_token_names_the_read_only_trap():
+    msg = gh_read.write_error(403, _DENIED, "github_pat_11ABC", {}, "o/r")
+    assert "fine-grained" in msg
+    assert '"Public repositories"' in msg and "read-only" in msg
+    assert '"Only select repositories"' in msg and "o/r" in msg
+    assert '"Contents" to "Read and write"' in msg
+    assert "Resource not accessible" not in msg
+
+
+def test_a_refused_classic_token_says_which_scopes_it_has():
+    msg = gh_read.write_error(403, _DENIED, "ghp_abc",
+                              {"x-oauth-scopes": "gist, read:user"}, "o/r")
+    assert "classic" in msg and '"repo"' in msg
+    assert "gist, read:user" in msg
+
+
+def test_a_classic_token_with_no_scopes_says_so():
+    msg = gh_read.write_error(403, _DENIED, "ghp_abc", {"X-OAuth-Scopes": ""}, "o/r")
+    assert "no scopes at all" in msg
+
+
+def test_a_classic_token_that_has_repo_scope_blames_the_account_not_the_token():
+    msg = gh_read.write_error(403, _DENIED, "ghp_abc",
+                              {"X-OAuth-Scopes": "repo, workflow"}, "o/r")
+    assert "account" in msg and "o/r" in msg
+    assert "tick" not in msg
+
+
+def test_a_rate_limited_write_is_not_blamed_on_permissions():
+    msg = gh_read.write_error(403, '{"message":"You have exceeded a secondary rate limit"}',
+                              "github_pat_11ABC", {}, "o/r")
+    assert "rate-limiting" in msg
+    assert "Read and write" not in msg
+
+
+def test_the_watchlist_passes_the_token_through_to_the_explanation():
+    """End to end through add_to_watchlist: a fine-grained token refused on
+    the PUT gets the fine-grained explanation, not the generic one."""
+    _fresh_watchlist({})
+    sys.modules["requests"] = types.ModuleType("requests")
+    sys.modules["requests"].get = lambda url, headers=None, timeout=None: _Resp(404)
+    sys.modules["requests"].put = lambda url, headers=None, json=None, timeout=None: _Resp(
+        403, text=_DENIED)
+
+    ok, msg = W.add_to_watchlist("Toyota", "o/r", "github_pat_11ABC", _NAMES)
+    assert not ok
+    assert '"Public repositories"' in msg and "o/r" in msg
+    assert W.load_watchlist_codes() == ["7203"]
 
 
 # --- An interim dividend is not an annual one -------------------------------
