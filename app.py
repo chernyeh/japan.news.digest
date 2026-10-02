@@ -790,11 +790,21 @@ div[data-baseweb="tag"] button { width: 0.85rem !important; height: 0.85rem !imp
 }
 .ret-value { font-size: 0.62rem; font-weight: 600; }
 
-/* Countdown timer for long loads */
-.countdown-bar {
-    font-size: 0.65rem; color: #9B8B7A; text-align: right;
-    padding: 0.1rem 0; letter-spacing: 0.03em;
+/* Refresh progress. It takes over the "News: … · N articles" line at the
+   left of the toolbar rather than stacking under the Refresh button: content
+   added under the button made its column taller, and with the row centred
+   vertically that pushed the button up out of line with its neighbours. */
+.refresh-status {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.72rem; color: #8B4513; letter-spacing: 0.02em;
 }
+.refresh-status .rs-step { color: #9B8B7A; }
+.refresh-spinner {
+    width: 0.8rem; height: 0.8rem; flex: 0 0 auto;
+    border: 2px solid #E8DFD3; border-top-color: #8B4513; border-radius: 50%;
+    animation: refresh-spin 0.8s linear infinite;
+}
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
 
 /* AI Summary panel */
 .ai-summary {
@@ -2207,14 +2217,26 @@ with st.container(key="toolbar"):   # keyed for the phone layout rule in the CSS
     col_info, col_zoom, col_refresh, col_clear = st.columns(
         [2.6, 1.0, 0.9, 0.7], vertical_alignment="center")
 with col_info:
+    # A placeholder, so a refresh can swap this line for its progress readout
+    # in place instead of growing the Refresh button's column (see CSS).
+    _info_ph = st.empty()
     if st.session_state.last_fetch:
         total = sum(len(v) for v in st.session_state.articles.values())
-        st.markdown(
+        _info_ph.markdown(
             '<div style="font-size:0.72rem;color:#9B8B7A;">News: '
             + format_local_dt(st.session_state.last_fetch)
             + ' · ' + str(total) + ' articles</div>',
             unsafe_allow_html=True
         )
+
+def _show_refresh_step(step: str) -> None:
+    _info_ph.markdown(
+        '<div class="refresh-status"><span class="refresh-spinner"></span>'
+        '<span>Refreshing — typically 30–60s</span>'
+        '<span class="rs-step">· ' + step + '</span></div>',
+        unsafe_allow_html=True
+    )
+
 with col_zoom:
     render_text_size_control()
 with col_refresh:
@@ -2223,53 +2245,52 @@ with col_refresh:
         _do_refresh = True
         st.session_state._auto_fetch_done = True
     if _do_refresh:
-        with st.spinner(" "):
-            _cd_ph = st.empty()
-            _cd_ph.markdown('<div class="countdown-bar">⏱ Fetching — typically 30–60s</div>', unsafe_allow_html=True)
-            # News
+        _show_refresh_step("news")
+        # News
+        try:
+            sector_map, source_map = fetch_all_news()
+            st.session_state.articles   = sector_map if isinstance(sector_map, dict) else {}
+            st.session_state.source_map = source_map if isinstance(source_map, dict) else {}
+        except Exception as e:
+            st.error("News fetch failed: " + str(e))
+            st.session_state.articles = {}
+            st.session_state.source_map = {}
+        st.session_state.last_fetch = now_local()
+        if st.session_state.articles:
+            _show_refresh_step("sentiment & watchlist")
             try:
-                sector_map, source_map = fetch_all_news()
-                st.session_state.articles   = sector_map if isinstance(sector_map, dict) else {}
-                st.session_state.source_map = source_map if isinstance(source_map, dict) else {}
+                st.session_state.sentiment_scores = score_all_sectors(st.session_state.articles)
             except Exception as e:
-                st.error("News fetch failed: " + str(e))
-                st.session_state.articles = {}
-                st.session_state.source_map = {}
-            st.session_state.last_fetch = now_local()
-            if st.session_state.articles:
-                try:
-                    st.session_state.sentiment_scores = score_all_sectors(st.session_state.articles)
-                except Exception as e:
-                    st.session_state.sentiment_scores = {}
-                try:
-                    wl = load_watchlist()
-                    st.session_state.watchlist_hits = scan_all_watchlist(wl, st.session_state.articles)
-                except Exception as e:
-                    st.session_state.watchlist_hits = {}
-                if not st.session_state.selected_sector:
-                    for name, _ in MSCI_SECTORS:
-                        if st.session_state.articles.get(name):
-                            st.session_state.selected_sector = name
-                            break
-            # Markets
-            st.session_state.market_data    = fetch_market_overview()
-            st.session_state.movers         = fetch_tse_movers()
-            st.session_state.foreign_flow   = fetch_foreign_flow()
-            st.session_state.jpx_movers     = fetch_jpx_daily_movers()
-            st.session_state.topix_returns  = fetch_topix_returns()
-            st.session_state.last_market_fetch = now_local()
-            # Save to shared cache
-            _c = _get_app_cache()
-            _c["articles"]          = st.session_state.articles
-            _c["source_map"]        = st.session_state.source_map
-            _c["sentiment_scores"]  = st.session_state.sentiment_scores
-            _c["watchlist_hits"]    = st.session_state.watchlist_hits
-            _c["last_fetch"]        = st.session_state.last_fetch
-            _c["market_data"]       = st.session_state.market_data
-            _c["movers"]            = st.session_state.movers
-            _c["foreign_flow"]      = st.session_state.foreign_flow
-            _c["last_market_fetch"] = st.session_state.last_market_fetch
-        _cd_ph.empty()
+                st.session_state.sentiment_scores = {}
+            try:
+                wl = load_watchlist()
+                st.session_state.watchlist_hits = scan_all_watchlist(wl, st.session_state.articles)
+            except Exception as e:
+                st.session_state.watchlist_hits = {}
+            if not st.session_state.selected_sector:
+                for name, _ in MSCI_SECTORS:
+                    if st.session_state.articles.get(name):
+                        st.session_state.selected_sector = name
+                        break
+        # Markets
+        _show_refresh_step("markets")
+        st.session_state.market_data    = fetch_market_overview()
+        st.session_state.movers         = fetch_tse_movers()
+        st.session_state.foreign_flow   = fetch_foreign_flow()
+        st.session_state.jpx_movers     = fetch_jpx_daily_movers()
+        st.session_state.topix_returns  = fetch_topix_returns()
+        st.session_state.last_market_fetch = now_local()
+        # Save to shared cache
+        _c = _get_app_cache()
+        _c["articles"]          = st.session_state.articles
+        _c["source_map"]        = st.session_state.source_map
+        _c["sentiment_scores"]  = st.session_state.sentiment_scores
+        _c["watchlist_hits"]    = st.session_state.watchlist_hits
+        _c["last_fetch"]        = st.session_state.last_fetch
+        _c["market_data"]       = st.session_state.market_data
+        _c["movers"]            = st.session_state.movers
+        _c["foreign_flow"]      = st.session_state.foreign_flow
+        _c["last_market_fetch"] = st.session_state.last_market_fetch
         st.rerun()
 
 with col_clear:
