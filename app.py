@@ -6511,7 +6511,7 @@ with tab_screener:
                        else "border-left:3px solid #2E7D32;" if (_vs is not None and _vs > 0)
                        else "border-left:3px solid transparent;")
             _mc_str = f'¥{_s["mktcap"]:,.0f}B' if _s.get("mktcap") else "—"
-            _sector_short = (_s.get("sector") or "")[:18]
+            _sector_short = (_s.get("sector") if isinstance(_s.get("sector"), str) else "")[:18]
             _yf_url = f"https://finance.yahoo.com/quote/{_s['code']}.T"
             _rows_html += (
                 f'<div style="display:grid;grid-template-columns:2.2fr 1.2fr 0.9fr 0.9fr 0.9fr 0.9fr;'
@@ -7103,7 +7103,7 @@ with tab_earnings:
                     _name = NAMES_LOOKUP.get(_code) or _name_raw
                         
                     _period = _e.get("period_type", "")
-                    _sector = (_e.get("sector") or "")[:22]
+                    _sector = (_e.get("sector") if isinstance(_e.get("sector"), str) else "")[:22]
                     _is_wl  = _code in _wl_codes
                     _bg     = "#FFFDE7" if _is_wl else ("#FAFAF8" if _idx % 2 == 0 else "#F7F4EF")
                     _border = "border-left:3px solid #F9A825;" if _is_wl else "border-left:3px solid transparent;"
