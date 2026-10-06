@@ -20,7 +20,7 @@ from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
-from ir_scanner import scan_page_for_documents, build_zip, fetch_document_bytes
+from ir_scanner import ScanResults, scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
 import models
 import consensus_vision
@@ -1186,6 +1186,18 @@ a.research-link:hover { background: #F0EDE8; }
 }
 [class*="st-key-fc_export_row_"] button:hover { border-color: #B8A98F !important; color: #3D3529 !important; }
 [class*="st-key-fc_export_row_"] button p { font-size: 0.64rem !important; }
+/* "Group by:" label and its two options on one line, one size up (0.72→0.80rem) */
+[class*="st-key-ir_scan_groupby_"] {
+    display: flex !important; flex-direction: row !important; align-items: center !important;
+    gap: 0.8rem; flex-wrap: wrap;
+}
+[class*="st-key-ir_scan_groupby_"] label p,
+[class*="st-key-ir_scan_groupby_"] label span,
+[class*="st-key-ir_scan_groupby_"] div[role="radiogroup"] label,
+[class*="st-key-ir_scan_groupby_"] [data-testid="stWidgetLabel"] p {
+    font-size: 0.80rem !important;
+}
+[class*="st-key-ir_scan_groupby_"] [data-testid="stWidgetLabel"] { margin-bottom: 0 !important; }
 .research-scan-group {
     font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #8B4513; border-bottom: 1px solid #E0D5C5; padding-bottom: 0.15rem;
@@ -5629,22 +5641,26 @@ with tab_research:
         # A saved "IR Page" bookmark pre-fills the box — that is the whole
         # point of saving one, and it makes a repeat scan a single click.
         _saved_ir_pages = [l["url"] for l in _links_map.get(_rcode, []) if l.get("doc_type") == "IR Page" and l.get("url")]
-        _scan_url_default = _saved_ir_pages[-1] if _saved_ir_pages else ""
+        _scan_url_default = "\n".join(dict.fromkeys(_saved_ir_pages))
         if _toggle_section("🔗 IR page & documents", "research_irscan_open"):
             st.markdown(
                 '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.4rem;">'
                 'One box, three things to do with it. <strong>Scan</strong> reads the page and '
                 'lists the transcripts, Q&amp;A notes, presentations and similar documents on it '
                 'to pick from. <strong>Save as IR page</strong> remembers the URL for this '
-                'company, so the box comes back pre-filled. A document-library sub-page scans '
-                'better than a whole IR index. Best-effort: not every site can be read this way, '
+                'company, so the box comes back pre-filled. If the documents live on more than one '
+                'page, put one URL per line — they are scanned together and merged into one '
+                'ordered list. A document-library sub-page scans better than a whole IR index. Best-effort: not every site can be read this way, '
                 'and guessed titles and types are worth a glance before saving.</div>',
                 unsafe_allow_html=True
             )
             _scan_col1, _scan_col2, _scan_col3 = st.columns([3.2, 1, 1.4])
             with _scan_col1:
-                _scan_url = st.text_input("Page URL", value=_scan_url_default, placeholder="https://…/ir/library/",
-                                           key=f"ir_scan_url_{_rcode}", label_visibility="collapsed")
+                _scan_url = st.text_area("Page URL(s)", value=_scan_url_default,
+                                          placeholder="https://…/ir/library/  (one URL per line)",
+                                          key=f"ir_scan_url_{_rcode}", label_visibility="collapsed",
+                                          height=68)
+            _scan_urls = [u.strip() for u in _scan_url.replace(",", "\n").splitlines() if u.strip()]
             with _scan_col2:
                 _scan_clicked = st.button("🔍 Scan", key=f"ir_scan_btn_{_rcode}",
                                           use_container_width=True,
@@ -5674,30 +5690,36 @@ with tab_research:
             )
 
             if _bookmark_clicked:
-                if not _scan_url.strip().startswith("http"):
-                    st.error("Put the IR page URL in the box above first (http(s)://…).")
-                elif _scan_url.strip() in _saved_ir_pages:
-                    st.session_state.research_flash = ("info", "That IR page is already saved.")
+                _new_ir_urls = [u for u in dict.fromkeys(_scan_urls) if u not in _saved_ir_pages]
+                if not _scan_urls or not all(u.startswith("http") for u in _scan_urls):
+                    st.error("Put the IR page URL(s) in the box above first (http(s)://…), one per line.")
+                elif not _new_ir_urls:
+                    st.session_state.research_flash = ("info", "Those IR pages are already saved.")
                     st.rerun()
                 else:
                     # No title and no date asked for. An IR page is identified
                     # by its address, the two fields the old form wanted were a
                     # tax on the one action here anyone repeats, and the saved-
                     # links list already falls back to the URL for a blank title.
-                    _ir_entry = {"title": "", "url": _scan_url.strip(),
-                                 "doc_type": "IR Page", "date": "",
-                                 "added_at": now_local().isoformat()}
-                    _links_map.setdefault(_rcode, []).append(_ir_entry)
-                    _ok, _msg = save_link(_ec_repo, _gh_token, _rcode, _ir_entry)
+                    _ok, _msg = True, ""
+                    for _u in _new_ir_urls:
+                        _ir_entry = {"title": "", "url": _u,
+                                     "doc_type": "IR Page", "date": "",
+                                     "added_at": now_local().isoformat()}
+                        _links_map.setdefault(_rcode, []).append(_ir_entry)
+                        _ok1, _msg1 = save_link(_ec_repo, _gh_token, _rcode, _ir_entry)
+                        if not _ok1:
+                            _ok, _msg = False, _msg1
                     st.session_state.research_flash = (
-                        ("success", "IR page saved — this box will be pre-filled next time.") if _ok
+                        ("success", "IR page saved — this box will be pre-filled next time." if len(_new_ir_urls) == 1
+                         else f"{len(_new_ir_urls)} IR pages saved — this box will be pre-filled next time.") if _ok
                         else ("warning", f"Saved for this session, but not permanently: {_msg}")
                     )
                     st.rerun()
 
             if _scan_clicked:
-                if not _scan_url.strip().startswith("http"):
-                    st.error("Please enter a valid URL starting with http(s)://")
+                if not _scan_urls or not all(u.startswith("http") for u in _scan_urls):
+                    st.error("Please enter valid URL(s) starting with http(s)://, one per line")
                 else:
                     try:
                         # Tell the scanner when this company's fiscal year
@@ -5709,9 +5731,43 @@ with tab_research:
                         _scan_fye = fund.fy_end_month(
                             (st.session_state.get("fundamentals_map") or {})
                             .get(_rcode, {}).get("fy_end"))
-                        with st.spinner("Scanning page…"):
-                            st.session_state[_scan_key] = scan_page_for_documents(
-                                _scan_url.strip(), fy_end_month=_scan_fye)
+                        _parts, _scan_errs = [], []
+                        with st.spinner("Scanning page…" if len(_scan_urls) == 1 else f"Scanning {len(_scan_urls)} pages…"):
+                            for _u in dict.fromkeys(_scan_urls):
+                                try:
+                                    _parts.append(scan_page_for_documents(_u, fy_end_month=_scan_fye))
+                                except Exception as _pe:
+                                    _scan_errs.append(f"{_u} ({_pe})")
+                        if not _parts:
+                            raise RuntimeError("; ".join(_scan_errs))
+                        if len(_parts) == 1:
+                            _merged = _parts[0]
+                        else:
+                            # Merge: dedupe by URL, then order by period (newest
+                            # first, undated last). Page order is meaningless
+                            # across pages, so page_order is left blank and the
+                            # grouping falls back to period arithmetic.
+                            _seen, _items = set(), []
+                            for _part in _parts:
+                                for _r in _part:
+                                    if _r["url"] not in _seen:
+                                        _seen.add(_r["url"])
+                                        _items.append(dict(_r))
+                            _items.sort(key=lambda r: r.get("period_sort") or "", reverse=True)
+                            _items.sort(key=lambda r: not r.get("period_sort"))
+                            for _n, _r in enumerate(_items):
+                                _r["page_index"] = _n
+                            _merged = ScanResults(
+                                _items,
+                                truncated=any(getattr(_p, "truncated", False) for _p in _parts),
+                                limit=getattr(_parts[0], "limit", len(_items)),
+                                fy_end_month=getattr(_parts[0], "fy_end_month", None),
+                                fy_offset=getattr(_parts[0], "fy_offset", 0),
+                                fy_calendar_source=getattr(_parts[0], "fy_calendar_source", "default"),
+                                page_order="")
+                        st.session_state[_scan_key] = _merged
+                        if _scan_errs:
+                            st.warning("Couldn't read: " + "; ".join(_scan_errs))
                         if not st.session_state[_scan_key]:
                             st.info("No document-like links found on that page.")
                     except Exception as _scan_e:
@@ -5823,7 +5879,7 @@ with tab_research:
                 # ── Grouped by document type or by period ───────────────────
                 _n_periods = sum(1 for _, _r in _visible if _r.get("period_label"))
                 _group_mode = st.radio(
-                    "Group by:", ["Document type", "Period"], horizontal=True,
+                    "Group by:", ["Period", "Document type"], horizontal=True,
                     key=f"ir_scan_groupby_{_rcode}",
                 ) if _n_periods else "Document type"
 
