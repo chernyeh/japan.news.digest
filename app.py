@@ -1393,6 +1393,117 @@ if st.session_state.ui_zoom != ZOOM_DEFAULT:
         unsafe_allow_html=True)
 
 
+def _valuation_inputs(_rcode: str, _rmcap=None) -> dict:
+    """Everything the Research forecast panel computes its multiples from, for
+    one company: the forecast map (manual overrides applied), the years shown,
+    the fy1-fy3 forecast slots, the income-statement profile, any detected
+    split, and the multiples themselves.
+
+    Shared by the Research panel and the Valuation Screen, so a stock screened
+    at a PEG of 0.9 shows the same 0.9 when it is opened in Research. Reads the
+    session maps (consensus, fundamentals, universe, prices); returns {} when
+    the company has no forecast data. `_rmcap` is the market cap in ¥bn."""
+    _fc_map = fund.apply_manual_overrides(
+        (st.session_state.get("consensus_map") or {}).get(_rcode, {}),
+        (st.session_state.get("consensus_manual_map") or {}).get(_rcode, {}))
+    if not _fc_map:
+        return {}
+    _fundrow = (st.session_state.get("fundamentals_map") or {}).get(_rcode, {})
+    _price = (st.session_state.research_prices_map or {}).get(_rcode)
+    _shares = SHARES_LOOKUP.get(_rcode) or _fundrow.get("shares")
+    # mktcap_map is ¥bn; fundamentals.py works in yen throughout.
+    _mcap = (_rmcap * 1e9) if _rmcap else (
+        _price * _shares if (_price and _shares) else None)
+
+    # Two fiscal years, earliest first, taken from the data
+    # rather than today's date — a company mid-year and one that
+    # has just reported are on different calendars, and the label
+    # has to match what the filing actually said.
+    # Three years, earliest first, taken from the data rather
+    # than today's date — a company mid-year and one that has
+    # just reported are on different calendars, and the label
+    # has to match what the filing actually said. Three because
+    # the street, and the terminals a screenshot comes from,
+    # routinely reach a year further than the company does.
+    # The reported year plus the forecast years, earliest
+    # first, taken from the data rather than today's date — a
+    # company mid-year and one that has just reported are on
+    # different calendars, and the label has to match what the
+    # filing actually said.
+    # Pick the years to show explicitly. The collector keeps
+    # three years of actuals so a progress rate has a prior year
+    # to be read against, but a sorted()[:4] would then take the
+    # OLDEST four and push the street's forecast years off the
+    # edge. Two reported years and three forecast years is the
+    # most a phone can carry.
+    _all_years = sorted({k[1] for k in _fc_map if k[1]})
+    _rep_years = [_y for _y in _all_years
+                  if any((_m, _y, "actual") in _fc_map for _m in fund.METRICS)]
+    _years = sorted(set(_rep_years[-2:])
+                    | set([_y for _y in _all_years
+                           if _y not in _rep_years][:3]))
+    _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
+    _src = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("source", "")
+
+    # fy1 is the first year still being *forecast*: the
+    # multiples are about what you are paying for the year
+    # ahead, not the one that has closed.
+    _actual_yrs = {_y for _y in _years
+                   if any(_get(_m, _y, "actual") is not None
+                          for _m in fund.METRICS)}
+    _fc_years = [_y for _y in _years if _y not in _actual_yrs]
+    _slots = {}
+    for _slot, _y in zip(("fy1", "fy2", "fy3"), _fc_years):
+        for _b in ("company", "consensus"):
+            for _m in fund.METRICS:
+                _v = _get(_m, _y, _b)
+                if _v is not None:
+                    _slots[(_m, _slot, _b)] = _v
+
+    # Which income statement this company files. The JPX
+    # 33-sector code is the authority where the universe file
+    # carries it; failing that, a company with no operating
+    # profit in any period but an ordinary profit has a
+    # financial issuer's shape whatever it is called.
+    _uni_row = (st.session_state.jpx400_map or {}).get(_rcode, {})
+    _has_op = any(_get("operating_profit", _y, _b) is not None
+                  for _y in _years
+                  for _b in ("actual", "company", "consensus"))
+    _has_odp = any(_get("ordinary_profit", _y, _b) is not None
+                   for _y in _years
+                   for _b in ("actual", "company", "consensus"))
+    _profile = fund.profile_for(
+        sector33=_uni_row.get("sector33", ""),
+        sector_name=_uni_row.get("sector", ""),
+        doc_type=_fundrow.get("doc_type", ""),
+        has_operating_profit=_has_op,
+        has_ordinary_profit=_has_odp,
+        sector_hint=SECTOR_LOOKUP.get(_rcode, ""))
+
+    # A split between the filing and today's close makes every
+    # per-share multiple wrong by the split factor. Detected
+    # from the company's own guidance — net profit over EPS is
+    # the share count it struck that EPS on — against the filed
+    # share count, so it needs no corporate-action feed.
+    _split_factor = None
+    for _y in _fc_years:
+        _split_factor = fund.detect_split(
+            _get("net_profit", _y, "company"),
+            _get("eps", _y, "company"),
+            _fundrow.get("shares"))
+        if _split_factor:
+            break
+
+    return {
+        "fc_map": _fc_map, "fundrow": _fundrow, "price": _price, "shares": _shares,
+        "mcap": _mcap, "years": _years, "get": _get, "src": _src,
+        "fc_years": _fc_years, "slots": _slots, "profile": _profile,
+        "split_factor": _split_factor,
+        "vals": fund.compute_valuations(_price, _shares, _mcap, _fundrow,
+                                        _slots, _profile, _split_factor),
+    }
+
+
 def _research_href(code: str) -> str:
     """Link that reopens the app on the Research tab with `code` selected.
 
@@ -2388,10 +2499,10 @@ if _digest_trigger in ("premarket", "close"):
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 (tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings, tab_research,
- tab_earnings, tab_screener, tab_bysource, tab_news, tab_watchlist,
+ tab_earnings, tab_screener, tab_valscreen, tab_bysource, tab_news, tab_watchlist,
  tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
     "📊 Markets", "📰 News Feed", "📡 Nikkei Live",
-    "🚦 Signals", "📋 Reg Filings", "🔎 Research", "📅 Earnings", "🔬 Screener",
+    "🚦 Signals", "📋 Reg Filings", "🔎 Research", "📅 Earnings", "🔬 Screener", "🧮 Valuation Screen",
     "📰 By Publication", "🏭 By Sector", "⭐ Watchlist",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
@@ -5269,95 +5380,14 @@ with tab_research:
                         'action (it needs a JQUANTS_API_KEY repo secret).</div>',
                         unsafe_allow_html=True)
                 else:
-                    _price = (st.session_state.research_prices_map or {}).get(_rcode)
-                    _shares = SHARES_LOOKUP.get(_rcode) or _fundrow.get("shares")
-                    # mktcap_map is ¥bn; fundamentals.py works in yen throughout.
-                    _mcap = (_rmcap * 1e9) if _rmcap else (
-                        _price * _shares if (_price and _shares) else None)
-
-                    # Two fiscal years, earliest first, taken from the data
-                    # rather than today's date — a company mid-year and one that
-                    # has just reported are on different calendars, and the label
-                    # has to match what the filing actually said.
-                    # Three years, earliest first, taken from the data rather
-                    # than today's date — a company mid-year and one that has
-                    # just reported are on different calendars, and the label
-                    # has to match what the filing actually said. Three because
-                    # the street, and the terminals a screenshot comes from,
-                    # routinely reach a year further than the company does.
-                    # The reported year plus the forecast years, earliest
-                    # first, taken from the data rather than today's date — a
-                    # company mid-year and one that has just reported are on
-                    # different calendars, and the label has to match what the
-                    # filing actually said.
-                    # Pick the years to show explicitly. The collector keeps
-                    # three years of actuals so a progress rate has a prior year
-                    # to be read against, but a sorted()[:4] would then take the
-                    # OLDEST four and push the street's forecast years off the
-                    # edge. Two reported years and three forecast years is the
-                    # most a phone can carry.
-                    _all_years = sorted({k[1] for k in _fc_map if k[1]})
-                    _rep_years = [_y for _y in _all_years
-                                  if any((_m, _y, "actual") in _fc_map for _m in fund.METRICS)]
-                    _years = sorted(set(_rep_years[-2:])
-                                    | set([_y for _y in _all_years
-                                           if _y not in _rep_years][:3]))
-                    _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
-                    _src = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("source", "")
-
-                    # fy1 is the first year still being *forecast*: the
-                    # multiples are about what you are paying for the year
-                    # ahead, not the one that has closed.
-                    _actual_yrs = {_y for _y in _years
-                                   if any(_get(_m, _y, "actual") is not None
-                                          for _m in fund.METRICS)}
-                    _fc_years = [_y for _y in _years if _y not in _actual_yrs]
-                    _slots = {}
-                    for _slot, _y in zip(("fy1", "fy2", "fy3"), _fc_years):
-                        for _b in ("company", "consensus"):
-                            for _m in fund.METRICS:
-                                _v = _get(_m, _y, _b)
-                                if _v is not None:
-                                    _slots[(_m, _slot, _b)] = _v
-
-                    # Which income statement this company files. The JPX
-                    # 33-sector code is the authority where the universe file
-                    # carries it; failing that, a company with no operating
-                    # profit in any period but an ordinary profit has a
-                    # financial issuer's shape whatever it is called.
-                    _uni_row = (st.session_state.jpx400_map or {}).get(_rcode, {})
-                    _has_op = any(_get("operating_profit", _y, _b) is not None
-                                  for _y in _years
-                                  for _b in ("actual", "company", "consensus"))
-                    _has_odp = any(_get("ordinary_profit", _y, _b) is not None
-                                   for _y in _years
-                                   for _b in ("actual", "company", "consensus"))
-                    _profile = fund.profile_for(
-                        sector33=_uni_row.get("sector33", ""),
-                        sector_name=_uni_row.get("sector", ""),
-                        doc_type=_fundrow.get("doc_type", ""),
-                        has_operating_profit=_has_op,
-                        has_ordinary_profit=_has_odp,
-                        sector_hint=SECTOR_LOOKUP.get(_rcode, ""))
-
-                    # A split between the filing and today's close makes every
-                    # per-share multiple wrong by the split factor. Detected
-                    # from the company's own guidance — net profit over EPS is
-                    # the share count it struck that EPS on — against the filed
-                    # share count, so it needs no corporate-action feed.
-                    _split_factor = None
-                    for _y in _fc_years:
-                        _split_factor = fund.detect_split(
-                            _get("net_profit", _y, "company"),
-                            _get("eps", _y, "company"),
-                            _fundrow.get("shares"))
-                        if _split_factor:
-                            break
+                    _vi = _valuation_inputs(_rcode, _rmcap)
+                    _price, _shares, _mcap = _vi["price"], _vi["shares"], _vi["mcap"]
+                    _years, _get, _src = _vi["years"], _vi["get"], _vi["src"]
+                    _profile, _split_factor = _vi["profile"], _vi["split_factor"]
 
                     _fc_render({
                         "years": _years, "get": _get, "src": _src,
-                        "vals": fund.compute_valuations(_price, _shares, _mcap, _fundrow,
-                                                        _slots, _profile, _split_factor),
+                        "vals": _vi["vals"],
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
                         "profile": _profile, "split_factor": _split_factor,
                         "revisions": (st.session_state.get("guidance_history") or {}).get(_rcode, {}),
@@ -6546,6 +6576,309 @@ with tab_screener:
 # ════════════════════════════════════════════════════════════
 # TAB — SIGNAL FEED (Corporate Action Signals)
 # ════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════
+# TAB — VALUATION SCREEN
+# Screens the collected universe on the same multiples the Research tab's
+# "Forecasts, consensus & valuation" tiles show (PEG, P/E, net cash, …),
+# computed by the same _valuation_inputs() so the two never disagree.
+# ════════════════════════════════════════════════════════════
+with tab_valscreen:
+    st.markdown('<div class="section-title">🧮 Valuation Screen</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:0.72rem;color:#9B8B7A;margin-bottom:0.5rem;">'
+        'Screens every company that has forecast data on the multiples shown in '
+        '<em>Research → Forecasts, consensus &amp; valuation</em>. A filter you leave '
+        'blank is not applied; a filter you set drops any company that has no figure '
+        'for it. Financials (banks, insurers) have no net debt or EV/EBITDA, so they '
+        'drop out of those two filters.</div>',
+        unsafe_allow_html=True)
+
+    def _vs_load():
+        """Load the maps _valuation_inputs() reads, reusing the same shared
+        cache keys as the Research tab so nothing is held in memory twice."""
+        if not st.session_state.get("consensus_map"):
+            st.session_state.consensus_map = _shared(
+                "consensus_map", lambda: fund.load_consensus_from_github(_ec_repo, _gh_token))
+        if not st.session_state.get("fundamentals_map"):
+            st.session_state.fundamentals_map = _shared(
+                "fundamentals_map", lambda: fund.load_fundamentals_from_github(_ec_repo, _gh_token))
+        if not st.session_state.get("jpx400_map"):
+            st.session_state.jpx400_map = _shared(
+                "jpx400_map", lambda: fund.load_universe_from_github(_ec_repo, _gh_token))
+        if not st.session_state.get("consensus_manual_map"):
+            st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
+        if not st.session_state.get("research_prices_map"):
+            st.session_state.research_prices_map = _shared(
+                "prices_map", lambda: load_prices_from_github(_ec_repo, _gh_token))
+        if not st.session_state.get("mktcap_map"):
+            st.session_state.mktcap_map = load_mktcap_from_github(_ec_repo, _gh_token) or {}
+
+    def _vs_str(x) -> str:
+        # Metadata CSVs give NaN (a float) for a blank cell.
+        return x.strip() if isinstance(x, str) else ""
+
+    def _vs_build_rows() -> list:
+        _mc_map = st.session_state.get("mktcap_map") or {}
+        _uni = st.session_state.get("jpx400_map") or {}
+        _rows = []
+        for _code in sorted(st.session_state.get("consensus_map") or {}):
+            try:
+                _vi = _valuation_inputs(_code, _mc_map.get(_code))
+            except Exception as _ve:
+                print(f"Valuation screen: {_code} skipped ({_ve})")
+                continue
+            if not _vi:
+                continue
+            _v = _vi["vals"]
+            _mcap = _vi["mcap"]
+            _nd = _v.get("net_debt")
+            _rows.append({
+                "code": _code,
+                "name": _vs_str(NAMES_LOOKUP.get(_code)) or _vs_str((_uni.get(_code) or {}).get("name")),
+                "sector": (_vs_str((_uni.get(_code) or {}).get("sector"))
+                           or _vs_str(SECTOR_LOOKUP.get(_code)) or "Unclassified"),
+                "fy1": (_vi["fc_years"] or [""])[0],
+                "price": _vi["price"],
+                "mcap_bn": _mcap / 1e9 if _mcap else None,
+                "pe_st": _v.get("pe_fy1_consensus"),
+                "pe_co": _v.get("pe_fy1_company"),
+                "pe_st2": _v.get("pe_fy2_consensus"),
+                "peg": _v.get("peg"),
+                "eps_growth": _v.get("eps_growth"),
+                "pb": _v.get("pb"),
+                "ev_ebitda": _v.get("ev_ebitda"),
+                "net_debt_bn": _nd / 1e9 if _nd is not None else None,
+                "net_cash_pct": (-_nd / _mcap) if (_nd is not None and _mcap) else None,
+                "yield": _v.get("yield_fy1_company") if _v.get("yield_fy1_company") is not None
+                         else _v.get("yield_fy1_consensus"),
+                "split": bool(_vi["split_factor"]),
+            })
+        return _rows
+
+    _vs_c1, _vs_c2 = st.columns([1.3, 3])
+    with _vs_c1:
+        _vs_run = st.button("🔄 Load / refresh data" if st.session_state.get("vs_rows")
+                            else "▶ Load data to screen",
+                            key="vs_load_btn", use_container_width=True)
+    with _vs_c2:
+        if st.session_state.get("vs_rows_ts"):
+            st.markdown(
+                f'<div style="font-size:0.68rem;color:#9B8B7A;padding-top:0.35rem;">'
+                f'{len(st.session_state.vs_rows):,} companies with forecast data · built '
+                f'{st.session_state.vs_rows_ts:%Y-%m-%d %H:%M}. Prices are the latest daily close; '
+                f'consensus is refreshed weekly.</div>', unsafe_allow_html=True)
+    if _vs_run:
+        try:
+            with st.spinner("Loading forecasts, fundamentals and prices…"):
+                _vs_load()
+                st.session_state.vs_rows = _vs_build_rows()
+                st.session_state.vs_rows_ts = now_local()
+        except Exception as _vle:
+            st.error(f"Couldn't load the screen data: {_vle}")
+
+    _vs_rows = st.session_state.get("vs_rows") or []
+    if not _vs_rows:
+        st.markdown('<div class="empty-state">Press <strong>Load data to screen</strong> to '
+                    'compute the multiples for every company with forecast data '
+                    '(takes a few seconds the first time).</div>', unsafe_allow_html=True)
+    else:
+        _vs_by_code = {r["code"]: r for r in _vs_rows}
+
+        # ── Filters ───────────────────────────────────────────────────────
+        st.markdown('<div class="research-scan-group">Size &amp; balance sheet</div>',
+                    unsafe_allow_html=True)
+        _f1, _f2, _f3 = st.columns(3)
+        with _f1:
+            _vs_mcap_min = st.number_input("Market cap at least (¥bn)", min_value=0.0, value=None,
+                                           step=100.0, placeholder="any", key="vs_mcap_min")
+        with _f2:
+            _vs_mcap_max = st.number_input("Market cap at most (¥bn)", min_value=0.0, value=None,
+                                           step=100.0, placeholder="any", key="vs_mcap_max")
+        with _f3:
+            _vs_netcash = st.number_input(
+                "Net cash at least (% of mkt cap)", value=None, step=5.0, placeholder="any",
+                key="vs_netcash",
+                help="Net cash = cash − debt, from the latest filed balance sheet, divided by "
+                     "market cap. 20 means net cash is at least 20% of the market cap. "
+                     "A negative number allows some net debt (−10 = net debt up to 10%).")
+
+        st.markdown('<div class="research-scan-group">Valuation &amp; growth</div>',
+                    unsafe_allow_html=True)
+        _vs_pe_basis = st.radio(
+            "P/E basis", ["Street FY1", "Company guidance FY1", "Street, else company"],
+            horizontal=True, key="vs_pe_basis",
+            help="Which forecast EPS the P/E is struck on — the street consensus or the "
+                 "company's own guidance, for the first year still being forecast. PEG is "
+                 "always street P/E (company if no street) ÷ FY1→FY2 EPS growth, as on the "
+                 "Research tile.")
+        _g1, _g2, _g3, _g4 = st.columns(4)
+        with _g1:
+            _vs_peg_min = st.number_input("PEG at least", min_value=0.0, value=None, step=0.1,
+                                          placeholder="any", key="vs_peg_min")
+        with _g2:
+            _vs_peg_max = st.number_input("PEG at most", min_value=0.0, value=None, step=0.1,
+                                          placeholder="any", key="vs_peg_max",
+                                          help="Set to 1 for PEG below one. Companies with "
+                                               "falling or no FY2 EPS have no PEG and drop out.")
+        with _g3:
+            _vs_pe_max = st.number_input("P/E at most", min_value=0.0, value=None, step=1.0,
+                                         placeholder="any", key="vs_pe_max")
+        with _g4:
+            _vs_growth_min = st.number_input("EPS growth at least (%)", value=None, step=5.0,
+                                             placeholder="any", key="vs_growth_min")
+        _h1, _h2, _h3, _h4 = st.columns(4)
+        with _h1:
+            _vs_pb_max = st.number_input("P/B at most", min_value=0.0, value=None, step=0.5,
+                                         placeholder="any", key="vs_pb_max")
+        with _h2:
+            _vs_ev_max = st.number_input("EV/EBITDA at most", min_value=0.0, value=None, step=1.0,
+                                         placeholder="any", key="vs_ev_max")
+        with _h3:
+            _vs_yield_min = st.number_input("Div yield at least (%)", min_value=0.0, value=None,
+                                            step=0.5, placeholder="any", key="vs_yield_min")
+
+        st.markdown('<div class="research-scan-group">P/E against peers</div>',
+                    unsafe_allow_html=True)
+        _vs_peer_mode = st.radio(
+            "Compare P/E with", ["Off", "Sector median", "A chosen set of peers"],
+            horizontal=True, key="vs_peer_mode",
+            help="Sector is the broad sector (e.g. Industrials, Technology) — about a dozen "
+                 "buckets, so it is coarse. For a like-for-like read, pick the peers yourself.")
+        _vs_peers, _vs_prem_max = [], None
+        if _vs_peer_mode != "Off":
+            _p1, _p2 = st.columns([3, 1.2])
+            with _p1:
+                if _vs_peer_mode == "A chosen set of peers":
+                    _vs_peer_opts = [f'{r["code"]} — {r["name"]}' for r in _vs_rows]
+                    _vs_peers = [o.split(" — ", 1)[0] for o in st.multiselect(
+                        "Peers", _vs_peer_opts, key="vs_peers",
+                        placeholder="Type a name or code…")]
+                else:
+                    st.markdown(
+                        '<div style="font-size:0.68rem;color:#9B8B7A;padding-top:1.6rem;">'
+                        'Each company is compared with the median P/E of its own sector, '
+                        'across every company in the data (not just those passing the other '
+                        'filters).</div>', unsafe_allow_html=True)
+            with _p2:
+                _vs_prem_max = st.number_input(
+                    "Max premium to peers (%)", value=10.0, step=5.0, key="vs_prem_max",
+                    help="0 = at or below the peer median (cheaper). 10 = up to 10% above it, "
+                         "i.e. in line or cheaper. −20 = at least 20% cheaper.")
+
+        _vs_sectors = sorted({r["sector"] for r in _vs_rows})
+        _vs_sector_sel = st.multiselect("Only these sectors", _vs_sectors, key="vs_sectors",
+                                        placeholder="All sectors")
+
+        # ── Apply ─────────────────────────────────────────────────────────
+        def _pe_of(r):
+            if _vs_pe_basis == "Street FY1":
+                return r["pe_st"]
+            if _vs_pe_basis == "Company guidance FY1":
+                return r["pe_co"]
+            return r["pe_st"] if r["pe_st"] is not None else r["pe_co"]
+
+        def _median(xs):
+            xs = sorted(x for x in xs if x is not None)
+            if not xs:
+                return None
+            n = len(xs)
+            return xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2
+
+        _sector_med = {}
+        if _vs_peer_mode == "Sector median":
+            for _s in _vs_sectors:
+                _sector_med[_s] = _median(_pe_of(r) for r in _vs_rows if r["sector"] == _s)
+        _custom_med = (_median(_pe_of(_vs_by_code[c]) for c in _vs_peers if c in _vs_by_code)
+                       if _vs_peer_mode == "A chosen set of peers" else None)
+        if _vs_peer_mode == "A chosen set of peers" and _vs_peers and _custom_med is None:
+            st.warning("None of the chosen peers has a P/E on this basis, so there is no "
+                       "median to compare with.")
+
+        def _min_ok(val, lim):
+            return lim is None or (val is not None and val >= lim)
+
+        def _max_ok(val, lim):
+            return lim is None or (val is not None and val <= lim)
+
+        _out = []
+        for r in _vs_rows:
+            _pe = _pe_of(r)
+            _pm = (_sector_med.get(r["sector"]) if _vs_peer_mode == "Sector median"
+                   else _custom_med if _vs_peer_mode == "A chosen set of peers" else None)
+            _vs_prem = (_pe / _pm - 1) if (_pe and _pm) else None
+            if not (_min_ok(r["mcap_bn"], _vs_mcap_min) and _max_ok(r["mcap_bn"], _vs_mcap_max)
+                    and _min_ok(r["net_cash_pct"], None if _vs_netcash is None else _vs_netcash / 100)
+                    and _min_ok(r["peg"], _vs_peg_min) and _max_ok(r["peg"], _vs_peg_max)
+                    and _max_ok(_pe, _vs_pe_max)
+                    and _min_ok(r["eps_growth"], None if _vs_growth_min is None else _vs_growth_min / 100)
+                    and _max_ok(r["pb"], _vs_pb_max) and _max_ok(r["ev_ebitda"], _vs_ev_max)
+                    and _min_ok(r["yield"], None if _vs_yield_min is None else _vs_yield_min / 100)):
+                continue
+            if _vs_sector_sel and r["sector"] not in _vs_sector_sel:
+                continue
+            if _vs_peer_mode != "Off":
+                if _vs_prem_max is None or _vs_prem is None or _vs_prem > _vs_prem_max / 100:
+                    continue
+            _pct = lambda x: None if x is None else round(x * 100, 1)
+            _out.append({
+                "Research": f"?research={r['code']}",
+                "Code": r["code"], "Company": r["name"], "Sector": r["sector"],
+                "Mkt cap ¥bn": r["mcap_bn"],
+                "PEG": r["peg"], "P/E": _pe,
+                "Peer P/E": _pm, "vs peers %": _pct(_vs_prem),
+                "Net cash % mcap": _pct(r["net_cash_pct"]),
+                "EPS growth %": _pct(r["eps_growth"]),
+                "P/E FY2 st.": r["pe_st2"],
+                "P/B": r["pb"], "EV/EBITDA": r["ev_ebitda"],
+                "Div yield %": None if r["yield"] is None else round(r["yield"] * 100, 2),
+                "Net debt ¥bn": r["net_debt_bn"],
+                "FY1": r["fy1"],
+            })
+
+        st.markdown(
+            f'<div class="info-box"><strong>{len(_out):,}</strong> of {len(_vs_rows):,} '
+            f'companies pass'
+            + (f' · chosen-peer median P/E <strong>{_custom_med:.1f}×</strong> '
+               f'({len(_vs_peers)} peers)' if _custom_med else '')
+            + '</div>', unsafe_allow_html=True)
+
+        if _out:
+            _df = pd.DataFrame(_out)
+            if _vs_peer_mode == "Off":
+                _df = _df.drop(columns=["Peer P/E", "vs peers %"])
+            _df = _df.sort_values("PEG", na_position="last")
+            st.dataframe(
+                _df, hide_index=True, use_container_width=True,
+                column_config={
+                    "Research": st.column_config.LinkColumn(
+                        "🔎", display_text="🔎", width="small",
+                        help="Open this company in the Research tab"),
+                    "Mkt cap ¥bn": st.column_config.NumberColumn(format="%,.0f"),
+                    "P/E": st.column_config.NumberColumn(format="%.1f×"),
+                    "P/E FY2 st.": st.column_config.NumberColumn(format="%.1f×"),
+                    "Peer P/E": st.column_config.NumberColumn(format="%.1f×"),
+                    "vs peers %": st.column_config.NumberColumn(format="%+.1f%%"),
+                    "PEG": st.column_config.NumberColumn(format="%.2f"),
+                    "EPS growth %": st.column_config.NumberColumn(format="%+.1f%%"),
+                    "P/B": st.column_config.NumberColumn(format="%.2f×"),
+                    "EV/EBITDA": st.column_config.NumberColumn(format="%.1f×"),
+                    "Net cash % mcap": st.column_config.NumberColumn(format="%+.1f%%"),
+                    "Net debt ¥bn": st.column_config.NumberColumn(format="%,.1f"),
+                    "Div yield %": st.column_config.NumberColumn(format="%.2f%%"),
+                },
+            )
+            st.download_button(
+                "⬇ Export results as CSV",
+                data=_df.drop(columns=["Research"]).to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"valuation_screen_{now_local():%Y%m%d}.csv", mime="text/csv",
+                key="vs_export")
+            st.markdown(
+                '<div style="font-size:0.66rem;color:#9B8B7A;margin-top:0.3rem;">'
+                'Click a column header to sort. Multiples use the latest daily close; net cash '
+                'uses the latest filed balance sheet, so a large buyback or deal since then is '
+                'not reflected. A company with a stock split between its filing and today has '
+                'its P/E suppressed rather than shown wrong.</div>', unsafe_allow_html=True)
+
 with tab_signals:
     st.markdown('<div class="section-title">🚦 Corporate Action Signal Feed</div>', unsafe_allow_html=True)
     st.markdown(
