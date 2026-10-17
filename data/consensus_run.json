@@ -1,14 +1,14 @@
 {
-  "attempted": 977,
-  "companies_with_consensus": 977,
-  "companies_with_guidance": 930,
-  "consensus_rows": 3679,
-  "guidance_rows": 5036,
+  "attempted": 976,
+  "companies_with_consensus": 976,
+  "companies_with_guidance": 927,
+  "consensus_rows": 3678,
+  "guidance_rows": 5026,
   "jquants_failures": 0,
   "jquants_key_present": true,
   "jquants_key_rejected": false,
-  "ran_at": "2026-10-10",
+  "ran_at": "2026-10-17",
   "sample_errors": [],
-  "universe": 977,
+  "universe": 976,
   "yahoo_failures": 0
 }
