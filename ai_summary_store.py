@@ -68,7 +68,8 @@ def save_summary(repo: str, token: str, session_key: str, text: str, ts_iso: str
             sha = None
             data = {}
         else:
-            return False, f"GitHub read error: HTTP {r.status_code}"
+            import gh_read
+            return False, gh_read.write_error(r.status_code, r.text, token, r.headers, repo)
 
         data[session_key] = entry
         new_content = base64.b64encode(
@@ -87,6 +88,7 @@ def save_summary(repo: str, token: str, session_key: str, text: str, ts_iso: str
             return True, "Saved."
         if put.status_code == 409 and attempt == 0:
             continue  # sha changed under us — re-fetch and retry once
-        return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:200]}"
+        import gh_read
+        return False, gh_read.write_error(put.status_code, put.text, token, put.headers, repo)
 
     return False, "GitHub write failed after retry (concurrent edit)."

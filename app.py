@@ -1621,28 +1621,63 @@ if "watchlist_synced" not in st.session_state:
     except Exception as _wl_e:
         print(f"Watchlist sync error: {_wl_e}")
 
+# ── AI briefings: keep the in-memory cache in step with the durable store ─────
+# The shared cache below is per server process and is wiped on every restart or
+# redeploy (which the scheduled data commits trigger several times a day), so
+# data/ai_summaries.json is the copy that other devices actually see. Pulling it
+# only once per process meant a briefing saved by another process (a restart, a
+# second instance, the app run locally on another machine) never appeared until
+# the next restart. So re-read it every few minutes and take any entry that is
+# newer than what this process holds. The first read is synchronous so a fresh
+# page load shows briefings straight away; later ones run off-thread so a slow
+# GitHub never stalls a rerun.
+_AI_SYNC_EVERY_S = 180
+
+
+def _ingest_ai_summaries(_ai_cache: dict, entries: dict):
+    for _sk, _entry in entries.items():
+        try:
+            _ts_dt = datetime.fromisoformat(_entry["ts"]) if _entry.get("ts") else None
+        except ValueError:
+            _ts_dt = None
+        _have = _ai_cache.get(_sk + "_ts")
+        if _ai_cache.get(_sk) and _have is not None:
+            try:
+                if _ts_dt is None or _ts_dt <= _have:
+                    continue  # this process already holds this one or a newer one
+            except TypeError:
+                continue
+        _ai_cache[_sk]           = _entry.get("text", "")
+        _ai_cache[_sk + "_ts"]   = _ts_dt
+        _ai_cache[_sk + "_idx"]  = _entry.get("idx", {})
+        _ai_cache[_sk + "_sync"] = (True, "")
+
+
+def _sync_ai_summaries_from_github():
+    import time as _time
+    _c = _get_app_cache()
+    _last = _c.get("ai_summaries_synced_at")
+    if _last and _time.time() - _last < _AI_SYNC_EVERY_S:
+        return
+    _c["ai_summaries_synced_at"] = _time.time()
+
+    def _pull(_repo=_ec_repo, _token=_gh_token):
+        try:
+            _ingest_ai_summaries(_c["ai_summaries"], load_summaries_from_github(_repo, _token))
+        except Exception as _hyd_e:
+            print(f"AI summaries sync error: {_hyd_e}")
+
+    if _last is None:
+        _pull()
+    else:
+        threading.Thread(target=_pull, daemon=True).start()
+
+
+_sync_ai_summaries_from_github()
+
 # ── Restore from shared cache on first page load of a new session ─────────────
 if "_cache_loaded" not in st.session_state:
     _c = _get_app_cache()
-
-    # One-time (per running process, not per session) hydration of AI briefings
-    # from the durable GitHub-backed store. The in-memory shared cache above is
-    # wiped on every app restart/redeploy — this fills it back in so a briefing
-    # generated before the restart is still there instead of needing a re-click.
-    if not _c.get("ai_summaries_hydrated"):
-        _c["ai_summaries_hydrated"] = True
-        try:
-            for _sk, _entry in load_summaries_from_github(_ec_repo, _gh_token).items():
-                if _sk not in _c["ai_summaries"]:  # don't clobber anything generated this run
-                    try:
-                        _ts_dt = datetime.fromisoformat(_entry["ts"]) if _entry.get("ts") else None
-                    except ValueError:
-                        _ts_dt = None
-                    _c["ai_summaries"][_sk]            = _entry.get("text", "")
-                    _c["ai_summaries"][_sk + "_ts"]     = _ts_dt
-                    _c["ai_summaries"][_sk + "_idx"]    = _entry.get("idx", {})
-        except Exception as _hyd_e:
-            print(f"AI summaries hydration error: {_hyd_e}")
 
     if _c["articles"]:
         st.session_state.articles          = _c["articles"]
@@ -2206,7 +2241,6 @@ Respond only with the briefing."""
                         _ai_cache[_session_key]          = _text
                         _ai_cache[_session_key + "_ts"]  = _ts_dt
                         _ai_cache[_session_key + "_idx"] = _idx
-                        _ai_cache[_status_key]           = "done"
                         # Persist durably so this briefing survives an app restart/redeploy
                         # and shows up on other devices, not just this running process.
                         try:
@@ -2216,7 +2250,15 @@ Respond only with the briefing."""
                             if not _dsk_ok:
                                 print(f"AI summary not persisted durably ({_session_key}): {_dsk_msg}")
                         except Exception as _dsk_err:
+                            _dsk_ok, _dsk_msg = False, f"GitHub save error: {_dsk_err}"
                             print(f"AI summary durable-save error ({_session_key}): {_dsk_err}")
+                        # Kept so the panel can say whether other devices will see
+                        # this briefing — a failed save used to go only to the server
+                        # log, so it looked synced when it was not.
+                        _ai_cache[_session_key + "_sync"] = (_dsk_ok, _dsk_msg)
+                        # "done" only after the save, so the panel's first render
+                        # of the new briefing already knows whether it synced.
+                        _ai_cache[_status_key] = "done"
                     except Exception as _bg_err:
                         _ai_cache[_status_key] = "error"
                         _ai_cache[_error_key]  = str(_bg_err)
@@ -2247,12 +2289,36 @@ Respond only with the briefing."""
                     _bar_bg, _bar_col = "#FFF8E1", "#795548"
             except (TypeError, AttributeError):
                 pass
+        # Whether other devices can see this briefing. Only a briefing generated
+        # by this process can be unsynced; one read back from the store is synced
+        # by definition.
+        _sync = _ai_cache.get(session_key + "_sync")
+        _sync_note = ' · ☁️ saved for all devices' if (_sync and _sync[0]) else ""
         _ts_bar = (
             f'<div style="font-size:0.65rem;color:{_bar_col};margin-bottom:0.5rem;'
             f'padding:0.3rem 0.5rem;background:{_bar_bg};border-radius:3px;'
             f'border-left:3px solid #8B4513;">✨ Briefing generated: {format_local_dt(_ts_val)}'
-            f'{_age_note}</div>'
+            f'{_sync_note}{_age_note}</div>'
         ) if _ts_val else ""
+        if _sync and not _sync[0]:
+            _sw_col1, _sw_col2 = st.columns([5, 1])
+            with _sw_col1:
+                st.markdown(
+                    '<div class="fc-note fc-warn">⚠️ This briefing was <strong>not saved for '
+                    'other devices</strong> — it shows here only until the app restarts. '
+                    + _safe_text(_sync[1] or "") + '</div>',
+                    unsafe_allow_html=True)
+            with _sw_col2:
+                if st.button("☁️ Retry save", key=f"retry_sync_{session_key}",
+                             use_container_width=True):
+                    try:
+                        _ok, _msg = save_summary_to_github(
+                            _ec_repo, _gh_token, session_key, _ai_cache.get(session_key, ""),
+                            _ts_val.isoformat(), _ai_cache.get(session_key + "_idx", {}))
+                    except Exception as _rs_err:
+                        _ok, _msg = False, f"GitHub save error: {_rs_err}"
+                    _ai_cache[session_key + "_sync"] = (_ok, _msg)
+                    st.rerun()
         st.markdown(
             '<div class="ai-summary">' + _ts_bar + _summary_to_html(st.session_state[session_key], _art_idx_stored) + '</div>',
             unsafe_allow_html=True
