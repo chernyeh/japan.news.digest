@@ -9,7 +9,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 4571,E05728,ＮＡＮＯホールディングス株式会社,030,有価証券届出書（参照方式）,Securities registration statement (reference method),2026-10-16 15:30,,,S100Z8K1,0,1
 8802,E03856,三菱地所株式会社,180,臨時報告書,extraordinary report,2026-10-16 15:30,,,S100Z8Q6,0,1
 8802,E03856,三菱地所株式会社,090,訂正発行登録書,Amended Shelf Registration Statement,2026-10-16 15:30,,,S100Z8FB,0,1
-3854,E05705,株式会社アイル,235,内部統制報告書－第36期(2025/08/01－2026/07/31),Internal Control Report - 36th term (2025/08/01 - 2026/07/31),2026-10-16 15:19,,,S100Z8Q3,0,1
+3854,E05705,株式会社アイル,235,内部統制報告書－第36期(2025/08/01－2026/07/31),Internal control report - 36th term (2025/08/01 - 2026/07/31),2026-10-16 15:19,,,S100Z8Q3,0,1
 3854,E05705,株式会社アイル,135,確認書,confirmation letter,2026-10-16 15:15,,,S100Z8PO,0,1
 3854,E05705,株式会社アイル,120,有価証券報告書－第36期(2025/08/01－2026/07/31),Securities report - 36th period (2025/08/01 - 2026/07/31),2026-10-16 15:12,2025-08-01,2026-07-31,S100Z8PG,0,1
 8282,E03128,株式会社ケーズホールディングス,135,確認書,confirmation letter,2026-10-16 15:09,,,S100Z8PK,0,1
@@ -190,7 +190,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 7476,E02835,アズワン株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-10-15 14:47,,,S100Z8FA,0,1
 5393,E01151,ニチアス株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Treasury stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-10-15 14:32,,,S100Z8EV,0,1
 8237,E03017,株式会社松屋,135,確認書,confirmation letter,2026-10-15 14:30,,,S100Z7ET,0,1
-8237,E03017,株式会社松屋,160,半期報告書－第158期(2026/03/01－2026/08/31),Semi-annual report - 158th term (2026/03/01 - 2026/08/31),2026-10-15 14:28,2026-03-01,2026-08-31,S100Z7NU,0,1
+8237,E03017,株式会社松屋,160,半期報告書－第158期(2026/03/01－2027/02/28),Semi-annual report - 158th term (2026/03/01 - 2027/02/28),2026-10-15 14:28,2026-03-01,2027-02-28,S100Z7NU,0,1
 8143,E00605,株式会社ラピーヌ,135,確認書,confirmation letter,2026-10-15 14:18,,,S100Z8B6,0,1
 5817,E01348,ＪＭＡＣＳ株式会社,135,確認書,confirmation letter,2026-10-15 14:16,,,S100Z89R,0,1
 8143,E00605,株式会社ラピーヌ,160,半期報告書－第79期(2026/03/01－2027/02/28),Semi-annual report - 79th term (2026/03/01 - 2027/02/28),2026-10-15 14:15,2026-03-01,2027-02-28,S100Z8AU,0,1
@@ -799,7 +799,7 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 9324,E04290,安田倉庫株式会社,220,自己株券買付状況報告書（法２４条の６第１項に基づくもの）,"Own stock purchase status report (based on Article 24-6, Paragraph 1 of the Act)",2026-10-08 15:25,,,S100Z74H,0,1
 8358,E03571,スルガ銀行株式会社,180,臨時報告書,extraordinary report,2026-10-08 15:10,,,S100Z73T,0,1
 8203,E03103,株式会社ミスターマックス・ホールディングス,135,確認書,confirmation letter,2026-10-08 15:06,,,S100Z70O,0,1
-8203,E03103,株式会社ミスターマックス・ホールディングス,160,半期報告書－第78期(2026/03/01－2027/02/28),Semi-annual report - 78th period (2026/03/01 - 2027/02/28),2026-10-08 15:04,2026-03-01,2027-02-28,S100Z70B,0,1
+8203,E03103,株式会社ミスターマックス・ホールディングス,160,半期報告書－第78期(2026/03/01－2027/02/28),Semi-annual report - 78th term (2026/03/01 - 2027/02/28),2026-10-08 15:04,2026-03-01,2027-02-28,S100Z70B,0,1
 7240,E02176,ＮＯＫ株式会社,350,変更報告書（短期大量譲渡）,Change report (short-term large-scale transfer),2026-10-08 15:04,,,S100Z6G5,0,1
 5842,E25156,インテグラル・グループ株式会社,350,変更報告書,change report,2026-10-08 15:03,,,S100Z6EL,0,1
 5842,E25156,インテグラル・グループ株式会社,350,変更報告書,change report,2026-10-08 15:01,,,S100Z6EO,0,1
@@ -76083,22 +76083,3 @@ SecCode,EdinetCode,FilerName,DocTypeCode,DocDescription,DocDescriptionEN,SubmitD
 9827,E02743,リリカラ株式会社,180,臨時報告書,extraordinary report,2024-09-19 09:16,,,S100UE2A,0,1
 6724,E01873,セイコーエプソン株式会社,180,臨時報告書,extraordinary report,2024-09-19 09:12,,,S100UE5Z,0,1
 5985,E01402,サンコール株式会社,180,臨時報告書,extraordinary report,2024-09-19 09:05,,,S100UE5A,0,1
-4005,E00752,住友化学株式会社,090,訂正発行登録書,Amended Shelf Registration Statement,2024-09-18 17:01,,,S100UDMV,0,1
-4005,E00752,住友化学株式会社,180,臨時報告書,extraordinary report,2024-09-18 17:00,,,S100UE2O,0,1
-7409,E38695,ＡｅｒｏＥｄｇｅ株式会社,180,臨時報告書,extraordinary report,2024-09-18 16:43,,,S100UE48,0,1
-8889,E05174,ＡＰＡＭＡＮ株式会社,180,臨時報告書,extraordinary report,2024-09-18 16:10,,,S100UE1J,0,1
-3907,E31256,シリコンスタジオ株式会社,180,臨時報告書,extraordinary report,2024-09-18 16:02,,,S100UE3P,0,1
-3679,E30047,株式会社じげん,040,訂正有価証券届出書（参照方式）,Amended securities registration statement (reference method),2024-09-18 15:50,,,S100UE3I,0,1
-3989,E33242,シェアリングテクノロジー株式会社,190,訂正臨時報告書,Correction extraordinary report,2024-09-18 15:30,,,S100UBRH,0,1
-3989,E33242,シェアリングテクノロジー株式会社,040,訂正有価証券届出書（参照方式）,Amended securities registration statement (reference method),2024-09-18 15:30,,,S100UBRG,0,1
-9254,E37159,株式会社ラバブルマーケティンググループ,180,臨時報告書,extraordinary report,2024-09-18 15:26,,,S100UE3F,0,1
-8166,E03093,株式会社タカキュー,180,臨時報告書,extraordinary report,2024-09-18 14:23,,,S100UE26,0,1
-8166,E03093,株式会社タカキュー,180,臨時報告書,extraordinary report,2024-09-18 14:21,,,S100UE22,0,1
-9628,E04895,燦ホールディングス株式会社,350,変更報告書,change report,2024-09-18 14:13,,,S100UE1Y,0,1
-9058,E04208,トランコム株式会社,290,意見表明報告書,Opinion statement report,2024-09-18 14:12,,,S100UE1W,0,1
-3360,E03450,シップヘルスケアホールディングス株式会社,080,発行登録書（株券､社債券等）,"Shelf registration statement (stock certificates, corporate bonds, etc.)",2024-09-18 11:46,,,S100UDI4,0,1
-6049,E31424,株式会社イトクロ,180,臨時報告書,extraordinary report,2024-09-18 11:41,,,S100UDLE,0,1
-8253,E03041,株式会社クレディセゾン,080,発行登録書（株券､社債券等）,"Shelf registration statement (stock certificates, corporate bonds, etc.)",2024-09-18 11:12,,,S100UE0G,0,1
-4996,E00828,クミアイ化学工業株式会社,180,臨時報告書,extraordinary report,2024-09-18 10:34,,,S100UDZ4,0,1
-9509,E04500,北海道電力株式会社,090,訂正発行登録書,Amended Shelf Registration Statement,2024-09-18 10:14,,,S100UDP1,0,1
-6336,E02047,株式会社石井表記,180,臨時報告書,extraordinary report,2024-09-18 09:23,,,S100UDR5,0,1
