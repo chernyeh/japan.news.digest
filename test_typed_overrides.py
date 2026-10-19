@@ -1608,6 +1608,72 @@ def test_the_event_name_survives_into_the_group_note_scan_page_writes():
     assert period["period_note"] == "announced Mar 3, 2026"
 
 
+
+# ── Quarterly breakdown ──────────────────────────────────────────────────
+
+def _getter(m):
+    return lambda metric, fy, basis: m.get((metric, fy, basis))
+
+
+def test_quarters_are_differences_of_cumulative_filings():
+    g = _getter({("operating_profit", "FY2026", "ytd_1q"): 10.0,
+                 ("operating_profit", "FY2026", "ytd_2q"): 25.0,
+                 ("operating_profit", "FY2026", "ytd_3q"): 45.0,
+                 ("operating_profit", "FY2026", "actual"): 70.0})
+    bd = F.quarter_breakdown(g, "operating_profit", "FY2026")
+    assert bd["q1"] == (10.0, "actual")
+    assert bd["q2"] == (15.0, "derived")
+    assert bd["q3"] == (20.0, "derived")
+    assert bd["q4"] == (25.0, "derived")
+    assert bd["ytd_2q"] == (25.0, "actual") and bd["fy"] == (70.0, "actual")
+
+
+def test_typed_street_quarter_fills_the_gap_and_implies_4q():
+    """Live year at 2Q: a typed 3Q street estimate plus the full-year
+    consensus give a street YTD 3Q and the 4Q the street is implying."""
+    g = _getter({("operating_profit", "FY2027", "ytd_1q"): 12.0,
+                 ("operating_profit", "FY2027", "ytd_2q"): 30.0,
+                 ("operating_profit", "FY2027", "consensus_q3"): 22.0,
+                 ("operating_profit", "FY2027", "consensus"): 80.0})
+    bd = F.quarter_breakdown(g, "operating_profit", "FY2027")
+    assert bd["q3"] == (22.0, "street")
+    assert bd["ytd_3q"] == (52.0, "street_derived")
+    assert bd["q4"] == (28.0, "street_derived")
+    assert bd["fy"] == (80.0, "street")
+
+
+def test_filed_quarter_beats_typed_street_and_is_scored_against_it():
+    g = _getter({("net_sales", "FY2027", "ytd_1q"): 100.0,
+                 ("net_sales", "FY2027", "ytd_2q"): 210.0,
+                 ("net_sales", "FY2027", "consensus_q2"): 100.0})
+    bd = F.quarter_breakdown(g, "net_sales", "FY2027")
+    assert bd["q2"] == (110.0, "derived")
+    assert F.quarter_street(g, "net_sales", "FY2027", "q2") == 100.0
+
+
+def test_typed_street_ytd_gives_the_quarter():
+    g = _getter({("net_profit", "FY2027", "ytd_1q"): 5.0,
+                 ("net_profit", "FY2027", "consensus_ytd_2q"): 12.0})
+    bd = F.quarter_breakdown(g, "net_profit", "FY2027")
+    assert bd["q2"] == (7.0, "street_derived")
+    assert bd["ytd_2q"] == (12.0, "street")
+
+
+def test_change_has_no_percentage_off_a_loss():
+    assert F.change(120.0, 100.0) == 0.2
+    assert F.change(10.0, -5.0) is None
+    assert F.change(None, 5.0) is None
+    assert F.prior_fy("FY2027") == "FY2026" and F.prior_fy("x") == ""
+
+
+def test_quarterly_street_bases_can_be_typed():
+    entries, _, notes = plan(rows(("operating_profit", "FY2027", "consensus_q2", 40.0),
+                                  ("operating_profit", "FY2027", "consensus_ytd_3q", 95.0)),
+                             seed=[])
+    assert notes == []
+    assert entries["operating_profit|FY2027|consensus_q2"]["value"] == 40e9
+    assert entries["operating_profit|FY2027|consensus_ytd_3q"]["value"] == 95e9
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

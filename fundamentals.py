@@ -1136,7 +1136,122 @@ def manual_key(metric: str, fy: str, basis: str) -> str:
     return f"{metric}|{fy}|{basis}"
 
 
-TYPED_BASES = ("actual", "company", "consensus", "company_h1")
+# Street forecasts for a single quarter, and for the year to the end of one.
+# Nothing collects these — Yahoo publishes full years only — so they exist only
+# as typed values, for the names where a broker or QUICK carries a quarterly
+# number. The discrete and cumulative forms are both offered because Japanese
+# consensus is quoted either way (a "2Q" estimate is often the first half), and
+# converting between them needs the quarters around it.
+QUARTER_CONSENSUS_BASES = ("consensus_q1", "consensus_q2", "consensus_q3", "consensus_q4")
+YTD_CONSENSUS_BASES = ("consensus_ytd_2q", "consensus_ytd_3q")
+
+TYPED_BASES = (("actual", "company", "consensus", "company_h1")
+               + QUARTER_CONSENSUS_BASES + YTD_CONSENSUS_BASES)
+
+
+# ── Quarterly breakdown ──────────────────────────────────────────────────
+#
+# A Japanese issuer files cumulative quarters (Q1, Q1–Q2, Q1–Q3) and the full
+# year; the quarter on its own is never filed and is the difference between
+# two of them. Each period resolves to (value, kind):
+#
+#   "actual"  — as filed (Q1, the cumulative quarters, the full-year actual)
+#   "derived" — arithmetic between two filed figures (Q2, Q3, Q4)
+#   "street"  — a typed street figure, as typed
+#   "street_derived" — arithmetic with a street figure in it: a typed YTD less
+#                the filed quarters before it, or quarters summed to a YTD
+#   "company" / "company_derived" — the full year from guidance, and the Q4
+#                that guidance implies after the filed nine months
+#
+# A quarter that is filed always wins over a forecast for it, so a typed
+# street estimate for Q2 stops showing once Q2 is reported — it is kept, and
+# surfaces as a beat/miss against the actual via `quarter_street`.
+
+QUARTER_PERIODS = ("q1", "q2", "q3", "q4")
+YTD_PERIODS = ("ytd_1q", "ytd_2q", "ytd_3q", "fy")
+
+_STREETISH = {"street", "street_derived"}
+
+
+def _combine_kind(*kinds):
+    if any(k in _STREETISH for k in kinds):
+        return "street_derived"
+    if any(k in ("company", "company_derived") for k in kinds):
+        return "company_derived"
+    return "derived"
+
+
+def quarter_breakdown(get, metric: str, fy: str) -> dict:
+    """{period: (value, kind)} for one metric and fiscal year, over
+    QUARTER_PERIODS and YTD_PERIODS. Missing periods are simply absent.
+
+    `get(metric, fy, basis)` is the panel's lookup. DPS is not a flow across
+    quarters and is not passed here."""
+    cum = {}
+    for n in (1, 2, 3):
+        v = get(metric, fy, f"ytd_{n}q")
+        if v is not None:
+            cum[n] = (v, "actual")
+        elif n > 1 and get(metric, fy, f"consensus_ytd_{n}q") is not None:
+            cum[n] = (get(metric, fy, f"consensus_ytd_{n}q"), "street")
+    for basis, kind in (("actual", "actual"), ("consensus", "street"), ("company", "company")):
+        if get(metric, fy, basis) is not None:
+            cum[4] = (get(metric, fy, basis), kind)
+            break
+
+    out = {}
+    for n in (1, 2, 3, 4):
+        filed_now = cum.get(n, (None, ""))[1] == "actual"
+        filed_prev = n == 1 or cum.get(n - 1, (None, ""))[1] == "actual"
+        typed = get(metric, fy, f"consensus_q{n}")
+        if filed_now and filed_prev:
+            out[f"q{n}"] = (cum[n][0] if n == 1 else cum[n][0] - cum[n - 1][0],
+                            "actual" if n == 1 else "derived")
+        elif typed is not None:
+            out[f"q{n}"] = (typed, "street")
+        elif n > 1 and n in cum and (n - 1) in cum:
+            out[f"q{n}"] = (cum[n][0] - cum[n - 1][0],
+                            _combine_kind(cum[n][1], cum[n - 1][1]))
+        # A cumulative period nothing filed or typed is the sum of the quarters
+        # inside it, where every one of them is there — filled as we go, so the
+        # next quarter can be taken off it.
+        if n not in cum:
+            qs = [out.get(f"q{i}") for i in range(1, n + 1)]
+            if all(qs):
+                cum[n] = (sum(q[0] for q in qs),
+                          qs[0][1] if n == 1 else _combine_kind(*(q[1] for q in qs)))
+    for n, period in zip((1, 2, 3, 4), YTD_PERIODS):
+        if n in cum:
+            out[period] = cum[n]
+    return out
+
+
+def quarter_street(get, metric: str, fy: str, period: str):
+    """The typed street figure for a period, or None — what a reported quarter
+    is measured against for a beat or miss."""
+    if period.startswith("q"):
+        return get(metric, fy, f"consensus_{period}")
+    if period in ("ytd_2q", "ytd_3q"):
+        return get(metric, fy, f"consensus_{period}")
+    if period == "ytd_1q":
+        return get(metric, fy, "consensus_q1")
+    if period == "fy":
+        return get(metric, fy, "consensus")
+    return None
+
+
+def prior_fy(fy: str) -> str:
+    """"FY2027" -> "FY2026"; "" for anything that is not a year label."""
+    m = re.fullmatch(r"FY(\d{4})", fy or "")
+    return f"FY{int(m.group(1)) - 1}" if m else ""
+
+
+def change(cur, prev):
+    """Signed fractional change, or None. A loss or zero base has no
+    meaningful percentage: the caller shows "n/m" where both sides exist."""
+    if cur is None or prev is None or prev <= 0:
+        return None
+    return (cur - prev) / prev
 
 
 def plan_typed_overrides(edited: list, seed_keys, current: dict, manual_keys,
