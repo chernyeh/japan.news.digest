@@ -1144,6 +1144,9 @@ a.research-link:hover { background: #F0EDE8; }
 /* Quarter headers lighter than the annual ones; a dashed rule where a year's
    quarters give way to its annual columns. */
 .fc-h.fc-qh { color: #B3A390; }
+/* A / E after a quarter label: reported or estimate, at a glance. */
+.fc-ae { margin-left: 1px; font-weight: 800; color: #5C4033; }
+.fc-qh.fc-cons .fc-ae { color: #A0522D; }
 .fc-annstart { border-left: 1px dashed #D9D3C8; }
 .fc-legend .fc-key { display: inline-block; width: 9px; height: 9px; margin-right: 4px;
                      border: 1px solid #D9D3C8; vertical-align: -1px; }
@@ -4067,6 +4070,8 @@ with tab_research:
                 return ""
             if source.startswith("screenshot"):
                 letter, title = "S", f"from your screenshot ({source.split(':', 1)[-1]})"
+            elif source.startswith("typed:"):
+                letter, title = "T", f"typed by you — source: {source.split(':', 1)[1]}"
             else:
                 letter, title = _SRC_TAG.get(source, ("A", source))
             cls = {"A": "a", "S": "s", "T": "t", "D": "d", "P": "p"}[letter]
@@ -4295,9 +4300,15 @@ with tab_research:
                 return (_m == "net_sales" and _b == "consensus"
                         and _suppress_street_top)
 
-            # Columns per year: its quarters (where opened out), then the
-            # annual columns that have anything in them.
+            # Columns per year, in the order the year happens: 1Q, 2Q, then the
+            # first half, 3Q, 4Q, the second half, and the full-year block
+            # (reported, guidance, what is left, street). A column appears only
+            # where something is in it, so a year still running reads 1QA, 2QE
+            # (if there is an estimate), 1H, ... without gaps.
             _ANNUAL = ["actual", "company_h1", "company_h2", "company", "rest", "consensus"]
+            _SEQ = ["q1", "q2", "company_h1", "q3", "q4", "company_h2",
+                    "actual", "company", "rest", "consensus"]
+            _FY_BLOCK = {"actual", "company", "rest", "consensus"}
             _cols = {}
             for _y in _shown:
                 _qs = ([_p for _p in fund.QUARTER_PERIODS
@@ -4306,7 +4317,15 @@ with tab_research:
                 _an = [_b for _b in _ANNUAL
                        if any(_cell(_m, _y, _b) is not None for _m, *_ in _ROWS)]
                 if _qs or _an:
-                    _cols[_y] = _qs + _an
+                    _cols[_y] = [_b for _b in _SEQ if _b in _qs or _b in _an]
+
+            def _q_status(_y, _p):
+                """"A" where every figure in a quarter column is reported, "E"
+                where none is, "A/E" for a column that mixes them (2Q sales
+                typed as reported, 2Q profit still an estimate)."""
+                _k = {("A" if _e[1] in ("actual", "derived") else "E")
+                      for _m in _Q_METRICS for _e in [_qb(_m, _y).get(_p)] if _e}
+                return "A/E" if len(_k) > 1 else (_k.pop() if _k else "")
             _shown = [_y for _y in _shown if _y in _cols]
             _basis_label = {"actual": "Actual", "company_h1": "1H co.",
                             "company_h2": "Impl. 2H", "company": "Co. FY",
@@ -4326,11 +4345,11 @@ with tab_research:
 
             def _edge(_y, _i, _b):
                 """Rules between years, and a lighter one where a year's
-                quarters give way to its annual columns."""
+                quarters and halves give way to its full-year block."""
                 if _i == 0:
                     return " fc-ystart"
                 _prev = _cols[_y][_i - 1]
-                return " fc-annstart" if (_prev in _Q_LABEL and _b not in _Q_LABEL) else ""
+                return " fc-annstart" if (_b in _FY_BLOCK and _prev not in _FY_BLOCK) else ""
 
             cells = ['<div class="fc-cell fc-h fc-metric fc-span2">Metric</div>']
             for _y in _shown:
@@ -4340,12 +4359,18 @@ with tab_research:
                              f'title="{_safe_text(_y)}">{_safe_text(_short)}</div>')
             for _y in _shown:
                 for _i, _b in enumerate(_cols[_y]):
-                    _hcls = (" fc-qh" if _b in _Q_LABEL else
+                    _qs_ = _q_status(_y, _b) if _b in _Q_LABEL else ""
+                    _hcls = ((" fc-qh fc-cons" if _qs_ == "E" else " fc-qh") if _b in _Q_LABEL else
                              " fc-cons" if _b == "consensus" else
                              " fc-derived" if _b in ("company_h2", "rest") else "")
+                    _htitle = _basis_help[_b] + (
+                        {"A": " — reported", "E": " — estimate",
+                         "A/E": " — some lines reported, some estimates"}.get(_qs_, ""))
                     cells.append(f'<div class="fc-cell fc-h fc-sub{_hcls}{_edge(_y, _i, _b)}" '
-                                 f'title="{_safe_text(_basis_help[_b])}">'
-                                 f'{_safe_text(_basis_label[_b])}</div>')
+                                 f'title="{_safe_text(_htitle)}">'
+                                 f'{_safe_text(_basis_label[_b])}'
+                                 + (f'<span class="fc-ae">{_qs_}</span>' if _qs_ else '')
+                                 + '</div>')
 
             def _line(_label, _render, _cls=""):
                 """One row: its label, then a cell per column from _render,
@@ -4925,8 +4950,27 @@ with tab_research:
                 "basis": _basis_label.get(_b, _b),
                 "value_bn_or_yen": (_fc_map[(_m, _y, _b)]["value"] if _m in ("eps", "dps")
                                     else _fc_map[(_m, _y, _b)]["value"] / 1e9),
-                "source": _fc_map[(_m, _y, _b)].get("source", ""),
+                "source": fund.source_label(_fc_map[(_m, _y, _b)].get("source", "")) or None,
             } for _m, _y, _b in _seed_keys]
+
+            # The years offered: the one still running and the two after it,
+            # plus the last reported year (to correct an actual) and any year
+            # already in the grid — a selectbox seeded with a value outside
+            # its options blanks the row on the first edit.
+            _fy_all = sorted({k[1] for k in _fc_map if len(k) == 3
+                              and str(k[1]).startswith("FY") and str(k[1])[2:].isdigit()})
+            _fy_rep = [y for y in _fy_all
+                       if any((m, y, "actual") in _fc_map for m in fund.METRICS)]
+            _fy_live = next((y for y in _fy_all if y not in _fy_rep), None)
+            if _fy_live is None:
+                _fy_live = (f"FY{int(_fy_rep[-1][2:]) + 1}" if _fy_rep
+                            else f"FY{now_local().year}")
+            _fy_n = int(_fy_live[2:])
+            _fy_options = sorted({f"FY{_fy_n + i}" for i in range(3)}
+                                 | set(_fy_rep[-1:])
+                                 | {_r["fiscal_year"] for _r in _rows})
+            _source_options = list(fund.SOURCE_CHOICES) + sorted(
+                {_r["source"] for _r in _rows if _r["source"]} - set(fund.SOURCE_CHOICES))
 
             # Offer the profile's rows first, then any metric already present
             # on this company that the profile does not show — a selectbox
@@ -4943,14 +4987,20 @@ with tab_research:
                 column_config={
                     "metric": st.column_config.SelectboxColumn(
                         "Metric", options=_metric_options, required=True),
-                    "fiscal_year": st.column_config.TextColumn(
-                        "FY", width="small", required=True,
-                        help="The fiscal year as the panel labels it, e.g. FY2027."),
+                    "fiscal_year": st.column_config.SelectboxColumn(
+                        "FY", options=_fy_options, width="small", required=True,
+                        default=_fy_live,
+                        help="The fiscal year the figure belongs to. Offered: the year "
+                             "still running and the two after it, and the last reported "
+                             "year for correcting an actual."),
                     "basis": st.column_config.SelectboxColumn(
                         "Basis", options=list(_basis_label.values()), required=True),
                     "value_bn_or_yen": st.column_config.NumberColumn(
                         "Value (¥bn, or ¥ for per-share)", format="%.2f"),
-                    "source": st.column_config.TextColumn("Source", disabled=True, width="small"),
+                    "source": st.column_config.SelectboxColumn(
+                        "Source", options=_source_options, width="small",
+                        help="Where the figure comes from. Shown on the T mark in the "
+                             "table. Leave empty if you'd rather not say."),
                 })
 
             _t1, _t2 = st.columns([1.4, 2])
@@ -4973,7 +5023,8 @@ with tab_research:
                 [{"metric": _metric_of.get(_r.get("metric"), ""),
                   "fiscal_year": _r.get("fiscal_year"),
                   "basis": _basis_of.get(_r.get("basis"), ""),
-                  "value": _r.get("value_bn_or_yen")} for _r in _edited],
+                  "value": _r.get("value_bn_or_yen"),
+                  "source": _r.get("source") or ""} for _r in _edited],
                 _seed_keys, _fc_map, _manual_now, now_local().date().isoformat())
 
             # Every exit below reruns, which throws away anything drawn now, so

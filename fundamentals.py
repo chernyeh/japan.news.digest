@@ -1289,6 +1289,35 @@ def change(cur, prev):
     return (cur - prev) / prev
 
 
+# Where a typed figure came from, offered as a dropdown in the Research tab's
+# grid. Stored on the entry as "typed:<label>" so the T mark can name it; plain
+# "typed" is a figure typed with no source given.
+SOURCE_CHOICES = ("Koyfin", "Company data", "J-Quants", "QUICK", "Bloomberg",
+                  "LSEG", "Broker report", "IR / management", "Other")
+
+
+def source_label(source: str) -> str:
+    """The grid's name for a stored source string — "" for a figure typed with
+    no source given."""
+    source = source or ""
+    if source in ("typed", "manual"):
+        return ""
+    if source.startswith("typed:"):
+        return source.split(":", 1)[1]
+    if source.startswith("jquants"):
+        return "J-Quants"
+    if source == "yfinance":
+        return "Yahoo/LSEG"
+    if source.startswith("screenshot"):
+        return "Screenshot"
+    return source
+
+
+def typed_source(label) -> str:
+    label = (label or "").strip()
+    return f"typed:{label}" if label else "typed"
+
+
 def plan_typed_overrides(edited: list, seed_keys, current: dict, manual_keys,
                          as_of: str) -> tuple:
     """Turn the Research tab's typed grid into (entries, remove, notes).
@@ -1324,15 +1353,29 @@ def plan_typed_overrides(edited: list, seed_keys, current: dict, manual_keys,
             continue
         kept.add((metric, fy, basis))
         yen = value if metric in _PER_SHARE else value * 1e9
-        shown = (current.get((metric, fy, basis)) or {}).get("value")
+        cur = current.get((metric, fy, basis)) or {}
+        shown = cur.get("value")
+        # A row without a "source" key predates the source column; a None in
+        # it is a grid cell left empty. Either way it says nothing new.
+        label = row.get("source")
+        same_source = label is None or label == source_label(cur.get("source", ""))
         # The trip through ¥bn is lossy in the last bits, so an untouched row
-        # must not read as an edit.
-        if shown is not None and abs(yen - shown) <= max(abs(shown), 1.0) * 1e-9:
+        # must not read as an edit. Re-labelling a row's source alone is one.
+        if (shown is not None and abs(yen - shown) <= max(abs(shown), 1.0) * 1e-9
+                and same_source):
             continue
+        # Which source to record. A label left as it was seeded is not a
+        # claim about the new number: a retyped J-Quants figure still showing
+        # "J-Quants" was typed, not collected. A typed figure keeps its label.
+        cur_src = str(cur.get("source", ""))
+        if same_source and not cur_src.startswith("typed"):
+            label = ""
+        elif label is None:
+            label = source_label(cur_src)
         entries[manual_key(metric, fy, basis)] = {
             "value": yen,
             "unit": "jpy" if metric in _PER_SHARE else "jpy_abs",
-            "source": "typed",
+            "source": typed_source(label),
             "as_of": as_of,
         }
 

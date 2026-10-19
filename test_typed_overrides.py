@@ -1710,6 +1710,46 @@ def test_quarterly_bases_can_be_typed():
     assert entries["operating_profit|FY2027|ytd_2q"]["value"] == 61e9
 
 
+
+# ── Typed sources ────────────────────────────────────────────────────────
+
+def test_a_chosen_source_is_stored_with_the_value():
+    entries, _, _ = plan([{"metric": "operating_profit", "fiscal_year": "FY2027",
+                           "basis": "consensus_q2", "value": 40.0, "source": "Koyfin"}],
+                         seed=[])
+    assert entries["operating_profit|FY2027|consensus_q2"]["source"] == "typed:Koyfin"
+
+
+def test_relabelling_a_typed_row_alone_is_saved():
+    cur = {("eps", "FY2027", "consensus"): {"value": 763.13, "source": "typed"}}
+    entries, _, _ = F.plan_typed_overrides(
+        [{"metric": "eps", "fiscal_year": "FY2027", "basis": "consensus",
+          "value": 763.13, "source": "QUICK"}], list(cur), cur, {}, TODAY)
+    assert entries["eps|FY2027|consensus"]["source"] == "typed:QUICK"
+
+
+def test_untouched_collected_row_with_its_own_label_writes_nothing():
+    cur = {("net_sales", "FY2027", "company"): {"value": 1.29e12, "source": "jquants"}}
+    entries, _, _ = F.plan_typed_overrides(
+        [{"metric": "net_sales", "fiscal_year": "FY2027", "basis": "company",
+          "value": 1290.0, "source": "J-Quants"}], list(cur), cur, {}, TODAY)
+    assert entries == {}
+
+
+def test_retyped_collected_value_is_not_credited_to_the_collector():
+    cur = {("net_sales", "FY2027", "company"): {"value": 1.29e12, "source": "jquants"}}
+    entries, _, _ = F.plan_typed_overrides(
+        [{"metric": "net_sales", "fiscal_year": "FY2027", "basis": "company",
+          "value": 1300.0, "source": "J-Quants"}], list(cur), cur, {}, TODAY)
+    assert entries["net_sales|FY2027|company"]["source"] == "typed"
+
+
+def test_source_labels():
+    assert F.source_label("typed:Koyfin") == "Koyfin"
+    assert F.source_label("typed") == ""
+    assert F.source_label("jquants:nonconsolidated") == "J-Quants"
+    assert F.source_label("screenshot:IMG.png") == "Screenshot"
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
