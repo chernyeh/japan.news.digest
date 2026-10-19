@@ -1145,7 +1145,15 @@ def manual_key(metric: str, fy: str, basis: str) -> str:
 QUARTER_CONSENSUS_BASES = ("consensus_q1", "consensus_q2", "consensus_q3", "consensus_q4")
 YTD_CONSENSUS_BASES = ("consensus_ytd_2q", "consensus_ytd_3q")
 
+# Reported quarters typed by hand, for the weeks between a company's results
+# and the collector picking them up. A single quarter goes in as actual_qN; a
+# cumulative figure as filed goes in under the collector's own ytd_Nq basis, so
+# a typed and a collected year-to-date figure are the same thing downstream.
+QUARTER_ACTUAL_BASES = ("actual_q1", "actual_q2", "actual_q3", "actual_q4")
+YTD_ACTUAL_BASES = ("ytd_1q", "ytd_2q", "ytd_3q")
+
 TYPED_BASES = (("actual", "company", "consensus", "company_h1")
+               + QUARTER_ACTUAL_BASES + YTD_ACTUAL_BASES
                + QUARTER_CONSENSUS_BASES + YTD_CONSENSUS_BASES)
 
 
@@ -1153,24 +1161,30 @@ TYPED_BASES = (("actual", "company", "consensus", "company_h1")
 #
 # A Japanese issuer files cumulative quarters (Q1, Q1–Q2, Q1–Q3) and the full
 # year; the quarter on its own is never filed and is the difference between
-# two of them. Each period resolves to (value, kind):
+# two of them. Each period resolves to (value, kind, basis):
 #
-#   "actual"  — as filed (Q1, the cumulative quarters, the full-year actual)
-#   "derived" — arithmetic between two filed figures (Q2, Q3, Q4)
-#   "street"  — a typed street figure, as typed
-#   "street_derived" — arithmetic with a street figure in it: a typed YTD less
-#                the filed quarters before it, or quarters summed to a YTD
-#   "company" / "company_derived" — the full year from guidance, and the Q4
-#                that guidance implies after the filed nine months
+#   "actual"  — reported: as filed (Q1, the cumulative quarters), or a
+#               reported quarter typed by hand
+#   "derived" — arithmetic between reported figures (Q2 = YTD 2Q − Q1, ...)
+#   "street"  — a typed street figure, or the full-year consensus
+#   "street_derived" — arithmetic with a street figure in it: a street YTD or
+#                full year less the reported quarters before it, or quarters
+#                summed to a YTD
+#   "company" / "company_derived" — full-year guidance, and the remaining
+#                quarter it implies after the reported ones
 #
-# A quarter that is filed always wins over a forecast for it, so a typed
-# street estimate for Q2 stops showing once Q2 is reported — it is kept, and
+# `basis` is the stored basis the value was read from, for its provenance
+# mark, or None where it is arithmetic.
+#
+# A reported quarter always wins over a forecast for it, so a typed street
+# estimate for Q2 stops showing once Q2 is reported — it is kept, and
 # surfaces as a beat/miss against the actual via `quarter_street`.
 
 QUARTER_PERIODS = ("q1", "q2", "q3", "q4")
 YTD_PERIODS = ("ytd_1q", "ytd_2q", "ytd_3q", "fy")
 
 _STREETISH = {"street", "street_derived"}
+_REPORTED = {"actual", "derived"}
 
 
 def _combine_kind(*kinds):
@@ -1182,44 +1196,65 @@ def _combine_kind(*kinds):
 
 
 def quarter_breakdown(get, metric: str, fy: str) -> dict:
-    """{period: (value, kind)} for one metric and fiscal year, over
+    """{period: (value, kind, basis)} for one metric and fiscal year, over
     QUARTER_PERIODS and YTD_PERIODS. Missing periods are simply absent.
 
     `get(metric, fy, basis)` is the panel's lookup. DPS is not a flow across
     quarters and is not passed here."""
-    cum = {}
-    for n in (1, 2, 3):
-        v = get(metric, fy, f"ytd_{n}q")
-        if v is not None:
-            cum[n] = (v, "actual")
-        elif n > 1 and get(metric, fy, f"consensus_ytd_{n}q") is not None:
-            cum[n] = (get(metric, fy, f"consensus_ytd_{n}q"), "street")
-    for basis, kind in (("actual", "actual"), ("consensus", "street"), ("company", "company")):
-        if get(metric, fy, basis) is not None:
-            cum[4] = (get(metric, fy, basis), kind)
-            break
+    def forecast_cum(n):
+        """A forecast for the year to the end of quarter n, or None."""
+        if n in (2, 3):
+            v = get(metric, fy, f"consensus_ytd_{n}q")
+            if v is not None:
+                return (v, "street", f"consensus_ytd_{n}q")
+        if n == 4:
+            for basis, kind in (("consensus", "street"), ("company", "company")):
+                v = get(metric, fy, basis)
+                if v is not None:
+                    return (v, kind, basis)
+        return None
 
     out = {}
+    cum = {0: (0.0, "actual", None)}
     for n in (1, 2, 3, 4):
-        filed_now = cum.get(n, (None, ""))[1] == "actual"
-        filed_prev = n == 1 or cum.get(n - 1, (None, ""))[1] == "actual"
-        typed = get(metric, fy, f"consensus_q{n}")
-        if filed_now and filed_prev:
-            out[f"q{n}"] = (cum[n][0] if n == 1 else cum[n][0] - cum[n - 1][0],
-                            "actual" if n == 1 else "derived")
-        elif typed is not None:
-            out[f"q{n}"] = (typed, "street")
-        elif n > 1 and n in cum and (n - 1) in cum:
-            out[f"q{n}"] = (cum[n][0] - cum[n - 1][0],
-                            _combine_kind(cum[n][1], cum[n - 1][1]))
-        # A cumulative period nothing filed or typed is the sum of the quarters
-        # inside it, where every one of them is there — filled as we go, so the
-        # next quarter can be taken off it.
-        if n not in cum:
-            qs = [out.get(f"q{i}") for i in range(1, n + 1)]
-            if all(qs):
-                cum[n] = (sum(q[0] for q in qs),
-                          qs[0][1] if n == 1 else _combine_kind(*(q[1] for q in qs)))
+        filed_basis = f"ytd_{n}q" if n < 4 else "actual"
+        filed = get(metric, fy, filed_basis)
+        prev = cum.get(n - 1)
+        typed_actual = get(metric, fy, f"actual_q{n}")
+        street_q = get(metric, fy, f"consensus_q{n}")
+
+        q = None
+        if typed_actual is not None:
+            q = (typed_actual, "actual", f"actual_q{n}")
+        elif filed is not None and prev and prev[1] in _REPORTED:
+            q = ((filed, "actual", filed_basis) if n == 1
+                 else (filed - prev[0], "derived", None))
+        elif street_q is not None:
+            q = (street_q, "street", f"consensus_q{n}")
+        else:
+            fc = forecast_cum(n)
+            if fc and prev:
+                q = (fc[0] - prev[0], fc[1] if n == 1 else _combine_kind(fc[1], prev[1]), None)
+        if q:
+            out[f"q{n}"] = q
+
+        # The year to date: as filed; else summed from reported quarters; else
+        # a forecast for it as given (a typed street YTD, the full-year
+        # consensus); else summed from whatever quarters there are.
+        reported_sum = bool(q and prev and q[1] in _REPORTED and prev[1] in _REPORTED)
+        if filed is not None:
+            c = (filed, "actual", filed_basis)
+        elif reported_sum:
+            c = (q if n == 1 else (prev[0] + q[0], "derived", None))
+        elif forecast_cum(n):
+            c = forecast_cum(n)
+        elif q and prev:
+            c = (q if n == 1 else (prev[0] + q[0], _combine_kind(q[1], prev[1]), None))
+        else:
+            c = None
+        if c:
+            cum[n] = c
+
     for n, period in zip((1, 2, 3, 4), YTD_PERIODS):
         if n in cum:
             out[period] = cum[n]

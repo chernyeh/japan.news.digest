@@ -1615,17 +1615,22 @@ def _getter(m):
     return lambda metric, fy, basis: m.get((metric, fy, basis))
 
 
+def _vk(bd):
+    """Drop the basis, for the assertions that are about value and kind."""
+    return {k: v[:2] for k, v in bd.items()}
+
+
 def test_quarters_are_differences_of_cumulative_filings():
     g = _getter({("operating_profit", "FY2026", "ytd_1q"): 10.0,
                  ("operating_profit", "FY2026", "ytd_2q"): 25.0,
                  ("operating_profit", "FY2026", "ytd_3q"): 45.0,
                  ("operating_profit", "FY2026", "actual"): 70.0})
     bd = F.quarter_breakdown(g, "operating_profit", "FY2026")
-    assert bd["q1"] == (10.0, "actual")
-    assert bd["q2"] == (15.0, "derived")
-    assert bd["q3"] == (20.0, "derived")
-    assert bd["q4"] == (25.0, "derived")
-    assert bd["ytd_2q"] == (25.0, "actual") and bd["fy"] == (70.0, "actual")
+    assert bd["q1"] == (10.0, "actual", "ytd_1q")
+    assert _vk(bd)["q2"] == (15.0, "derived")
+    assert _vk(bd)["q3"] == (20.0, "derived")
+    assert _vk(bd)["q4"] == (25.0, "derived")
+    assert bd["ytd_2q"] == (25.0, "actual", "ytd_2q") and bd["fy"] == (70.0, "actual", "actual")
 
 
 def test_typed_street_quarter_fills_the_gap_and_implies_4q():
@@ -1635,18 +1640,27 @@ def test_typed_street_quarter_fills_the_gap_and_implies_4q():
                  ("operating_profit", "FY2027", "ytd_2q"): 30.0,
                  ("operating_profit", "FY2027", "consensus_q3"): 22.0,
                  ("operating_profit", "FY2027", "consensus"): 80.0})
-    bd = F.quarter_breakdown(g, "operating_profit", "FY2027")
+    bd = _vk(F.quarter_breakdown(g, "operating_profit", "FY2027"))
     assert bd["q3"] == (22.0, "street")
     assert bd["ytd_3q"] == (52.0, "street_derived")
     assert bd["q4"] == (28.0, "street_derived")
     assert bd["fy"] == (80.0, "street")
 
 
+def test_guidance_implies_the_remaining_quarter():
+    g = _getter({("operating_profit", "FY2027", "ytd_1q"): 12.0,
+                 ("operating_profit", "FY2027", "ytd_2q"): 30.0,
+                 ("operating_profit", "FY2027", "ytd_3q"): 50.0,
+                 ("operating_profit", "FY2027", "company"): 70.0})
+    bd = _vk(F.quarter_breakdown(g, "operating_profit", "FY2027"))
+    assert bd["q4"] == (20.0, "company_derived")
+
+
 def test_filed_quarter_beats_typed_street_and_is_scored_against_it():
     g = _getter({("net_sales", "FY2027", "ytd_1q"): 100.0,
                  ("net_sales", "FY2027", "ytd_2q"): 210.0,
                  ("net_sales", "FY2027", "consensus_q2"): 100.0})
-    bd = F.quarter_breakdown(g, "net_sales", "FY2027")
+    bd = _vk(F.quarter_breakdown(g, "net_sales", "FY2027"))
     assert bd["q2"] == (110.0, "derived")
     assert F.quarter_street(g, "net_sales", "FY2027", "q2") == 100.0
 
@@ -1654,9 +1668,26 @@ def test_filed_quarter_beats_typed_street_and_is_scored_against_it():
 def test_typed_street_ytd_gives_the_quarter():
     g = _getter({("net_profit", "FY2027", "ytd_1q"): 5.0,
                  ("net_profit", "FY2027", "consensus_ytd_2q"): 12.0})
-    bd = F.quarter_breakdown(g, "net_profit", "FY2027")
+    bd = _vk(F.quarter_breakdown(g, "net_profit", "FY2027"))
     assert bd["q2"] == (7.0, "street_derived")
     assert bd["ytd_2q"] == (12.0, "street")
+
+
+def test_typed_actual_quarter_counts_as_reported():
+    """The collector is a week behind the results: 2Q typed by hand as a
+    single quarter is a reported figure, and so is the YTD it makes."""
+    g = _getter({("operating_profit", "FY2027", "ytd_1q"): 12.0,
+                 ("operating_profit", "FY2027", "actual_q2"): 20.0,
+                 ("operating_profit", "FY2027", "consensus_q2"): 18.0})
+    bd = F.quarter_breakdown(g, "operating_profit", "FY2027")
+    assert bd["q2"] == (20.0, "actual", "actual_q2")
+    assert _vk(bd)["ytd_2q"] == (32.0, "derived")
+
+
+def test_typed_actual_ytd_derives_the_quarter():
+    g = _getter({("operating_profit", "FY2027", "ytd_1q"): 12.0,
+                 ("operating_profit", "FY2027", "ytd_2q"): 31.0})
+    assert _vk(F.quarter_breakdown(g, "operating_profit", "FY2027"))["q2"] == (19.0, "derived")
 
 
 def test_change_has_no_percentage_off_a_loss():
@@ -1666,13 +1697,18 @@ def test_change_has_no_percentage_off_a_loss():
     assert F.prior_fy("FY2027") == "FY2026" and F.prior_fy("x") == ""
 
 
-def test_quarterly_street_bases_can_be_typed():
+def test_quarterly_bases_can_be_typed():
     entries, _, notes = plan(rows(("operating_profit", "FY2027", "consensus_q2", 40.0),
-                                  ("operating_profit", "FY2027", "consensus_ytd_3q", 95.0)),
+                                  ("operating_profit", "FY2027", "consensus_ytd_3q", 95.0),
+                                  ("operating_profit", "FY2027", "actual_q1", 30.0),
+                                  ("operating_profit", "FY2027", "ytd_2q", 61.0)),
                              seed=[])
     assert notes == []
     assert entries["operating_profit|FY2027|consensus_q2"]["value"] == 40e9
     assert entries["operating_profit|FY2027|consensus_ytd_3q"]["value"] == 95e9
+    assert entries["operating_profit|FY2027|actual_q1"]["value"] == 30e9
+    assert entries["operating_profit|FY2027|ytd_2q"]["value"] == 61e9
+
 
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
