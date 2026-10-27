@@ -20,10 +20,12 @@ from datetime import date, timedelta
 import requests
 
 from tdnet import (fetch_tdnet_range, fetch_english_lookup, prune_and_dedupe,
+                    fetch_tdnet_official_day, _normalize_code,
                     write_filings_csv, read_filings_csv, row_key)
 from translate import translate_ja_to_en
 
 DEFAULT_OUT = os.path.join("data", "tdnet_filings.csv")
+OFFICIAL_LIST_DAYS = 30  # how far back TDnet's own daily list pages go
 CHUNK_DAYS = 3  # matches the window already proven to work for the live Reg Filings tab
 
 
@@ -77,6 +79,29 @@ def main():
             print(f"  {c_from}..{c_to}: FAILED ({exc}) — skipping, will retry on next scheduled run")
         if i < len(chunks) - 1:
             time.sleep(args.sleep)
+
+    # Yanoshin has run up to a day behind TDnet, so the recent days are also
+    # read from TDnet's own list (which keeps about a month). A filing both
+    # sources carry is matched on code + time + title, since the two can
+    # spell its PDF link differently.
+    seen = {(r.get("Code"), r.get("PubDateTime"), r.get("Title")) for r in by_key.values()}
+    official_new = 0
+    for n in range(min(args.days, OFFICIAL_LIST_DAYS) + 1):
+        day = today - timedelta(days=n)
+        for o in fetch_tdnet_official_day(day.strftime("%Y%m%d"), session=session):
+            code = _normalize_code(o["code"])
+            if not code or (code, o["pub_date"], o["title"]) in seen:
+                continue
+            en = en_lookup.get((code, o["pub_date"]))
+            row = {"Code": code, "Name": o["name"],
+                   "NameEN": en["name_en"] if en else "", "Title": o["title"],
+                   "TitleEN": en["title_en"] if en else "", "PubDateTime": o["pub_date"],
+                   "DocUrl": o["doc_url"], "EngUrl": en["eng_url"] if en else ""}
+            seen.add((code, o["pub_date"], o["title"]))
+            by_key[row_key(row)] = row
+            official_new += 1
+    print(f"TDnet's own list added {official_new} filing(s) Yanoshin did not have")
+    new_rows += official_new
 
     merged = prune_and_dedupe(list(by_key.values()))
 

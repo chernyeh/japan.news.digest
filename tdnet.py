@@ -3,9 +3,9 @@ tdnet.py — rolling TDnet (timely disclosure) history for the Research tab.
 
 TDnet carries earnings summaries (決算短信 / "tanshin"), dividend/guidance
 revisions, buyback announcements, and other timely disclosures — distinct
-from EDINET's statutory filings. The Reg Filings tab already fetches a live
-3-day rolling window directly from Yanoshin's TDnet mirror + the TSE's
-English disclosure search; this module builds a much longer ~2-year history
+from EDINET's statutory filings. The Reg Filings tab fetches a live 24-hour
+window from TDnet's own list (fetch_tdnet_official_day) and Yanoshin's TDnet
+mirror, plus the TSE's English disclosure search; this module builds a much longer ~2-year history
 the same way, via a scheduled collector (collect_tdnet.py), mirroring the
 EDINET collector pattern (edinet.py / collect_edinet.py). No API key needed —
 both sources are public.
@@ -113,6 +113,77 @@ def fetch_english_lookup(d_from: str, d_to: str, session=None, timeout: int = 20
     except Exception as exc:
         print(f"English TDnet lookup error (non-fatal): {exc}")
     return lookup
+
+
+# TDnet's own Japanese list, one page per 100 filings per day. Yanoshin
+# mirrors this but has run up to a day behind (27 Oct 2026: nothing for the
+# day by 17:39 JST, on a heavy results day), so the live tab reads today's
+# filings from here. TDnet keeps roughly the last month of these pages.
+TDNET_LIST_URL = "https://www.release.tdnet.info/inbs/I_list_{page:03d}_{day}.html"
+
+
+def fetch_tdnet_official_day(day: str, session=None, timeout: int = 20,
+                             max_pages: int = 30) -> list:
+    """Every filing TDnet lists for one day (YYYYMMDD), as dicts with code,
+    name, title, pub_date ("YYYY-MM-DD HH:MM", JST) and doc_url. Returns []
+    rather than raising when the pages can't be fetched or read, so callers
+    fall back to Yanoshin; the reason is printed to the log.
+
+    The layout read here is TDnet's main-list-table, whose cells carry the
+    classes kjTime / kjCode / kjName / kjTitle. If TDnet changes it, this
+    returns [] and the fallback takes over."""
+    import requests
+    from bs4 import BeautifulSoup
+
+    _req = session or requests
+    headers = {"User-Agent": USER_AGENT, "Accept": "text/html,*/*",
+               "Accept-Language": "ja,en;q=0.9"}
+    day_iso = f"{day[:4]}-{day[4:6]}-{day[6:8]}"
+    out = []
+    for page in range(1, max_pages + 1):
+        url = TDNET_LIST_URL.format(page=page, day=day)
+        try:
+            resp = _req.get(url, headers=headers, timeout=timeout)
+        except Exception as exc:
+            print(f"TDnet list {day} p{page} fetch error: {exc}")
+            break
+        if resp.status_code == 404:
+            break  # past the last page, or no filings that day
+        if resp.status_code != 200:
+            print(f"TDnet list {day} p{page}: HTTP {resp.status_code}")
+            break
+        soup = BeautifulSoup(resp.content, "lxml")
+        rows = 0
+        for tr in soup.find_all("tr"):
+            def cell(cls):
+                return tr.find("td", class_=lambda c: c and cls in c.split())
+            t, c, n, ti = cell("kjTime"), cell("kjCode"), cell("kjName"), cell("kjTitle")
+            if not (t and c and ti):
+                continue
+            title = ti.get_text(strip=True)
+            if not title:
+                continue
+            a = ti.find("a")
+            href = a.get("href", "") if a else ""
+            if href and not href.startswith("http"):
+                href = "https://www.release.tdnet.info/inbs/" + href.lstrip("./")
+            out.append({
+                # As listed (e.g. "13330", "130A0"): the Reg Filings tab and
+                # its English lookup key on the 5-character code.
+                "code": c.get_text(strip=True),
+                "name": n.get_text(strip=True) if n else "",
+                "title": title,
+                "pub_date": f"{day_iso} {t.get_text(strip=True)[:5]}",
+                "doc_url": href,
+            })
+            rows += 1
+        if rows == 0:
+            if page == 1 and "kjTime" not in resp.text and "main-list-table" not in resp.text:
+                print(f"TDnet list {day}: page layout not recognised — falling back")
+            break
+        if rows < 100:
+            break
+    return out
 
 
 def fetch_tdnet_range(d_from: str, d_to: str, en_lookup: dict = None, session=None,

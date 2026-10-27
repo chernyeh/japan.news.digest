@@ -3428,7 +3428,7 @@ with tab_filings:
     st.markdown('<div class="section-title">📋 Corporate Filings — TDnet Timely Disclosures</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="info-box">Timely disclosures (適時開示) from the Tokyo Stock Exchange &mdash; '
-        'last 3 days. Where an official English filing exists it is shown directly; Japanese-only filings are '
+        'last 24 hours. Where an official English filing exists it is shown directly; Japanese-only filings are '
         'machine-translated. <strong>ENG</strong> / <strong>JPN</strong> open the respective PDFs. '
         'Sourced via <a href="https://webapi.yanoshin.jp/tdnet/" target="_blank" style="color:#8B4513;">Yanoshin TDnet</a> '
         '+ <a href="https://www.release.tdnet.info/index_e.html" target="_blank" style="color:#8B4513;">TSE English disclosures</a>.</div>',
@@ -3460,8 +3460,8 @@ with tab_filings:
         _fil_mcap_min = st.number_input("Min mkt cap (¥B)", min_value=0, value=0,
                                         step=50, key="filings_mcap_min")
     with col_f3:
-        _sum_window = st.selectbox("Briefing window:", ["12h", "24h", "36h", "48h", "60h"],
-                                   index=1, key="filings_sum_window")
+        _sum_window = st.selectbox("Briefing window:", ["6h", "12h", "24h"],
+                                   index=2, key="filings_sum_window")
     with col_f4:
         st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
         fetch_filings_btn = st.button("🔄 Refresh", key="btn_filings", use_container_width=True)
@@ -3474,7 +3474,7 @@ with tab_filings:
 
     # Auto-load on first visit OR on button click
     if fetch_filings_btn or not st.session_state.filings:
-        with st.spinner("Fetching TDnet disclosures (last 3 days)…"):
+        with st.spinner("Fetching TDnet disclosures (last 24 hours)…"):
             try:
                 import requests as _req
                 import re as _re
@@ -3482,8 +3482,12 @@ with tab_filings:
                 from datetime import timedelta as _td
                 from bs4 import BeautifulSoup as _BS
 
-                _today = _dtmod.datetime.now()
-                _d_from = (_today - _td(days=3)).strftime("%Y%m%d")
+                # TDnet times are JST and carry no zone, so the window is
+                # worked out in JST too — the server itself runs on UTC.
+                from zoneinfo import ZoneInfo as _ZI
+                _today  = _dtmod.datetime.now(_ZI("Asia/Tokyo")).replace(tzinfo=None)
+                _cutoff = _today - _td(hours=24)
+                _d_from = _cutoff.strftime("%Y%m%d")
                 _d_to   = _today.strftime("%Y%m%d")
 
                 # ── Step 1: fetch English filings from TSE to build a dedup lookup ──
@@ -3560,12 +3564,29 @@ with tab_filings:
                         _last_exc = _exc
                         if _attempt < 2:
                             _time.sleep(3 * (_attempt + 1))
-                if _last_exc:
-                    raise _last_exc
-                _soup = _BS(_resp.content, "lxml")
+                # Yanoshin is now the fallback, so its failure only matters if
+                # TDnet's own list (step 2b) comes back empty too.
+                _soup = _BS(_resp.content if not _last_exc else b"", "lxml")
 
                 _fil_mktcap_map = st.session_state.get("mktcap_map", {})
                 filings = []
+
+                def _add_filing(_code, _name, _filing_title, _pdate_str, _pdate_dt, _doc_url):
+                    # Check English lookup: match on (code, minute-timestamp)
+                    _en_match = _en_lookup.get((_code, _pdate_str))
+                    filings.append({
+                        "code":     _code,
+                        "name":     _name,
+                        "title":    _filing_title,
+                        "title_en": _en_match["title_en"] if _en_match else "",
+                        "name_en":  _en_match["name_en"]  if _en_match else "",
+                        "pub_date": _pdate_str,
+                        "pub_dt":   _pdate_dt,
+                        "doc_url":  _doc_url,
+                        "eng_url":  _en_match["eng_url"] if _en_match else "",
+                        "mktcap":   _fil_mktcap_map.get(_code[:4]) if _code else None,
+                    })
+
                 for _row in _soup.find_all("tr"):
                     _cells = _row.find_all("td")
                     if len(_cells) < 3:
@@ -3609,29 +3630,41 @@ with tab_filings:
                     if not _filing_title:
                         continue
 
-                    # Check English lookup: match on (code, minute-timestamp)
-                    _en_match = _en_lookup.get((_code, _pdate_str))
+                    _add_filing(_code, _name, _filing_title, _pdate_str, _pdate_dt, _doc_url)
 
-                    filings.append({
-                        "code":     _code,
-                        "name":     _name,
-                        "title":    _filing_title,
-                        "title_en": _en_match["title_en"] if _en_match else "",
-                        "name_en":  _en_match["name_en"]  if _en_match else "",
-                        "pub_date": _pdate_str,
-                        "pub_dt":   _pdate_dt,
-                        "doc_url":  _doc_url,
-                        "eng_url":  _en_match["eng_url"] if _en_match else "",
-                        "mktcap":   _fil_mktcap_map.get(_code[:4]) if _code else None,
-                    })
+                # ── Step 2b: TDnet's own list for each day in the window ──
+                # Yanoshin has run up to a day behind TDnet, so TDnet's list is
+                # read too; the dedupe below drops filings both sources carry.
+                # Returns [] on any failure, leaving Yanoshin's rows as they were.
+                from tdnet import fetch_tdnet_official_day as _tdnet_day
+                _n_official = 0
+                for _day in sorted({_d_from, _d_to}):
+                    for _o in _tdnet_day(_day):
+                        try:
+                            _o_dt = _dtmod.datetime.strptime(_o["pub_date"], "%Y-%m-%d %H:%M")
+                        except ValueError:
+                            _o_dt = None
+                        _add_filing(_o["code"], _o["name"], _o["title"],
+                                    _o["pub_date"], _o_dt, _o["doc_url"])
+                        _n_official += 1
+                print(f"Reg Filings: {_n_official} rows from TDnet, "
+                      f"{len(filings) - _n_official} from Yanoshin")
+                if not filings and _last_exc:
+                    raise _last_exc
+
+                filings = [f for f in filings if f["pub_dt"] and f["pub_dt"] >= _cutoff]
 
                 # ── Deduplicate: same company + same document ──
+                # Keyed on the document and, separately, on time + title,
+                # because a filing seen in both sources can carry its PDF link
+                # in two forms (Yanoshin's redirect vs TDnet's own URL).
                 _seen_fil = set()
                 _deduped_fil = []
                 for _f in filings:
                     _fkey = (_f["code"], _f["doc_url"] if _f["doc_url"] else _f["title"])
-                    if _fkey not in _seen_fil:
-                        _seen_fil.add(_fkey)
+                    _tkey = (_f["code"], _f["pub_date"], _f["title"])
+                    if _fkey not in _seen_fil and _tkey not in _seen_fil:
+                        _seen_fil.update((_fkey, _tkey))
                         _deduped_fil.append(_f)
                 filings = _deduped_fil
 
@@ -3704,9 +3737,14 @@ with tab_filings:
     else:
         # ── AI summary: user-selected window ──
         from datetime import datetime as _dt3, timedelta as _td3
-        _win_hours = {"12h": 12, "24h": 24, "36h": 36, "48h": 48, "60h": 60}
+        from zoneinfo import ZoneInfo as _ZI3
+        _win_hours = {"6h": 6, "12h": 12, "24h": 24}
         _win_label = st.session_state.get("filings_sum_window", "24h")
-        _win_ago   = _dt3.now() - _td3(hours=_win_hours[_win_label])
+        if _win_label not in _win_hours:   # a 36h-60h choice from before the 24h window
+            _win_label = "24h"
+        # Filing times are JST without a zone; compare in JST, not server UTC.
+        _win_ago   = (_dt3.now(_ZI3("Asia/Tokyo")).replace(tzinfo=None)
+                      - _td3(hours=_win_hours[_win_label]))
         filings_win = [f for f in filings if f.get("pub_dt") and f["pub_dt"].replace(tzinfo=None) >= _win_ago]
         _win_pool   = sorted(
             (filings_win or filings),
