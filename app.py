@@ -32,7 +32,8 @@ import qa_extract
 # Batch ZIP downloads are fetched server-side and held in memory, so cap how
 # many documents one ZIP can contain; the UI tells the user what was skipped.
 _IR_ZIP_MAX_FILES = 25
-from ai_summary_store import load_summaries_from_github, save_summary as save_summary_to_github
+from ai_summary_store import (load_summaries_from_github, save_summary as save_summary_to_github,
+                              clear_summaries as clear_summaries_on_github)
 from sentiment import score_all_sectors, flag_high_value_articles
 from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      group_calendar_by_date, label_date_bucket,
@@ -2221,7 +2222,7 @@ Respond only with the briefing."""
                 _ai_cache[_status_key] = "running"
                 _ai_cache.pop(_error_key, None)
 
-                _effort = models.summary_effort(get_secret("SUMMARY_EFFORT", ""))
+                _effort = models.effort_for(model, get_secret("SUMMARY_EFFORT", ""))
 
                 def _bg_generate(_prompt=prompt, _idx=_art_index, _model=model, _max_tokens=max_tokens,
                                   _effort=_effort, _api_key=api_key, _session_key=session_key,
@@ -2457,10 +2458,27 @@ with col_clear:
                 _c[_k].clear()
             else:
                 _c[_k] = None
+        # The loop above also reset the hydrated flag, so the next run would
+        # reload every briefing from the durable GitHub store and they would
+        # all come straight back. Keep the flag set, and empty the store too,
+        # so a cleared briefing stays cleared after a restart and elsewhere.
+        _c["ai_summaries_hydrated"] = True
+        _clr_ok, _clr_msg = clear_summaries_on_github(_ec_repo, _gh_token)
         # Wipe session state
         for _k in list(st.session_state.keys()):
             del st.session_state[_k]
+        if not _clr_ok:
+            # Shown on the next run: a message written right before st.rerun()
+            # does not reliably reach the browser (see research_flash).
+            st.session_state.clear_flash = (
+                "warning",
+                "Summaries cleared for now, but the saved copy could not be "
+                f"emptied, so they will return after the app restarts. {_clr_msg}")
         st.rerun()
+
+_clear_flash = st.session_state.pop("clear_flash", None)
+if _clear_flash:
+    getattr(st, _clear_flash[0])(_clear_flash[1])
 
 # ── Stale data banner (shows after 3 hours) ──────────────────────────────────
 _now = now_local()

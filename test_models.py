@@ -115,13 +115,23 @@ def test_no_attempt_ever_asks_for_a_beta():
             assert "betas" not in extra and "fallbacks" not in extra, (model, extra)
 
 
-def test_fast_model_sends_no_thinking_or_effort():
-    """Haiku 4.5 takes neither adaptive thinking nor output_config.effort —
-    sending either is a 400, so the fast panels must go out bare."""
+def test_fast_model_thinks_at_low_effort():
+    """Haiku 5.5 thinks by default, at "medium". The fast panels ask for
+    "low" explicitly, so they stay quick to the eye."""
     c = _Client(_OK)
-    models.call(c, models.SUMMARY_MODEL_FAST, "prompt", 8192)
+    models.call(c, models.SUMMARY_MODEL_FAST, "prompt", models.SUMMARY_MAX_TOKENS_FAST,
+                models.effort_for(models.SUMMARY_MODEL_FAST))
     assert len(c.calls) == 1, c.calls
-    assert set(c.calls[0]) == {"model", "max_tokens", "messages"}, c.calls[0]
+    assert c.calls[0]["thinking"] == {"type": "adaptive"}, c.calls[0]
+    assert c.calls[0]["output_config"] == {"effort": "low"}, c.calls[0]
+
+
+def test_summary_effort_moves_the_deep_model_only():
+    """SUMMARY_EFFORT is the deep model's dial. Setting it to "high" for a
+    heavy filings day must not slow every sector panel down with it."""
+    assert models.effort_for(models.SUMMARY_MODEL_DEEP, "high") == "high"
+    assert models.effort_for(models.SUMMARY_MODEL_DEEP, "") == models.DEFAULT_SUMMARY_EFFORT
+    assert models.effort_for(models.SUMMARY_MODEL_FAST, "high") == models.FAST_EFFORT
 
 
 def test_invalid_effort_falls_back_to_the_default():
@@ -254,10 +264,21 @@ def test_deep_budget_clears_the_briefings_this_app_actually_writes():
     assert models.SUMMARY_MAX_TOKENS_DEEP >= 4 * 4600, models.SUMMARY_MAX_TOKENS_DEEP
 
 
-def test_fast_model_is_not_in_the_thinking_set():
-    assert models.SUMMARY_MODEL_FAST not in models.ADAPTIVE_THINKING_MODELS
-    assert models.CLASSIFY_MODEL not in models.ADAPTIVE_THINKING_MODELS
-    assert models.SUMMARY_MODEL_DEEP in models.ADAPTIVE_THINKING_MODELS
+def test_every_model_in_use_is_in_the_thinking_set():
+    """Every model the app calls now thinks by default. One missing from the
+    set would go out bare and silently think at its own default effort."""
+    for model in (models.SUMMARY_MODEL_DEEP, models.SUMMARY_MODEL_FAST,
+                  models.CLASSIFY_MODEL, models.DOC_EXTRACT_MODEL,
+                  models.DOC_EXTRACT_FALLBACK_MODEL):
+        assert model in models.ADAPTIVE_THINKING_MODELS, model
+    assert "claude-haiku-4-5" not in models.ADAPTIVE_THINKING_MODELS
+
+
+def test_fast_budget_leaves_room_for_thinking():
+    """Haiku 4.5's 8,192 and 2,048 ceilings were sized for a model that did
+    not think; carried over, they could cut a panel or the email off."""
+    assert models.SUMMARY_MAX_TOKENS_FAST > 8192, models.SUMMARY_MAX_TOKENS_FAST
+    assert models.EMAIL_BRIEFING_MAX_TOKENS > 2048, models.EMAIL_BRIEFING_MAX_TOKENS
 
 
 if __name__ == "__main__":

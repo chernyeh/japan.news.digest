@@ -111,7 +111,7 @@ Use markdown. Be factual. No filler."""
 
         client = anthropic.Anthropic(api_key=api_key)
         return models.call(client, models.SUMMARY_MODEL_FAST, prompt,
-                           models.EMAIL_BRIEFING_MAX_TOKENS)
+                           models.EMAIL_BRIEFING_MAX_TOKENS, models.FAST_EFFORT)
     except Exception as e:
         return f"AI briefing unavailable: {e}"
 

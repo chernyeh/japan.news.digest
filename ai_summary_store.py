@@ -42,7 +42,23 @@ def load_summaries_from_github(repo: str, token: str = None) -> dict:
 def save_summary(repo: str, token: str, session_key: str, text: str, ts_iso: str, idx: dict) -> tuple:
     """Upserts session_key's entry in data/ai_summaries.json, committed straight
     to main (matching how the scheduled data-refresh workflows and the Research
-    tab's saved links already commit data/ updates). Returns (ok, message).
+    tab's saved links already commit data/ updates). Returns (ok, message)."""
+    entry = {"text": text, "ts": ts_iso, "idx": {str(k): v for k, v in (idx or {}).items()}}
+    return _update(repo, token, lambda data: data.__setitem__(session_key, entry),
+                   f"chore: update AI briefing ({session_key}) [skip ci]")
+
+
+def clear_summaries(repo: str, token: str) -> tuple:
+    """Empties data/ai_summaries.json, so briefings cleared with the Clear
+    button stay cleared after a restart and on other devices instead of being
+    hydrated straight back. Returns (ok, message)."""
+    return _update(repo, token, lambda data: data.clear(),
+                   "chore: clear AI briefings [skip ci]")
+
+
+def _update(repo: str, token: str, change, message: str) -> tuple:
+    """Reads data/ai_summaries.json, applies `change` to it in place and
+    commits the result. Skips the commit when `change` alters nothing.
     Retries once on a 409 (sha changed under us, e.g. a concurrent briefing
     finishing from another session)."""
     if not token:
@@ -52,8 +68,6 @@ def save_summary(repo: str, token: str, session_key: str, text: str, ts_iso: str
     api_url = f"https://api.github.com/repos/{repo}/contents/{SUMMARIES_PATH}"
     headers = {"User-Agent": _UA, "Authorization": f"token {token}",
                "Accept": "application/vnd.github+json"}
-
-    entry = {"text": text, "ts": ts_iso, "idx": {str(k): v for k, v in (idx or {}).items()}}
 
     for attempt in range(2):
         r = requests.get(api_url, headers=headers, timeout=15)
@@ -70,12 +84,16 @@ def save_summary(repo: str, token: str, session_key: str, text: str, ts_iso: str
         else:
             return False, f"GitHub read error: HTTP {r.status_code}"
 
-        data[session_key] = entry
+        before = json.dumps(data, sort_keys=True)
+        change(data)
+        if json.dumps(data, sort_keys=True) == before:
+            return True, "Nothing to change."
+
         new_content = base64.b64encode(
             json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
         ).decode("ascii")
         body = {
-            "message": f"chore: update AI briefing ({session_key}) [skip ci]",
+            "message": message,
             "content": new_content,
             "branch": "main",
         }
