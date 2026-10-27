@@ -61,13 +61,28 @@ def test_reads_a_day_and_builds_full_pdf_links():
     assert out[1]["code"] == "130A0", out[1]   # alphanumeric codes kept as listed
 
 
-def test_follows_pages_until_a_short_one():
-    full = _page([_row("15:00", f"{1000 + i}0", "社", f"決算短信 {i}", f"{i}.pdf")
-                  for i in range(100)])
-    seen = _install({1: full, 2: _page([_row("16:00", "99990", "社", "最後", "x.pdf")])})
+def _n_rows(n, start, time="15:00"):
+    return _page([_row(time, f"{1000 + start + i}0", "社", f"決算短信 {start + i}",
+                       f"{start + i}.pdf") for i in range(n)])
+
+
+def test_reads_every_page_whatever_the_page_size():
+    """Newest first: the 15:00 wave sits on the later pages. A short page is
+    not the end — only a 404 or an empty page is."""
+    seen = _install({1: _n_rows(50, 0, "18:00"), 2: _n_rows(37, 50, "16:00"),
+                     3: _n_rows(80, 87, "15:00")})
     out = tdnet.fetch_tdnet_official_day("20261027")
-    assert len(out) == 101, len(out)
-    assert len(seen) == 2, seen          # stops after the short page, no third request
+    assert len(out) == 167, len(out)
+    assert out[-1]["pub_date"].endswith("15:00"), out[-1]
+    assert len(seen) == 4, seen          # pages 1-3, then the 404 on page 4
+
+
+def test_a_server_repeating_its_last_page_does_not_loop_or_double_count():
+    last = _n_rows(10, 0)
+    pages = {i: last for i in range(1, 40)}
+    _install(pages)
+    out = tdnet.fetch_tdnet_official_day("20261027")
+    assert len(out) == 10, len(out)
 
 
 def test_no_filings_that_day_is_empty_not_an_error():

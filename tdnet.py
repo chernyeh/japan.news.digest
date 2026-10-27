@@ -123,7 +123,7 @@ TDNET_LIST_URL = "https://www.release.tdnet.info/inbs/I_list_{page:03d}_{day}.ht
 
 
 def fetch_tdnet_official_day(day: str, session=None, timeout: int = 20,
-                             max_pages: int = 30) -> list:
+                             max_pages: int = 60) -> list:
     """Every filing TDnet lists for one day (YYYYMMDD), as dicts with code,
     name, title, pub_date ("YYYY-MM-DD HH:MM", JST) and doc_url. Returns []
     rather than raising when the pages can't be fetched or read, so callers
@@ -140,6 +140,7 @@ def fetch_tdnet_official_day(day: str, session=None, timeout: int = 20,
                "Accept-Language": "ja,en;q=0.9"}
     day_iso = f"{day[:4]}-{day[4:6]}-{day[6:8]}"
     out = []
+    prev_first = None
     for page in range(1, max_pages + 1):
         url = TDNET_LIST_URL.format(page=page, day=day)
         try:
@@ -154,6 +155,7 @@ def fetch_tdnet_official_day(day: str, session=None, timeout: int = 20,
             break
         soup = BeautifulSoup(resp.content, "lxml")
         rows = 0
+        page_start = len(out)
         for tr in soup.find_all("tr"):
             def cell(cls):
                 return tr.find("td", class_=lambda c: c and cls in c.split())
@@ -181,8 +183,17 @@ def fetch_tdnet_official_day(day: str, session=None, timeout: int = 20,
             if page == 1 and "kjTime" not in resp.text and "main-list-table" not in resp.text:
                 print(f"TDnet list {day}: page layout not recognised — falling back")
             break
-        if rows < 100:
+        # The list runs newest first, so stopping early loses the afternoon's
+        # results wave. Keep going until TDnet runs out of pages (404 or an
+        # empty page) — not when a page looks short, which a page size other
+        # than 100 or one unparsed row would trigger. A server that answers
+        # every page number with the last page is caught by the repeat check.
+        first = (out[page_start]["code"], out[page_start]["pub_date"], out[page_start]["title"])
+        if first == prev_first:
+            del out[page_start:]
             break
+        prev_first = first
+    print(f"TDnet list {day}: {len(out)} filings over {page} page(s)")
     return out
 
 

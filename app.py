@@ -3647,8 +3647,35 @@ with tab_filings:
                         _add_filing(_o["code"], _o["name"], _o["title"],
                                     _o["pub_date"], _o_dt, _o["doc_url"])
                         _n_official += 1
-                print(f"Reg Filings: {_n_official} rows from TDnet, "
-                      f"{len(filings) - _n_official} from Yanoshin")
+                _n_yanoshin = len(filings) - _n_official
+
+                # ── Step 2c: English-only filings ──
+                # The TSE English list is live and large caps file there the
+                # same day, so a filing it carries that neither Japanese source
+                # has yet is shown from it rather than left out.
+                _have = {(f["code"], f["pub_date"]) for f in filings}
+                _n_en_only = 0
+                for (_ec, _ets), _ev in _en_lookup.items():
+                    if (_ec, _ets) in _have:
+                        continue
+                    try:
+                        _e_dt = _dtmod.datetime.strptime(_ets, "%Y-%m-%d %H:%M")
+                    except ValueError:
+                        continue
+                    filings.append({
+                        "code": _ec, "name": _ev["name_en"], "title": _ev["title_en"],
+                        "title_en": _ev["title_en"], "name_en": _ev["name_en"],
+                        "pub_date": _ets, "pub_dt": _e_dt, "doc_url": "",
+                        "eng_url": _ev["eng_url"],
+                        "mktcap": _fil_mktcap_map.get(_ec[:4]) if _ec else None,
+                    })
+                    _have.add((_ec, _ets))
+                    _n_en_only += 1
+
+                print(f"Reg Filings: {_n_official} rows from TDnet, {_n_yanoshin} from "
+                      f"Yanoshin, {_n_en_only} English-only")
+                st.session_state.filings_sources = {
+                    "TDnet": _n_official, "Yanoshin": _n_yanoshin, "English list only": _n_en_only}
                 if not filings and _last_exc:
                     raise _last_exc
 
@@ -3714,6 +3741,11 @@ with tab_filings:
         ]
         if _en_count:
             _status_parts.append(f"{_en_count} with English PDF")
+        # Fetched rows per source, before the 24-hour cut and de-duplication:
+        # shows at a glance whether TDnet's own list is being read.
+        _src = st.session_state.get("filings_sources")
+        if _src:
+            _status_parts.append("sources: " + ", ".join(f"{k} {v}" for k, v in _src.items()))
         st.markdown(
             '<div style="font-size:0.7rem;color:#9B8B7A;margin-bottom:0.4rem;">'
             + " · ".join(_status_parts) + "</div>",
