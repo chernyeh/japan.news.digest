@@ -43,13 +43,15 @@ SUPPORTED_MEDIA = ("application/pdf",)
 # not stay put -- it propagates into an FX-adjusted guidance figure. A results
 # deck is also longer than a screenshot, so there is more to get wrong.
 #
-# Sonnet 5 can do this, and the switch is models.DOC_EXTRACT_MODEL. It costs $2/$10 per
-# MTok against Opus 5's $5/$25, so roughly $3-5 a quarter at thirty documents.
+# Sonnet 5.5 can do this, and the switch is models.DOC_EXTRACT_MODEL. It costs $2/$10
+# per MTok against Opus 5.5's $4/$20 -- half -- and at thirty documents a
+# quarter either bill is a few dollars.
 # Settle it by measurement rather than argument: run both over the same 8-10
 # decks and compare field by field, counting how often each invents a
 # sensitivity that was never disclosed and how often it files a readable figure
-# under `unreadable`. Haiku 4.5 is not a candidate at all -- 200K context
-# against 1M, and a long deck can exceed it.
+# under `unreadable`. Haiku 4.5 was ruled out by its 200K context; Haiku 5.5
+# has the same 1M as the others, so length no longer rules it out, but its
+# accuracy here is the same field-by-field question and has not been measured.
 MODEL = models.DOC_EXTRACT_MODEL
 FALLBACK_MODEL = models.DOC_EXTRACT_FALLBACK_MODEL
 
@@ -307,7 +309,8 @@ def extract_from_pdf(data: bytes, api_key: str, code: str = "", name: str = "",
     # source_quote are model-reported provenance for a reviewer to spot-check,
     # exactly as consensus_vision treats from_image.
     attempts = (
-        {"output_config": {"format": {"type": "json_schema", "schema": _SCHEMA}},
+        {"output_config": {"format": {"type": "json_schema", "schema": _SCHEMA},
+                           "effort": models.DOC_EXTRACT_EFFORT},
          "thinking": {"type": "adaptive"}},
         {},
     )

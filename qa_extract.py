@@ -210,7 +210,8 @@ def extract_from_pdf(data: bytes, api_key: str, code: str = "", name: str = "",
     client = anthropic.Anthropic(api_key=api_key)
     messages = [{"role": "user", "content": _content_blocks(data, code, name)}]
     attempts = (
-        {"output_config": {"format": {"type": "json_schema", "schema": _SCHEMA}},
+        {"output_config": {"format": {"type": "json_schema", "schema": _SCHEMA},
+                           "effort": models.DOC_EXTRACT_EFFORT},
          "thinking": {"type": "adaptive"}},
         {},
     )

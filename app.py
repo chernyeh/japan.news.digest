@@ -2221,7 +2221,7 @@ Respond only with the briefing."""
                 _ai_cache[_status_key] = "running"
                 _ai_cache.pop(_error_key, None)
 
-                _effort = models.summary_effort(get_secret("SUMMARY_EFFORT", ""))
+                _effort = models.effort_for(model, get_secret("SUMMARY_EFFORT", ""))
 
                 def _bg_generate(_prompt=prompt, _idx=_art_index, _model=model, _max_tokens=max_tokens,
                                   _effort=_effort, _api_key=api_key, _session_key=session_key,

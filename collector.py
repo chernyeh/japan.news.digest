@@ -881,12 +881,18 @@ Headlines:
                      "content-type": "application/json"},
             json={
                 "model": models.CLASSIFY_MODEL,
-                "max_tokens": 4000,
+                # Room for Haiku 5.5's thinking as well as the JSON, which it
+                # also counts as ~30% more tokens than Haiku 4.5 did.
+                "max_tokens": 16000,
+                "output_config": {"effort": models.FAST_EFFORT},
                 "messages": [{"role": "user", "content": prompt}]
             },
             timeout=45,
         )
-        raw = resp.json()["content"][0]["text"].strip()
+        # Haiku 5.5 thinks first, so content[0] can be a thinking block with
+        # no text — read the first text block instead.
+        raw = next((b.get("text", "") for b in resp.json()["content"]
+                    if b.get("type") == "text"), "").strip()
 
         # Strip any accidental markdown fences
         if raw.startswith("```"):

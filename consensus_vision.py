@@ -287,7 +287,8 @@ def extract_from_images(images: list, api_key: str, code: str = "", name: str = 
     # SDK without output_config or adaptive thinking, so fall back to a plain
     # call and a lenient parse rather than failing outright on a stale install.
     attempts = (
-        {"output_config": {"format": {"type": "json_schema", "schema": _SCHEMA}},
+        {"output_config": {"format": {"type": "json_schema", "schema": _SCHEMA},
+                           "effort": models.DOC_EXTRACT_EFFORT},
          "thinking": {"type": "adaptive"}},
         {},
     )
