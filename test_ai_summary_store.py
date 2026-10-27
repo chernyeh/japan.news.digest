@@ -23,10 +23,11 @@ class _Resp:
 
 
 class _GitHub:
-    """One file in a pretend repo. `puts` records every commit body."""
+    """One file in a pretend repo. `puts` records every commit body;
+    `put_status` is what the pretend API answers a write with."""
 
-    def __init__(self, data=None):
-        self.data, self.puts = data, []
+    def __init__(self, data=None, put_status=200):
+        self.data, self.puts, self.put_status = data, [], put_status
 
     def get(self, url, headers, timeout):
         if self.data is None:
@@ -36,6 +37,11 @@ class _GitHub:
 
     def put(self, url, headers, json, timeout):
         self.puts.append(json)
+        if self.put_status != 200:
+            resp = _Resp(self.put_status)
+            resp.text = '{"message":"Resource not accessible by personal access token"}'
+            resp.headers = {}
+            return resp
         self.data = __import__("json").loads(base64.b64decode(json["content"]))
         return _Resp(200)
 
@@ -80,6 +86,17 @@ def test_no_token_reports_failure_rather_than_pretending():
     """The Clear button warns on this, because the briefings will come back."""
     ok, msg = ai_summary_store.clear_summaries("o/r", "")
     assert not ok and "GITHUB_TOKEN" in msg, msg
+
+
+def test_a_read_only_token_gets_instructions_not_raw_json():
+    """The 403 a token without write access gets has to say what to change,
+    not echo GitHub's reply, which does not."""
+    gh = _GitHub({"summary_breaking": _ENTRY}, put_status=403)
+    _install(gh)
+    ok, msg = ai_summary_store.clear_summaries("o/r", "github_pat_11ABC")
+    assert not ok, msg
+    assert "Read and write" in msg and "o/r" in msg, msg
+    assert "Resource not accessible" not in msg, msg
 
 
 if __name__ == "__main__":

@@ -82,7 +82,9 @@ def _update(repo: str, token: str, change, message: str) -> tuple:
             sha = None
             data = {}
         else:
-            return False, f"GitHub read error: HTTP {r.status_code}"
+            import gh_read
+            return False, gh_read.write_error(r.status_code, r.text, token,
+                                              r.headers, repo)
 
         before = json.dumps(data, sort_keys=True)
         change(data)
@@ -105,6 +107,11 @@ def _update(repo: str, token: str, change, message: str) -> tuple:
             return True, "Saved."
         if put.status_code == 409 and attempt == 0:
             continue  # sha changed under us — re-fetch and retry once
-        return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:200]}"
+        # A 403 here is a token without write access, and GitHub's own reply
+        # ("Resource not accessible by personal access token") does not say
+        # what to change. write_error does, for each kind of token.
+        import gh_read
+        return False, gh_read.write_error(put.status_code, put.text, token,
+                                          put.headers, repo)
 
     return False, "GitHub write failed after retry (concurrent edit)."
