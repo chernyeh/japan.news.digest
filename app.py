@@ -3668,6 +3668,7 @@ with tab_filings:
                         "pub_date": _ets, "pub_dt": _e_dt, "doc_url": "",
                         "eng_url": _ev["eng_url"],
                         "mktcap": _fil_mktcap_map.get(_ec[:4]) if _ec else None,
+                        "en_only": True,
                     })
                     _have.add((_ec, _ets))
                     _n_en_only += 1
@@ -3681,19 +3682,9 @@ with tab_filings:
 
                 filings = [f for f in filings if f["pub_dt"] and f["pub_dt"] >= _cutoff]
 
-                # ── Deduplicate: same company + same document ──
-                # Keyed on the document and, separately, on time + title,
-                # because a filing seen in both sources can carry its PDF link
-                # in two forms (Yanoshin's redirect vs TDnet's own URL).
-                _seen_fil = set()
-                _deduped_fil = []
-                for _f in filings:
-                    _fkey = (_f["code"], _f["doc_url"] if _f["doc_url"] else _f["title"])
-                    _tkey = (_f["code"], _f["pub_date"], _f["title"])
-                    if _fkey not in _seen_fil and _tkey not in _seen_fil:
-                        _seen_fil.update((_fkey, _tkey))
-                        _deduped_fil.append(_f)
-                filings = _deduped_fil
+                # ── Deduplicate across the three sources (see dedupe_filings) ──
+                from tdnet import dedupe_filings as _dedupe_filings
+                filings = _dedupe_filings(filings)
 
                 # ── Step 3: translate only filings with no English match ──
                 from collector import translate_single_google
