@@ -197,6 +197,77 @@ def fetch_tdnet_official_day(day: str, session=None, timeout: int = 20,
     return out
 
 
+def _title_key(title: str) -> str:
+    """A title as two sources would both spell it: NFKC folds full-width
+    letters, digits and brackets to their ASCII forms, and every space —
+    half- or full-width — is dropped."""
+    import unicodedata
+    return re.sub(r"\s+", "", unicodedata.normalize("NFKC", title or ""))
+
+
+def dedupe_filings(filings: list) -> list:
+    """One row per filing for the Reg Filings tab, which merges TDnet's own
+    list, Yanoshin's copy of it and the TSE English list.
+
+    Japanese rows are the same filing when they share the 4-digit company
+    code and either the same PDF file name or the same minute and title
+    (compared after _title_key, since the sources space titles differently).
+    The first row seen is kept, and fields it lacks (English title, English
+    PDF, English name) are taken from the duplicates.
+
+    Rows marked "en_only" come from the English list and had no exact match
+    on code + minute: the English version is often posted minutes after the
+    Japanese one. One is dropped when the same company already has a
+    Japanese filing that day, and its English PDF is attached when exactly
+    one of that company's filings that day still has none — with several,
+    which one it translates is a guess, so it is not made. An English row
+    with no Japanese filing for the company that day is kept: that is the
+    case it exists for."""
+    kept, by_key = [], {}
+
+    def _merge(into, row):
+        for k in ("title_en", "name_en", "eng_url"):
+            if not into.get(k) and row.get(k):
+                into[k] = row[k]
+
+    for f in filings:
+        if f.get("en_only"):
+            continue
+        code4 = (f.get("code") or "")[:4]
+        keys = [(code4, "t", f.get("pub_date", ""), _title_key(f.get("title")))]
+        doc = (f.get("doc_url") or "").rsplit("/", 1)[-1].rsplit("?", 1)[-1]
+        if doc:
+            keys.append((code4, "d", doc))
+        hit = next((by_key[k] for k in keys if k in by_key), None)
+        if hit is not None:
+            _merge(hit, f)
+        else:
+            hit = f
+            kept.append(f)
+        for k in keys:
+            by_key.setdefault(k, hit)
+
+    by_company_day = {}
+    for f in kept:
+        by_company_day.setdefault(((f.get("code") or "")[:4], f.get("pub_date", "")[:10]), []).append(f)
+    en_seen = set()
+    for f in filings:
+        if not f.get("en_only"):
+            continue
+        code4, day = (f.get("code") or "")[:4], f.get("pub_date", "")[:10]
+        same_day = by_company_day.get((code4, day), [])
+        if same_day:
+            open_rows = [r for r in same_day if not r.get("eng_url")]
+            if len(open_rows) == 1:
+                _merge(open_rows[0], f)
+            continue
+        key = (code4, f.get("pub_date", ""), _title_key(f.get("title")))
+        if key not in en_seen:
+            en_seen.add(key)
+            kept.append(f)
+    return kept
+
+
 def fetch_tdnet_range(d_from: str, d_to: str, en_lookup: dict = None, session=None,
                        timeout: int = 20, retries: int = 3) -> list:
     """Fetch Yanoshin's JP filing list for a (typically short, e.g. 3-day)
