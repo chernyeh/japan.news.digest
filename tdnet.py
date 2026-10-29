@@ -106,7 +106,10 @@ def fetch_english_lookup(d_from: str, d_to: str, session=None, timeout: int = 20
                 except Exception:
                     key_ts = date_raw
                 if code and title:
-                    lookup[(code, key_ts)] = {"name_en": name, "title_en": title, "eng_url": url}
+                    # A list: a company often files several documents in the
+                    # same minute, and each has its own English version.
+                    lookup.setdefault((code, key_ts), []).append(
+                        {"name_en": name, "title_en": title, "eng_url": url})
             if len(rows) < 200:
                 break
             page += 1
@@ -268,6 +271,90 @@ def dedupe_filings(filings: list) -> list:
     return kept
 
 
+# Which kind of document a title is, in each language, so an English filing
+# can be paired with the Japanese one it translates when a company files
+# several in the same minute. Checked in order: a presentation's English title
+# often says "Financial Results" too, so it is tested before results, and
+# "revision of dividend forecast" is a forecast before it is a dividend.
+_DOC_KINDS = [
+    ("presentation", ("説明資料", "説明会資料", "プレゼンテーション"),
+     ("presentation", "briefing", "explanatory material", "supplementary material")),
+    ("results", ("決算短信",), ("financial results", "financial statements", "earnings report")),
+    ("forecast", ("業績予想", "予想の修正", "業績の修正", "予想値と", "見通し"),
+     ("forecast", "outlook", "projection")),
+    ("dividend", ("配当",), ("dividend",)),
+    ("buyback", ("自己株式", "自社株"), ("treasury", "repurchase", "buyback", "own share")),
+    ("loss", ("特別損失", "特別利益", "減損", "評価損"),
+     ("extraordinary", "impairment", "valuation loss")),
+    ("management", ("役員", "代表取締役", "人事", "取締役"), ("director", "officer", "personnel", "management change")),
+    ("corporate_action", ("株式取得", "子会社", "合併", "買収", "株式交換", "公開買付"),
+     ("acquisition", "subsidiary", "merger", "share exchange", "tender offer")),
+]
+
+
+def _doc_kind(title: str, english: bool) -> str:
+    t = (title or "").lower() if english else (title or "")
+    for kind, ja, en in _DOC_KINDS:
+        if any(k in t for k in (en if english else ja)):
+            return kind
+    return ""
+
+
+APP_EN_FIELDS = ("code", "pub_date", "title", "title_en", "name_en", "eng_url")
+CSV_EN_FIELDS = ("Code", "PubDateTime", "Title", "TitleEN", "NameEN", "EngUrl")
+
+
+def attach_english(rows: list, en_lookup: dict, fields=APP_EN_FIELDS) -> list:
+    """Gives each Japanese filing in `rows` the English version that translates
+    it, from en_lookup ({(code, "YYYY-MM-DD HH:MM"): [entry, ...]}, as built by
+    fetch_english_lookup and the Reg Filings tab). Returns the English entries
+    no filing took, as (code, minute, entry), for the caller to show or drop.
+
+    Matching on code + minute alone gave every filing in that minute the same
+    English title and PDF (29 Oct 2026: TEPCO's results, presentation and
+    extraordinary-loss notice all showed the results summary). Now a lone
+    filing and a lone English version in a minute are paired; otherwise
+    each English version goes to the one filing of the same kind (_DOC_KINDS)
+    and is left unpaired when that is not exactly one — a filing then keeps
+    its machine translation rather than borrowing another document's English.
+    The English company name is unambiguous, so every filing of a company
+    with any English version gets it."""
+    f_code, f_date, f_title, f_ten, f_nen, f_url = fields
+    groups, names = {}, {}
+    for r in rows:
+        groups.setdefault(((r.get(f_code) or "")[:4], r.get(f_date, "")), []).append(r)
+    for (code, _), entries in en_lookup.items():
+        for e in entries:
+            if e.get("name_en"):
+                names.setdefault((code or "")[:4], e["name_en"])
+
+    def _take(r, e):
+        r[f_ten], r[f_url] = e["title_en"], e["eng_url"]
+        if e.get("name_en"):
+            r[f_nen] = e["name_en"]
+
+    unmatched = []
+    for (code, ts), entries in en_lookup.items():
+        uniq = list({e["eng_url"] or e["title_en"]: e for e in entries}.values())
+        cands = [r for r in groups.get(((code or "")[:4], ts), []) if not r.get(f_url)]
+        if len(cands) == 1 and len(uniq) == 1:
+            _take(cands[0], uniq[0])
+            continue
+        for e in uniq:
+            kind = _doc_kind(e["title_en"], english=True)
+            same = [r for r in cands if kind and not r.get(f_url)
+                    and _doc_kind(r.get(f_title), english=False) == kind]
+            if len(same) == 1:
+                _take(same[0], e)
+            else:
+                unmatched.append((code, ts, e))
+
+    for r in rows:
+        if not r.get(f_nen) and names.get((r.get(f_code) or "")[:4]):
+            r[f_nen] = names[(r.get(f_code) or "")[:4]]
+    return unmatched
+
+
 def fetch_tdnet_range(d_from: str, d_to: str, en_lookup: dict = None, session=None,
                        timeout: int = 20, retries: int = 3) -> list:
     """Fetch Yanoshin's JP filing list for a (typically short, e.g. 3-day)
@@ -333,17 +420,12 @@ def fetch_tdnet_range(d_from: str, d_to: str, en_lookup: dict = None, session=No
         if not title or not code:
             continue
 
-        en_match = en_lookup.get((code, pdate_str))
         out.append({
-            "Code": code,
-            "Name": name,
-            "NameEN": en_match["name_en"] if en_match else "",
-            "Title": title,
-            "TitleEN": en_match["title_en"] if en_match else "",
-            "PubDateTime": pdate_str,
-            "DocUrl": doc_url,
-            "EngUrl": en_match["eng_url"] if en_match else "",
+            "Code": code, "Name": name, "NameEN": "", "Title": title, "TitleEN": "",
+            "PubDateTime": pdate_str, "DocUrl": doc_url, "EngUrl": "",
         })
+    if en_lookup:
+        attach_english(out, en_lookup, CSV_EN_FIELDS)
     return out
 
 
