@@ -3534,11 +3534,13 @@ with tab_filings:
                             except Exception:
                                 _en_key = _en_date_raw
                             if _en_code and _en_title:
-                                _en_lookup[(_en_code, _en_key)] = {
+                                # A list per minute: a company often files several
+                                # documents at once, each with its own English version.
+                                _en_lookup.setdefault((_en_code, _en_key), []).append({
                                     "name_en":  _en_name,
                                     "title_en": _en_title,
                                     "eng_url":  _en_url,
-                                }
+                                })
                         if len(_en_rows) < 200:
                             break
                         _en_page += 1
@@ -3572,18 +3574,18 @@ with tab_filings:
                 filings = []
 
                 def _add_filing(_code, _name, _filing_title, _pdate_str, _pdate_dt, _doc_url):
-                    # Check English lookup: match on (code, minute-timestamp)
-                    _en_match = _en_lookup.get((_code, _pdate_str))
+                    # English versions are paired after both sources are in
+                    # (attach_english below), not here.
                     filings.append({
                         "code":     _code,
                         "name":     _name,
                         "title":    _filing_title,
-                        "title_en": _en_match["title_en"] if _en_match else "",
-                        "name_en":  _en_match["name_en"]  if _en_match else "",
+                        "title_en": "",
+                        "name_en":  "",
                         "pub_date": _pdate_str,
                         "pub_dt":   _pdate_dt,
                         "doc_url":  _doc_url,
-                        "eng_url":  _en_match["eng_url"] if _en_match else "",
+                        "eng_url":  "",
                         "mktcap":   _fil_mktcap_map.get(_code[:4]) if _code else None,
                     })
 
@@ -3649,15 +3651,17 @@ with tab_filings:
                         _n_official += 1
                 _n_yanoshin = len(filings) - _n_official
 
-                # ── Step 2c: English-only filings ──
+                # ── Step 2c: English versions, then English-only filings ──
+                # Each English version goes to the filing it translates (by
+                # document kind when a company files several in one minute).
                 # The TSE English list is live and large caps file there the
-                # same day, so a filing it carries that neither Japanese source
-                # has yet is shown from it rather than left out.
-                _have = {(f["code"], f["pub_date"]) for f in filings}
+                # same day, so what is left over is shown from it, and
+                # dedupe_filings drops the leftovers for companies a Japanese
+                # source already has that day.
+                from tdnet import attach_english as _attach_english
+                _en_left = _attach_english(filings, _en_lookup)
                 _n_en_only = 0
-                for (_ec, _ets), _ev in _en_lookup.items():
-                    if (_ec, _ets) in _have:
-                        continue
+                for _ec, _ets, _ev in _en_left:
                     try:
                         _e_dt = _dtmod.datetime.strptime(_ets, "%Y-%m-%d %H:%M")
                     except ValueError:
@@ -3670,7 +3674,6 @@ with tab_filings:
                         "mktcap": _fil_mktcap_map.get(_ec[:4]) if _ec else None,
                         "en_only": True,
                     })
-                    _have.add((_ec, _ets))
                     _n_en_only += 1
 
                 print(f"Reg Filings: {_n_official} rows from TDnet, {_n_yanoshin} from "
@@ -3697,6 +3700,8 @@ with tab_filings:
                         _f["title_en"] = _en if _en and _en != _f["title"] else _f["title"]
                     except Exception:
                         _f["title_en"] = _f["title"]
+                    if _f.get("name_en"):
+                        return   # the company's own English name, from the English list
                     try:
                         _nm = translate_single_google(_f["name"])
                         _f["name_en"] = _nm if _nm and _nm != _f["name"] else _f["name"]

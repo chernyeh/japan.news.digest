@@ -21,6 +21,7 @@ import requests
 
 from tdnet import (fetch_tdnet_range, fetch_english_lookup, prune_and_dedupe,
                     fetch_tdnet_official_day, _normalize_code, _title_key,
+                    attach_english, CSV_EN_FIELDS,
                     write_filings_csv, read_filings_csv, row_key)
 from translate import translate_ja_to_en
 
@@ -63,11 +64,13 @@ def main():
         cursor = chunk_from - timedelta(days=1)
 
     fetched_chunks, failed_chunks, new_rows = 0, 0, 0
+    fresh = []   # every row fetched this run; English versions are paired once all are in
     for i, (c_from, c_to) in enumerate(chunks):
         try:
             rows = fetch_tdnet_range(c_from.strftime("%Y%m%d"), c_to.strftime("%Y%m%d"),
-                                      en_lookup=en_lookup, session=session)
+                                      session=session)
             fetched_chunks += 1
+            fresh.extend(rows)
             for row in rows:
                 key = row_key(row)
                 if key not in by_key:
@@ -92,16 +95,21 @@ def main():
             code = _normalize_code(o["code"])
             if not code or (code, o["pub_date"], _title_key(o["title"])) in seen:
                 continue
-            en = en_lookup.get((code, o["pub_date"]))
-            row = {"Code": code, "Name": o["name"],
-                   "NameEN": en["name_en"] if en else "", "Title": o["title"],
-                   "TitleEN": en["title_en"] if en else "", "PubDateTime": o["pub_date"],
-                   "DocUrl": o["doc_url"], "EngUrl": en["eng_url"] if en else ""}
+            row = {"Code": code, "Name": o["name"], "NameEN": "", "Title": o["title"],
+                   "TitleEN": "", "PubDateTime": o["pub_date"],
+                   "DocUrl": o["doc_url"], "EngUrl": ""}
             seen.add((code, o["pub_date"], _title_key(o["title"])))
             by_key[row_key(row)] = row
+            fresh.append(row)
             official_new += 1
     print(f"TDnet's own list added {official_new} filing(s) Yanoshin did not have")
     new_rows += official_new
+
+    # Pair each English version with the filing it translates, across both
+    # sources at once (see tdnet.attach_english).
+    left = attach_english(fresh, en_lookup, CSV_EN_FIELDS)
+    print(f"English versions: {sum(len(v) for v in en_lookup.values()) - len(left)} paired, "
+          f"{len(left)} left unpaired")
 
     merged = prune_and_dedupe(list(by_key.values()))
 
