@@ -14,9 +14,9 @@
     },
     "net_profit|FY2027|actual_q2": {
       "as_of": "2026-10-30",
-      "source": "typed",
+      "source": "typed:Company data",
       "unit": "jpy_abs",
-      "value": 279900000000.0
+      "value": 27990000000.0
     },
     "net_sales|FY2027|actual_q2": {
       "as_of": "2026-10-30",
