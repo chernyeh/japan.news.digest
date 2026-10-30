@@ -12,6 +12,18 @@
       "unit": "jpy",
       "value": 828.38
     },
+    "net_profit|FY2027|actual_q2": {
+      "as_of": "2026-10-30",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 279900000000.0
+    },
+    "net_sales|FY2027|actual_q2": {
+      "as_of": "2026-10-30",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 320000000000.0
+    },
     "net_sales|FY2027|consensus": {
       "as_of": "2026-08-27",
       "source": "screenshot:IMG_6407.png",
@@ -23,6 +35,12 @@
       "source": "screenshot:IMG_6407.png",
       "unit": "jpy_abs",
       "value": 1400000000000.0
+    },
+    "operating_profit|FY2027|actual_q2": {
+      "as_of": "2026-10-30",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 34800000000.0
     },
     "operating_profit|FY2027|consensus": {
       "as_of": "2026-08-27",
