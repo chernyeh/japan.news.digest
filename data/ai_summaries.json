@@ -1,1 +1,1008 @@
-{}
+{
+  "summary_filings": {
+    "idx": {
+      "1": {
+        "source": "E-SSGATC (¥103,066B)",
+        "title_for_match": "Daily disclosures for the State Street SPDR S&P500 ETF",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560994.pdf"
+      },
+      "10": {
+        "source": "E-World (¥17,845B)",
+        "title_for_match": "Daily disclosures regarding SPDR Gold Shares",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560981.pdf"
+      },
+      "100": {
+        "source": "Sanwa Holdings Corporation (¥776B)",
+        "title_for_match": "2nd Quarter Financial Results for the Year Ending March 2027 Sanwa Global Vision 2030 Medium-Term Management Plan 2027 (2025-2027) Supplementary Edition",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560188.pdf"
+      },
+      "101": {
+        "source": "Sanwa Holdings Corporation (¥776B)",
+        "title_for_match": "Notice regarding changes in dividend policy and revision of year-end dividend forecast (dividend increase)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560239.pdf"
+      },
+      "102": {
+        "source": "Sanwa Holdings Corporation (¥776B)",
+        "title_for_match": "Notice regarding decisions regarding acquisition of treasury stock",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560262.pdf"
+      },
+      "103": {
+        "source": "Sanwa Holdings Corporation (¥776B)",
+        "title_for_match": "Notice regarding cancellation of treasury stock",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560264.pdf"
+      },
+      "104": {
+        "source": "Azbil Corporation (¥749B)",
+        "title_for_match": "Notification Regarding the Status and Conclusion of Repurchase of the Company’s Own Stock",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559981.pdf"
+      },
+      "105": {
+        "source": "Electric Power Development Co.,Ltd. (¥723B)",
+        "title_for_match": "Semi-annual Financial Results (Unaudited) (for the Six Months Ended September 30, 2026)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560713.pdf"
+      },
+      "106": {
+        "source": "SUMITOMO HEAVY INDUSTRIES,LTD. (¥633B)",
+        "title_for_match": "Summary of Consolidated Financial Results For the Nine-Month Period from January 1 to September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560784.pdf"
+      },
+      "107": {
+        "source": "NIKON CORPORATION (¥631B)",
+        "title_for_match": "Notice Regarding the Revision of the Consolidated Financial Forecast for the Fiscal Year Ending March 31, 2027",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560683.pdf"
+      },
+      "108": {
+        "source": "Coca-Cola Bottlers Japan Holdings Inc. (¥592B)",
+        "title_for_match": "Announcement Regarding the Status and Completion of Share Repurchases and the Cancellation of Treasury Shares",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559225.pdf"
+      },
+      "109": {
+        "source": "Coca-Cola Bottlers Japan Holdings Inc. (¥592B)",
+        "title_for_match": "Consolidated Financial Results for the Nine Months Ended September 30, 2026 (Under IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560243.pdf"
+      },
+      "11": {
+        "source": "ITOCHU Corporation (¥14,161B)",
+        "title_for_match": "Notice Regarding Commencement of Tender Offer for Shares in DENTSU SOKEN INC.(Code No.4812)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561447.pdf"
+      },
+      "110": {
+        "source": "Coca-Cola Bottlers Japan Holdings Inc. (¥592B)",
+        "title_for_match": "Third Quarter 2026 Earnings Presentation",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559232.pdf"
+      },
+      "111": {
+        "source": "E-SSGA-SIN (¥584B)",
+        "title_for_match": "Daily disclosures regarding the Asian Government Bond/Government ETF (official name: ABF Pan-Asia Bond Index Fund)",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560951.pdf"
+      },
+      "112": {
+        "source": "Tohoku Electric Power Company,Incorporated (¥582B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261027557112.pdf"
+      },
+      "113": {
+        "source": "Tohoku Electric Power Company,Incorporated (¥582B)",
+        "title_for_match": "Notice regarding revisions to performance forecasts and dividend forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559714.pdf"
+      },
+      "114": {
+        "source": "Tohoku Electric Power Company,Incorporated (¥582B)",
+        "title_for_match": "FY2026 Interim Financial Results Explanation Materials",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559745.pdf"
+      },
+      "115": {
+        "source": "TOEI ANIMATION CO.,LTD. (¥560B)",
+        "title_for_match": "[Summary] Financial Results for the Six Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561156.pdf"
+      },
+      "116": {
+        "source": "TOEI ANIMATION CO.,LTD. (¥560B)",
+        "title_for_match": "Financial data for the second quarter of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261030561084.pdf"
+      },
+      "117": {
+        "source": "TOEI ANIMATION CO.,LTD. (¥560B)",
+        "title_for_match": "Supplementary materials for the second quarter of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261030561116.pdf"
+      },
+      "118": {
+        "source": "Yamaguchi Financial Group,Inc. (¥559B)",
+        "title_for_match": "Notice Concerning Unrealized Losses on Securities as of the End of the Second Quarter of the Fiscal Year Ending March 31, 2027",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560128.pdf"
+      },
+      "119": {
+        "source": "Nippon Electric Glass Co.,Ltd. (¥546B)",
+        "title_for_match": "CONSOLIDATED FINANCIAL RESULTS for the Nine Months Ended September 30, 2026 (Unaudited)<under Japanese GAAP>",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029558741.pdf"
+      },
+      "12": {
+        "source": "Mitsubishi Electric Corporation (¥11,895B)",
+        "title_for_match": "Mitsubishi Electric Announces Consolidated Financial Results for the Second Quarter (First Half) of Fiscal 2027",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560295.pdf"
+      },
+      "120": {
+        "source": "Nippon Electric Glass Co.,Ltd. (¥546B)",
+        "title_for_match": "Presentation Material for the Third Quarter of the Fiscal Year ending December 31, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560479.pdf"
+      },
+      "121": {
+        "source": "TOHO GAS CO.,LTD. (¥496B)",
+        "title_for_match": "Notice of Completion of Payment and Partial Forfeiture for Disposal of Treasury Stock as a Restricted Stock Incentive for the Employee Shareholding",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560846.pdf"
+      },
+      "122": {
+        "source": "TOHO GAS CO.,LTD. (¥496B)",
+        "title_for_match": "Notice Concerning the Results of Share Buybacks through Off-Auction Own Share Repurchase Transaction (ToSTNeT-3)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261027556970.pdf"
+      },
+      "123": {
+        "source": "Mitsubishi Logistics Corporation (¥480B)",
+        "title_for_match": "[Summary]Consolidated Financial Results for the Six Months Ended September 30, 2026[Japanese GAAP]",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559594.pdf"
+      },
+      "124": {
+        "source": "Mitsubishi Logistics Corporation (¥480B)",
+        "title_for_match": "Notice Concerning Acquisition of Shares of HANKYU HANSHIN EXPRESS (To Make It a Consolidated Subsidiary)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560172.pdf"
+      },
+      "125": {
+        "source": "Mitsubishi Logistics Corporation (¥480B)",
+        "title_for_match": "Notice Concerning Revisions to Full-Year Financial Results Forecasts",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560086.pdf"
+      },
+      "126": {
+        "source": "Mitsubishi Logistics Corporation (¥480B)",
+        "title_for_match": "Notice Concerning the Status and Conclusion of the Acquisition of Treasury Shares and the Cancellation of Treasury Shares",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560176.pdf"
+      },
+      "127": {
+        "source": "LIXIL Corporation (¥478B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 2027 [IFRS] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559567.pdf"
+      },
+      "128": {
+        "source": "LIXIL Corporation (¥478B)",
+        "title_for_match": "Financial results briefing for the second quarter (interim period) of the fiscal year ending March 2027 [IFRS] (April 2026-September 2026)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559578.pdf"
+      },
+      "129": {
+        "source": "Sumitomo Bakelite Company,Limited (¥464B)",
+        "title_for_match": "Notice regarding revisions to consolidated earnings forecasts, dividends from surplus (interim dividends), and revisions to dividend forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560246.pdf"
+      },
+      "13": {
+        "source": "Mitsubishi Electric Corporation (¥11,895B)",
+        "title_for_match": "Consolidated Financial Results Briefing for the Second Quarter of Fiscal 2027",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560296.pdf"
+      },
+      "130": {
+        "source": "Sumitomo Bakelite Company,Limited (¥464B)",
+        "title_for_match": "(Progress of disclosure matters) Notice regarding completion of stock acquisition (making it a subsidiary) of a newly established company that will succeed a part of Kyocera Corporation's chemical business through an absorption-type company split",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560252.pdf"
+      },
+      "131": {
+        "source": "SANKYU INC. (¥453B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 [Japanese GAAP]",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560189.pdf"
+      },
+      "132": {
+        "source": "SANKYU INC. (¥453B)",
+        "title_for_match": "Notice Regarding Revisions to Non-consolidated Financial Forecast for Fiscal Year Ending March 31, 2027",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560231.pdf"
+      },
+      "133": {
+        "source": "ALPS ALPINE CO.,LTD. (¥437B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 [Under Japanese GAAP]",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561305.pdf"
+      },
+      "134": {
+        "source": "ALPS ALPINE CO.,LTD. (¥437B)",
+        "title_for_match": "Differences between Consolidated Financial Forecast and Actual Results for the Six Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560620.pdf"
+      },
+      "135": {
+        "source": "ALPS ALPINE CO.,LTD. (¥437B)",
+        "title_for_match": "Notice Regarding Recording of Extraordinary Loss Associated with Product Quality Issue",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560640.pdf"
+      },
+      "136": {
+        "source": "MEIDENSHA CORPORATION (¥381B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560117.pdf"
+      },
+      "137": {
+        "source": "MEIDENSHA CORPORATION (¥381B)",
+        "title_for_match": "Supplementary materials for the second quarter (interim period) of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560146.pdf"
+      },
+      "138": {
+        "source": "Shikoku Electric Power Company,Incorporated (¥377B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559809.pdf"
+      },
+      "139": {
+        "source": "Shikoku Electric Power Company,Incorporated (¥377B)",
+        "title_for_match": "Notice regarding revisions to performance forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559887.pdf"
+      },
+      "14": {
+        "source": "Mitsubishi Electric Corporation (¥11,895B)",
+        "title_for_match": "Mitsubishi Electric to Repurchase Company Shares and Cancel Treasury Shares",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560298.pdf"
+      },
+      "140": {
+        "source": "DMG MORI CO.,LTD. (¥376B)",
+        "title_for_match": "Consolidated Financial Results for the Nine months ended September 30, 2026 (Under IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560762.pdf"
+      },
+      "141": {
+        "source": "SEINO HOLDINGS CO.,LTD. (¥374B)",
+        "title_for_match": "Notice Regarding a Change in the status of an Equity-Method Affiliate (Transfer of Shares) and the Recording of Extraordinary Income",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560002.pdf"
+      },
+      "142": {
+        "source": "Tokyo Kiraboshi Financial Group,Inc. (¥372B)",
+        "title_for_match": "[Summary]Consolidated Financial Report for the Six Months Ended September 30, 2026 <Under Japanese GAAP>",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560420.pdf"
+      },
+      "143": {
+        "source": "The Chugoku Electric Power Company,Incorporated (¥357B)",
+        "title_for_match": "[Summary] Consolidated Financial Results for the Six Months Ended September 30, 2026 (Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561124.pdf"
+      },
+      "144": {
+        "source": "The Chugoku Electric Power Company,Incorporated (¥357B)",
+        "title_for_match": "Regarding revisions to performance forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560316.pdf"
+      },
+      "145": {
+        "source": "The Chugoku Electric Power Company,Incorporated (¥357B)",
+        "title_for_match": "Notice regarding determination of dividend of surplus (interim dividend) and revision of year-end dividend forecast",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560165.pdf"
+      },
+      "146": {
+        "source": "The Chugoku Electric Power Company,Incorporated (¥357B)",
+        "title_for_match": "Notice Regarding Tendering Shares in the Tender Offer for Own Shares by CHUDENKO CORPORATION and Expected Recording of Extraordinary Income",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560164.pdf"
+      },
+      "147": {
+        "source": "FUSO CHEMICAL CO.,LTD. (¥323B)",
+        "title_for_match": "Summary of Consolidated Financial Results for the Six Months Ended September 30, 2026 (Based on Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561227.pdf"
+      },
+      "148": {
+        "source": "INABA DENKISANGYO CO.,LTD. (¥314B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559040.pdf"
+      },
+      "149": {
+        "source": "INABA DENKISANGYO CO.,LTD. (¥314B)",
+        "title_for_match": "Notice regarding revisions to performance forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560152.pdf"
+      },
+      "15": {
+        "source": "SoftBank Corp. (¥10,088B)",
+        "title_for_match": "(Update) Notice on Change to Completion Timing for the Acquisition of Shares of Consolidated Subsidiary LINE MAN CORPORATION PTE. LTD.",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561391.pdf"
+      },
+      "150": {
+        "source": "NIPPON DENSETSU KOGYO CO.,LTD. (¥300B)",
+        "title_for_match": "[Summary]Consolidated Financial Results for the Six Months Ended September 30, 2026(Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559800.pdf"
+      },
+      "151": {
+        "source": "GMO internet group,Inc. (¥293B)",
+        "title_for_match": "Announcement Regarding the Results and Completion of Share Repurchase Program",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560552.pdf"
+      },
+      "152": {
+        "source": "GMO internet group,Inc. (¥293B)",
+        "title_for_match": "(Changes to Previously Disclosed Matters) Notice Concerning Transfer of Shares in an Indirect Subsidiary (Digital Asset Business in Thailand)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560517.pdf"
+      },
+      "153": {
+        "source": "Fukuda Denshi (¥289B)",
+        "title_for_match": "Notice regarding the setting of the record date for convening an extraordinary general meeting of shareholders, the holding of an extraordinary general meeting of shareholders, and the determination of proposals to be submitted.",
+        "url": "https://www.release.tdnet.info/inbs/140120261030561232.pdf"
+      },
+      "154": {
+        "source": "Fukuda Denshi (¥289B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560628.pdf"
+      },
+      "155": {
+        "source": "Fukuda Denshi (¥289B)",
+        "title_for_match": "Notice of receipt of investigation report from third-party committee",
+        "url": "https://www.release.tdnet.info/inbs/140120261030561633.pdf"
+      },
+      "156": {
+        "source": "Fukuda Denshi (¥289B)",
+        "title_for_match": "Notice regarding judgment in shareholder derivative lawsuit",
+        "url": "https://www.release.tdnet.info/inbs/140120261030561647.pdf"
+      },
+      "157": {
+        "source": "Makino Milling Machine Co.,Ltd. (¥271B)",
+        "title_for_match": "(Summary)Consolidated Financial Results for the Six Months Ended September 30, 2026(Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261026555784.pdf"
+      },
+      "158": {
+        "source": "Makino Milling Machine Co.,Ltd. (¥271B)",
+        "title_for_match": "Notice Regarding Differences Between the Forecast and Actual Results for the Second Quarter and Revision to the Full-Year Earnings Forecast",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561145.pdf"
+      },
+      "159": {
+        "source": "RAKUS Co.,Ltd. (¥266B)",
+        "title_for_match": "(Progress of Disclosure Matters) Notice Regarding the Expected Recording of Gain on Sale of Investment Securities (Extraordinary Income)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561177.pdf"
+      },
+      "16": {
+        "source": "HOYA CORPORATION (¥9,932B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [IFRS] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559908.pdf"
+      },
+      "160": {
+        "source": "CHUDENKO CORPORATION (¥260B)",
+        "title_for_match": "Summary of financial results for the second quarter of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559180.pdf"
+      },
+      "161": {
+        "source": "CHUDENKO CORPORATION (¥260B)",
+        "title_for_match": "Notice regarding acquisition of treasury stock and tender offer of treasury stock",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559577.pdf"
+      },
+      "162": {
+        "source": "CHUDENKO CORPORATION (¥260B)",
+        "title_for_match": "Notice regarding determination of dividend of surplus (interim dividend) and revision of dividend forecast",
+        "url": "https://www.release.tdnet.info/inbs/140120261030561013.pdf"
+      },
+      "163": {
+        "source": "TOKAI RIKA CO.,LTD. (¥258B)",
+        "title_for_match": "Notice Concerning the Results and Completion of Repurchase of Treasury Shares through ToSTNeT-3 and Cancellation of Treasury Shares",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261027557251.pdf"
+      },
+      "164": {
+        "source": "TSUBAKIMOTO CHAIN CO. (¥238B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559978.pdf"
+      },
+      "165": {
+        "source": "TSUBAKIMOTO CHAIN CO. (¥238B)",
+        "title_for_match": "Notice regarding the revision of the business results forecasts",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559842.pdf"
+      },
+      "166": {
+        "source": "Nishimatsu Construction Co.,Ltd. (¥232B)",
+        "title_for_match": "Notice Concerning Dividends of Surplus (Interim Dividends)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261028558540.pdf"
+      },
+      "167": {
+        "source": "CCI Group,Inc. (¥229B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559870.pdf"
+      },
+      "168": {
+        "source": "CCI Group,Inc. (¥229B)",
+        "title_for_match": "Notice regarding revisions to consolidated business forecasts and dividend forecasts (dividend increase) for the fiscal year ending March 31, 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029558939.pdf"
+      },
+      "169": {
+        "source": "CCI Group,Inc. (¥229B)",
+        "title_for_match": "Notice regarding the difference between the consolidated results for the second quarter (interim) of the fiscal year ending March 31, 2027 and the earnings forecast",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559032.pdf"
+      },
+      "17": {
+        "source": "HOYA CORPORATION (¥9,932B)",
+        "title_for_match": "Financial results briefing presentation materials for the second quarter of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559538.pdf"
+      },
+      "170": {
+        "source": "CCI Group,Inc. (¥229B)",
+        "title_for_match": "Notice regarding update of medium-term management strategy",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559943.pdf"
+      },
+      "171": {
+        "source": "ITOCHU ENEX CO.,LTD. (¥226B)",
+        "title_for_match": "Consolidated Financial Results for the First Six Months of the Fiscal Year Ending March 31, 2027<under IFRSs>",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560661.pdf"
+      },
+      "172": {
+        "source": "KYORITSU MAINTENANCE CO.,LTD. (¥225B)",
+        "title_for_match": "2026/9 Monthly Report",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561268.pdf"
+      },
+      "173": {
+        "source": "Hokkaido Electric Power Company,Incorporated (¥220B)",
+        "title_for_match": "[Summary]Consolidated Financial Results for the Six Months Ended September 30, 2026 [Under Japanese GAAP]",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029558976.pdf"
+      },
+      "174": {
+        "source": "Hokkaido Electric Power Company,Incorporated (¥220B)",
+        "title_for_match": "Regarding financial results for the interim period (April to September) of FY2026",
+        "url": "https://www.release.tdnet.info/inbs/140120261023555529.pdf"
+      },
+      "175": {
+        "source": "Hokkaido Electric Power Company,Incorporated (¥220B)",
+        "title_for_match": "Notice Regarding Adjustment of Conversion Price for Euroyen-denominated Convertible Bonds with Stock Acquisition Rights due in 2031",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560444.pdf"
+      },
+      "176": {
+        "source": "LEOPALACE21 CORPORATION (¥212B)",
+        "title_for_match": "Notice Regarding Setting of Record Date for Convening an Extraordinary Shareholders’ Meeting",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561451.pdf"
+      },
+      "177": {
+        "source": "Seria Co.,Ltd. (¥211B)",
+        "title_for_match": "[Summary] Financial Results for the Six Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560868.pdf"
+      },
+      "178": {
+        "source": "Nihon M&A Center Holdings Inc. (¥210B)",
+        "title_for_match": "Notice Regarding Receipt of the Investigation Report from the Special Investigation Committee and Future Actions",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560150.pdf"
+      },
+      "179": {
+        "source": "Nihon M&A Center Holdings Inc. (¥210B)",
+        "title_for_match": "［Summary］Consolidated Financial Results for the Six Months Ended September 30, 2026 (Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560119.pdf"
+      },
+      "18": {
+        "source": "HOYA CORPORATION (¥9,932B)",
+        "title_for_match": "Supplementary materials for the second quarter consolidated financial results for the fiscal year ending March 31, 2027 (IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559850.pdf"
+      },
+      "180": {
+        "source": "TOWA PHARMACEUTICAL CO.,LTD. (¥210B)",
+        "title_for_match": "(Change in Disclosure Information) Notice of Change in the Date of Execution of the Share Transfer Concerning the Acquisition of Shares",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561165.pdf"
+      },
+      "181": {
+        "source": "TS TECH CO.,LTD. (¥208B)",
+        "title_for_match": "TS TECH announces establishment of internal investigative committee and postponement of announcement of financial results for the second quarter",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561511.pdf"
+      },
+      "182": {
+        "source": "NTN CORPORATION (¥206B)",
+        "title_for_match": "Notice Regarding Revision to Earnings Forecast",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560218.pdf"
+      },
+      "183": {
+        "source": "NTN CORPORATION (¥206B)",
+        "title_for_match": "Financial Results For the Six Months Ended September 30,2026 [Japanese Accounting Standards](Consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261026555888.pdf"
+      },
+      "184": {
+        "source": "GMO internet,Inc. (¥200B)",
+        "title_for_match": "(Change in Disclosed Matter) Notice Concerning Transfer of Shares in a Consolidated Subsidiary (Digital Asset Business in Thailand)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261028558608.pdf"
+      },
+      "185": {
+        "source": "FP CORPORATION (¥196B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559781.pdf"
+      },
+      "186": {
+        "source": "FP CORPORATION (¥196B)",
+        "title_for_match": "Announcement of consolidated business forecasts and notice regarding dividends from surplus (interim dividends/dividend increases)",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560369.pdf"
+      },
+      "187": {
+        "source": "TOAGOSEI CO.,LTD. (¥190B)",
+        "title_for_match": "[Summary] Financial Results for the Nine Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561041.pdf"
+      },
+      "188": {
+        "source": "Tokai Tokyo Financial Holdings,Inc. (¥189B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560186.pdf"
+      },
+      "189": {
+        "source": "Tokai Tokyo Financial Holdings,Inc. (¥189B)",
+        "title_for_match": "Financial Highlights for the Second Quarter of the Year Ending March 2026",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560537.pdf"
+      },
+      "19": {
+        "source": "HOYA CORPORATION (¥9,932B)",
+        "title_for_match": "Notice regarding dividend of surplus (interim dividend)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029558921.pdf"
+      },
+      "190": {
+        "source": "AICHI STEEL CORPORATION (¥183B)",
+        "title_for_match": "Interim financial results briefing materials for the fiscal year ending March 31, 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261027556729.pdf"
+      },
+      "191": {
+        "source": "TOMONY Holdings,Inc. (¥178B)",
+        "title_for_match": "Notice Relating to Completion of the Payment for the Disposal of Treasury Stock and Partial Forfeiture under the Restricted Stock Incentive Plan",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261020553682.pdf"
+      },
+      "192": {
+        "source": "NS United Kaiun Kaisha,Ltd. (¥177B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560826.pdf"
+      },
+      "193": {
+        "source": "JVCKENWOOD Corporation (¥176B)",
+        "title_for_match": "Consolidated Financial Results for the Q2 of the Fiscal Year Ending March, 2027 (Under IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261020553611.pdf"
+      },
+      "194": {
+        "source": "JVCKENWOOD Corporation (¥176B)",
+        "title_for_match": "Results and Forecast Briefing for the Q2 of Fiscal Year Ending March, 2027 (IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561604.pdf"
+      },
+      "195": {
+        "source": "JVCKENWOOD Corporation (¥176B)",
+        "title_for_match": "Revision of Consolidated Earnings Forecast for the Fiscal Year Ending March 31, 2027",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261022554588.pdf"
+      },
+      "196": {
+        "source": "JVCKENWOOD Corporation (¥176B)",
+        "title_for_match": "Dividend of Surplus (Interim Dividend)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261020553418.pdf"
+      },
+      "197": {
+        "source": "Chugoku Marine Paints,Ltd. (¥168B)",
+        "title_for_match": "Summary of Consolidated Financial Results for the Six Months Ended September 30 2026(Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561238.pdf"
+      },
+      "198": {
+        "source": "Chugoku Marine Paints,Ltd. (¥168B)",
+        "title_for_match": "Notice of Revision of Earnings Forecast",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561231.pdf"
+      },
+      "199": {
+        "source": "ShinMaywa Industries,LTD. (¥167B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026(Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560804.pdf"
+      },
+      "2": {
+        "source": "SoftBank Group Corp. (¥21,530B)",
+        "title_for_match": "(Update of Disclosed Matters) Change to Completion Timing for the Acquisition of Shares of Consolidated Subsidiary LINE MAN CORPORATION PTE. LTD.",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561132.pdf"
+      },
+      "20": {
+        "source": "Sumitomo Electric Industries,Ltd. (¥8,252B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559548.pdf"
+      },
+      "200": {
+        "source": "ShinMaywa Industries,LTD. (¥167B)",
+        "title_for_match": "Presentation of Financial Results for Second Quarter of Fiscal Year 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560814.pdf"
+      },
+      "21": {
+        "source": "Sumitomo Electric Industries,Ltd. (¥8,252B)",
+        "title_for_match": "Notice regarding revision of dividend forecast",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559558.pdf"
+      },
+      "22": {
+        "source": "Murata Manufacturing Co.,Ltd. (¥7,547B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [IFRS] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560100.pdf"
+      },
+      "23": {
+        "source": "Murata Manufacturing Co.,Ltd. (¥7,547B)",
+        "title_for_match": "Financial results briefing materials for the second quarter of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029558990.pdf"
+      },
+      "24": {
+        "source": "Murata Manufacturing Co.,Ltd. (¥7,547B)",
+        "title_for_match": "Notice regarding revision of full-year consolidated financial forecast figures",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559072.pdf"
+      },
+      "25": {
+        "source": "TOYOTA TSUSHO CORPORATION (¥6,979B)",
+        "title_for_match": "Notice Concerning Change in Specified Subsidiary",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560339.pdf"
+      },
+      "26": {
+        "source": "Panasonic Holdings Corporation (¥6,680B)",
+        "title_for_match": "Panasonic Holdings Reports Consolidated Financial Results for Six Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560629.pdf"
+      },
+      "27": {
+        "source": "Panasonic Holdings Corporation (¥6,680B)",
+        "title_for_match": "Panasonic Holdings Corporation Announces Upward Revision of Dividend Forecast",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560663.pdf"
+      },
+      "28": {
+        "source": "KOMATSU LTD. (¥6,136B)",
+        "title_for_match": "Notice regarding completion of cancellation of treasury stock",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561590.pdf"
+      },
+      "29": {
+        "source": "Otsuka Holdings Co.,Ltd. (¥5,616B)",
+        "title_for_match": "Summary of financial results for the third quarter of the fiscal year ending December 2026 [IFRS] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559123.pdf"
+      },
+      "3": {
+        "source": "Tokyo Electron Limited (¥20,118B)",
+        "title_for_match": "Summary of Consolidated Financial Results for the Second Quarter Ended September 30, 2026 (Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261008547660.pdf"
+      },
+      "30": {
+        "source": "Otsuka Holdings Co.,Ltd. (¥5,616B)",
+        "title_for_match": "Notice regarding the results and completion of acquisition of treasury stock and the number of shares canceled",
+        "url": "https://www.release.tdnet.info/inbs/140120261029558859.pdf"
+      },
+      "31": {
+        "source": "Otsuka Holdings Co.,Ltd. (¥5,616B)",
+        "title_for_match": "Notice regarding transition to a company with an audit and supervisory committee",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560014.pdf"
+      },
+      "32": {
+        "source": "DAIICHI SANKYO COMPANY,LIMITED (¥5,085B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 2027 [IFRS] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261028556619.pdf"
+      },
+      "33": {
+        "source": "DAIICHI SANKYO COMPANY,LIMITED (¥5,085B)",
+        "title_for_match": "Supplementary materials for financial results (2nd quarter financial results of fiscal year 2026)",
+        "url": "https://www.release.tdnet.info/inbs/140120261028558606.pdf"
+      },
+      "34": {
+        "source": "DAIICHI SANKYO COMPANY,LIMITED (¥5,085B)",
+        "title_for_match": "2026 2nd quarter financial results briefing materials",
+        "url": "https://www.release.tdnet.info/inbs/140120261028558612.pdf"
+      },
+      "35": {
+        "source": "TDK Corporation (¥4,384B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 (Under IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560692.pdf"
+      },
+      "36": {
+        "source": "TDK Corporation (¥4,384B)",
+        "title_for_match": "Notice regarding revisions to full-year consolidated performance forecasts and revisions to dividends from surplus (interim dividends) and year-end dividend forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560107.pdf"
+      },
+      "37": {
+        "source": "TDK Corporation (¥4,384B)",
+        "title_for_match": "Notice regarding transition to a company with nominating committees, etc.",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560112.pdf"
+      },
+      "38": {
+        "source": "East Japan Railway Company (¥4,017B)",
+        "title_for_match": "Consolidated Financial Results for the Six-Month Period Ended September 30, 2026 (Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560942.pdf"
+      },
+      "39": {
+        "source": "East Japan Railway Company (¥4,017B)",
+        "title_for_match": "(Correction) Regarding partial corrections to “Explanatory material for financial results for the fiscal year ending March 2025,” “Explanatory material for second quarter financial results for the fiscal year ending March 2026,” and “Explanatory material for financial results for the fiscal year ending March 2026.”",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560973.pdf"
+      },
+      "4": {
+        "source": "Tokyo Electron Limited (¥20,118B)",
+        "title_for_match": "Notice Concerning Interim Dividends of Surplus (for the First Half of the Fiscal Year Ending March 31, 2027)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559460.pdf"
+      },
+      "40": {
+        "source": "East Japan Railway Company (¥4,017B)",
+        "title_for_match": "Financial results briefing material for the second quarter of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560884.pdf"
+      },
+      "41": {
+        "source": "East Japan Railway Company (¥4,017B)",
+        "title_for_match": "Announcement Regarding Dividend Payments and Revision to Forecasts of Business Results and Dividend Payments",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560954.pdf"
+      },
+      "42": {
+        "source": "CANON INC. (¥3,824B)",
+        "title_for_match": "Consolidated Financial Results for the Nine Months Ended September 30, 2026 (Under U.S. GAAP)(Completion of Interim Review by an Independent Auditor)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561257.pdf"
+      },
+      "43": {
+        "source": "Lasertec Corporation (¥3,727B)",
+        "title_for_match": "Consolidated Financial Results for the First Quarter Ended September 30, 2026 (Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561656.pdf"
+      },
+      "44": {
+        "source": "Shionogi & Co.,Ltd. (¥2,869B)",
+        "title_for_match": "Notice of Partial Correction to “Notice of Revisions to Earnings Forecasts and Dividend Forecasts (Dividend Increase)”",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560637.pdf"
+      },
+      "45": {
+        "source": "LY Corporation (¥2,765B)",
+        "title_for_match": "(Update) Notice on Change to Completion Timing for the Acquisition of Shares of Consolidated Subsidiary LINE MAN CORPORATION PTE. LTD.",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561225.pdf"
+      },
+      "46": {
+        "source": "Daiwa Securities Group Inc. (¥2,142B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559619.pdf"
+      },
+      "47": {
+        "source": "Daiwa Securities Group Inc. (¥2,142B)",
+        "title_for_match": "Notice regarding consolidated capital adequacy ratio and consolidated leverage ratio - Management soundness status (end of June 2026) -",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560328.pdf"
+      },
+      "48": {
+        "source": "Daiwa Securities Group Inc. (¥2,142B)",
+        "title_for_match": "Notice regarding consolidated liquidity coverage ratio and consolidated stable funding ratio - Status of management soundness related to liquidity (1st quarter of fiscal 2026) -",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560331.pdf"
+      },
+      "49": {
+        "source": "Daiwa Securities Group Inc. (¥2,142B)",
+        "title_for_match": "Notice regarding dividend of surplus (interim dividend)",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560603.pdf"
+      },
+      "5": {
+        "source": "Tokyo Electron Limited (¥20,118B)",
+        "title_for_match": "Notice regarding the Establishment of a Share Repurchase Facility",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559488.pdf"
+      },
+      "50": {
+        "source": "Daiwa Securities Group Inc. (¥2,142B)",
+        "title_for_match": "2026 2nd quarter financial results briefing material",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560675.pdf"
+      },
+      "51": {
+        "source": "SCREEN Holdings Co.,Ltd. (¥2,032B)",
+        "title_for_match": "Consolidated Financial Report for the Second Quarter Ended September 30, 2026 (under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560268.pdf"
+      },
+      "52": {
+        "source": "SCREEN Holdings Co.,Ltd. (¥2,032B)",
+        "title_for_match": "Notice: Determination of Interim Dividend",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560269.pdf"
+      },
+      "53": {
+        "source": "SBI Holdings,Inc. (¥1,997B)",
+        "title_for_match": "Impact of the Unauthorized Outflow of Crypto Assets at Binance on the SBI Group",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561642.pdf"
+      },
+      "54": {
+        "source": "T&D Holdings, Inc. (¥1,953B)",
+        "title_for_match": "Notice Regarding Unrealized Losses on Securities as of September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559175.pdf"
+      },
+      "55": {
+        "source": "Niterra Co.,Ltd. (¥1,617B)",
+        "title_for_match": "[Summary]Quarterly Consolidated Financial Statements in accordance with IFRS for the six months ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560452.pdf"
+      },
+      "56": {
+        "source": "Niterra Co.,Ltd. (¥1,617B)",
+        "title_for_match": "Notice regarding revisions to performance forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559613.pdf"
+      },
+      "57": {
+        "source": "Niterra Co.,Ltd. (¥1,617B)",
+        "title_for_match": "Notice regarding changes in shareholder return policy, dividends from surplus (interim dividends), and revisions to year-end dividend forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559620.pdf"
+      },
+      "58": {
+        "source": "KINDEN CORPORATION (¥1,475B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 (Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560123.pdf"
+      },
+      "59": {
+        "source": "KINDEN CORPORATION (¥1,475B)",
+        "title_for_match": "Notice Concerning Revisions to the Full-Year Earnings Forecasts for the Fiscal Year Ending March 31, 2027",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560127.pdf"
+      },
+      "6": {
+        "source": "SONY GROUP CORPORATION (¥19,641B)",
+        "title_for_match": "Notice regarding the introduction of a subsequent stock compensation system based on performance-based stock units (PSU)",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560394.pdf"
+      },
+      "60": {
+        "source": "Makita Corporation (¥1,449B)",
+        "title_for_match": "Consolidated Financial Results for the six months ended September 30, 2026 (IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261019552945.pdf"
+      },
+      "61": {
+        "source": "Makita Corporation (¥1,449B)",
+        "title_for_match": "Notice Concerning Repurchase of Treasury Shares",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261019552957.pdf"
+      },
+      "62": {
+        "source": "Sojitz Corporation (¥1,328B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [IFRS accounting standards] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261009548847.pdf"
+      },
+      "63": {
+        "source": "Sojitz Corporation (¥1,328B)",
+        "title_for_match": "Financial information for the second quarter (interim period) of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261009548852.pdf"
+      },
+      "64": {
+        "source": "NGK Corporation (¥1,277B)",
+        "title_for_match": "Notice regarding the difference between the forecast and actual results for the interim consolidated accounting period of the fiscal year ending March 2027 and the revision of the full-year business forecast for the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559926.pdf"
+      },
+      "65": {
+        "source": "NGK Corporation (¥1,277B)",
+        "title_for_match": "Notice regarding dividend of surplus (interim dividend) and revision of year-end dividend forecast (dividend increase)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559949.pdf"
+      },
+      "66": {
+        "source": "NGK Corporation (¥1,277B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 [Japanese GAAP]",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559894.pdf"
+      },
+      "67": {
+        "source": "KANDENKO CO.,LTD. (¥1,271B)",
+        "title_for_match": "[Summary] Consolidated Financial Results for the Six Months Ended September 30, 2026(Based on Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560453.pdf"
+      },
+      "68": {
+        "source": "DAITO TRUST CONSTRUCTION CO.,LTD. (¥1,204B)",
+        "title_for_match": "Notice regarding revisions to performance forecasts and dividend forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261030561190.pdf"
+      },
+      "69": {
+        "source": "DAITO TRUST CONSTRUCTION CO.,LTD. (¥1,204B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560130.pdf"
+      },
+      "7": {
+        "source": "SONY GROUP CORPORATION (¥19,641B)",
+        "title_for_match": "Notice regarding grant of performance-based share units (PSU)",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560415.pdf"
+      },
+      "70": {
+        "source": "OTSUKA CORPORATION (¥1,131B)",
+        "title_for_match": "Summary of financial results for the third quarter of the fiscal year ending December 2026 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559748.pdf"
+      },
+      "71": {
+        "source": "OTSUKA CORPORATION (¥1,131B)",
+        "title_for_match": "Summary of 3rd quarter financial results for the fiscal year ending December 2026",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559799.pdf"
+      },
+      "72": {
+        "source": "OTSUKA CORPORATION (¥1,131B)",
+        "title_for_match": "Supplementary materials for the third quarter financial results for the fiscal year ending December 2026",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559528.pdf"
+      },
+      "73": {
+        "source": "Hankyu Hanshin Holdings,Inc. (¥1,129B)",
+        "title_for_match": "[Summary] Consolidated Financial Results for the Six Months Ended September 30, 2026",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560891.pdf"
+      },
+      "74": {
+        "source": "Hankyu Hanshin Holdings,Inc. (¥1,129B)",
+        "title_for_match": "Supplementary explanatory materials for the second quarter (interim period) of the fiscal year ending March 31, 2027 (second quarter (interim period) financial results and revisions to the full-year consolidated earnings forecast)",
+        "url": "https://www.release.tdnet.info/inbs/140120261001544203.pdf"
+      },
+      "75": {
+        "source": "Hankyu Hanshin Holdings,Inc. (¥1,129B)",
+        "title_for_match": "Notice Regarding the Recording of Extraordinary Income (Gain on Sale of Shares of Subsidiaries and Associates)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560602.pdf"
+      },
+      "76": {
+        "source": "Sekisui Chemical Co.,Ltd. (¥1,080B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 <Under Japanese GAAP>",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560995.pdf"
+      },
+      "77": {
+        "source": "Sekisui Chemical Co.,Ltd. (¥1,080B)",
+        "title_for_match": "Notice Regarding Dividend of Surplus (Interim Dividend)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561020.pdf"
+      },
+      "78": {
+        "source": "YTL (¥962B)",
+        "title_for_match": "Notice regarding the Ordinary General Meeting of Shareholders",
+        "url": "https://www.release.tdnet.info/inbs/140120261020553546.pdf"
+      },
+      "79": {
+        "source": "TOTO LTD. (¥942B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 (Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561506.pdf"
+      },
+      "8": {
+        "source": "SONY GROUP CORPORATION (¥19,641B)",
+        "title_for_match": "Notice Regarding Grant of Restricted Stock Units (RSU)",
+        "url": "https://www.release.tdnet.info/inbs/140120261030560428.pdf"
+      },
+      "80": {
+        "source": "TOTO LTD. (¥942B)",
+        "title_for_match": "Financial results briefing material for the second quarter of the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559917.pdf"
+      },
+      "81": {
+        "source": "TOTO LTD. (¥942B)",
+        "title_for_match": "Notice regarding revisions to the full-year consolidated earnings forecast for the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559919.pdf"
+      },
+      "82": {
+        "source": "TOTO LTD. (¥942B)",
+        "title_for_match": "Notice Concerning Determination of Matters Related to Acquisition and Cancellation of Own Shares",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561524.pdf"
+      },
+      "83": {
+        "source": "Tokyo Metro Co.,Ltd. (¥930B)",
+        "title_for_match": "Consolidated Financial Results for the Six Months Ended September 30, 2026 (Under Japanese GAAP)",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561202.pdf"
+      },
+      "84": {
+        "source": "Tokyo Metro Co.,Ltd. (¥930B)",
+        "title_for_match": "Presentation Materials - FY2027/3 First Half(April-September 2026) Financial Results",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561217.pdf"
+      },
+      "85": {
+        "source": "Japan Real Estate Investment Corporation (¥872B)",
+        "title_for_match": "Announcement of Amendments to the Articles of Incorporation and the Election of Directors",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561572.pdf"
+      },
+      "86": {
+        "source": "Japan Real Estate Investment Corporation (¥872B)",
+        "title_for_match": "Announcement of Relocation of the Head Offices of the Investment Corporation and the Asset Management Company",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030561577.pdf"
+      },
+      "87": {
+        "source": "SKY Perfect JSAT Corporation (¥867B)",
+        "title_for_match": "Notice Regarding the Ratio of Voting Rights of Foreign Nationals",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261027557274.pdf"
+      },
+      "88": {
+        "source": "Sumitomo Pharma Co.,Ltd. (¥810B)",
+        "title_for_match": "Summary of Consolidated Financial Results for the Six Months Ended September 30, 2026 [IFRS]",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559808.pdf"
+      },
+      "89": {
+        "source": "Sumitomo Pharma Co.,Ltd. (¥810B)",
+        "title_for_match": "Supplementary materials for the second quarter of fiscal year 2026 (ending March 2027) (IFRS)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559782.pdf"
+      },
+      "9": {
+        "source": "ADVANTEST CORPORATION (¥18,143B)",
+        "title_for_match": "Completion of Disposal of Treasury Stocks as Restricted Stock and Partial Forfeiture of Rights",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261030560423.pdf"
+      },
+      "90": {
+        "source": "Sumitomo Pharma Co.,Ltd. (¥810B)",
+        "title_for_match": "Notice regarding the difference between the consolidated performance forecast and actual results for the second quarter (interim period) of the fiscal year ending March 31, 2027, and the revision of the full-year consolidated performance forecast",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559734.pdf"
+      },
+      "91": {
+        "source": "Sumitomo Pharma Co.,Ltd. (¥810B)",
+        "title_for_match": "Presentation Material (Conference on Q2 FY2026 Financial Results",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029559793.pdf"
+      },
+      "92": {
+        "source": "Sumitomo Pharma Co.,Ltd. (¥810B)",
+        "title_for_match": "Notice regarding revision of year-end dividend forecast for the fiscal year ending March 2027",
+        "url": "https://www.release.tdnet.info/inbs/140120261029559729.pdf"
+      },
+      "93": {
+        "source": "MISUMI Group Inc. (¥804B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560005.pdf"
+      },
+      "94": {
+        "source": "MISUMI Group Inc. (¥804B)",
+        "title_for_match": "Notice regarding revisions to full-year consolidated performance forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560018.pdf"
+      },
+      "95": {
+        "source": "MISUMI Group Inc. (¥804B)",
+        "title_for_match": "Notice regarding determination of dividend of surplus (interim dividend) and revision of year-end dividend forecast",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560066.pdf"
+      },
+      "96": {
+        "source": "YAKULT HONSHA CO.,LTD. (¥790B)",
+        "title_for_match": "Notification Regarding Unauthorized Access to Our Corporate Website and Leakage of Personal Information",
+        "url": "https://www.release.tdnet.info/inbs/ek/140120261029560196.pdf"
+      },
+      "97": {
+        "source": "Sanwa Holdings Corporation (¥776B)",
+        "title_for_match": "Summary of financial results for the second quarter (interim period) of the fiscal year ending March 31, 2027 [Japanese GAAP] (consolidated)",
+        "url": "https://www.release.tdnet.info/inbs/140120261020553749.pdf"
+      },
+      "98": {
+        "source": "Sanwa Holdings Corporation (¥776B)",
+        "title_for_match": "Notice regarding revisions to full-year consolidated performance forecasts",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560158.pdf"
+      },
+      "99": {
+        "source": "Sanwa Holdings Corporation (¥776B)",
+        "title_for_match": "Announcement of “Sanwa Global Vision 2030 Medium-Term Management Plan 2027 Supplementary Edition” Publication",
+        "url": "https://www.release.tdnet.info/inbs/140120261029560183.pdf"
+      }
+    },
+    "text": "Results day was dominated by megacap electronics and semiconductor-capex names, including Tokyo Electron, Mitsubishi Electric, HOYA, Murata, TDK, Panasonic and Sumitomo Electric. Shareholder returns were the clearest signal: buybacks, treasury-share cancellations and dividend increases came from at least 20 companies, a direct result of the TSE's multi-year capital-efficiency push. Two other themes stood out:\n\n- **Power and grid capex:** regional utilities, electrical contractors and grid suppliers reported en masse, pointing to sustained spending on power infrastructure and data centres.\n- **Bond losses in financials:** unrealized-loss disclosures at T&D Holdings and Yamaguchi FG show how far JGB yields have moved since the BOJ exited negative rates in March 2024.\n\nThe top implication is to keep overweight positions in semiconductor equipment, electronic components and power/grid suppliers where guidance is rising and buybacks are being added. Treat regional banks and life insurers carrying large bond portfolios selectively.\n\n## Tech & Semiconductors\n\n- **Tokyo Electron (¥20.1T), Japan's largest chip-equipment maker, released 1H results, its interim dividend and a new share-repurchase facility.**\n  - TEL ties its dividend to a ~50% payout ratio, so the interim dividend is a direct read on 1H profit.\n  - The buyback facility is notable because TEL has historically preferred flexible, opportunistic repurchases over standing programmes.\n  - Pairing results with a repurchase facility usually signals management sees value at current prices, or expects the cycle to be resilient into 2027 on AI and HBM-driven etch/deposition demand.\n  - TEL's tone sets the direction for the whole Japanese chip-equipment group into November. [3][4][5]\n- **Back-end equipment and inspection names: SCREEN, Lasertec and Advantest.**\n  - SCREEN (cleaning equipment) confirmed its interim dividend.\n  - Lasertec reported fiscal Q1 (June year-end). Its EUV mask-inspection order book has historically been volatile quarter to quarter, so judge it on orders rather than sales.\n  - Advantest's filing is housekeeping only (restricted-stock disposal). Its AI-tester momentum, the strongest earnings story in Japan chip equipment through 2024–25, remains the benchmark the group is measured against.\n  - Positioning: favour names leveraged to AI and advanced logic/HBM (Advantest, TEL) over those more exposed to mature-node China demand. [9][43][51][52]\n- **Electronic components: Murata and TDK both revised full-year guidance; TDK also revised dividends.**\n  - Murata (MLCCs) and TDK (batteries, sensors, passives) are bellwethers for smartphones, AI servers and autos.\n  - Simultaneous revisions from both suggest either a broad demand shift or FX-driven re-basing. Yen assumptions were set conservatively in May, so FX tailwinds are a likely contributor.\n  - TDK's move to a nominating-committee board structure fits the trend of large caps adopting US-style governance to attract foreign capital. [22][23][24][35][36][37]\n- **AI-infrastructure materials and optics: Sumitomo Electric, HOYA, Nippon Electric Glass, Fuso Chemical, NGK and Niterra.**\n  - Sumitomo Electric revised its dividend forecast, most likely upward given demand for data-centre optical fibre and connectivity, which re-rated the stock in 2025.\n  - HOYA (mask blanks, glass HDD substrates) reported 1H, an important read on EUV blank demand and HDD capacity for AI storage.\n  - Nippon Electric Glass and Fuso Chemical (high-purity colloidal silica for wafer polishing) give upstream materials reads.\n  - NGK and Niterra both raised returns: NGK increased its year-end dividend, and Niterra changed its shareholder-return policy.\n  - The pattern fits a broader trend: ceramics companies are using cash from legacy auto parts (spark plugs, exhaust catalysts) to fund semiconductor-component growth and buybacks.\n  - These are structural, not one-off, beneficiaries of AI capex. [16][17][18][20][21][55][56][57][64][65][66][119][120][147]\n- **Consumer and industrial electronics: Mitsubishi Electric, Panasonic, Canon, Nikon, Alps Alpine and JVCKENWOOD.**\n  - Mitsubishi Electric paired 1H results with a buyback and treasury-share cancellation. This continues its shift toward capital efficiency, driven by factory automation (FA) and power-systems/defence demand.\n  - Panasonic raised its dividend forecast, a positive signal given restructuring under its group business reorganisation and the pressure of its EV-battery ramp (Kansas plant).\n  - Nikon revised full-year guidance; it has struggled with lithography competitiveness.\n  - Alps Alpine booked an extraordinary loss on a product-quality issue and showed a gap versus forecast. This is a one-off charge, but a credibility hit for a turnaround story.\n  - Canon reported 9M results (December year-end); watch its semiconductor-lithography and medical segments.\n  - Positioning: favour Mitsubishi Electric over consumer-exposed peers. [12][13][14][26][27][42][107][133][134][135][193][194][195][196]\n\n## Capital Returns & Governance Reform\n\n- **Buybacks and share cancellations were widespread across sectors.**\n  - New repurchases were announced by Mitsubishi Electric, Makita, TOTO and Sanwa.\n  - Completed programmes or cancellations came from Komatsu, Otsuka HD, Azbil, Mitsubishi Logistics, Coca-Cola Bottlers Japan, Toho Gas (ToSTNeT-3 off-auction trade), Tokai Rika (ToSTNeT-3) and GMO Internet Group.\n  - This continues the record pace of Japanese buybacks since the TSE's March 2023 request for companies trading below 1x book to address cost of capital. It is now a structural, not cyclical, flow supporting the market.\n  - Implication: completed programmes remove a source of buying, so watch for follow-on authorisations at Komatsu, Otsuka and Azbil. [14][28][30][61][82][102][103][104][108][122][126][151][163]\n- **Dividend policy changes are spreading to mid-caps.**\n  - Sanwa changed its dividend policy and raised its forecast.\n  - Niterra revised its return policy; NGK, CCI Group, FP Corp and Panasonic raised dividends.\n  - Shionogi corrected an earlier dividend-increase notice.\n  - Shifts to DOE (dividend-on-equity) or progressive-dividend policies reduce payout volatility and tend to re-rate stocks toward income-oriented foreign holders. [27][44][57][65][101][168][186]\n- **Board-structure reform: Otsuka Holdings and TDK.**\n  - Otsuka HD is moving to an audit-and-supervisory-committee structure and TDK to a nominating-committee company.\n  - Both are part of a multi-year trend of large caps strengthening board independence ahead of the TSE's tougher Prime Market standards. [31][37]\n- **Cross-shareholdings and non-core assets are being unwound.**\n  - Chugoku Electric will tender its CHUDENKO shares into Chudenko's self-tender offer, booking an extraordinary gain.\n  - Hankyu Hanshin booked a gain on selling a subsidiary, Hankyu Hanshin Express, to Mitsubishi Logistics.\n  - Seino transferred shares in an equity-method affiliate; Rakus booked gains on investment securities.\n  - Sales of policy-held (\"strategic\") shareholdings have accelerated since 2023 under pressure from the FSA and proxy advisers. This releases capital at the seller and creates overhang-removal catalysts at the target.\n  - Implication: one-off gains inflate this year's net profit at Chugoku Electric and Hankyu Hanshin, so value them on recurring profit. [75][124][141][146][159][161]\n\n## Power Utilities & Grid Infrastructure\n\n- **Regional utilities reported 1H results and revised guidance: Tohoku, Shikoku, Chugoku, Hokkaido and J-Power.**\n  - Tohoku revised both earnings and dividend forecasts; Chugoku set its interim dividend and revised its year-end forecast.\n  - Utilities' 1H profits are heavily affected by the fuel-cost adjustment time lag (rates adjust months after fuel prices move). This flatters earnings when LNG and coal prices fall and hurts when they rise, so separate lag gains from structural improvement.\n  - Nuclear restarts are the structural driver to watch:\n    - Tohoku's Onagawa 2 restarted in 2024.\n    - Chugoku's Shimane 2 restarted in December 2024.\n    - Hokkaido is targeting a Tomari 3 restart around 2027.\n  - Hokkaido's convertible-bond conversion price adjustment likely follows a dividend increase. [105][112][113][114][138][139][143][144][145][173][174][175]\n- **Electrical construction: Kinden, Kandenko, Nippon Densetsu, Chudenko and Meidensha.**\n  - Kinden revised guidance, and Chudenko launched a self-tender plus a dividend revision.\n  - Kinden and Kandenko have been among the TOPIX's strongest re-rating stories since 2024. The drivers are data-centre, semiconductor-fab (TSMC Kumamoto, Rapidus Hokkaido) and transmission-grid build-out, combined with labour scarcity that gives contractors pricing power.\n  - Meidensha (substations, EV motors) and Sumitomo Electric (cables) sit in the same grid-capex chain.\n  - This is a structural multi-year trend: stay overweight, but valuations are no longer cheap, so prioritise names showing order-backlog margin expansion. [58][59][67][136][137][150][160][161][162]\n\n## Banks, Insurers & Financials\n\n- **T&D Holdings and Yamaguchi FG disclosed unrealized losses on securities at end-September.**\n  - These disclosures are triggered when losses exceed a materiality threshold. They reflect the rise in JGB yields: the 10-year was near zero under yield-curve control before 2023 and well above 1% after BOJ normalisation.\n  - Implication: life insurers and regional banks with long-duration bond books face accounting drag but higher reinvestment yields over time. Differentiate between banks re-positioning their portfolios and those still holding legacy low-coupon bonds.\n  - This is a recurring theme as long as the BOJ keeps hiking. [54][118]\n- **Brokers: Daiwa Securities and Tokai Tokyo Financial reported 1H results.**\n  - Daiwa also disclosed capital-adequacy and liquidity ratios.\n  - Brokers benefit from strong equity turnover and inflows into new NISA accounts (the tax-exempt retail investment scheme expanded in January 2024).\n  - Daiwa has been building its banking and asset-management mix to smooth earnings.\n  - Tokai Tokyo's highlights document references the \"year ending March 2026\", likely a labelling error to verify. [46][47][48][49][50][188][189]\n- **Crypto: SBI Holdings disclosed the impact on SBI Group of an unauthorized outflow of crypto assets at Binance.**\n  - This is an event risk for Japan-listed crypto-exposed names (SBI, GMO, Monex).\n  - It echoes Japan's history of exchange hacks (Mt. Gox 2014, Coincheck 2018, DMM Bitcoin 2024), each of which triggered FSA tightening.\n  - Separately, GMO Internet Group and GMO Internet changed terms on selling their Thai digital-asset business.\n  - Watch for regulatory follow-through and whether SBI's disclosed exposure is material relative to its ~¥2T market cap. [53][152][184]\n- **Regional lenders: Tokyo Kiraboshi FG reported 1H; TOMONY completed a restricted-stock disposal.** Regional banks are net beneficiaries of higher short-term rates on deposit margins. [142][191]\n\n## Pharma & Healthcare\n\n- **Daiichi Sankyo reported 1H results.**\n  - The ADC (antibody-drug conjugate) franchise is the key driver: Enhertu with AstraZeneca and Datroway.\n  - Watch Enhertu sales momentum against expectations and any pipeline readouts. The stock de-rated from 2024 highs on Datroway trial disappointments. [32][33][34]\n- **Otsuka Holdings reported Q3 (December year-end) and completed a buyback.** Its psychiatry and nephrology products face ageing patents, so watch new-product uptake. [29][30]\n- **Sumitomo Pharma revised full-year guidance and its year-end dividend forecast.**\n  - It suspended dividends during its 2023–24 crisis after the loss of exclusivity on its antipsychotic Latuda.\n  - A dividend revision could signal a resumption, which would mark a key turnaround milestone if confirmed. [88][89][90][91][92]\n- **Shionogi corrected its earnings and dividend-increase notice; Towa Pharmaceutical delayed the execution date of a share transfer in an acquisition.** [44][180]\n\n## Machinery, Capex & Industrials\n\n- **Machine tools and components: DMG Mori, Makino, Tsubakimoto, NTN, Misumi, Inaba Denki and Sumitomo Heavy.**\n  - Makino, Tsubakimoto, NTN, Misumi and Inaba Denki all revised guidance.\n  - Japan's machine-tool orders have been in a prolonged, uneven recovery, with China and Europe weak and US/aerospace and semis stronger.\n  - Misumi (FA components) is a good early read on manufacturing capex; it also raised its dividend forecast.\n  - Sumitomo Heavy reported 9M results.\n  - Positioning: prefer companies tied to semiconductors, aerospace and data centres over general auto capex. [93][94][95][106][140][149][157][158][164][165][182][183]\n- **Makita, Komatsu and ShinMaywa.**\n  - Makita added a buyback after its post-COVID inventory clean-up.\n  - Komatsu cancelled treasury stock.\n  - ShinMaywa (aerospace, special vehicles) reported 1H. [28][60][61][199][200]\n\n## Housing, Building Materials & Real Estate\n\n- **Housing and building materials: TOTO, LIXIL, Sanwa, Sekisui Chemical and Daito Trust.**\n  - TOTO revised full-year guidance and added a buyback. Its China sanitaryware business has been a persistent drag since 2023, while its semiconductor-ceramics (electrostatic chuck) business is a hidden AI lever.\n  - Sanwa announced a supplementary edition of its 2027 medium-term plan, plus a dividend policy change, buyback and cancellation. It is among the most shareholder-friendly mid-caps, with a strong US doors business.\n  - LIXIL remains a turnaround story; Japanese housing starts are structurally declining.\n  - Daito Trust revised earnings and dividend forecasts. Rental-housing rents are rising with inflation.\n  - Sekisui Chemical confirmed its interim dividend.\n  - Prefer names with overseas or semiconductor exposure (Sanwa, TOTO) over pure domestic housing plays. [68][69][76][77][79][80][81][82][97][98][99][100][101][102][103][127][128]\n- **Japan Real Estate Investment Corp is amending its articles, electing directors and relocating head offices; Leopalace21 set a record date for an extraordinary shareholders' meeting.**\n  - Leopalace has been under Fortress-backed ownership since its 2020 rescue, so the EGM could precede a capital or ownership change. [85][86][176]\n\n## Transport, Logistics & Inbound Tourism\n\n- **Rail operators: JR East, Tokyo Metro and Hankyu Hanshin reported 1H results.**\n  - JR East revised forecasts and dividends, supported by its March 2026 fare increase (its first broad hike since privatisation, excluding tax pass-through) and inbound tourism.\n  - JR East also corrected several past explanatory materials. This is minor, but note it.\n  - Tokyo Metro (IPO October 2024) remains a defensive core holding.\n  - Hankyu Hanshin raised guidance, partly on a one-off gain on sale. [38][39][40][41][73][74][75][83][84]\n- **Mitsubishi Logistics is acquiring Hankyu Hanshin Express as a consolidated subsidiary, while revising guidance and completing a buyback.**\n  - This is an example of the consolidation trend in Japanese logistics, driven by the \"2024 problem\" (overtime caps on truck drivers).\n  - Sankyu revised non-consolidated guidance, and NS United Kaiun (dry bulk shipping) reported 1H. [123][124][125][126][131][132][192]\n- **Kyoritsu Maintenance's September monthly report gives a timely read on hotel occupancy and room rates (Dormy Inn chain).**\n  - This is a proxy for inbound tourism, which hit records in 2024–25. [172]\n\n## Trading Houses & Conglomerates\n\n- **ITOCHU launched a tender offer for Dentsu Soken.**\n  - It extends ITOCHU's established pattern of buying out IT and consumer stakes (e.g. Descente 2019, FamilyMart 2020) to capture full control.\n  - It likely also reflects Dentsu Group's ongoing portfolio restructuring amid pressure on its international business.\n  - For Dentsu Soken holders, the tender price sets the floor; watch for activist pushback if the premium is thin. [11]\n- **Sojitz reported 1H; Toyota Tsusho changed a specified subsidiary; ITOCHU ENEX reported 1H.** Trading houses remain supported by buybacks and Berkshire Hathaway's continued holdings. [25][62][63][171]\n\n## Platforms & Southeast Asia Exposure (Malaysia-relevant)\n\n- **SoftBank Group, SoftBank Corp and LY Corp all updated the completion timing for acquiring more shares in LINE MAN (Thailand).**\n  - LINE MAN is LY's Thai food-delivery and super-app business, competing with Grab across ASEAN.\n  - The delay is procedural, but it pushes out consolidation of LY's Southeast Asian growth asset. [2][15][45]\n- **YTL (¥962B) issued its AGM notice.**\n  - This is directly relevant for Malaysian investors as YTL Corp's Tokyo listing. Watch AGM resolutions on its Johor data-centre and AI-cloud ambitions. [78]\n- **ETF disclosures: the ABF Pan-Asia Bond Index Fund, which includes Malaysian government securities, along with SPDR S&P 500 and SPDR Gold, filed routine daily disclosures.** [1][10][111]\n\n## Governance Red Flags & Event Risk\n\n- **Fukuda Denshi received a third-party committee report and a judgment in a shareholder derivative lawsuit, and called an EGM.**\n- **Nihon M&A Center received its special investigation committee report.** This follows a prior history of misconduct (sales-figure manipulation in 2021).\n- **TS Tech set up an internal investigative committee and postponed its 1H results.**\n  - Postponed results signal possible accounting issues; avoid until the investigation scope is clear.\n- **Yakult disclosed a website breach involving leaked personal information.**\n- **Alps Alpine booked a quality-related loss.**\n- **SKY Perfect JSAT disclosed its foreign voting-rights ratio.** The Broadcasting Act caps foreign ownership near 20%, which can force share-registration refusals and limit foreign demand.\n- These are mostly one-offs, but governance scandals in Japanese mid-caps often lead to delayed filings and index-inclusion risk. [96][135][153][154][155][156][178][179][181][87]\n\n## Company Briefs\n\n- **Earnings & guidance:**\n  - Tokyo Electron: 1H results, interim dividend and buyback facility; the sector tone-setter. [3][4][5]\n  - Mitsubishi Electric: 1H results plus buyback and cancellation. [12][13][14]\n  - HOYA: 1H results, briefing deck and interim dividend. [16][17][18][19]\n  - Murata: 1H results with a full-year revision. [22][23][24]\n  - TDK: 1H results, full-year revision and dividend revision. [35][36]\n  - Panasonic: 1H results with a dividend increase. [26][27]\n  - Sumitomo Electric: 1H results and dividend revision. [20][21]\n  - Daiichi Sankyo: 1H results; focus on Enhertu. [32][33][34]\n  - JR East: 1H results with forecast and dividend revision. [38][40][41]\n  - Canon: 9M results. [42]\n  - Lasertec: fiscal Q1 results. [43]\n  - Daiwa Securities: 1H results and interim dividend. [46][49][50]\n  - SCREEN: 1H results and interim dividend. [51][52]\n  - Niterra: 1H results, guidance revision and new return policy. [55][56][57]\n  - Kinden: 1H results and guidance revision. [58][59]\n  - Makita: 1H results and buyback. [60][61]\n  - NGK: forecast-vs-actual gap and dividend increase. [64][65][66]\n  - Daito Trust: earnings and dividend revision. [68][69]\n  - Otsuka Corp: Q3 results. [70][71][72]\n  - TOTO: guidance revision and buyback. [79][80][81][82]\n  - Sumitomo Pharma: guidance and dividend revision. [88][89][90][91][92]\n  - Misumi: guidance and dividend revision. [93][94][95]\n  - Sanwa: guidance revision, plan update and returns package. [97][98][99][100][101]\n  - Nikon: full-year revision. [107]\n  - Coca-Cola Bottlers Japan: 9M results. [109][110]\n  - Tohoku Electric: earnings and dividend revision. [112][113][114]\n  - Toei Animation: 1H results; anime IP licensing remains a structural growth driver. [115][116][117]\n  - Sumitomo Bakelite: guidance and dividend revision. [129]\n  - Shikoku Electric: guidance revision. [138][139]\n  - Chugoku Electric: guidance revision. [143][144]\n  - Makino: forecast-vs-actual gap and revision. [157][158]\n  - Tsubakimoto Chain: guidance revision. [164][165]\n  - NTN: guidance revision. [182][183]\n  - CCI Group: dividend increase and mid-term plan update. [167][168][169][170]\n  - FP Corp: dividend increase. [185][186]\n  - JVCKENWOOD: guidance revision. [193][194][195][196]\n  - Chugoku Marine Paints: guidance revision. [197][198]\n  - Inaba Denki: guidance revision. [148][149]\n  - Other 1H/9M results: Kandenko, Hankyu Hanshin, Sekisui Chemical, Tokyo Metro, LIXIL, Sankyu, Meidensha, DMG Mori, Fuso Chemical, Nippon Densetsu, Seria, Toagosei, Aichi Steel, NS United Kaiun, ShinMaywa, Hokkaido Electric, J-Power, Sojitz, ITOCHU ENEX, Tokai Tokyo, Kiraboshi, Nippon Electric Glass and Sumitomo Heavy. [62][67][73][76][83][105][106][119][127][131][136][140][142][147][150][171][173][177][187][188][190][192][199]\n- **Shareholder returns & treasury stock:**\n  - Komatsu: cancellation of treasury stock. [28]\n  - Otsuka HD: buyback completed and shares cancelled. [30]\n  - Azbil: buyback concluded. [104]\n  - Coca-Cola Bottlers Japan: buyback completed and shares cancelled. [108]\n  - Toho Gas: ToSTNeT-3 buyback completed. [122]\n  - Mitsubishi Logistics: buyback concluded and shares cancelled. [126]\n  - GMO Internet Group: buyback completed. [151]\n  - Tokai Rika: ToSTNeT-3 buyback and cancellation. [163]\n  - Chudenko: self-tender, with Chugoku Electric tendering its shares. [146][161][162]\n  - Restricted-stock and share-unit plans at Sony, Advantest, Toho Gas and TOMONY. [6][7][8][9][121][191]\n  - Hokkaido Electric: convertible-bond conversion price adjusted. [175]\n- **M&A & restructuring:**\n  - ITOCHU: tender offer for Dentsu Soken. [11]\n  - SoftBank Group, SoftBank Corp and LY: LINE MAN stake acquisition delayed. [2][15][45]\n  - Mitsubishi Logistics: acquiring Hankyu Hanshin Express. [124]\n  - Sumitomo Bakelite: completed acquisition of the Kyocera chemical carve-out. [130]\n  - Toyota Tsusho: change in a specified subsidiary. [25]\n  - Seino: transfer of an equity-method affiliate with an extraordinary gain. [141]\n  - Rakus: gain on sale of investment securities. [159]\n  - GMO Internet Group and GMO Internet: terms changed on selling the Thai digital-asset business. [152][184]\n  - Towa Pharmaceutical: share-transfer execution date changed. [180]\n- **Governance & event risk:**\n  - Otsuka HD and TDK: board-structure changes. [31][37]\n  - Fukuda Denshi: third-party report, derivative-suit judgment and EGM. [153][154][155][156]\n  - Nihon M&A Center: special investigation report. [178][179]\n  - TS Tech: results postponed pending internal investigation. [181]\n  - Yakult: data leak. [96]\n  - Alps Alpine: quality-issue loss. [133][134][135]\n  - SBI: Binance outflow exposure. [53]\n  - T&D and Yamaguchi FG: unrealized securities losses. [54][118]\n  - SKY Perfect JSAT: foreign voting-rights ratio. [87]\n  - Leopalace21: EGM record date. [176]\n  - Japan Real Estate Investment Corp: governance changes and relocation. [85][86]\n  - Shionogi and JR East: corrections to prior disclosures. [39][44]\n- **Other:**\n  - YTL: AGM notice. [78]\n  - Kyoritsu Maintenance: September monthly report. [172]\n  - SPDR S&P 500, SPDR Gold and ABF Pan-Asia Bond ETF: routine daily disclosures. [1][10][111]\n\n## What to Watch\n\n- **Peak earnings week continues:**\n  - Upcoming reporters include Toyota, Sony Group and Honda; the megabanks (MUFG, SMFG, Mizuho) report mid-November, along with SoftBank Group.\n  - Check whether today's guidance revisions at Murata, TDK and Nikon were FX-driven or demand-driven, and whether buyback momentum carries into the banks.\n- **BOJ path:**\n  - Follow-through from the October policy meeting and Outlook Report, then the December meeting.\n  - Further hikes would widen unrealized bond losses at life insurers and regional banks (T&D, Yamaguchi) while helping bank deposit margins.\n  - Watch the 10-year JGB yield and USD/JPY around these dates.\n- **Corporate-action timetables:**\n  - Dentsu Soken tender offer: watch the period, premium and any activist response.\n  - Chudenko self-tender settlement.\n  - LINE MAN closing under its revised timing.\n  - Fukuda Denshi and Leopalace21 EGM agendas.\n  - Timing of TS Tech's delayed results and investigation findings.\n- **Data points:**\n  - Japan October machine-tool orders (JMTBA, mid-November) to test the capex recovery implied by Misumi, Makino and DMG Mori.\n  - October visitor arrivals (JNTO) for the inbound-tourism trade (JR East, Kyoritsu Maintenance).\n  - SEMI/SEAJ equipment billings to confirm TEL's and SCREEN's outlook.\n- **Crypto regulatory response:**\n  - Any FSA statement following the Binance outflow, and SBI's quantified exposure.\n  - This is relevant to SBI and GMO valuations and Japan's planned crypto tax and ETF reforms.",
+    "ts": "2026-10-30T23:52:48.449455+07:00"
+  }
+}
