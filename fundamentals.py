@@ -1318,6 +1318,57 @@ def typed_source(label) -> str:
     return f"typed:{label}" if label else "typed"
 
 
+def basis_period(basis: str) -> int:
+    """How far into the year a stored basis reaches: 1–3 for a quarter or a
+    year to date ending there, 2 for a first half, 4 for the full year or the
+    fourth quarter. Used to order the Research grid with the latest first."""
+    basis = basis or ""
+    m = re.search(r"q([1-4])$", basis) or re.search(r"_([1-3])q$", basis)
+    if m:
+        return int(m.group(1))
+    if basis.endswith("_h1"):
+        return 2
+    return 4
+
+
+def basis_kind(basis: str) -> str:
+    """"Actual", "Company guidance" or "Street" — the grid's Type filter."""
+    basis = basis or ""
+    if basis.startswith("consensus"):
+        return "Street"
+    if basis.startswith("company"):
+        return "Company guidance"
+    return "Actual"
+
+
+def grid_sort_key(key: tuple, mode: str, metric_order: dict, basis_order: dict,
+                  as_of: str = ""):
+    """Sort key for a (metric, fy, basis) row of the Research grid.
+
+    "Newest first" puts the latest fiscal year at the top and, within it, the
+    latest period (full year, then 3Q, 2Q / 1H, 1Q); "Oldest first" is the
+    reverse; "By metric" groups each line and reads newest first inside it;
+    "Last updated" puts the figure most recently typed or collected on top."""
+    metric, fy, basis = key
+    try:
+        year = int(str(fy)[2:])
+    except ValueError:
+        year = 0
+    newest = (-year, -basis_period(basis), metric_order.get(metric, 99),
+              basis_order.get(basis, 99))
+    if mode == "Oldest first":
+        return (year, basis_period(basis), metric_order.get(metric, 99),
+                basis_order.get(basis, 99))
+    if mode == "By metric":
+        return (metric_order.get(metric, 99),) + newest
+    if mode == "Last updated":
+        # ISO dates sort as text; negate by inverting each character so the
+        # newest date comes first while ties still fall back to newest-first.
+        # Undated rows go last.
+        return (0 if as_of else 1, tuple(-ord(c) for c in (as_of or ""))) + newest
+    return newest
+
+
 def plan_typed_overrides(edited: list, seed_keys, current: dict, manual_keys,
                          as_of: str) -> tuple:
     """Turn the Research tab's typed grid into (entries, remove, notes).

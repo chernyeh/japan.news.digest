@@ -5017,24 +5017,64 @@ with tab_research:
             # alone — the point is to edit the panel you are looking at, and a
             # collected value you retype has to start from the collected number.
             _order = {m: i for i, (m, *_) in enumerate(_FC_BASE_ROWS)}
+            _border = {b: i for i, b in enumerate(_basis_label)}
             # Collected year-to-date figures run to dozens of rows per company,
             # so they are seeded only where you have typed over one — that is
             # the row you might want to delete. Typing a new one is a + row.
+            _all_keys = [k for k in _fc_map
+                         if len(k) == 3 and k[0] in _order and k[2] in _basis_label
+                         and (not k[2].startswith("ytd_")
+                              or fund.manual_key(*k) in _manual_now)]
+
+            def _src_of(_k):
+                return fund.source_label(_fc_map[_k].get("source", "")) or None
+
+            # ── Filter and sort ─────────────────────────────────────────
+            # Filters are per company (a year list belongs to one company);
+            # the sort is a habit, so it carries across companies.
+            _NO_SRC = "(none given)"
+            _fk = f"fc_typed_f_{_rcode}"
+            with st.container(key=f"fc_typed_filters_{_rcode}"):
+                _f1, _f2, _f3, _f4, _f5 = st.columns([1.3, 1.1, 1.3, 1.3, 1.1])
+                with _f1:
+                    _f_metric = st.multiselect(
+                        "Metric", sorted({_label_of[k[0]] for k in _all_keys},
+                                         key=lambda l: _order.get(_metric_of.get(l), 99)),
+                        key=f"{_fk}_metric", placeholder="All")
+                with _f2:
+                    _f_fy = st.multiselect(
+                        "FY", sorted({k[1] for k in _all_keys}, reverse=True),
+                        key=f"{_fk}_fy", placeholder="All")
+                with _f3:
+                    _f_kind = st.multiselect(
+                        "Type", ["Actual", "Company guidance", "Street"],
+                        key=f"{_fk}_kind", placeholder="All")
+                with _f4:
+                    _f_src = st.multiselect(
+                        "Source", sorted({_src_of(k) or _NO_SRC for k in _all_keys}),
+                        key=f"{_fk}_src", placeholder="All")
+                with _f5:
+                    _sort = st.selectbox(
+                        "Sort", ["Newest first", "Oldest first", "By metric", "Last updated"],
+                        key="research_fc_typed_sort")
+
             _seed_keys = sorted(
-                (k for k in _fc_map
-                 if len(k) == 3 and k[0] in _order and k[2] in _basis_label
-                 and (not k[2].startswith("ytd_")
-                      or fund.manual_key(*k) in _manual_now)),
-                key=lambda k: (k[1], _order[k[0]],
-                               list(_basis_label).index(k[2])
-                               if k[2] in _basis_label else 9))
+                (k for k in _all_keys
+                 if (not _f_metric or _label_of[k[0]] in _f_metric)
+                 and (not _f_fy or k[1] in _f_fy)
+                 and (not _f_kind or fund.basis_kind(k[2]) in _f_kind)
+                 and (not _f_src or (_src_of(k) or _NO_SRC) in _f_src)),
+                key=lambda k: fund.grid_sort_key(k, _sort, _order, _border,
+                                                 _fc_map[k].get("as_of", "")))
+            _filtered = len(_seed_keys) < len(_all_keys)
             _rows = [{
                 "metric": _label_of[_m],
                 "fiscal_year": _y,
                 "basis": _basis_label.get(_b, _b),
                 "value_bn_or_yen": (_fc_map[(_m, _y, _b)]["value"] if _m in ("eps", "dps")
                                     else _fc_map[(_m, _y, _b)]["value"] / 1e9),
-                "source": fund.source_label(_fc_map[(_m, _y, _b)].get("source", "")) or None,
+                "source": _src_of((_m, _y, _b)),
+                "updated": (_fc_map[(_m, _y, _b)].get("as_of") or "")[:10] or None,
             } for _m, _y, _b in _seed_keys]
 
             # The years offered: the one still running and the two after it,
@@ -5050,30 +5090,49 @@ with tab_research:
                 _fy_live = (f"FY{int(_fy_rep[-1][2:]) + 1}" if _fy_rep
                             else f"FY{now_local().year}")
             _fy_n = int(_fy_live[2:])
+            # Newest first, matching the grid.
             _fy_options = sorted({f"FY{_fy_n + i}" for i in range(3)}
                                  | set(_fy_rep[-1:])
-                                 | {_r["fiscal_year"] for _r in _rows})
+                                 | {k[1] for k in _all_keys}, reverse=True)
             _source_options = list(fund.SOURCE_CHOICES) + sorted(
-                {_r["source"] for _r in _rows if _r["source"]} - set(fund.SOURCE_CHOICES))
+                {_src_of(k) for k in _all_keys if _src_of(k)} - set(fund.SOURCE_CHOICES))
 
             # Offer the profile's rows first, then any metric already present
             # on this company that the profile does not show — a selectbox
             # seeded with a value outside its options blanks the row on edit.
             _metric_options = [lbl for _, lbl, *_ in _typed_rows]
-            for _r in _rows:
-                if _r["metric"] not in _metric_options:
-                    _metric_options.append(_r["metric"])
+            for _k in _all_keys:
+                if _label_of[_k[0]] not in _metric_options:
+                    _metric_options.append(_label_of[_k[0]])
+
+            # A + row starts on what the filter is narrowed to, so adding
+            # "OP, FY2028" rows under that filter needs no re-picking.
+            _new_fy = _f_fy[0] if len(_f_fy) == 1 else _fy_live
+            _new_metric = _f_metric[0] if len(_f_metric) == 1 else None
+
+            st.markdown(
+                f'<div class="fc-note">Showing <strong>{len(_rows)}</strong> of '
+                f'{len(_all_keys)} rows'
+                + (' — <strong>filtered</strong>. Saving only touches the rows shown; '
+                   'rows hidden by the filter are left as they are.' if _filtered else '.')
+                + ' Changing a filter or the sort clears unsaved edits, so save first.</div>',
+                unsafe_allow_html=True)
 
             _nonce = st.session_state.get(f"fc_typed_nonce_{_rcode}", 0)
+            # The view is part of the key: a grid redrawn with different rows
+            # under the same key would apply its pending edits to the wrong ones.
+            _view = abs(hash((tuple(_f_metric), tuple(_f_fy), tuple(_f_kind),
+                              tuple(_f_src), _sort))) % 10**8
             _edited = st.data_editor(
-                _rows, key=f"fc_typed_{_rcode}_{_nonce}", hide_index=True,
+                _rows, key=f"fc_typed_{_rcode}_{_nonce}_{_view}", hide_index=True,
                 num_rows="dynamic", use_container_width=True,
                 column_config={
                     "metric": st.column_config.SelectboxColumn(
-                        "Metric", options=_metric_options, required=True),
+                        "Metric", options=_metric_options, required=True,
+                        default=_new_metric),
                     "fiscal_year": st.column_config.SelectboxColumn(
                         "FY", options=_fy_options, width="small", required=True,
-                        default=_fy_live,
+                        default=_new_fy,
                         help="The fiscal year the figure belongs to. Offered: the year "
                              "still running and the two after it, and the last reported "
                              "year for correcting an actual."),
@@ -5085,6 +5144,9 @@ with tab_research:
                         "Source", options=_source_options, width="small",
                         help="Where the figure comes from. Shown on the T mark in the "
                              "table. Leave empty if you'd rather not say."),
+                    "updated": st.column_config.TextColumn(
+                        "Updated", disabled=True, width="small",
+                        help="When this figure was last typed or collected."),
                 })
 
             _t1, _t2 = st.columns([1.4, 2])
