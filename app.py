@@ -15,13 +15,17 @@ from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES,
                        sync_from_github as sync_watchlist_from_github,
-                       load_watchlist_codes)
+                       load_watchlist_codes, load_watchlist_entries)
 from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
 from ir_scanner import ScanResults, scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
+import estimates_log as EL
+import capital_events as CE
+from capital_events import load_from_github as load_capital_events
+import results_day as RD
 import models
 import consensus_vision
 import gh_read
@@ -1149,6 +1153,20 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-ae { margin-left: 1px; font-weight: 800; color: #5C4033; }
 .fc-qh.fc-cons .fc-ae { color: #A0522D; }
 .fc-annstart { border-left: 1px dashed #D9D3C8; }
+/* Section heading inside the forecast panel's screens. */
+.fc-qhead { margin: 0.9rem 0 0.15rem; font-size: 0.7rem; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase; color: #8B4513; }
+/* Track record and results-day readouts: plain ruled tables, figures right. */
+.tr-table { border-collapse: collapse; font-size: 0.74rem; margin: 0.3rem 0 0.2rem;
+            width: 100%; max-width: 1180px; }
+.tr-table th { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
+               color: #9B8B7A; background: #F0EDE8; font-weight: 600; text-align: right;
+               padding: 4px 8px; border-bottom: 1px solid #D9D3C8; white-space: nowrap; }
+.tr-table td { padding: 4px 8px; border-bottom: 1px solid #E8E3DC; text-align: right;
+               font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tr-table th:first-child, .tr-table td:first-child { text-align: left; }
+.tr-steps td { white-space: normal; text-align: left; line-height: 1.5; }
+.tr-steps td:first-child { white-space: nowrap; }
 .fc-legend .fc-key { display: inline-block; width: 9px; height: 9px; margin-right: 4px;
                      border: 1px solid #D9D3C8; vertical-align: -1px; }
 .fc-key-a { background: #FDFAF7; border-color: #5C4033 !important; }
@@ -3283,6 +3301,88 @@ with tab_watchlist:
                         st.session_state.research_flash = ("warning", _msg)
                     st.rerun()
 
+    # ── Results scorecard ────────────────────────────────────────────────
+    # The latest result of every watched company in one table, read off each
+    # one's estimates log: did it beat what the street expected going in, what
+    # did it do to guidance, how has the street moved since, and did it return
+    # cash. Answers "who beat, who raised" without opening each company.
+    _wl_codes = load_watchlist_codes()
+    if _wl_codes:
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📊 Results scorecard</div>', unsafe_allow_html=True)
+        _sc1, _sc2 = st.columns([1.2, 3])
+        with _sc1:
+            # Each company's *latest* result is what is shown, so a wide default
+            # keeps the table full between seasons; narrow it during one.
+            _window = st.selectbox("Reported within", ["30 days", "60 days", "90 days", "1 year", "Any time"],
+                                   index=3, key="wl_score_window")
+        _cache = st.session_state.setdefault("estimates_log_map", {})
+        _missing = [c for c in _wl_codes if c not in _cache]
+        if _missing:
+            with st.spinner(f"Loading the history log for {len(_missing)} compan"
+                            f"{'y' if len(_missing) == 1 else 'ies'}…"):
+                for _c in _missing:
+                    try:
+                        _cache[_c] = EL.load_from_github(_ec_repo, _c, _gh_token)
+                    except Exception as _e:
+                        print(f"estimates log load error {_c}: {_e}")
+                        _cache[_c] = []
+        _cev = st.session_state.get("capital_events_map")
+        if _cev is None:
+            try:
+                _cev = st.session_state.capital_events_map = load_capital_events(_ec_repo, _gh_token)
+            except Exception:
+                _cev = {}
+        _days = {"30 days": 30, "60 days": 60, "90 days": 90, "1 year": 365}.get(_window)
+        _cut = ((now_local().date() - pd.Timedelta(days=_days)).isoformat() if _days else "")
+        _names = {c: (e.get("name") or c) for c, e in load_watchlist_entries().items()}
+        _rows = []
+        for _c in _wl_codes:
+            _sm = EL.summarize_latest(_cache.get(_c) or [])
+            if not _sm or _sm["date"] < _cut:
+                continue
+            _bb = next((e for e in (_cev.get(_c) or []) if e.get("type") == "Buyback announced"
+                        and e.get("date", "") >= _sm["date"]), None)
+            _rows.append((_c, _sm, _bb))
+        _rows.sort(key=lambda t: t[1]["date"], reverse=True)
+
+        def _scchip(_v):
+            if _v is None:
+                return '<span class="fc-na">—</span>'
+            return (f'<span class="{"fc-pos" if _v >= 0 else "fc-neg"}">'
+                    f'{"▲" if _v >= 0 else "▼"}{abs(_v) * 100:.1f}%</span>')
+
+        if _rows:
+            _h = ('<table class="tr-table"><tr><th>Company</th><th>Period</th><th>Reported</th>'
+                  '<th>OP vs street</th><th>Sales vs street</th><th>Progress / vs guide</th>'
+                  '<th>OP guidance</th><th>Street FY since</th><th>DPS</th><th>Buyback</th></tr>')
+            for _c, _sm, _bb in _rows:
+                _pg = (_scchip(_sm.get("op_vs_guide")) if _sm["period"] == "FY" else
+                       ("—" if _sm.get("op_progress") is None
+                        else f'{_sm["op_progress"] * 100:.0f}%'))
+                _bbt = ("—" if not _bb else
+                        (f'¥{_bb["amount_jpy"] / 1e9:,.0f}bn' if _bb.get("amount_jpy") else "yes")
+                        + (f' ({_bb["pct_shares"] * 100:.1f}%)' if _bb.get("pct_shares") else ""))
+                _h += (f'<tr><td><a href="?research={_safe_text(_c)}" target="_self">'
+                       f'{_safe_text(_names.get(_c, _c))}</a> <span class="fc-na">{_safe_text(_c)}</span></td>'
+                       f'<td>{_safe_text(_sm["period"])} {_safe_text(_sm["fy"])}</td>'
+                       f'<td>{_safe_text(_sm["date"])}</td>'
+                       f'<td>{_scchip(_sm.get("op_vs_street"))}</td>'
+                       f'<td>{_scchip(_sm.get("sales_vs_street"))}</td><td>{_pg}</td>'
+                       f'<td>{_scchip(_sm.get("guide_move"))}</td>'
+                       f'<td>{_scchip(_sm.get("street_move"))}</td>'
+                       f'<td>{_scchip(_sm.get("dps_move"))}</td><td>{_bbt}</td></tr>')
+            st.markdown(_h + '</table><div class="fc-legend"><span>"vs street": against the '
+                        'estimate logged the day before (a typed quarterly estimate, or the '
+                        'full-year consensus at a full-year result). "Street FY since": how the '
+                        'full-year consensus has moved after the result. Enter results on '
+                        'Research → Edit → Results day.</span></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="info-box">No watched company has a result in the log '
+                        f'within {_safe_text(_window.lower())}. Reported periods arrive from '
+                        f'the filings on each collector run, or from the Results day screen.'
+                        f'</div>', unsafe_allow_html=True)
+
     if st.session_state.watchlist_hits:
         st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
         st.markdown('<div class="section-title">📌 Watchlist Mentions</div>', unsafe_allow_html=True)
@@ -5017,24 +5117,64 @@ with tab_research:
             # alone — the point is to edit the panel you are looking at, and a
             # collected value you retype has to start from the collected number.
             _order = {m: i for i, (m, *_) in enumerate(_FC_BASE_ROWS)}
+            _border = {b: i for i, b in enumerate(_basis_label)}
             # Collected year-to-date figures run to dozens of rows per company,
             # so they are seeded only where you have typed over one — that is
             # the row you might want to delete. Typing a new one is a + row.
+            _all_keys = [k for k in _fc_map
+                         if len(k) == 3 and k[0] in _order and k[2] in _basis_label
+                         and (not k[2].startswith("ytd_")
+                              or fund.manual_key(*k) in _manual_now)]
+
+            def _src_of(_k):
+                return fund.source_label(_fc_map[_k].get("source", "")) or None
+
+            # ── Filter and sort ─────────────────────────────────────────
+            # Filters are per company (a year list belongs to one company);
+            # the sort is a habit, so it carries across companies.
+            _NO_SRC = "(none given)"
+            _fk = f"fc_typed_f_{_rcode}"
+            with st.container(key=f"fc_typed_filters_{_rcode}"):
+                _f1, _f2, _f3, _f4, _f5 = st.columns([1.3, 1.1, 1.3, 1.3, 1.1])
+                with _f1:
+                    _f_metric = st.multiselect(
+                        "Metric", sorted({_label_of[k[0]] for k in _all_keys},
+                                         key=lambda l: _order.get(_metric_of.get(l), 99)),
+                        key=f"{_fk}_metric", placeholder="All")
+                with _f2:
+                    _f_fy = st.multiselect(
+                        "FY", sorted({k[1] for k in _all_keys}, reverse=True),
+                        key=f"{_fk}_fy", placeholder="All")
+                with _f3:
+                    _f_kind = st.multiselect(
+                        "Type", ["Actual", "Company guidance", "Street"],
+                        key=f"{_fk}_kind", placeholder="All")
+                with _f4:
+                    _f_src = st.multiselect(
+                        "Source", sorted({_src_of(k) or _NO_SRC for k in _all_keys}),
+                        key=f"{_fk}_src", placeholder="All")
+                with _f5:
+                    _sort = st.selectbox(
+                        "Sort", ["Newest first", "Oldest first", "By metric", "Last updated"],
+                        key="research_fc_typed_sort")
+
             _seed_keys = sorted(
-                (k for k in _fc_map
-                 if len(k) == 3 and k[0] in _order and k[2] in _basis_label
-                 and (not k[2].startswith("ytd_")
-                      or fund.manual_key(*k) in _manual_now)),
-                key=lambda k: (k[1], _order[k[0]],
-                               list(_basis_label).index(k[2])
-                               if k[2] in _basis_label else 9))
+                (k for k in _all_keys
+                 if (not _f_metric or _label_of[k[0]] in _f_metric)
+                 and (not _f_fy or k[1] in _f_fy)
+                 and (not _f_kind or fund.basis_kind(k[2]) in _f_kind)
+                 and (not _f_src or (_src_of(k) or _NO_SRC) in _f_src)),
+                key=lambda k: fund.grid_sort_key(k, _sort, _order, _border,
+                                                 _fc_map[k].get("as_of", "")))
+            _filtered = len(_seed_keys) < len(_all_keys)
             _rows = [{
                 "metric": _label_of[_m],
                 "fiscal_year": _y,
                 "basis": _basis_label.get(_b, _b),
                 "value_bn_or_yen": (_fc_map[(_m, _y, _b)]["value"] if _m in ("eps", "dps")
                                     else _fc_map[(_m, _y, _b)]["value"] / 1e9),
-                "source": fund.source_label(_fc_map[(_m, _y, _b)].get("source", "")) or None,
+                "source": _src_of((_m, _y, _b)),
+                "updated": (_fc_map[(_m, _y, _b)].get("as_of") or "")[:10] or None,
             } for _m, _y, _b in _seed_keys]
 
             # The years offered: the one still running and the two after it,
@@ -5050,30 +5190,49 @@ with tab_research:
                 _fy_live = (f"FY{int(_fy_rep[-1][2:]) + 1}" if _fy_rep
                             else f"FY{now_local().year}")
             _fy_n = int(_fy_live[2:])
+            # Newest first, matching the grid.
             _fy_options = sorted({f"FY{_fy_n + i}" for i in range(3)}
                                  | set(_fy_rep[-1:])
-                                 | {_r["fiscal_year"] for _r in _rows})
+                                 | {k[1] for k in _all_keys}, reverse=True)
             _source_options = list(fund.SOURCE_CHOICES) + sorted(
-                {_r["source"] for _r in _rows if _r["source"]} - set(fund.SOURCE_CHOICES))
+                {_src_of(k) for k in _all_keys if _src_of(k)} - set(fund.SOURCE_CHOICES))
 
             # Offer the profile's rows first, then any metric already present
             # on this company that the profile does not show — a selectbox
             # seeded with a value outside its options blanks the row on edit.
             _metric_options = [lbl for _, lbl, *_ in _typed_rows]
-            for _r in _rows:
-                if _r["metric"] not in _metric_options:
-                    _metric_options.append(_r["metric"])
+            for _k in _all_keys:
+                if _label_of[_k[0]] not in _metric_options:
+                    _metric_options.append(_label_of[_k[0]])
+
+            # A + row starts on what the filter is narrowed to, so adding
+            # "OP, FY2028" rows under that filter needs no re-picking.
+            _new_fy = _f_fy[0] if len(_f_fy) == 1 else _fy_live
+            _new_metric = _f_metric[0] if len(_f_metric) == 1 else None
+
+            st.markdown(
+                f'<div class="fc-note">Showing <strong>{len(_rows)}</strong> of '
+                f'{len(_all_keys)} rows'
+                + (' — <strong>filtered</strong>. Saving only touches the rows shown; '
+                   'rows hidden by the filter are left as they are.' if _filtered else '.')
+                + ' Changing a filter or the sort clears unsaved edits, so save first.</div>',
+                unsafe_allow_html=True)
 
             _nonce = st.session_state.get(f"fc_typed_nonce_{_rcode}", 0)
+            # The view is part of the key: a grid redrawn with different rows
+            # under the same key would apply its pending edits to the wrong ones.
+            _view = abs(hash((tuple(_f_metric), tuple(_f_fy), tuple(_f_kind),
+                              tuple(_f_src), _sort))) % 10**8
             _edited = st.data_editor(
-                _rows, key=f"fc_typed_{_rcode}_{_nonce}", hide_index=True,
+                _rows, key=f"fc_typed_{_rcode}_{_nonce}_{_view}", hide_index=True,
                 num_rows="dynamic", use_container_width=True,
                 column_config={
                     "metric": st.column_config.SelectboxColumn(
-                        "Metric", options=_metric_options, required=True),
+                        "Metric", options=_metric_options, required=True,
+                        default=_new_metric),
                     "fiscal_year": st.column_config.SelectboxColumn(
                         "FY", options=_fy_options, width="small", required=True,
-                        default=_fy_live,
+                        default=_new_fy,
                         help="The fiscal year the figure belongs to. Offered: the year "
                              "still running and the two after it, and the last reported "
                              "year for correcting an actual."),
@@ -5085,6 +5244,9 @@ with tab_research:
                         "Source", options=_source_options, width="small",
                         help="Where the figure comes from. Shown on the T mark in the "
                              "table. Leave empty if you'd rather not say."),
+                    "updated": st.column_config.TextColumn(
+                        "Updated", disabled=True, width="small",
+                        help="When this figure was last typed or collected."),
                 })
 
             _t1, _t2 = st.columns([1.4, 2])
@@ -5124,12 +5286,556 @@ with tab_research:
 
             _block = st.session_state.consensus_manual_map.setdefault(_rcode, {})
             _block.update({_k: dict(_v) for _k, _v in _entries.items()})
+            _log_add(_rcode, EL.rows_from_manual(_entries, now_local().date().isoformat()))
             for _k in _removed:
                 _block.pop(_k, None)
             _ok, _msg = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode,
                                                    _entries, remove=_removed)
             _flash("success" if _ok and not _bad else "warning",
                    _msg if _ok else f"Applied for this session, but not saved: {_msg}")
+
+        # ── Estimates log, capital events: loaders shared by the screens below ──
+        # The log is one small CSV per company, read once per session per
+        # company. What this session saves is added to the cached copy as well
+        # as committed, because raw.githubusercontent.com serves a cached file
+        # for a few minutes and a value that vanished on the next rerun would
+        # read as a failed save.
+
+        def _log_for(_code: str) -> list:
+            _cache = st.session_state.setdefault("estimates_log_map", {})
+            if _code not in _cache:
+                try:
+                    _cache[_code] = EL.load_from_github(_ec_repo, _code, _gh_token)
+                except Exception as _e:
+                    print(f"estimates log load error {_code}: {_e}")
+                    _cache[_code] = []
+            return _cache[_code]
+
+        def _log_add(_code: str, _rows: list):
+            _cache = st.session_state.setdefault("estimates_log_map", {})
+            _cache[_code] = EL.merge(_cache.get(_code) or [], _rows)
+
+        def _events_for(_code: str) -> list:
+            if "capital_events_map" not in st.session_state:
+                try:
+                    st.session_state.capital_events_map = CE.load_from_github(_ec_repo, _gh_token)
+                except Exception as _e:
+                    print(f"capital events load error: {_e}")
+                    st.session_state.capital_events_map = {}
+            return st.session_state.capital_events_map.get(_code, [])
+
+        def _save_events(_code: str, _upsert=(), _remove=()):
+            st.session_state.capital_events_map = CE.apply(
+                st.session_state.get("capital_events_map") or {}, _code, _upsert, _remove)
+            return CE.save_via_github(_ec_repo, _gh_token, _code, list(_upsert), list(_remove))
+
+        def _live_fy(_fc_map: dict) -> tuple:
+            """(year still running, [reported years]) from the panel's map."""
+            _fy_all = sorted({k[1] for k in _fc_map if len(k) == 3
+                              and str(k[1]).startswith("FY") and str(k[1])[2:].isdigit()})
+            _rep = [y for y in _fy_all
+                    if any((m, y, "actual") in _fc_map for m in fund.METRICS)]
+            _live = next((y for y in _fy_all if y not in _rep), None)
+            if _live is None:
+                _live = f"FY{int(_rep[-1][2:]) + 1}" if _rep else f"FY{now_local().year}"
+            return _live, _rep
+
+        def _chg(_new, _old):
+            if _new is None or _old is None or _old <= 0:
+                return None
+            return _new / _old - 1
+
+        def _chip(_v, _dp=1, _title=""):
+            """A signed change as a coloured chip, or a dash."""
+            if _v is None:
+                return '<span class="fc-na">—</span>'
+            return (f'<span class="{"fc-pos" if _v >= 0 else "fc-neg"}"'
+                    + (f' title="{_safe_text(_title)}"' if _title else '')
+                    + f'>{"▲" if _v >= 0 else "▼"}{abs(_v) * 100:.{_dp}f}%</span>')
+
+        def _bn(_v, _metric="operating_profit"):
+            if _v is None:
+                return '<span class="fc-na">—</span>'
+            return (f"{_v:,.1f}" if _metric in ("eps", "dps") else f"{_v / 1e9:,.1f}")
+
+        def _shares_now(_fc_map: dict, _fundrow: dict) -> tuple:
+            """(shares in issue, treasury) from the newest reported year, for a
+            buyback's % of shares."""
+            _yrs = sorted({k[1] for k in _fc_map if len(k) == 3 and k[0] == "shares"})
+            if _yrs:
+                _y = _yrs[-1]
+                return ((_fc_map.get(("shares", _y, "actual")) or {}).get("value"),
+                        (_fc_map.get(("treasury", _y, "actual")) or {}).get("value"))
+            return _fundrow.get("shares"), None
+
+        # ── Results day ───────────────────────────────────────────────────
+        def _fc_results_day(_rcode, _rname, _fc_map, _profile, _fundrow):
+            """Everything a result changes, entered in one place: the reported
+            figures, the full-year guidance, the dividend, and any buyback —
+            with the readout against what was expected going in shown as you
+            type. Saves to the same override store as the grid (so the table
+            updates) and to the estimates log and capital-events store (so the
+            track record below can look back at it)."""
+            _log = _log_for(_rcode)
+            _events = _events_for(_rcode)
+            _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
+            _live, _rep = _live_fy(_fc_map)
+            _fy_opts = sorted({_live} | set(_rep[-1:]), reverse=True)
+
+            # The quarter most likely being entered: the first one the year
+            # still running has not reported.
+            def _has(_y, _n):
+                return any(_get(m, _y, f"ytd_{_n}q") is not None
+                           or _get(m, _y, f"actual_q{_n}") is not None
+                           for m in RD.LINES)
+            _next_q = next((p for n, p in enumerate(RD.PERIODS[:3], 1)
+                            if not _has(_live, n)), "FY")
+
+            st.markdown(
+                '<div class="fc-note">Enter a result the day it comes out. Type what was '
+                'reported and any new guidance; the readout compares it with what the street '
+                'and the company expected <em>going in</em> (read from the history log, as it '
+                'stood the day before). Blank cells are left as they are. One save stores '
+                'the figures, the guidance, the dividend and any buyback.</div>',
+                unsafe_allow_html=True)
+            _c1, _c2, _c3, _c4, _c5 = st.columns([1, 0.8, 1.1, 1.7, 1.2])
+            with _c1:
+                _fy = st.selectbox("FY", _fy_opts, key=f"rd_fy_{_rcode}")
+            with _c2:
+                _period = st.selectbox("Period", list(RD.PERIODS),
+                                       index=list(RD.PERIODS).index(_next_q),
+                                       key=f"rd_period_{_rcode}")
+            with _c3:
+                _date = st.date_input("Reported on", value=now_local().date(),
+                                      key=f"rd_date_{_rcode}").isoformat()
+            with _c4:
+                _mode = st.radio("Enter figures as",
+                                 ["Year to date (as the tanshin prints)", "Single quarter"],
+                                 horizontal=True, key=f"rd_mode_{_rcode}",
+                                 disabled=_period == "FY")
+            with _c5:
+                _source = st.selectbox("Source", [""] + list(fund.SOURCE_CHOICES),
+                                       index=1 + list(fund.SOURCE_CHOICES).index("Company data"),
+                                       format_func=lambda s: s or "(none given)",
+                                       key=f"rd_src_{_rcode}")
+            _single = _mode == "Single quarter" and _period != "FY"
+            _n = RD.PERIODS.index(_period) + 1
+            _basis = RD.reported_basis(_period, _single)
+            _gfy = RD.guidance_fy(_fy, _period)
+
+            def _going_in(_m, _y, _b):
+                """The figure as it stood before the results day — from the log,
+                else from the panel where the log has nothing yet (marked)."""
+                _v = EL.value_before(_log, _m, _y, _b, _date)
+                if _v is not None:
+                    return _v, False
+                _c = _get(_m, _y, _b)
+                return _c, _c is not None
+
+            _rows_def = [r for r in _fc_rows(_profile, with_ratios=False) if r[0] in RD.LINES]
+            _unit = lambda m: 1.0 if m in ("eps", "dps") else 1e9
+            _grid, _meta, _flag_now = [], {}, False
+            for _m, _lbl, *_ in _rows_def:
+                if _n < 4:
+                    _st, _f1 = _going_in(_m, _fy, f"consensus_q{_n}")
+                else:
+                    _st, _f1 = _going_in(_m, _fy, "consensus")
+                _gd, _f2 = _going_in(_m, _fy, "company")
+                _h1, _f3 = (_going_in(_m, _fy, "company_h1") if _n == 2 else (None, False))
+                _flag_now = _flag_now or _f1 or _f2 or _f3
+                _prev_ytd = (None if _n == 1 else
+                             _get(_m, _fy, f"ytd_{_n - 1}q") if _n < 4 else _get(_m, _fy, "ytd_3q"))
+                if _prev_ytd is None and 1 < _n < 4:
+                    _qb = fund.quarter_breakdown(_get, _m, _fy).get(f"ytd_{_n - 1}q")
+                    _prev_ytd = _qb[0] if _qb and _qb[1] in ("actual", "derived") else None
+                _held = _get(_m, _fy, _basis)
+                _meta[_m] = {"street": _st, "guide": _gd, "h1": _h1, "prev_ytd": _prev_ytd}
+                _row = {"metric": _lbl,
+                        "street": None if _st is None else _st / _unit(_m),
+                        "guide": None if _gd is None else _gd / _unit(_m)}
+                if _n == 2:
+                    _row["h1"] = None if _h1 is None else _h1 / _unit(_m)
+                _row["reported"] = None if _held is None else _held / _unit(_m)
+                _grid.append(_row)
+            _lbl_to_m = {lbl: m for m, lbl, *_ in _rows_def}
+
+            _nonce = st.session_state.get(f"rd_nonce_{_rcode}", 0)
+            _vkey = f"{_fy}_{_period}_{_single}_{_date}_{_nonce}"
+            st.markdown(f'<div class="fc-qhead">1 · Reported — {_safe_text(_period)} '
+                        f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
+            _what = ("the full year" if _n == 4 else
+                     f"the single quarter ({_period})" if _single else
+                     f"the year to date through {_period}")
+            _cfg = {
+                "metric": st.column_config.TextColumn("Line", disabled=True),
+                "street": st.column_config.NumberColumn(
+                    "Street est." + (" FY" if _n == 4 else f" {_period} (quarter)"),
+                    disabled=True, format="%.1f",
+                    help="What the street expected for this period, as logged the day "
+                         "before. Quarterly street estimates exist only where you typed one."),
+                "guide": st.column_config.NumberColumn(
+                    f"Co. guidance {_fy}", disabled=True, format="%.1f",
+                    help="Full-year company guidance going in."),
+                "h1": st.column_config.NumberColumn("Co. 1H guidance", disabled=True,
+                                                    format="%.1f"),
+                "reported": st.column_config.NumberColumn(
+                    f"Reported — {_what}", format="%.2f",
+                    help="¥bn, or ¥ per share for EPS. Leave blank to skip a line."),
+            }
+            _ed = st.data_editor(_grid, key=f"rd_rep_{_rcode}_{_vkey}", hide_index=True,
+                                 use_container_width=True, num_rows="fixed", column_config=_cfg)
+
+            # Readout, recomputed from what is typed on every rerun.
+            _prior = fund.prior_fy(_fy)
+            _rd_rows, _summary_bits = [], []
+            for _r in _ed:
+                _m = _lbl_to_m.get(_r.get("metric"))
+                _v = _r.get("reported")
+                if not _m or _v is None:
+                    continue
+                _md = _meta[_m]
+                _v = float(_v) * _unit(_m)
+                if _n == 4:
+                    _ytd, _q = _v, (None if _md["prev_ytd"] is None else _v - _md["prev_ytd"])
+                elif _single:
+                    _q = _v
+                    _ytd = _v if _n == 1 else (None if _md["prev_ytd"] is None
+                                               else _md["prev_ytd"] + _v)
+                else:
+                    _ytd = _v
+                    _q = _v if _n == 1 else (None if _md["prev_ytd"] is None
+                                             else _v - _md["prev_ytd"])
+                _vs_st = _chg(_ytd if _n == 4 else _q, _md["street"])
+                _ly = (fund.quarter_breakdown(_get, _m, _prior).get(f"q{_n}") or (None,))[0]
+                _yoy = _chg(_q, _ly)
+                _prog = (_ytd / _md["guide"]) if (_n < 4 and _ytd is not None and _md["guide"]) else None
+                _vs_g = _chg(_ytd, _md["guide"]) if _n == 4 else None
+                _vs_h1 = _chg(_ytd, _md["h1"]) if _n == 2 else None
+                _rd_rows.append((_r["metric"], _m, _q, _ytd, _vs_st, _yoy, _prog, _vs_g, _vs_h1))
+                if _m == "operating_profit":
+                    if _vs_st is not None:
+                        _summary_bits.append(f"OP {'beat' if _vs_st >= 0 else 'missed'} the street by "
+                                             f"{abs(_vs_st) * 100:.1f}%")
+                    if _prog is not None:
+                        _summary_bits.append(f"OP progress {_prog * 100:.0f}%")
+            if _rd_rows:
+                _h = ('<table class="tr-table"><tr><th>Line</th><th>Quarter</th><th>YTD</th>'
+                      f'<th>vs street{" (FY)" if _n == 4 else ""}</th><th>YoY (qtr)</th>'
+                      + ('<th>vs co. guidance</th>' if _n == 4 else '<th>Progress vs FY guide</th>')
+                      + ('<th>vs 1H guide</th>' if _n == 2 else '') + '</tr>')
+                for _lbl, _m, _q, _ytd, _vs, _yo, _pg, _vg, _vh in _rd_rows:
+                    _h += (f'<tr><td>{_safe_text(_lbl)}</td><td>{_bn(_q, _m)}</td>'
+                           f'<td>{_bn(_ytd, _m)}</td><td>{_chip(_vs)}</td><td>{_chip(_yo)}</td>'
+                           + (f'<td>{_chip(_vg)}</td>' if _n == 4 else
+                              f'<td>{"—" if _pg is None else f"{_pg * 100:.0f}%"}</td>')
+                           + (f'<td>{_chip(_vh)}</td>' if _n == 2 else '') + '</tr>')
+                st.markdown(_h + '</table>', unsafe_allow_html=True)
+            if _flag_now:
+                st.markdown('<div class="fc-note">Some "going in" figures come from the panel '
+                            'as it is now, not the log — the log has no earlier value for them '
+                            'yet.</div>', unsafe_allow_html=True)
+
+            # 2 · Guidance
+            st.markdown(f'<div class="fc-qhead">2 · Full-year guidance — {_safe_text(_gfy)}'
+                        + (' (next year, first given with this result)' if _n == 4 else '')
+                        + '</div>', unsafe_allow_html=True)
+            _g_rows_def = [r for r in _fc_rows(_profile, with_ratios=False) if r[0] in RD.GUIDE_LINES]
+            _g_grid = [{"metric": _lbl,
+                        "previous": (None if _get(_m, _gfy, "company") is None
+                                     else _get(_m, _gfy, "company") / _unit(_m)),
+                        "new": None} for _m, _lbl, *_ in _g_rows_def]
+            _g_ed = st.data_editor(
+                _g_grid, key=f"rd_guide_{_rcode}_{_vkey}", hide_index=True,
+                use_container_width=True, num_rows="fixed",
+                column_config={
+                    "metric": st.column_config.TextColumn("Line", disabled=True),
+                    "previous": st.column_config.NumberColumn("Current guidance", disabled=True,
+                                                              format="%.2f"),
+                    "new": st.column_config.NumberColumn(
+                        "New guidance", format="%.2f",
+                        help="Only if it changed. DPS is the annual dividend per share; a "
+                             "change here is also logged as a dividend event."),
+                })
+            _g_lbl_to_m = {lbl: m for m, lbl, *_ in _g_rows_def}
+            _g_moves = []
+            for _r in _g_ed:
+                _m = _g_lbl_to_m.get(_r.get("metric"))
+                if _m and _r.get("new") is not None and _r.get("previous") is not None:
+                    _c = _chg(float(_r["new"]), float(_r["previous"]))
+                    if _c:
+                        _g_moves.append((_r["metric"], _c))
+            if _g_moves:
+                st.markdown('<div class="fc-reads">' + "".join(
+                    f'<span class="fc-read"><b>{_safe_text(_l)}</b> '
+                    f'{"raised" if _c > 0 else "cut"} {_chip(_c)}</span>' for _l, _c in _g_moves)
+                    + '</div>', unsafe_allow_html=True)
+
+            # 3 · Buyback
+            st.markdown('<div class="fc-qhead">3 · Buyback</div>', unsafe_allow_html=True)
+            _sugg = CE.suggestions(_tdnet_idx.get(_rcode, []), _rcode, _events)
+            if _sugg:
+                st.markdown('<div class="fc-note">TDnet notices not yet logged: ' + " · ".join(
+                    f'{_safe_text(s["date"])} <b>{_safe_text(s["type"])}</b> — '
+                    f'<a href="{_safe_text(s["url"])}" target="_blank">'
+                    f'{_safe_text((s["title_en"] or s["title"])[:70])}</a>' for s in _sugg[:4])
+                    + '</div>', unsafe_allow_html=True)
+            _bb = st.checkbox("A buyback was announced with these results",
+                              key=f"rd_bb_{_rcode}_{_vkey}")
+            _buyback = None
+            if _bb:
+                _b1, _b2, _b3, _b4 = st.columns([1, 1, 1, 2])
+                with _b1:
+                    _amt = st.number_input("Up to ¥bn", min_value=0.0, step=10.0,
+                                           key=f"rd_bb_amt_{_rcode}_{_vkey}")
+                with _b2:
+                    _shm = st.number_input("Up to m shares", min_value=0.0, step=1.0,
+                                           key=f"rd_bb_sh_{_rcode}_{_vkey}")
+                with _b3:
+                    _until = st.date_input("Until", value=None, key=f"rd_bb_until_{_rcode}_{_vkey}")
+                with _b4:
+                    _bnote = st.text_input("Note", key=f"rd_bb_note_{_rcode}_{_vkey}",
+                                           placeholder="e.g. ToSTNeT-3, to be cancelled")
+                _so, _tr = _shares_now(_fc_map, _fundrow)
+                _pct = CE.pct_of_shares(_shm * 1e6 if _shm else None, _so, _tr)
+                if _pct:
+                    st.markdown(f'<div class="fc-note">{_pct * 100:.2f}% of shares in issue '
+                                f'excluding treasury stock.</div>', unsafe_allow_html=True)
+                _att = [s for s in _sugg if s["type"] == "Buyback announced"]
+                _buyback = {"amount_bn": _amt or None, "shares_m": _shm or None,
+                            "until": _until.isoformat() if _until else "", "note": _bnote,
+                            "tdnet_title": _att[0]["title"] if _att else ""}
+
+            if not st.button("💾 Save results", key=f"rd_save_{_rcode}_{_vkey}",
+                             type="primary"):
+                return
+            _so, _tr = _shares_now(_fc_map, _fundrow)
+            _entries, _new_events, _ = RD.plan(
+                _rcode, _fy, _period, _single,
+                {_lbl_to_m[r["metric"]]: r.get("reported") for r in _ed if r["metric"] in _lbl_to_m},
+                {_g_lbl_to_m[r["metric"]]: r.get("new") for r in _g_ed if r["metric"] in _g_lbl_to_m},
+                _fc_map, _date, _source, _buyback, _events, _so, _tr)
+            if not _entries and not _new_events:
+                st.session_state.research_flash = ("info", "Nothing new to save.")
+                st.rerun()
+            _msgs = []
+            if _entries:
+                st.session_state.consensus_manual_map.setdefault(_rcode, {}).update(
+                    {k: dict(v) for k, v in _entries.items()})
+                _log_add(_rcode, EL.rows_from_manual(_entries, now_local().date().isoformat()))
+                _ok, _m1 = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode, _entries)
+                _msgs.append(_m1 if _ok else f"Figures applied for this session, not saved: {_m1}")
+            if _new_events:
+                _ok2, _m2 = _save_events(_rcode, _new_events)
+                _msgs.append(_m2 if _ok2 else f"Events kept for this session, not saved: {_m2}")
+            _lead = ("; ".join(_summary_bits) + ". ") if _summary_bits else ""
+            _lead += "".join(f"{_l} guidance {'raised' if _c > 0 else 'cut'} "
+                             f"{abs(_c) * 100:.1f}%. " for _l, _c in _g_moves)
+            st.session_state.research_flash = ("success", _lead + " ".join(_msgs))
+            st.session_state[f"rd_nonce_{_rcode}"] = _nonce + 1
+            st.rerun()
+
+        # ── Track record ──────────────────────────────────────────────────
+        def _fc_history(_rcode, _rname, _fc_map, _profile, _fundrow):
+            """What the log says about this company over time: each result
+            against what was expected going in, every step its guidance and the
+            street's numbers took, and what it has done with its cash."""
+            _log = _log_for(_rcode)
+            _events = _events_for(_rcode)
+            if not _log and not _events:
+                st.markdown('<div class="empty-state">Nothing logged for this company yet. The '
+                            'next collector run starts its history; results entered on the '
+                            '<em>Results day</em> screen are logged as soon as they are saved.'
+                            '</div>', unsafe_allow_html=True)
+                return
+
+            # 1 · Results against expectations
+            _rec = EL.results_record(_log)[:8]
+            st.markdown('<div class="fc-qhead">Results against expectations</div>',
+                        unsafe_allow_html=True)
+            if _rec:
+                _h = ('<table class="tr-table"><tr><th>Period</th><th>Reported</th>'
+                      '<th>Sales (qtr)</th><th>vs street</th><th>OP (qtr)</th><th>vs street</th>'
+                      '<th>OP margin</th><th>Progress / vs guide</th>'
+                      '<th>OP guidance on the day</th></tr>')
+                for _e in _rec:
+                    _s = _e["lines"].get("net_sales") or {}
+                    _o = _e["lines"].get("operating_profit") or {}
+                    _fy4 = _e["period"] == "FY"
+                    _marg = (_o.get("quarter") / _s.get("quarter")
+                             if (_o.get("quarter") is not None and _s.get("quarter")) else None)
+                    _pg = (_chip(_o.get("vs_guide_fy"), _title="Full year vs company guidance "
+                                                               "the day before")
+                           if _fy4 else ("—" if _o.get("progress") is None
+                                         else f'{_o["progress"] * 100:.0f}%'))
+                    _gm = _o.get("guide_move")
+                    _gtxt = (_chip(_gm) + f' <span class="fc-na">→ {_bn(_o.get("guide_after"))}</span>'
+                             if _gm is not None else
+                             (f'new {_bn(_o.get("guide_after"))}' if (_fy4 and _o.get("guide_after"))
+                              else '<span class="fc-na">unchanged</span>'))
+                    _h += (f'<tr><td><b>{_safe_text(_e["period"])}</b> {_safe_text(_e["fy"])}</td>'
+                           f'<td>{_safe_text(_e["date"])}</td>'
+                           f'<td>{_bn(_s.get("quarter"))}</td>'
+                           f'<td>{_chip(_s.get("vs_street_fy") if _fy4 else _s.get("vs_street_q"))}</td>'
+                           f'<td>{_bn(_o.get("quarter"))}</td>'
+                           f'<td>{_chip(_o.get("vs_street_fy") if _fy4 else _o.get("vs_street_q"))}</td>'
+                           f'<td>{"—" if _marg is None else f"{_marg * 100:.1f}%"}</td>'
+                           f'<td>{_pg}</td><td>{_gtxt}</td></tr>')
+                st.markdown(_h + '</table><div class="fc-legend"><span>¥bn. "vs street" is '
+                            'against the estimate logged the day before: a typed quarterly '
+                            'estimate for a quarter, the full-year consensus for a full year. '
+                            'A dash means none was logged in time.</span></div>',
+                            unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="fc-note">No reported periods in the log yet — they '
+                            'arrive from the filings on the next collector run.</div>',
+                            unsafe_allow_html=True)
+
+            # 2 · Revisions
+            st.markdown('<div class="fc-qhead">Guidance and street revisions</div>',
+                        unsafe_allow_html=True)
+            _opts = {lbl: m for m, lbl, *_ in _fc_rows(_profile, with_ratios=False)}
+            _sel = st.selectbox("Line", list(_opts), key=f"tr_metric_{_rcode}",
+                                index=min(1, len(_opts) - 1), label_visibility="collapsed")
+            _m = _opts[_sel]
+
+            def _steps_html(_steps):
+                _out = []
+                for _d, _v, _c in _steps:
+                    _out.append(f'{_bn(_v, _m)} <span class="fc-na">({_safe_text(_d[2:])})</span>'
+                                + ('' if _c is None else ' ' + _chip(_c)))
+                return ' → '.join(_out)
+
+            _g = EL.revisions(_log, _m, "company")
+            _s = EL.revisions(_log, _m, "consensus")
+            _fys = sorted(set(_g) | set(_s), reverse=True)[:4]
+            if _fys:
+                _h = '<table class="tr-table tr-steps"><tr><th>FY</th><th>Company guidance</th><th>Street</th></tr>'
+                for _y in _fys:
+                    _h += (f'<tr><td><b>{_safe_text(_y)}</b></td>'
+                           f'<td>{_steps_html(_g.get(_y, [])) or "—"}</td>'
+                           f'<td>{_steps_html(_s.get(_y, [])) or "—"}</td></tr>')
+                st.markdown(_h + '</table>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="fc-note">No guidance or street figures logged for this '
+                            'line.</div>', unsafe_allow_html=True)
+
+            # 3 · Capital returns
+            st.markdown('<div class="fc-qhead">Capital returns</div>', unsafe_allow_html=True)
+            _reads = []
+            for _d, _y, _old, _new, _c in EL.dividend_changes(_log)[:4]:
+                _reads.append(f'<span class="fc-read"><b>DPS {_safe_text(_y)}</b> '
+                              f'{_old:g} → {_new:g} {_chip(_c)} on {_safe_text(_d)}</span>')
+            _trend = CE.share_count_trend(_log)
+            if len(_trend) >= 2:
+                (_d0, _s0, _t0), (_d1, _s1, _t1) = _trend[0], _trend[-1]
+                _out0 = _s0 - (_t0 or 0)
+                _out1 = _s1 - (_t1 or 0)
+                _reads.append(
+                    f'<span class="fc-read"><b>Shares outstanding</b> (ex-treasury) '
+                    f'{_out1 / 1e6:,.0f}m, {_chip(_chg(_out1, _out0))} since {_safe_text(_d0)} · '
+                    f'issued {_chip(_chg(_s1, _s0))}'
+                    + (f' · treasury {(_t1 or 0) / 1e6:,.0f}m' if _t1 is not None else '')
+                    + ' <em>— a fall in issued shares means cancelled; a fall only ex-treasury '
+                      'means bought and held</em></span>')
+            if _reads:
+                st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
+                            unsafe_allow_html=True)
+            if _events:
+                _h = ('<table class="tr-table"><tr><th>Date</th><th>Event</th><th>Size</th>'
+                      '<th>% of shares</th><th>Until</th><th>Note</th>'
+                      '<th>Shares out since</th></tr>')
+                for _e in _events[:12]:
+                    _size = " · ".join(x for x in (
+                        f'¥{_e["amount_jpy"] / 1e9:,.1f}bn' if _e.get("amount_jpy") else "",
+                        f'{_e["shares"] / 1e6:,.1f}m sh' if _e.get("shares") else "",
+                        (f'DPS {_e["dps_old"]:g} → {_e["dps_new"]:g}'
+                         if _e.get("dps_new") is not None and _e.get("dps_old") is not None else ""))
+                        if x) or "—"
+                    # What the share count did after the announcement.
+                    _before = [t for t in _trend if t[0] <= _e.get("date", "")]
+                    _after = _trend[-1] if _trend else None
+                    _since = "—"
+                    if _before and _after and _after[0] > _before[-1][0]:
+                        _b = _before[-1][1] - (_before[-1][2] or 0)
+                        _a = _after[1] - (_after[2] or 0)
+                        _since = _chip(_chg(_a, _b), 2)
+                    _pcts = (f'{_e["pct_shares"] * 100:.2f}%' if _e.get("pct_shares") else "—")
+                    _h += (f'<tr><td>{_safe_text(_e.get("date", ""))}</td>'
+                           f'<td><b>{_safe_text(_e.get("type", ""))}</b></td><td>{_size}</td>'
+                           f'<td>{_pcts}</td>'
+                           f'<td>{_safe_text(_e.get("until", "") or "—")}</td>'
+                           f'<td>{_safe_text(_e.get("note", ""))}</td><td>{_since}</td></tr>')
+                st.markdown(_h + '</table>', unsafe_allow_html=True)
+
+            # 4 · Log or correct an event by hand
+            with st.expander("Log or correct a capital-return event"):
+                _fc_events_editor(_rcode, _fc_map, _fundrow)
+
+        def _fc_events_editor(_rcode, _fc_map, _fundrow):
+            _events = _events_for(_rcode)
+            _sugg = CE.suggestions(_tdnet_idx.get(_rcode, []), _rcode, _events)
+            if _sugg:
+                st.markdown('<div class="fc-note"><b>From TDnet, not yet logged</b> — each is '
+                            'added as a row below for you to fill in the size.</div>',
+                            unsafe_allow_html=True)
+            _so, _tr = _shares_now(_fc_map, _fundrow)
+            _rows = [{"id": _e.get("id"), "date": _e.get("date"), "type": _e.get("type"),
+                      "amount_bn": (_e.get("amount_jpy") or 0) / 1e9 or None,
+                      "shares_m": (_e.get("shares") or 0) / 1e6 or None,
+                      "dps_old": _e.get("dps_old"), "dps_new": _e.get("dps_new"),
+                      "until": _e.get("until") or None, "note": _e.get("note") or "",
+                      "source": fund.source_label(_e.get("source", "")) or None,
+                      "tdnet_title": _e.get("tdnet_title") or ""} for _e in _events]
+            _rows += [{"id": None, "date": s["date"], "type": s["type"], "amount_bn": None,
+                       "shares_m": None, "dps_old": None, "dps_new": None, "until": None,
+                       "note": "", "source": "Company data", "tdnet_title": s["title"]}
+                      for s in _sugg]
+            _nonce = st.session_state.get(f"ce_nonce_{_rcode}", 0)
+            _ed = st.data_editor(
+                _rows, key=f"ce_{_rcode}_{_nonce}", hide_index=True, num_rows="dynamic",
+                use_container_width=True,
+                column_order=["date", "type", "amount_bn", "shares_m", "dps_old", "dps_new",
+                              "until", "note", "source"],
+                column_config={
+                    "date": st.column_config.TextColumn("Date", help="YYYY-MM-DD, announced",
+                                                        required=True),
+                    "type": st.column_config.SelectboxColumn("Event", options=list(CE.EVENT_TYPES),
+                                                             required=True),
+                    "amount_bn": st.column_config.NumberColumn("¥bn", format="%.1f"),
+                    "shares_m": st.column_config.NumberColumn("m shares", format="%.2f"),
+                    "dps_old": st.column_config.NumberColumn("DPS was", format="%.1f"),
+                    "dps_new": st.column_config.NumberColumn("DPS now", format="%.1f"),
+                    "until": st.column_config.TextColumn("Until"),
+                    "note": st.column_config.TextColumn("Note"),
+                    "source": st.column_config.SelectboxColumn(
+                        "Source", options=list(fund.SOURCE_CHOICES)),
+                })
+            if not st.button("💾 Save events", key=f"ce_save_{_rcode}_{_nonce}"):
+                return
+            _today = now_local().date().isoformat()
+            _upsert, _seen = [], set()
+            _pool = list(_events)
+            for _r in _ed:
+                if not _r.get("date") or not _r.get("type"):
+                    continue
+                _ev = {"date": str(_r["date"])[:10], "type": _r["type"],
+                       "amount_jpy": (_r.get("amount_bn") or 0) * 1e9 or None,
+                       "shares": (_r.get("shares_m") or 0) * 1e6 or None,
+                       "pct_shares": CE.pct_of_shares((_r.get("shares_m") or 0) * 1e6 or None,
+                                                      _so, _tr),
+                       "dps_old": _r.get("dps_old"), "dps_new": _r.get("dps_new"),
+                       "until": _r.get("until") or "", "note": _r.get("note") or "",
+                       "source": fund.typed_source(_r.get("source")),
+                       "tdnet_title": _r.get("tdnet_title") or "", "logged_at": _today}
+                _ev["id"] = _r.get("id") or CE.new_id(_rcode, _ev["date"], _ev["type"], _pool)
+                _pool.append(_ev)
+                _seen.add(_ev["id"])
+                _upsert.append(_ev)
+            _remove = [e["id"] for e in _events if e.get("id") not in _seen]
+            _ok, _msg = _save_events(_rcode, _upsert, _remove)
+            st.session_state.research_flash = ("success" if _ok else "warning", _msg)
+            st.session_state[f"ce_nonce_{_rcode}"] = _nonce + 1
+            st.rerun()
 
         def _fc_qa(_rcode, _rname):
             """Read a Q&A document, classify each exchange, review, save findings.
@@ -5556,6 +6262,7 @@ with tab_research:
                     st.session_state.research_flash = ("warning", "Nothing ticked — nothing saved.")
                 else:
                     st.session_state.consensus_manual_map.setdefault(_rcode, {}).update(_entries)
+                    _log_add(_rcode, EL.rows_from_manual(_entries, now_local().date().isoformat()))
                     _ok, _msg = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode, _entries)
                     st.session_state.research_flash = (
                         ("success", f"Saved {len(_entries)} override(s).") if _ok
@@ -5663,9 +6370,15 @@ with tab_research:
                         # because it always works — the screenshot reader needs an
                         # API key, and half of what is missing here is a single
                         # figure that is faster typed than captured.
-                        _tab_type, _tab_shot, _tab_fx, _tab_qa = st.tabs(
-                            ["✏️ Type or correct values", "📸 Read a screenshot",
-                             "💴 Read FX assumptions", "🗣️ Read a Q&A"])
+                        # Results day first: on the day a company reports,
+                        # it is the one screen that takes everything the
+                        # result changes. The grid stays for corrections.
+                        _tab_rd, _tab_type, _tab_shot, _tab_fx, _tab_qa = st.tabs(
+                            ["📋 Results day", "✏️ Type or correct values",
+                             "📸 Read a screenshot", "💴 Read FX assumptions",
+                             "🗣️ Read a Q&A"])
+                        with _tab_rd:
+                            _fc_results_day(_rcode, _rname, _fc_map, _profile, _fundrow)
                         with _tab_type:
                             _fc_typed(_rcode, _rname, _years, _fc_map, _profile)
                         with _tab_shot:
@@ -5674,6 +6387,18 @@ with tab_research:
                             _fc_fx(_rcode, _rname, _years)
                         with _tab_qa:
                             _fc_qa(_rcode, _rname)
+
+        # ── Track record ──────────────────────────────────────────────────
+        # Read off the estimates log and the capital-events store: how each
+        # result compared with what was expected going in, every revision,
+        # and what the company has done with its cash.
+        if _toggle_section("🕰️ Track record — results, revisions & capital returns",
+                           "research_history_open"):
+            # The profile is worked out here rather than borrowed from the
+            # forecast section, which may be folded away and never have run.
+            _fc_history(_rcode, _rname, _fc_map or {},
+                        _valuation_inputs(_rcode)["profile"] if _fc_map else "general",
+                        _fundrow or {})
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []

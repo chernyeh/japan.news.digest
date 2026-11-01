@@ -141,7 +141,7 @@ def _stub_github(store: dict) -> list:
             json.dumps(store).encode()).decode()})
 
     def put(url, headers=None, json=None, timeout=None):
-        puts.append(json)
+        puts.append({**json, "_url": url})
         return _Resp(200)
 
     module = types.ModuleType("requests")
@@ -151,7 +151,23 @@ def _stub_github(store: dict) -> list:
 
 
 def _written(puts):
-    return json.loads(base64.b64decode(puts[-1]["content"]))
+    """The override store as last written — a save now also writes the
+    company's estimates log, so the last PUT is not necessarily this one."""
+    mine = [p for p in puts if p["_url"].endswith("consensus_manual.json")] or [
+        p for p in puts if not p["_url"].endswith(".csv")]
+    return json.loads(base64.b64decode(mine[-1]["content"]))
+
+
+def test_a_save_is_also_appended_to_the_estimates_log():
+    puts = _stub_github({})
+    ok, _ = F.save_manual_overrides(
+        "o/r", "tok", "6504",
+        {"operating_profit|FY2027|consensus_q2": {"value": 9e11, "source": "typed:Koyfin",
+                                                   "as_of": "2026-10-20"}})
+    logs = [p for p in puts if p["_url"].endswith("estimates_log/6504.csv")]
+    assert ok and logs, "the typed value must reach the history log"
+    text = base64.b64decode(logs[-1]["content"]).decode()
+    assert "consensus_q2" in text and "typed:Koyfin" in text and "2026-10-20" in text
 
 
 def test_save_adds_and_removes_in_one_commit():
@@ -1749,6 +1765,45 @@ def test_source_labels():
     assert F.source_label("typed") == ""
     assert F.source_label("jquants:nonconsolidated") == "J-Quants"
     assert F.source_label("screenshot:IMG.png") == "Screenshot"
+
+
+# ── Edit-grid ordering ───────────────────────────────────────────────────
+
+_MO = {"net_sales": 0, "operating_profit": 1}
+_BO = {"actual": 0, "company": 1, "consensus": 2, "company_h1": 3, "consensus_q2": 4}
+_KEYS = [("net_sales", "FY2026", "actual"), ("operating_profit", "FY2027", "consensus_q2"),
+         ("net_sales", "FY2027", "company"), ("net_sales", "FY2027", "company_h1"),
+         ("operating_profit", "FY2028", "consensus")]
+
+
+def test_grid_newest_first_is_latest_year_then_latest_period():
+    got = sorted(_KEYS, key=lambda k: F.grid_sort_key(k, "Newest first", _MO, _BO))
+    assert got == [("operating_profit", "FY2028", "consensus"),
+                   ("net_sales", "FY2027", "company"),
+                   ("net_sales", "FY2027", "company_h1"),
+                   ("operating_profit", "FY2027", "consensus_q2"),
+                   ("net_sales", "FY2026", "actual")]
+
+
+def test_grid_oldest_first_is_the_reverse_reading():
+    got = sorted(_KEYS, key=lambda k: F.grid_sort_key(k, "Oldest first", _MO, _BO))
+    assert got[0] == ("net_sales", "FY2026", "actual")
+    assert got[-1] == ("operating_profit", "FY2028", "consensus")
+
+
+def test_grid_last_updated_puts_undated_rows_last():
+    k = ("net_sales", "FY2027", "company")
+    got = sorted(["", "2026-09-01", "2026-10-01"],
+                 key=lambda a: F.grid_sort_key(k, "Last updated", _MO, _BO, a))
+    assert got == ["2026-10-01", "2026-09-01", ""]
+
+
+def test_basis_period_and_kind():
+    assert [F.basis_period(b) for b in ("consensus_q3", "ytd_2q", "company_h1",
+                                        "actual_q1", "company")] == [3, 2, 2, 1, 4]
+    assert F.basis_kind("consensus_ytd_3q") == "Street"
+    assert F.basis_kind("company_h1") == "Company guidance"
+    assert F.basis_kind("actual_q2") == "Actual"
 
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())

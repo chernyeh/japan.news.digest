@@ -68,8 +68,9 @@ jobs:
           # Stage only what exists — `git add` on a missing pathspec is fatal
           # under `bash -e`, and would throw away the collection above.
           for f in data/tdnet_filings.csv data/consensus.csv \
-                   data/fundamentals.csv data/guidance_history.csv; do
-            if [ -f "$f" ]; then git add "$f"; fi
+                   data/fundamentals.csv data/guidance_history.csv \
+                   data/estimates_log; do
+            if [ -e "$f" ]; then git add "$f"; fi
           done
           if git diff --staged --quiet; then
             echo "No changes"
