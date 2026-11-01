@@ -32,6 +32,7 @@ import sys
 import time
 from datetime import date, datetime, timezone
 
+import estimates_log as EL
 import fundamentals as F
 
 _JQ_BASE = "https://api.jquants.com/v2"
@@ -457,6 +458,65 @@ def company_guidance(records: list) -> tuple:
     return out, fund, as_of, fy1, nc
 
 
+def filing_log_rows(records: list, logged_at: str) -> list:
+    """Every figure in a company's filing history as estimates-log rows, each
+    dated by its own disclosure: each step its full-year and first-half
+    guidance took, every reported year to date and full year, and the share
+    count at each filing.
+
+    The same /fins/summary response as everything else, so it costs no call.
+    guidance_history() below condenses the guidance into first / latest; this
+    keeps every step, which is what "was it raised, and when" needs."""
+    out = []
+
+    def add(date, metric, fy, basis, val):
+        if val is not None and fy:
+            out.append({"date": date, "metric": metric, "fy": fy, "basis": basis,
+                        "value": val, "source": "jquants", "origin": "filing",
+                        "logged_at": logged_at})
+
+    for rec in records:
+        date = F.jq_pick_str(rec, "disc_date")[0][:10]
+        if not date:
+            continue
+        period = F.jq_pick_str(rec, "period_type")[0].upper()
+        cur_end = F.jq_pick_str(rec, "fy_end")[0][:10]
+        nxt_end = F.jq_pick_str(rec, "nx_fy_end")[0][:10]
+        cur_fy = fy_label(cur_end)
+        one = _newest_reader([rec])
+
+        # Reported figures: the full year on a full-year filing, the year to
+        # date on a quarterly one.
+        if period.startswith("FY") or period in _YTD_PERIODS:
+            basis = "actual" if period.startswith("FY") else f"ytd_{period.lower()}"
+            for metric in F.METRICS:
+                if metric == "dps":
+                    if basis == "actual":
+                        add(date, "dps", cur_fy, basis, F.dps_annual(one, ""))
+                    continue
+                add(date, metric, cur_fy, basis, one(metric)[0])
+            for metric in SHARE_METRICS:
+                add(date, metric, cur_fy, basis, one(metric)[0])
+
+        # Guidance, under whichever key family this filing carries it.
+        horizons = []
+        if period.startswith("FY"):
+            horizons.append((fy_label(nxt_end or _plus_one_year(cur_end)), "nx_", "nx2q_"))
+        else:
+            horizons.append((cur_fy, "f_", "f2q_"))
+            if nxt_end:
+                horizons.append((fy_label(nxt_end), "nx_", None))
+        for fy, prefix, interim in horizons:
+            for metric in F.METRICS:
+                val = (F.dps_annual(one, prefix) if metric == "dps"
+                       else F.jq_pick(rec, f"{prefix}{metric}")[0])
+                add(date, metric, fy, "company", val)
+            if interim:
+                for metric in F.INTERIM_METRICS:
+                    add(date, metric, fy, "company_h1", F.jq_pick(rec, f"{interim}{metric}")[0])
+    return out
+
+
 def guidance_history(records: list, code: str, name: str,
                      years: int = HISTORY_YEARS) -> list:
     """Rows for data/guidance_history.csv: how each guidance figure has moved
@@ -756,6 +816,8 @@ def main() -> int:
     ap.add_argument("--universe", default=F.UNIVERSE_PATH)
     ap.add_argument("--out-consensus", default=F.CONSENSUS_PATH)
     ap.add_argument("--out-fundamentals", default=F.FUNDAMENTALS_PATH)
+    ap.add_argument("--log-dir", default=EL.LOG_DIR,
+                    help="Where the per-company estimates log lives.")
     ap.add_argument("--out-manifest", default=F.RUN_MANIFEST_PATH,
                     help="where the run manifest is written; overridable so a "
                          "test run cannot write into the repo's data directory")
@@ -869,6 +931,9 @@ def main() -> int:
               "Yahoo balance-sheet data are still collected.")
 
     cons_rows, fund_rows, hist_all, failures = [], [], [], []
+    # Estimates-log rows per company, written after the CSVs below.
+    log_rows = {}
+    today = date.today().isoformat()
     auth_failed = False
     for i, row in enumerate(universe, 1):
         code, name = row["Code"], row.get("Name", "")
@@ -882,6 +947,7 @@ def main() -> int:
                 actual, _fy0, _, _nc_a = company_actuals(_records)
                 ytd, _nc_y = company_ytd(_records)
                 hist_rows = guidance_history(_records, code, name)
+                log_rows.setdefault(code, []).extend(filing_log_rows(_records, today))
                 nonconsolidated = _nc_g | _nc_a | _nc_y
             except JQuantsAuthError as exc:
                 # Stop asking. Every remaining company would fail the same way,
@@ -945,8 +1011,21 @@ def main() -> int:
         print("\n--dry-run: nothing written.")
         return 0
 
-    merged = F.merge_consensus(F.read_rows(args.out_consensus, F.CONSENSUS_COLUMNS), cons_rows)
+    _existing = F.read_rows(args.out_consensus, F.CONSENSUS_COLUMNS)
+    merged = F.merge_consensus(_existing, cons_rows)
     F.write_rows(args.out_consensus, F.CONSENSUS_COLUMNS, merged)
+
+    # The estimates log. What consensus.csv held for each company *before*
+    # this run goes in first, then what the run found — so the post-results
+    # refresh, which replaces the street's numbers on the day a company
+    # reports, can never take the pre-results expectation with it.
+    collected = {r["code"] for r in cons_rows}
+    for r in _existing:
+        if r.get("code") in collected:
+            log_rows.setdefault(r["code"], []).extend(EL.rows_from_consensus([r], today))
+    for r in cons_rows:
+        log_rows.setdefault(r["code"], []).extend(EL.rows_from_consensus([r], today))
+    _grew = sum(EL.write_local(code, rows, args.log_dir) for code, rows in log_rows.items())
 
     by_code = {r["code"]: r for r in F.read_rows(args.out_fundamentals, F.FUNDAMENTALS_COLUMNS)}
     for r in fund_rows:
@@ -974,6 +1053,7 @@ def main() -> int:
     print(f"Wrote {len(by_code)} fundamentals rows -> {args.out_fundamentals}")
     print(f"Wrote {len(_hist)} guidance-history rows -> {F.GUIDANCE_HISTORY_PATH}")
     print(f"Wrote run manifest -> {args.out_manifest}")
+    print(f"Estimates log: {_grew} new row(s) across {len(log_rows)} companies -> {args.log_dir}")
     return 0
 
 

@@ -1,0 +1,13 @@
+date,metric,fy,basis,value,source,origin,logged_at
+2026-08-27,eps,FY2026,consensus,216.32333,yfinance,backfill,2026-08-27
+2026-10-03,eps,FY2026,consensus,212.04,yfinance,backfill,2026-10-03
+2026-10-10,eps,FY2026,consensus,220.0125,yfinance,backfill,2026-10-10
+2026-08-27,eps,FY2027,consensus,258.7275,yfinance,backfill,2026-08-27
+2026-10-03,eps,FY2027,consensus,256.4275,yfinance,backfill,2026-10-03
+2026-10-10,eps,FY2027,consensus,259.0275,yfinance,backfill,2026-10-10
+2026-08-27,net_sales,FY2026,consensus,309294000000.0,yfinance,backfill,2026-08-27
+2026-10-03,net_sales,FY2026,consensus,310358000000.0,yfinance,backfill,2026-10-03
+2026-10-10,net_sales,FY2026,consensus,314004000000.0,yfinance,backfill,2026-10-10
+2026-08-27,net_sales,FY2027,consensus,334518750000.0,yfinance,backfill,2026-08-27
+2026-10-03,net_sales,FY2027,consensus,333022750000.0,yfinance,backfill,2026-10-03
+2026-10-10,net_sales,FY2027,consensus,332997750000.0,yfinance,backfill,2026-10-10

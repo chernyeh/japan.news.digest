@@ -1,0 +1,8 @@
+date,metric,fy,basis,value,source,origin,logged_at
+2025-04-23,dps,FY2026,company,133.0,jquants,backfill,2025-04-23
+2026-04-24,dps,FY2027,company,133.0,jquants,backfill,2026-08-27
+2026-04-24,dps,FY2027,company_h1,66.5,jquants,backfill,2026-09-06
+2026-08-27,eps,FY2027,consensus,117.8,yfinance,backfill,2026-08-27
+2026-08-27,eps,FY2028,consensus,140.6,yfinance,backfill,2026-08-27
+2026-08-27,net_sales,FY2027,consensus,24400000000.0,yfinance,backfill,2026-08-27
+2026-08-27,net_sales,FY2028,consensus,27400000000.0,yfinance,backfill,2026-08-27

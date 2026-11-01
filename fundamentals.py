@@ -1510,7 +1510,19 @@ def save_manual_overrides(repo: str, token: str, sec_code: str, entries: dict,
             body["sha"] = sha
         put = requests.put(api_url, headers=headers, json=body, timeout=15)
         if put.status_code in (200, 201):
-            return True, _saved_message(len(entries), len(remove or ()))
+            # The override store keeps one value per cell; the log keeps the
+            # history. A failure here leaves the value saved but unlogged, and
+            # says so rather than failing a save that succeeded.
+            msg = _saved_message(len(entries), len(remove or ()))
+            if entries:
+                import estimates_log
+                from datetime import date as _date
+                _ok, _lmsg = estimates_log.append_via_github(
+                    repo, token, sec_code,
+                    estimates_log.rows_from_manual(entries, _date.today().isoformat()))
+                if not _ok:
+                    msg += f" (Not added to the history log: {_lmsg}.)"
+            return True, msg
         if put.status_code == 409 and attempt == 0:
             continue
         return False, f"GitHub write error: HTTP {put.status_code} — {put.text[:160]}"

@@ -141,7 +141,7 @@ def _stub_github(store: dict) -> list:
             json.dumps(store).encode()).decode()})
 
     def put(url, headers=None, json=None, timeout=None):
-        puts.append(json)
+        puts.append({**json, "_url": url})
         return _Resp(200)
 
     module = types.ModuleType("requests")
@@ -151,7 +151,23 @@ def _stub_github(store: dict) -> list:
 
 
 def _written(puts):
-    return json.loads(base64.b64decode(puts[-1]["content"]))
+    """The override store as last written — a save now also writes the
+    company's estimates log, so the last PUT is not necessarily this one."""
+    mine = [p for p in puts if p["_url"].endswith("consensus_manual.json")] or [
+        p for p in puts if not p["_url"].endswith(".csv")]
+    return json.loads(base64.b64decode(mine[-1]["content"]))
+
+
+def test_a_save_is_also_appended_to_the_estimates_log():
+    puts = _stub_github({})
+    ok, _ = F.save_manual_overrides(
+        "o/r", "tok", "6504",
+        {"operating_profit|FY2027|consensus_q2": {"value": 9e11, "source": "typed:Koyfin",
+                                                   "as_of": "2026-10-20"}})
+    logs = [p for p in puts if p["_url"].endswith("estimates_log/6504.csv")]
+    assert ok and logs, "the typed value must reach the history log"
+    text = base64.b64decode(logs[-1]["content"]).decode()
+    assert "consensus_q2" in text and "typed:Koyfin" in text and "2026-10-20" in text
 
 
 def test_save_adds_and_removes_in_one_commit():
