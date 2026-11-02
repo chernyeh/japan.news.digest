@@ -168,3 +168,24 @@ def numeric_flags(get, years: list, margin_gap: float = 0.05, np_gap: float = 0.
     keep = {(fy, f"{n}Q") for fy, n in keep}
     flags = [f for f in flags if (f["fy"], f["period"]) in keep]
     return sorted(flags, key=lambda f: (f["fy"], f["period"]), reverse=True)[:limit]
+
+
+def items_for(entries: list, metric: str, fy: str, periods) -> list:
+    """The logged items that move `metric` in `fy` over `periods`."""
+    return [e for e in entries or ()
+            if e.get("fy") == fy and e.get("period") in periods
+            and metric in _AFFECTS.get(e.get("line"), ())]
+
+
+def describe(entry: dict, metric: str = "operating_profit") -> str:
+    """One line for the hover bubble: period, what it is, its effect on this
+    line, where it sits, and the note."""
+    amt = np_impact(entry) if metric == "net_profit" else float(entry.get("amount_jpy") or 0)
+    where = LINE_LABEL.get(entry.get("line"), "")
+    out = f"{entry.get('period', '')} · {entry.get('item') or 'One-off'}: {amt / 1e9:+,.1f}bn"
+    if metric == "net_profit" and entry.get("np_amount_jpy") in (None, ""):
+        out += " (after an assumed 30% tax)"
+    out += f" — {where}"
+    if entry.get("note"):
+        out += f". {entry['note']}"
+    return out

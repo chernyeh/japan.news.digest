@@ -426,6 +426,26 @@ def test_pe_history_rolls_to_the_next_year_once_the_full_year_is_reported():
     got = FW.pe_history([("2026-04-24", 3000.0), ("2026-05-15", 3000.0)], rows)
     assert got == [("2026-04-24", 10.0, "FY2026"), ("2026-05-15", 12.0, "FY2027")]
 
+
+def test_one_off_bubble_text_names_the_item_and_the_note():
+    e = [{"fy": "FY2027", "period": "2Q", "line": "operating", "item": "Restructuring",
+          "note": "Closure of the Shiga plant", "amount_jpy": -15e9}]
+    assert OO.items_for(e, "operating_profit", "FY2027", ("2Q",)) == e
+    assert OO.items_for(e, "operating_profit", "FY2027", ("1Q",)) == []
+    txt = OO.describe(e[0])
+    assert "Restructuring" in txt and "-15.0bn" in txt and "Shiga" in txt
+    assert "assumed 30% tax" in OO.describe(e[0], "net_profit")
+
+
+def test_a_quarter_estimate_typed_on_results_day_still_counts():
+    rows = [row("2026-08-04", "operating_profit", "FY2027", "ytd_1q", 49.1e9),
+            row("2026-11-02", "operating_profit", "FY2027", "consensus_q2", 37.45e9,
+                "typed:Koyfin", "typed"),
+            row("2026-11-02", "operating_profit", "FY2027", "ytd_2q", 65.6e9,
+                "typed:Company data", "typed")]
+    q2 = L.results_record(rows, metrics=("operating_profit",))[0]["lines"]["operating_profit"]
+    assert abs(q2["street_q"] - 37.45e9) < 1 and q2["vs_street_q"] < -0.5
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

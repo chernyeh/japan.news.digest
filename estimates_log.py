@@ -297,7 +297,12 @@ def results_record(rows: list, metrics=("net_sales", "operating_profit", "net_pr
             prev_ytd = (None if n == 1 else
                         value_on(rows, m, fy, f"ytd_{n - 1}q", date))
             q = ytd if n == 1 else (None if (ytd is None or prev_ytd is None) else ytd - prev_ytd)
-            street_q = value_before(rows, m, fy, f"consensus_q{n}", date)
+            # A quarter's street estimate is never revised once the quarter is
+            # reported, so one typed on the results day itself (read off a
+            # terminal that afternoon) is still the pre-results number. The
+            # full-year consensus below does move on the day, so it stays strict.
+            street_q = (value_before(rows, m, fy, f"consensus_q{n}", date)
+                        or value_on(rows, m, fy, f"consensus_q{n}", date))
             line = {"ytd": ytd, "quarter": q, "street_q": street_q,
                     "vs_street_q": _chg(q, street_q)}
             if n == 4:
