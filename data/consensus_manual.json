@@ -1,5 +1,23 @@
 {
   "2802": {
+    "eps|FY2027|consensus_q2": {
+      "as_of": "2026-11-02",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 28.01
+    },
+    "eps|FY2027|consensus_q3": {
+      "as_of": "2026-11-02",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 41.87
+    },
+    "eps|FY2027|consensus_q4": {
+      "as_of": "2026-11-02",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 32.41
+    },
     "net_sales|FY2027|consensus_q2": {
       "as_of": "2026-11-02",
       "source": "typed:Koyfin",
