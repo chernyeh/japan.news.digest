@@ -159,6 +159,9 @@ import capital_events as CE
 def test_titles_classify_into_events():
     assert CE.classify_title("自己株式の取得に係る事項の決定に関するお知らせ") == "Buyback announced"
     assert CE.classify_title("自己株式の取得結果及び取得終了に関するお知らせ") == "Buyback completed"
+    # The monthly progress report is the commonest buyback notice: not a completion.
+    assert CE.classify_title("自己株式の取得状況に関するお知らせ") == "Buyback progress"
+    assert CE.classify_title("自己株式の取得状況（途中経過）に関するお知らせ") == "Buyback progress"
     assert CE.classify_title("自己株式立会外買付取引(ToSTNeT-3)による自己株式の取得結果"
                              "及び取得終了並びに自己株式の消却に関するお知らせ") == "Share cancellation"
     assert CE.classify_title("配当予想の修正（増配）に関するお知らせ") == "Dividend change"
@@ -243,6 +246,185 @@ def test_results_day_buyback_event_carries_its_size():
     assert ev["type"] == "Buyback announced" and ev["amount_jpy"] == 500e9
     assert abs(ev["pct_shares"] - 150e6 / 13_000e6) < 1e-12
     assert ev["id"] == "7203-2026-11-05-buyback-announced"
+
+
+# ── Forward reads ────────────────────────────────────────────────────────
+
+import forward as FW
+
+
+def test_buyback_running_past_next_results_says_no_new_one_likely():
+    ev = [{"date": "2026-05-08", "type": "Buyback announced", "amount_jpy": 1000e9,
+           "until": "2027-03-31"},
+          {"date": "2026-10-05", "type": "Buyback progress", "cum_amount_jpy": 600e9}]
+    r = FW.buyback_status(ev, "2026-11-02", "2026-11-05")
+    assert r["state"] == "running" and abs(r["pct_done"] - 0.6) < 1e-9
+    assert r["runs_past"] and "unlikely" in r["detail"]
+
+
+def test_buyback_finished_leaves_room_for_a_new_one():
+    ev = [{"date": "2025-05-08", "type": "Buyback announced", "amount_jpy": 500e9,
+           "until": "2026-03-31"}]
+    r = FW.buyback_status(ev, "2026-11-02", "2026-11-05")
+    assert r["state"] == "finished" and "possible" in r["detail"]
+    assert FW.buyback_status([], "2026-11-02") is None
+
+
+def _hist(ytd1_now, new_guide):
+    """Two prior years where 1Q is 25% of the year, and a 1Q that beats."""
+    rows = []
+    for fy, q1, full, d in (("FY2025", 250e9, 1000e9, "2024-08-05"),
+                            ("FY2026", 275e9, 1100e9, "2025-08-05")):
+        rows += [row(d, "operating_profit", fy, "ytd_1q", q1),
+                 row(f"{int(d[:4]) + 1}-05-10", "operating_profit", fy, "actual", full)]
+    rows += [row("2026-05-10", "operating_profit", "FY2027", "company", 1200e9),
+             row("2026-08-05", "operating_profit", "FY2027", "ytd_1q", ytd1_now),
+             row("2026-08-05", "operating_profit", "FY2027", "company", new_guide)]
+    return rows
+
+
+def test_raise_that_only_banks_the_beat_is_flagged():
+    # Plan for 1Q = 1,200 x 25% = 300; actual 400 beats by 100; raise 100.
+    r = FW.raise_quality(_hist(400e9, 1300e9), "FY2027")
+    assert abs(r["beat"] - 100e9) < 1 and abs(r["raise"] - 100e9) < 1
+    assert r["title"].startswith("Raise only banks the beat") and r["tone"] == "warn"
+    # Rest of year 900 vs last year's 825: +9% against 1Q's +45%.
+    assert r["rest_yoy"] < r["ytd_yoy"]
+
+
+def test_raise_beyond_the_beat_is_good():
+    r = FW.raise_quality(_hist(320e9, 1400e9), "FY2027")
+    assert r["title"].startswith("Raised beyond the beat")
+
+
+def test_beat_without_a_raise_is_a_cut_to_the_rest_of_the_year():
+    r = FW.raise_quality(_hist(400e9, 1200e9), "FY2027")
+    assert r["title"] == "Beat, guidance not raised" and r["tone"] == "warn"
+
+
+def test_guidance_stance_uses_the_first_line_both_sides_have():
+    r = FW.guidance_stance({"operating_profit": 3400e9, "eps": 270.0},
+                           {"eps": 290.0}, {"raised": 4, "cut": 1, "years": 5, "thin": False})
+    assert r["metric"] == "eps" and r["tone"] == "good" and "above" in r["title"]
+    assert FW.guidance_stance({}, {}) is None
+
+
+# ── One-offs ─────────────────────────────────────────────────────────────
+
+import one_offs as OO
+import notice_reader as NR
+
+
+def test_one_off_lands_on_the_right_lines():
+    e = [{"fy": "FY2027", "period": "2Q", "line": "extraordinary", "amount_jpy": 100e9},
+         {"fy": "FY2027", "period": "2Q", "line": "operating", "amount_jpy": -20e9,
+          "np_amount_jpy": -14e9}]
+    assert OO.impact(e, "operating_profit", "FY2027", ("2Q",)) == -20e9
+    assert OO.impact(e, "ordinary_profit", "FY2027", ("2Q",)) == -20e9
+    # 100 x (1 - 30%) assumed tax, plus the stated -14 after tax
+    assert abs(OO.impact(e, "net_profit", "FY2027", ("2Q",)) - 56e9) < 1
+    assert OO.impact(e, "operating_profit", "FY2027", ("1Q",)) == 0
+
+
+def test_tdnet_one_off_notices_are_placed_in_the_result_they_hit():
+    rows = [{"Code": "7203", "Title": "特別利益の計上に関するお知らせ",
+             "PubDateTime": "2026-10-28 15:00", "DocUrl": "u"},
+            {"Code": "7203", "Title": "決算短信", "PubDateTime": "2026-11-05 15:00"}]
+    got = OO.tdnet_candidates(rows, "7203", [], {("FY2027", "2Q"): "2026-11-05",
+                                                 ("FY2027", "1Q"): "2026-08-04"})
+    assert [(g["kind"], g["fy"], g["period"]) for g in got] == [("Extraordinary gain", "FY2027", "2Q")]
+    assert OO.tdnet_candidates(rows, "7203", [{"tdnet_title": "特別利益の計上に関するお知らせ"}]) == []
+
+
+def test_numeric_flags_catch_a_below_the_line_quarter():
+    m = {}
+    for fy in ("FY2025", "FY2026"):
+        for n in (1, 2, 3):
+            m[("ordinary_profit", fy, f"ytd_{n}q")] = 100.0 * n
+            m[("net_profit", fy, f"ytd_{n}q")] = 70.0 * n
+            m[("net_sales", fy, f"ytd_{n}q")] = 1000.0 * n
+            m[("operating_profit", fy, f"ytd_{n}q")] = 100.0 * n
+    # FY2026 2Q: net profit 150 on ordinary 100 — a gain below the line.
+    m[("net_profit", "FY2026", "ytd_2q")] = 70.0 + 150.0
+    m[("net_profit", "FY2026", "ytd_3q")] = 70.0 + 150.0 + 70.0
+    flags = OO.numeric_flags(lambda a, b, c: m.get((a, b, c)), ["FY2025", "FY2026"])
+    assert any(f["fy"] == "FY2026" and f["period"] == "2Q" and f["kind"] == "below the line"
+               for f in flags)
+
+
+def test_notice_reading_becomes_a_progress_event():
+    r = NR.normalise({"kind": "buyback_progress",
+                      "buyback": {"cumulative_amount_jpy": 6e11, "cumulative_shares": "1.2e8",
+                                  "as_of": "2026-10-31", "authorised_shares": None,
+                                  "authorised_amount_jpy": None, "period_start": "",
+                                  "period_end": ""},
+                      "one_offs": [], "notes": ""})
+    ev = NR.to_event(r, "7203", "2026-11-02", "自己株式の取得状況に関するお知らせ", [])
+    assert ev["type"] == "Buyback progress" and ev["cum_amount_jpy"] == 6e11
+    assert ev["cum_shares"] == 1.2e8 and ev["as_of"] == "2026-10-31"
+    assert NR.to_event(NR.normalise({"kind": "one_offs"}), "7203", "d", "t", []) is None
+
+
+def test_notice_one_offs_are_normalised():
+    r = NR.normalise({"kind": "one_offs", "buyback": {}, "notes": "",
+                      "one_offs": [{"item": "Gain on sale of securities", "amount_jpy": 5e9,
+                                    "line": "weird", "period": "2Q FY3/27", "consolidated": True},
+                                   {"item": "no amount", "amount_jpy": None}]})
+    assert len(r["one_offs"]) == 1 and r["one_offs"][0]["line"] == "extraordinary"
+
+
+def test_read_notice_calls_the_model_with_the_pdf_and_parses_the_reply():
+    import json as _json
+    import types as _types
+    seen = {}
+
+    class _Msgs:
+        def create(self, **kw):
+            seen.update(kw)
+            reply = {"kind": "buyback_authorisation", "notes": "", "one_offs": [],
+                     "buyback": {"authorised_shares": 2e8, "authorised_amount_jpy": 1e12,
+                                 "period_start": "2026-05-09", "period_end": "2027-03-31",
+                                 "cumulative_shares": None, "cumulative_amount_jpy": None,
+                                 "as_of": ""}}
+            return _types.SimpleNamespace(stop_reason="end_turn", content=[
+                _types.SimpleNamespace(type="text", text=_json.dumps(reply))])
+
+    fake = _types.ModuleType("anthropic")
+    fake.Anthropic = lambda api_key=None: _types.SimpleNamespace(messages=_Msgs())
+    fake.BadRequestError = type("BadRequestError", (Exception,), {})
+    real = sys.modules.get("anthropic")
+    sys.modules["anthropic"] = fake
+    try:
+        r = NR.read_notice(b"%PDF-1.7 fake", "key", "7203", "取得に係る事項の決定")
+    finally:
+        if real is not None:
+            sys.modules["anthropic"] = real
+        else:
+            del sys.modules["anthropic"]
+    assert r["kind"] == "buyback_authorisation"
+    assert r["buyback"]["authorised_amount_jpy"] == 1e12 and r["buyback"]["period_end"] == "2027-03-31"
+    assert seen["messages"][0]["content"][0]["type"] == "document"
+
+
+# ── Weekly price history ─────────────────────────────────────────────────
+
+import compute_price_history as PH
+
+
+def test_weekly_condense_keeps_the_last_trading_day():
+    got = PH.condense([("7203", "2026-10-26", "3000"), ("7203", "2026-10-30", "3100"),
+                       ("7203", "2026-10-28", "2900"), ("7203", "2026-11-02", "3050"),
+                       ("7203", "2026-11-03", "bad")])
+    assert got[("7203", "2026-W44")] == ("2026-10-30", 3100.0)
+    assert got[("7203", "2026-W45")] == ("2026-11-02", 3050.0)
+
+
+def test_pe_history_rolls_to_the_next_year_once_the_full_year_is_reported():
+    rows = [row("2025-05-08", "eps", "FY2026", "company", 300.0),
+            row("2026-05-08", "eps", "FY2027", "company", 250.0),
+            row("2026-05-08", "net_sales", "FY2026", "actual", 1.0)]
+    got = FW.pe_history([("2026-04-24", 3000.0), ("2026-05-15", 3000.0)], rows)
+    assert got == [("2026-04-24", 10.0, "FY2026"), ("2026-05-15", 12.0, "FY2027")]
 
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())

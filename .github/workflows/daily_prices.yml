@@ -373,6 +373,11 @@ jobs:
       - name: Compute FX beta
         run: python compute_fx_beta.py
 
+      # One close per company per week, kept beyond the archive's 760 days,
+      # for the forward P/E history on the Research tab.
+      - name: Condense weekly price history
+        run: python compute_price_history.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
@@ -385,7 +390,7 @@ jobs:
           git add -A data/archive/ || true
           for f in data/jquants_prices_latest.csv data/jquants_shares.csv \
                    data/jquants_3m_perf.csv data/split_events.csv data/liquidity.csv \
-                   data/fx_history.csv data/fx_beta.csv; do
+                   data/fx_history.csv data/fx_beta.csv data/price_history.csv; do
             if [ -f "$f" ]; then git add "$f"; fi
           done
           if git diff --staged --quiet; then

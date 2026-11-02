@@ -20,8 +20,8 @@ import re
 EVENTS_PATH = "data/capital_events.json"
 _UA = "japan-news-digest"
 
-EVENT_TYPES = ("Buyback announced", "Buyback completed", "Share cancellation",
-               "Dividend change", "Special dividend", "Other")
+EVENT_TYPES = ("Buyback announced", "Buyback progress", "Buyback completed",
+               "Share cancellation", "Dividend change", "Special dividend", "Other")
 
 
 def new_id(code: str, date: str, etype: str, existing: list) -> str:
@@ -47,9 +47,13 @@ def pct_of_shares(shares, outstanding, treasury=None):
 # TDnet titles that announce a capital-return event. The decision notice is
 # the one that carries the size; the result / completion notices say how much
 # was actually bought.
+# 取得状況 / 途中経過 are the monthly progress reports on a running
+# authorisation — the commonest buyback notice by far — and must not read as
+# a completion. Only 終了 (ended) closes one.
 _TITLE_RULES = (
     (("消却",), "Share cancellation"),
-    (("取得結果", "取得終了", "取得状況", "買付結果", "取得の結果"), "Buyback completed"),
+    (("取得終了", "取得の終了"), "Buyback completed"),
+    (("取得状況", "途中経過", "取得結果", "買付結果", "取得の結果"), "Buyback progress"),
     (("自己株式の取得", "自己株式取得", "自社株買い", "自己株式立会外買付"), "Buyback announced"),
     (("特別配当", "記念配当"), "Special dividend"),
     (("増配", "配当予想の修正", "剰余金の配当", "配当予想"), "Dividend change"),
@@ -107,19 +111,20 @@ def share_count_trend(log_rows: list) -> list:
 
 # ── GitHub-backed store ────────────────────────────────────────────────────
 
-def load_from_github(repo: str, token: str = None) -> dict:
+def load_from_github(repo: str, token: str = None, path: str = EVENTS_PATH) -> dict:
     import gh_read
-    return gh_read.raw_json(repo, EVENTS_PATH, token, {})
+    return gh_read.raw_json(repo, path, token, {})
 
 
 def save_via_github(repo: str, token: str, code: str, upsert: list = (),
-                    remove_ids=()) -> tuple:
-    """Insert or replace events (by id) and drop `remove_ids` in `code`'s list,
-    committed to main. (ok, message). Retries once on a 409."""
+                    remove_ids=(), path: str = EVENTS_PATH, what: str = "capital events") -> tuple:
+    """Insert or replace entries (by id) and drop `remove_ids` in `code`'s list
+    of a per-company JSON store, committed to main. (ok, message). Retries
+    once on a 409. Shared with one_offs.py, which keeps the same shape."""
     import requests
     if not token:
         return False, "No GITHUB_TOKEN configured — kept for this session only."
-    api = f"https://api.github.com/repos/{repo}/contents/{EVENTS_PATH}"
+    api = f"https://api.github.com/repos/{repo}/contents/{path}"
     headers = {"User-Agent": _UA, "Authorization": f"token {token}",
                "Accept": "application/vnd.github+json"}
     for attempt in range(2):
@@ -136,7 +141,7 @@ def save_via_github(repo: str, token: str, code: str, upsert: list = (),
         else:
             return False, f"GitHub read error: HTTP {r.status_code}"
         data = apply(data, code, upsert, remove_ids)
-        body = {"message": f"chore: capital events for {code} [skip ci]",
+        body = {"message": f"chore: {what} for {code} [skip ci]",
                 "content": base64.b64encode(json.dumps(
                     data, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
                 ).decode("ascii"),
@@ -147,7 +152,7 @@ def save_via_github(repo: str, token: str, code: str, upsert: list = (),
         if put.status_code in (200, 201):
             parts = []
             if upsert:
-                parts.append(f"Logged {len(upsert)} event(s).")
+                parts.append(f"Logged {len(upsert)} entr{'y' if len(upsert) == 1 else 'ies'}.")
             if remove_ids:
                 parts.append(f"Removed {len(remove_ids)}.")
             return True, " ".join(parts) or "Nothing to save."
