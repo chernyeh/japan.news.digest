@@ -30,6 +30,12 @@
       "unit": "jpy_abs",
       "value": 458470000000.0
     },
+    "operating_profit|FY2027|company": {
+      "as_of": "2026-11-02",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 202000000000.0
+    },
     "operating_profit|FY2027|consensus": {
       "as_of": "2026-11-02",
       "source": "typed:Koyfin",
