@@ -5645,14 +5645,17 @@ with tab_research:
                 "metric": st.column_config.TextColumn("Line", disabled=True),
                 "street": st.column_config.NumberColumn(
                     "Street est." + (" FY" if _n == 4 else f" {_period} (quarter)"),
-                    disabled=True, format="%.1f",
-                    help="What the street expected for this period, as logged the day "
-                         "before. Quarterly street estimates exist only where you typed one."),
+                    format="%.2f",
+                    help="What the street expected for this period going in. Type or correct "
+                         "it here; it is saved dated the day before the result."),
                 "guide": st.column_config.NumberColumn(
-                    f"Co. guidance {_fy}", disabled=True, format="%.1f",
-                    help="Full-year company guidance going in."),
-                "h1": st.column_config.NumberColumn("Co. 1H guidance", disabled=True,
-                                                    format="%.1f"),
+                    f"Co. guidance {_fy}", format="%.2f",
+                    help="Full-year company guidance going in. A correction is saved dated the "
+                         "day before the result; new guidance given with the result goes in "
+                         "section 2."),
+                "h1": st.column_config.NumberColumn(
+                    "Co. 1H guidance", format="%.2f",
+                    help="First-half company guidance going in, saved dated the day before."),
                 "reported": st.column_config.NumberColumn(
                     f"Reported — {_what}", format="%.2f",
                     help="¥bn, or ¥ per share for EPS. Leave blank to skip a line."),
@@ -5714,7 +5717,13 @@ with tab_research:
                 _v = _r.get("reported")
                 if not _m or _v is None:
                     continue
-                _md = _meta[_m]
+                # The going-in figures as they stand in the grid, typed-over
+                # values included, so the readout moves as they are corrected.
+                _md = dict(_meta[_m])
+                for _col in RD.GOING_IN:
+                    if _col in _r:
+                        _md[_col] = (None if _r.get(_col) is None
+                                     else float(_r[_col]) * _unit(_m))
                 _v = float(_v) * _unit(_m)
                 if _n == 4:
                     _ytd, _q = _v, (None if _md["prev_ytd"] is None else _v - _md["prev_ytd"])
@@ -5853,6 +5862,17 @@ with tab_research:
                 {_lbl_to_m[r["metric"]]: r.get("reported") for r in _ed if r["metric"] in _lbl_to_m},
                 {_g_lbl_to_m[r["metric"]]: r.get("new") for r in _g_ed if r["metric"] in _g_lbl_to_m},
                 _fc_map, _date, _source, _buyback, _events, _so, _tr)
+            # Typed-over going-in figures, dated the day before the result.
+            _gi_shown = {_lbl_to_m[r["metric"]]: {c: r.get(c) for c in RD.GOING_IN}
+                         for r in _grid if r["metric"] in _lbl_to_m}
+            _gi_typed = {_lbl_to_m[r["metric"]]: {c: r.get(c) for c in RD.GOING_IN if c in r}
+                         for r in _ed if r["metric"] in _lbl_to_m}
+            _gi_entries, _gi_log = RD.plan_going_in(
+                _fy, _period, _gi_typed, _gi_shown,
+                {_g_lbl_to_m[r["metric"]]: r.get("new") for r in _g_ed if r["metric"] in _g_lbl_to_m},
+                _date, _source)
+            for _k, _v in _gi_entries.items():
+                _entries.setdefault(_k, _v)
             # One-offs typed for this period replace what was logged for it.
             _oo_save, _pool = [], list(_oo_all)
             for _e in _oo_new:
@@ -5867,7 +5887,10 @@ with tab_research:
                         round(float(e.get("amount_jpy") or 0)),
                         None if e.get("np_amount_jpy") in (None, "") else round(float(e["np_amount_jpy"])))
             _oo_changed = bool(_oo_drop) or ({_sig(e) for e in _oo_save} != {_sig(e) for e in _oo_here})
-            if not _entries and not _new_events and not _oo_changed:
+            if _gi_log:
+                _log_add(_rcode, _gi_log)
+                EL.append_via_github(_ec_repo, _gh_token, _rcode, _gi_log)
+            if not _entries and not _new_events and not _oo_changed and not _gi_log:
                 st.session_state.research_flash = ("info", "Nothing new to save.")
                 st.rerun()
             if _oo_changed:

@@ -446,6 +446,28 @@ def test_a_quarter_estimate_typed_on_results_day_still_counts():
     q2 = L.results_record(rows, metrics=("operating_profit",))[0]["lines"]["operating_profit"]
     assert abs(q2["street_q"] - 37.45e9) < 1 and q2["vs_street_q"] < -0.5
 
+
+def test_going_in_corrections_are_dated_the_day_before():
+    entries, log = RD.plan_going_in(
+        "FY2027", "2Q", typed={"operating_profit": {"street": 40.0, "guide": 160.0, "h1": 70.0}},
+        shown={"operating_profit": {"street": 37.45, "guide": 160.0, "h1": None}},
+        guidance={}, date="2026-11-02", source="Koyfin")
+    assert set(entries) == {"operating_profit|FY2027|consensus_q2",
+                            "operating_profit|FY2027|company_h1"}
+    assert entries["operating_profit|FY2027|consensus_q2"]["as_of"] == "2026-11-01"
+    assert entries["operating_profit|FY2027|consensus_q2"]["value"] == 40e9
+    assert log == []
+
+
+def test_going_in_guidance_with_new_guidance_goes_to_the_log_only():
+    entries, log = RD.plan_going_in(
+        "FY2027", "2Q", typed={"operating_profit": {"guide": 150.0}},
+        shown={"operating_profit": {"guide": 160.0}},
+        guidance={"operating_profit": 170.0}, date="2026-11-02")
+    assert entries == {}
+    assert log[0]["basis"] == "company" and log[0]["date"] == "2026-11-01"
+    assert RD.going_in_basis("street", "FY") == "consensus"
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
