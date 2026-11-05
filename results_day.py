@@ -117,3 +117,56 @@ def plan(code: str, fy: str, period: str, single_quarter: bool, reported: dict,
         ev["id"] = CE.new_id(code, date, ev["type"], list(existing_events) + events)
         events.append(ev)
     return entries, events, summary
+
+
+GOING_IN = ("street", "guide", "h1")
+
+
+def going_in_basis(column: str, period: str) -> str:
+    """Where a corrected "going in" figure is stored: the street's estimate
+    for the period (a quarter's own estimate, or the full-year consensus at a
+    full-year result), the full-year guidance, or the 1H guidance."""
+    if column == "street":
+        return "consensus" if period == "FY" else f"consensus_q{PERIODS.index(period) + 1}"
+    return "company" if column == "guide" else "company_h1"
+
+
+def _day_before(date: str) -> str:
+    from datetime import date as _d, timedelta
+    return (_d.fromisoformat(date) - timedelta(days=1)).isoformat()
+
+
+def plan_going_in(fy: str, period: str, typed: dict, shown: dict, guidance: dict,
+                  date: str, source: str = "") -> tuple:
+    """(entries, log_rows) for the "going in" columns of the results-day grid —
+    the street estimate and the company's guidance as they stood before the
+    result — where the reader typed over what was shown.
+
+    typed / shown: {metric: {"street"|"guide"|"h1": value in panel units}}.
+    Dated the day before `date`, so every look-back reads them as what was
+    expected going in rather than as something said on the day.
+
+    Full-year guidance is the one clash: at a quarterly result the same cell
+    may also get new guidance in section 2. The new number is then the current
+    one, and the corrected going-in figure goes to the history log only."""
+    src = F.typed_source(source)
+    before = _day_before(date)
+    entries, log_rows = {}, []
+    for m, cols in (typed or {}).items():
+        for col in GOING_IN:
+            v = _num((cols or {}).get(col))
+            was = _num(((shown or {}).get(m) or {}).get(col))
+            if v is None or _same(v, was):
+                continue
+            basis = going_in_basis(col, period)
+            row = {"value": _yen(m, v), "unit": "jpy" if m in ("eps", "dps") else "jpy_abs",
+                   "source": src, "as_of": before}
+            clash = (col == "guide" and period != "FY"
+                     and _num((guidance or {}).get(m)) is not None)
+            if clash:
+                log_rows.append({"date": before, "metric": m, "fy": fy, "basis": basis,
+                                 "value": row["value"], "source": src, "origin": "typed",
+                                 "logged_at": date})
+            else:
+                entries[F.manual_key(m, fy, basis)] = row
+    return entries, log_rows

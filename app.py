@@ -26,6 +26,9 @@ import estimates_log as EL
 import capital_events as CE
 from capital_events import load_from_github as load_capital_events
 import results_day as RD
+import forward as FW
+import one_offs as OO
+import notice_reader as NR
 import models
 import consensus_vision
 import gh_read
@@ -1153,6 +1156,46 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-ae { margin-left: 1px; font-weight: 800; color: #5C4033; }
 .fc-qh.fc-cons .fc-ae { color: #A0522D; }
 .fc-annstart { border-left: 1px dashed #D9D3C8; }
+/* ── Forward view card ──────────────────────────────────────────────────
+   Three columns (next result / this year / valuation), one big figure each,
+   two or three quiet lines under it, and the flags beneath as chips that open
+   to the sentence behind them. */
+.fv-card { border: 1px solid #E3DDD3; border-radius: 6px; background: #FFFDFA;
+           padding: 10px 14px 8px; margin: 0.3rem 0 0.6rem; max-width: 1180px; }
+.fv-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 22px; }
+.fv-col { min-width: 0; }
+.fv-k { font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; color: #9B8B7A;
+        font-weight: 600; }
+.fv-v { font-size: 1.02rem; font-weight: 600; color: #2B2420; margin: 1px 0 3px;
+        font-variant-numeric: tabular-nums; }
+.fv-s { font-size: 0.72rem; color: #5A5044; line-height: 1.45; }
+.fv-muted, .fv-s.fv-muted { color: #A89A8A; font-style: italic; }
+.fv-ch { font-size: 0.64rem; color: #8B7B6A; letter-spacing: 0.02em; margin: 2px 0 -4px; }
+.fv-flags, .fc-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; max-width: 1180px; }
+.fv-flag, .fc-chip { font-size: 0.7rem; border-radius: 12px; padding: 2px 10px;
+                     background: #F4F0EA; color: #4A4036; border: 1px solid #E6DFD4; }
+.fv-flag summary, .fc-chip summary { cursor: pointer; list-style: none; white-space: nowrap; }
+.fv-flag summary::-webkit-details-marker, .fc-chip summary::-webkit-details-marker { display: none; }
+.fv-flag[open], .fc-chip[open] { border-radius: 8px; flex-basis: 100%; }
+.fv-flag div, .fc-chip div { padding: 4px 0 3px; line-height: 1.5; color: #5A5044; white-space: normal; }
+.fv-good { background: #EEF6EF; border-color: #CFE5D2; color: #24622F; }
+.fv-bad  { background: #FBEDEC; border-color: #F0CFCB; color: #8E2A20; }
+.fv-warn { background: #FDF3E4; border-color: #F1DDBA; color: #7A4A12; }
+.fv-info { background: #F1F3F6; border-color: #DCE2EA; color: #34495E; }
+.fv-oo { color: #B26A00; cursor: help; }
+.fc-more { margin-top: 6px; }
+.fc-more[open] { background: #FFFDFA; }
+/* The "ex one-offs" line: same weight as the other sub-lines, amber label. */
+.fc-metric.fc-exoo { color: #B26A00; }
+.fc-metric.fc-adj { font-weight: 600; }
+.fc-bubble { cursor: help; border-bottom: 1px dotted #B26A00; white-space: nowrap; }
+.fc-pastest { color: #A0522D; }
+/* Notes are explanations, not findings: smaller and quieter than before. */
+.fc-note { font-size: 0.68rem !important; color: #9B8B7A; border-left: 0 !important;
+           background: transparent !important; padding: 2px 0 !important; margin: 4px 0 !important; }
+.fc-note.fc-warn { border-left: 3px solid #E65100 !important; background: #FDF4EE !important;
+                   padding: 6px 10px !important; color: #7A4A22; }
+@media (max-width: 640px) { .fv-grid { grid-template-columns: 1fr; } }
 /* Section heading inside the forecast panel's screens. */
 .fc-qhead { margin: 0.9rem 0 0.15rem; font-size: 0.7rem; font-weight: 700;
             letter-spacing: 0.06em; text-transform: uppercase; color: #8B4513; }
@@ -1166,6 +1209,7 @@ a.research-link:hover { background: #F0EDE8; }
                font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tr-table th:first-child, .tr-table td:first-child { text-align: left; }
 .tr-steps td { white-space: normal; text-align: left; line-height: 1.5; }
+.tr-adj td { color: #B26A00; font-weight: 600; background: #FFFBF3; }
 .tr-steps td:first-child { white-space: nowrap; }
 .fc-legend .fc-key { display: inline-block; width: 9px; height: 9px; margin-right: 4px;
                      border: 1px solid #D9D3C8; vertical-align: -1px; }
@@ -3336,11 +3380,25 @@ with tab_watchlist:
         _days = {"30 days": 30, "60 days": 60, "90 days": 90, "1 year": 365}.get(_window)
         _cut = ((now_local().date() - pd.Timedelta(days=_days)).isoformat() if _days else "")
         _names = {c: (e.get("name") or c) for c, e in load_watchlist_entries().items()}
+        _oo_map = st.session_state.get("one_offs_map")
+        if _oo_map is None:
+            try:
+                _oo_map = st.session_state.one_offs_map = OO.load_from_github(_ec_repo, _gh_token)
+            except Exception:
+                _oo_map = {}
         _rows = []
         for _c in _wl_codes:
             _sm = EL.summarize_latest(_cache.get(_c) or [])
             if not _sm or _sm["date"] < _cut:
                 continue
+            # OP vs street with logged one-offs taken out, where any were logged.
+            _sm["op_vs_street_adj"] = None
+            if _sm.get("op_vs_street") is not None and _sm.get("op_quarter") is not None:
+                _ps = ("1Q", "2Q", "3Q", "4Q") if _sm["period"] == "FY" else (_sm["period"],)
+                _i = OO.impact(_oo_map.get(_c) or [], "operating_profit", _sm["fy"], _ps)
+                if _i and _sm["period"] != "FY":
+                    _street = _sm["op_quarter"] / (1 + _sm["op_vs_street"])
+                    _sm["op_vs_street_adj"] = (_sm["op_quarter"] - _i) / _street - 1
             _bb = next((e for e in (_cev.get(_c) or []) if e.get("type") == "Buyback announced"
                         and e.get("date", "") >= _sm["date"]), None)
             _rows.append((_c, _sm, _bb))
@@ -3367,7 +3425,9 @@ with tab_watchlist:
                        f'{_safe_text(_names.get(_c, _c))}</a> <span class="fc-na">{_safe_text(_c)}</span></td>'
                        f'<td>{_safe_text(_sm["period"])} {_safe_text(_sm["fy"])}</td>'
                        f'<td>{_safe_text(_sm["date"])}</td>'
-                       f'<td>{_scchip(_sm.get("op_vs_street"))}</td>'
+                       f'<td>{_scchip(_sm.get("op_vs_street"))}'
+                       + (f'<div class="fc-ytd"><small>ADJ</small> {_scchip(_sm["op_vs_street_adj"])}</div>'
+                          if _sm.get("op_vs_street_adj") is not None else '') + '</td>'
                        f'<td>{_scchip(_sm.get("sales_vs_street"))}</td><td>{_pg}</td>'
                        f'<td>{_scchip(_sm.get("guide_move"))}</td>'
                        f'<td>{_scchip(_sm.get("street_move"))}</td>'
@@ -4378,7 +4438,7 @@ with tab_research:
             # table), and whether the margin / growth lines are shown under
             # each figure or folded away to read the money lines alone.
             with st.container(key="fc_view_row"):
-                _vc1, _vc2 = st.columns([2.2, 1])
+                _vc1, _vc2, _vc3 = st.columns([2.2, 1, 1])
                 with _vc1:
                     _q_mode = st.radio(
                         "Quarters", ["Latest 2 years", "All years", "Off"], horizontal=True,
@@ -4390,6 +4450,13 @@ with tab_research:
                     _show_growth = st.checkbox(
                         "Margins & growth", value=True, key="research_fc_growth",
                         help="Margin, YoY and QoQ lines under each figure.")
+                with _vc3:
+                    # Street estimates for quarters already reported are kept,
+                    # not deleted; they are hidden unless asked for.
+                    _show_past = st.checkbox(
+                        "Past street est.", value=False, key="research_fc_past_est",
+                        help="Under each reported quarter, the street estimate that was "
+                             "logged for it before the result. Kept, but hidden by default.")
 
             _ROWS = _fc_rows(_profile, with_progress=True)
             _MONEY_ROWS = [r for r in _ROWS if r[4] == "flow"]
@@ -4587,6 +4654,10 @@ with tab_research:
                              f'{abs(_g) * 100:.1f}%">'
                              f'{"▲" if _g >= 0 else "▼"}{abs(_g) * 100:.0f}%</span>')
                 _html = _fnum(_v, _dp, "", _scale) + _src_mark(_mark) + _chip
+                if _show_past and _st:
+                    _html += (f'<div class="fc-ytd fc-pastest" title="The street estimate for this '
+                              f'quarter, as typed before the result">est. '
+                              f'{_fnum(_st, _dp, "", _scale)}</div>')
                 # The year to date as a second, quieter line on 2Q and 3Q (1Q
                 # is its own YTD; 4Q's is the full year beside it).
                 if _p in ("q2", "q3"):
@@ -4691,6 +4762,64 @@ with tab_research:
                     (("", "") if _m not in _Q_METRICS else _quarter_html(_m, _y, _b, _sc, _d))
                     if _b in _Q_LABEL else _annual_html(_m, _y, _b, _kind, _sc, _d)),
                       " fc-mrow")
+
+                # One-offs: what was added back, and the figure after it. Where a
+                # logged item touches this line in a reported column on screen,
+                # two lines follow it — "One-off adj." (the amount taken out,
+                # with each item and its note in the hover bubble) and the
+                # adjusted figure, with its own beat/miss against the street
+                # estimate for the quarter and its YoY on the same basis.
+                _oo = ctx.get("one_offs") or []
+                if _oo and _m in ("operating_profit", "ordinary_profit", "net_profit"):
+                    def _oo_periods(_b):
+                        return ((_Q_LABEL[_b],) if _b in _Q_LABEL else
+                                ("1Q", "2Q", "3Q", "4Q") if _b == "actual" else None)
+
+                    def _imp(_y, _b, _m=_m):
+                        _ps = _oo_periods(_b)
+                        return OO.impact(_oo, _m, _y, _ps) if _ps else 0.0
+
+                    if any(_imp(_y, _b) and _figure(_m, _y, _b) is not None
+                           for _y in _shown for _b in _cols[_y]):
+                        _short = {"operating_profit": "OP", "ordinary_profit": "ord. profit",
+                                  "net_profit": "net profit"}[_m]
+
+                        def _adjline(_y, _b, _m=_m, _sc=_scale, _d=_dp):
+                            _i = _imp(_y, _b)
+                            if not _i or _figure(_m, _y, _b) is None:
+                                return " fc-sub-cell", ""
+                            _tip = "\n".join(OO.describe(e, _m) for e in
+                                             OO.items_for(_oo, _m, _y, _oo_periods(_b)))
+                            return (" fc-sub-cell fc-exoo",
+                                    f'<span class="fc-bubble" title="{_safe_text(_tip)}">'
+                                    f'{-_i / _sc:+,.{_d}f} 💬</span>')
+
+                        def _adjusted(_y, _b, _m=_m, _sc=_scale, _d=_dp):
+                            _i, _v = _imp(_y, _b), _figure(_m, _y, _b)
+                            if not _i or _v is None:
+                                return " fc-sub-cell", ""
+                            _a = _v - _i
+                            _html = f'<b>{_fnum(_a, _d, "", _sc)}</b>'
+                            _st = (fund.quarter_street(_get, _m, _y, _b) if _b in _Q_LABEL
+                                   else None)
+                            if _st and _st > 0:
+                                _g = _a / _st - 1
+                                _html += (f'<span class="fc-delta {"u" if _g >= 0 else "d"}" '
+                                          f'title="Adjusted {"beat" if _g >= 0 else "missed"} the '
+                                          f'street estimate ({_fnum(_st, _d, "", _sc)}) by '
+                                          f'{abs(_g) * 100:.1f}%">'
+                                          f'{"▲" if _g >= 0 else "▼"}{abs(_g) * 100:.0f}%</span>')
+                            _py = fund.prior_fy(_y)
+                            _pv = _figure(_m, _py, _b)
+                            if _pv is not None and _show_growth:
+                                _pv -= _imp(_py, _b)
+                                _html += (f'<div class="fc-ytd"><small>YoY</small> '
+                                          f'{_chg_html(fund.change(_a, _pv), True)}</div>')
+                            return " fc-sub-cell fc-exoo", _html
+
+                        _line("One-off adj.", _adjline, " fc-subrow fc-exoo")
+                        _line(f"Adj. {_short}", _adjusted, " fc-subrow fc-exoo fc-adj")
+
                 if not _show_growth:
                     continue
 
@@ -4922,7 +5051,7 @@ with tab_research:
                     + '</span>')
 
             if _reads:
-                st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
+                st.markdown(_chipify(_reads),
                             unsafe_allow_html=True)
 
             # A missing API key is a broken pipeline the reader has to act
@@ -5011,12 +5140,16 @@ with tab_research:
             # The one tile whose label could be misread as something it is not,
             # so it carries the full sentence rather than the three-word sub.
             _tile_help = {"Equity/assets": fund.CAPITAL_DISCLAIMER}
-            st.markdown('<div class="fc-vgrid">' + "".join(
+            # Folded: the summary card above carries the headline multiples,
+            # so the full set opens on demand rather than filling the screen.
+            st.markdown('<details class="fc-chip fc-more"><summary><b>All valuation multiples</b> '
+                        'P/E on guidance and street, P/B, EV/EBITDA, yield, PEG</summary>'
+                        '<div class="fc-vgrid">' + "".join(
                 f'<div class="fc-vcell"'
                 + (f' title="{_safe_text(_tile_help[k])}"' if k in _tile_help else '')
                 + f'><span class="fc-k">{_safe_text(k)}</span>'
                 f'<span class="fc-v">{v}</span><span class="fc-vsub">{_safe_text(sub)}</span></div>'
-                for k, v, sub in _tiles) + '</div>', unsafe_allow_html=True)
+                for k, v, sub in _tiles) + '</div></details>', unsafe_allow_html=True)
 
         def _fc_exports(_rcode, _rname, _fc_map):
             """Copy / CSV / Excel as a row of small chips under the tiles.
@@ -5129,6 +5262,34 @@ with tab_research:
             def _src_of(_k):
                 return fund.source_label(_fc_map[_k].get("source", "")) or None
 
+            # Street estimates for quarters already reported: kept in the store
+            # (the beat/miss and the track record read them) but hidden from
+            # the grid unless asked for. Hidden rows are outside the grid, so
+            # a save cannot read them as deleted.
+            _getm = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
+            _rep_q = {}
+
+            def _quarter_reported(_y, _n):
+                if (_y, _n) not in _rep_q:
+                    _rep_q[(_y, _n)] = any(
+                        (fund.quarter_breakdown(_getm, _m, _y).get(f"q{_n}") or (None, ""))[1]
+                        in ("actual", "derived") for _m in fund.INTERIM_METRICS)
+                return _rep_q[(_y, _n)]
+
+            def _past_estimate(_k):
+                _b = _k[2]
+                if not _b.startswith("consensus_"):
+                    return False
+                return _quarter_reported(_k[1], fund.basis_period(_b))
+
+            _n_past = sum(1 for k in _all_keys if _past_estimate(k))
+            _show_past_est = st.checkbox(
+                f"Show street estimates for periods already reported ({_n_past} hidden)"
+                if _n_past else "Show street estimates for periods already reported",
+                value=False, key=f"fc_typed_past_{_rcode}", disabled=not _n_past)
+            if not _show_past_est:
+                _all_keys = [k for k in _all_keys if not _past_estimate(k)]
+
             # ── Filter and sort ─────────────────────────────────────────
             # Filters are per company (a year list belongs to one company);
             # the sort is a habit, so it carries across companies.
@@ -5222,7 +5383,7 @@ with tab_research:
             # The view is part of the key: a grid redrawn with different rows
             # under the same key would apply its pending edits to the wrong ones.
             _view = abs(hash((tuple(_f_metric), tuple(_f_fy), tuple(_f_kind),
-                              tuple(_f_src), _sort))) % 10**8
+                              tuple(_f_src), _sort, _show_past_est))) % 10**8
             _edited = st.data_editor(
                 _rows, key=f"fc_typed_{_rcode}_{_nonce}_{_view}", hide_index=True,
                 num_rows="dynamic", use_container_width=True,
@@ -5344,6 +5505,20 @@ with tab_research:
             if _new is None or _old is None or _old <= 0:
                 return None
             return _new / _old - 1
+
+        def _editor_rows(_rows: list, _cols: list):
+            """Rows for st.data_editor. An empty list gives a grid with no
+            columns to type into, so an empty one goes in as a frame that
+            carries its columns."""
+            return _rows if _rows else pd.DataFrame(columns=_cols)
+
+        def _records(_ed) -> list:
+            """st.data_editor's result as a list of dicts with blanks as None,
+            whether it was given a list or a frame."""
+            if isinstance(_ed, pd.DataFrame):
+                _ed = _ed.to_dict("records")
+            return [{k: (None if (isinstance(v, float) and v != v) else v)
+                     for k, v in r.items()} for r in _ed]
 
         def _chip(_v, _dp=1, _title=""):
             """A signed change as a coloured chip, or a dash."""
@@ -5470,20 +5645,69 @@ with tab_research:
                 "metric": st.column_config.TextColumn("Line", disabled=True),
                 "street": st.column_config.NumberColumn(
                     "Street est." + (" FY" if _n == 4 else f" {_period} (quarter)"),
-                    disabled=True, format="%.1f",
-                    help="What the street expected for this period, as logged the day "
-                         "before. Quarterly street estimates exist only where you typed one."),
+                    format="%.2f",
+                    help="What the street expected for this period going in. Type or correct "
+                         "it here; it is saved dated the day before the result."),
                 "guide": st.column_config.NumberColumn(
-                    f"Co. guidance {_fy}", disabled=True, format="%.1f",
-                    help="Full-year company guidance going in."),
-                "h1": st.column_config.NumberColumn("Co. 1H guidance", disabled=True,
-                                                    format="%.1f"),
+                    f"Co. guidance {_fy}", format="%.2f",
+                    help="Full-year company guidance going in. A correction is saved dated the "
+                         "day before the result; new guidance given with the result goes in "
+                         "section 2."),
+                "h1": st.column_config.NumberColumn(
+                    "Co. 1H guidance", format="%.2f",
+                    help="First-half company guidance going in, saved dated the day before."),
                 "reported": st.column_config.NumberColumn(
                     f"Reported — {_what}", format="%.2f",
                     help="¥bn, or ¥ per share for EPS. Leave blank to skip a line."),
             }
             _ed = st.data_editor(_grid, key=f"rd_rep_{_rcode}_{_vkey}", hide_index=True,
                                  use_container_width=True, num_rows="fixed", column_config=_cfg)
+
+            # One-offs in this result — typed alongside the figures, because the
+            # extraordinaries are only known once the tanshin is out. Seeded
+            # with anything already logged for this period, so this is also
+            # where those are corrected.
+            _oo_period = "4Q" if _n == 4 else _period
+            _oo_all = _one_offs_for(_rcode)
+            _oo_here = [e for e in _oo_all if e.get("fy") == _fy and e.get("period") == _oo_period]
+            st.markdown(f'<div class="fc-qhead">One-offs in this result — {_safe_text(_oo_period)} '
+                        f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
+            _oo_grid = [{"id": e.get("id"), "item": e.get("item", ""), "note": e.get("note", ""),
+                         "line": OO.LINE_LABEL.get(e.get("line"), OO.LINE_LABEL["extraordinary"]),
+                         "amount_bn": float(e.get("amount_jpy") or 0) / 1e9,
+                         "np_bn": (None if e.get("np_amount_jpy") in (None, "")
+                                   else float(e["np_amount_jpy"]) / 1e9)} for e in _oo_here]
+            _oo_ed = st.data_editor(
+                _editor_rows(_oo_grid, ["id", "item", "note", "line", "amount_bn", "np_bn"]),
+                key=f"rd_oo_{_rcode}_{_vkey}", hide_index=True, num_rows="dynamic",
+                use_container_width=True, column_order=["item", "note", "line", "amount_bn", "np_bn"],
+                column_config={
+                    "item": st.column_config.TextColumn("Item", help="e.g. Impairment, Gain on "
+                                                                     "sale of securities"),
+                    "note": st.column_config.TextColumn(
+                        "Note", width="large",
+                        help="What it is — shown in the hover bubble on the One-off adj. line."),
+                    "line": st.column_config.SelectboxColumn(
+                        "Where it lands", options=list(OO.LINE_LABEL.values()), required=True,
+                        default=OO.LINE_LABEL["operating"]),
+                    "amount_bn": st.column_config.NumberColumn(
+                        "Pre-tax ¥bn", format="%.2f", help="Gain positive, loss negative."),
+                    "np_bn": st.column_config.NumberColumn(
+                        "After-tax ¥bn", format="%.2f",
+                        help="Optional. Blank uses 70% of the pre-tax amount."),
+                })
+            _line_of = {v: k for k, v in OO.LINE_LABEL.items()}
+            _oo_new = [{"id": r.get("id"), "fy": _fy, "period": _oo_period,
+                        "line": _line_of.get(r.get("line"), "operating"),
+                        "item": r.get("item") or "", "note": r.get("note") or "",
+                        "amount_jpy": float(r["amount_bn"]) * 1e9,
+                        "np_amount_jpy": (None if r.get("np_bn") is None
+                                          else float(r["np_bn"]) * 1e9)}
+                       for r in _records(_oo_ed) if r.get("amount_bn") is not None]
+            # What the readout adjusts by: this period's items as typed here,
+            # plus earlier periods' logged items for the year to date.
+            _oo_before = [e for e in _oo_all if e.get("fy") == _fy and e.get("period") in
+                          ("1Q", "2Q", "3Q", "4Q")[:_n - 1]]
 
             # Readout, recomputed from what is typed on every rerun.
             _prior = fund.prior_fy(_fy)
@@ -5493,7 +5717,13 @@ with tab_research:
                 _v = _r.get("reported")
                 if not _m or _v is None:
                     continue
-                _md = _meta[_m]
+                # The going-in figures as they stand in the grid, typed-over
+                # values included, so the readout moves as they are corrected.
+                _md = dict(_meta[_m])
+                for _col in RD.GOING_IN:
+                    if _col in _r:
+                        _md[_col] = (None if _r.get(_col) is None
+                                     else float(_r[_col]) * _unit(_m))
                 _v = float(_v) * _unit(_m)
                 if _n == 4:
                     _ytd, _q = _v, (None if _md["prev_ytd"] is None else _v - _md["prev_ytd"])
@@ -5512,6 +5742,23 @@ with tab_research:
                 _vs_g = _chg(_ytd, _md["guide"]) if _n == 4 else None
                 _vs_h1 = _chg(_ytd, _md["h1"]) if _n == 2 else None
                 _rd_rows.append((_r["metric"], _m, _q, _ytd, _vs_st, _yoy, _prog, _vs_g, _vs_h1))
+                # The same line with this result's one-offs taken out — what
+                # decides whether the quarter actually beat.
+                _iq = OO.impact(_oo_new, _m, _fy, (_oo_period,))
+                if _iq:
+                    _iy = _iq + OO.impact(_oo_before, _m, _fy, ("1Q", "2Q", "3Q"))
+                    _aq = None if _q is None else _q - _iq
+                    _ay = None if _ytd is None else _ytd - _iy
+                    _avs = _chg(_ay if _n == 4 else _aq, _md["street"])
+                    _rd_rows.append((f'Adj. {_r["metric"]}', _m, _aq, _ay, _avs, None,
+                                     (_ay / _md["guide"]) if (_n < 4 and _ay is not None
+                                                              and _md["guide"]) else None,
+                                     _chg(_ay, _md["guide"]) if _n == 4 else None,
+                                     _chg(_ay, _md["h1"]) if _n == 2 else None))
+                    if _m == "operating_profit" and _avs is not None:
+                        _summary_bits.append(f"adjusted for one-offs, OP "
+                                             f"{'beat' if _avs >= 0 else 'missed'} by "
+                                             f"{abs(_avs) * 100:.1f}%")
                 if _m == "operating_profit":
                     if _vs_st is not None:
                         _summary_bits.append(f"OP {'beat' if _vs_st >= 0 else 'missed'} the street by "
@@ -5524,7 +5771,8 @@ with tab_research:
                       + ('<th>vs co. guidance</th>' if _n == 4 else '<th>Progress vs FY guide</th>')
                       + ('<th>vs 1H guide</th>' if _n == 2 else '') + '</tr>')
                 for _lbl, _m, _q, _ytd, _vs, _yo, _pg, _vg, _vh in _rd_rows:
-                    _h += (f'<tr><td>{_safe_text(_lbl)}</td><td>{_bn(_q, _m)}</td>'
+                    _h += (f'<tr{" class=tr-adj" if _lbl.startswith("Adj. ") else ""}>'
+                           f'<td>{_safe_text(_lbl)}</td><td>{_bn(_q, _m)}</td>'
                            f'<td>{_bn(_ytd, _m)}</td><td>{_chip(_vs)}</td><td>{_chip(_yo)}</td>'
                            + (f'<td>{_chip(_vg)}</td>' if _n == 4 else
                               f'<td>{"—" if _pg is None else f"{_pg * 100:.0f}%"}</td>')
@@ -5614,9 +5862,41 @@ with tab_research:
                 {_lbl_to_m[r["metric"]]: r.get("reported") for r in _ed if r["metric"] in _lbl_to_m},
                 {_g_lbl_to_m[r["metric"]]: r.get("new") for r in _g_ed if r["metric"] in _g_lbl_to_m},
                 _fc_map, _date, _source, _buyback, _events, _so, _tr)
-            if not _entries and not _new_events:
+            # Typed-over going-in figures, dated the day before the result.
+            _gi_shown = {_lbl_to_m[r["metric"]]: {c: r.get(c) for c in RD.GOING_IN}
+                         for r in _grid if r["metric"] in _lbl_to_m}
+            _gi_typed = {_lbl_to_m[r["metric"]]: {c: r.get(c) for c in RD.GOING_IN if c in r}
+                         for r in _ed if r["metric"] in _lbl_to_m}
+            _gi_entries, _gi_log = RD.plan_going_in(
+                _fy, _period, _gi_typed, _gi_shown,
+                {_g_lbl_to_m[r["metric"]]: r.get("new") for r in _g_ed if r["metric"] in _g_lbl_to_m},
+                _date, _source)
+            for _k, _v in _gi_entries.items():
+                _entries.setdefault(_k, _v)
+            # One-offs typed for this period replace what was logged for it.
+            _oo_save, _pool = [], list(_oo_all)
+            for _e in _oo_new:
+                _e = dict(_e, date=_date, source=fund.typed_source(_source))
+                _e["id"] = _e.get("id") or CE.new_id(_rcode, _date, "one-off", _pool)
+                _pool.append(_e)
+                _oo_save.append(_e)
+            _oo_kept = {e["id"] for e in _oo_save}
+            _oo_drop = [e["id"] for e in _oo_here if e.get("id") not in _oo_kept]
+            def _sig(e):
+                return (e.get("item") or "", e.get("note") or "", e.get("line"),
+                        round(float(e.get("amount_jpy") or 0)),
+                        None if e.get("np_amount_jpy") in (None, "") else round(float(e["np_amount_jpy"])))
+            _oo_changed = bool(_oo_drop) or ({_sig(e) for e in _oo_save} != {_sig(e) for e in _oo_here})
+            if _gi_log:
+                _log_add(_rcode, _gi_log)
+                EL.append_via_github(_ec_repo, _gh_token, _rcode, _gi_log)
+            if not _entries and not _new_events and not _oo_changed and not _gi_log:
                 st.session_state.research_flash = ("info", "Nothing new to save.")
                 st.rerun()
+            if _oo_changed:
+                st.session_state.one_offs_map = CE.apply(
+                    st.session_state.get("one_offs_map") or {}, _rcode, _oo_save, _oo_drop)
+                _ok3, _m3 = OO.save_via_github(_ec_repo, _gh_token, _rcode, _oo_save, _oo_drop)
             _msgs = []
             if _entries:
                 st.session_state.consensus_manual_map.setdefault(_rcode, {}).update(
@@ -5627,6 +5907,9 @@ with tab_research:
             if _new_events:
                 _ok2, _m2 = _save_events(_rcode, _new_events)
                 _msgs.append(_m2 if _ok2 else f"Events kept for this session, not saved: {_m2}")
+            if _oo_changed:
+                _msgs.append(f"One-offs: {_m3}" if _ok3
+                             else f"One-offs kept for this session, not saved: {_m3}")
             _lead = ("; ".join(_summary_bits) + ". ") if _summary_bits else ""
             _lead += "".join(f"{_l} guidance {'raised' if _c > 0 else 'cut'} "
                              f"{abs(_c) * 100:.1f}%. " for _l, _c in _g_moves)
@@ -5650,6 +5933,23 @@ with tab_research:
 
             # 1 · Results against expectations
             _rec = EL.results_record(_log)[:8]
+            _oo_c = _one_offs_for(_rcode)
+
+            def _adj_vs(_e, _o):
+                """Under the reported beat/miss, the same comparison with logged
+                one-offs taken out — a quarter that missed on the reported
+                figure can have beaten on what recurs."""
+                _fy4 = _e["period"] == "FY"
+                _ps = ("1Q", "2Q", "3Q", "4Q") if _fy4 else (_e["period"],)
+                _i = OO.impact(_oo_c, "operating_profit", _e["fy"], _ps)
+                _base = _o.get("ytd") if _fy4 else _o.get("quarter")
+                _st = _o.get("street_fy") if _fy4 else _o.get("street_q")
+                if not _i or _base is None or not _st:
+                    return ""
+                _tip = "\n".join(OO.describe(x) for x in
+                                  OO.items_for(_oo_c, "operating_profit", _e["fy"], _ps))
+                return (f'<div class="fc-ytd" title="{_safe_text(_tip)}"><small>ADJ</small> '
+                        f'{_chip(_chg(_base - _i, _st))}</div>')
             st.markdown('<div class="fc-qhead">Results against expectations</div>',
                         unsafe_allow_html=True)
             if _rec:
@@ -5672,12 +5972,19 @@ with tab_research:
                              if _gm is not None else
                              (f'new {_bn(_o.get("guide_after"))}' if (_fy4 and _o.get("guide_after"))
                               else '<span class="fc-na">unchanged</span>'))
-                    _h += (f'<tr><td><b>{_safe_text(_e["period"])}</b> {_safe_text(_e["fy"])}</td>'
+                    _has_oo = any(o.get("fy") == _e["fy"] and (_e["period"] == "FY"
+                                                               or o.get("period") == _e["period"])
+                                  for o in _one_offs_for(_rcode))
+                    _h += (f'<tr><td><b>{_safe_text(_e["period"])}</b> {_safe_text(_e["fy"])}'
+                           + (' <span class="fv-oo" title="One-off logged for this period — see '
+                              'One-offs &amp; anomalies">⚑</span>' if _has_oo else '')
+                           + '</td>'
                            f'<td>{_safe_text(_e["date"])}</td>'
                            f'<td>{_bn(_s.get("quarter"))}</td>'
                            f'<td>{_chip(_s.get("vs_street_fy") if _fy4 else _s.get("vs_street_q"))}</td>'
                            f'<td>{_bn(_o.get("quarter"))}</td>'
-                           f'<td>{_chip(_o.get("vs_street_fy") if _fy4 else _o.get("vs_street_q"))}</td>'
+                           f'<td>{_chip(_o.get("vs_street_fy") if _fy4 else _o.get("vs_street_q"))}'
+                           + _adj_vs(_e, _o) + '</td>'
                            f'<td>{"—" if _marg is None else f"{_marg * 100:.1f}%"}</td>'
                            f'<td>{_pg}</td><td>{_gtxt}</td></tr>')
                 st.markdown(_h + '</table><div class="fc-legend"><span>¥bn. "vs street" is '
@@ -5738,7 +6045,7 @@ with tab_research:
                     + ' <em>— a fall in issued shares means cancelled; a fall only ex-treasury '
                       'means bought and held</em></span>')
             if _reads:
-                st.markdown('<div class="fc-reads">' + "".join(_reads) + '</div>',
+                st.markdown(_chipify(_reads),
                             unsafe_allow_html=True)
             if _events:
                 _h = ('<table class="tr-table"><tr><th>Date</th><th>Event</th><th>Size</th>'
@@ -5749,8 +6056,18 @@ with tab_research:
                         f'¥{_e["amount_jpy"] / 1e9:,.1f}bn' if _e.get("amount_jpy") else "",
                         f'{_e["shares"] / 1e6:,.1f}m sh' if _e.get("shares") else "",
                         (f'DPS {_e["dps_old"]:g} → {_e["dps_new"]:g}'
-                         if _e.get("dps_new") is not None and _e.get("dps_old") is not None else ""))
+                         if _e.get("dps_new") is not None and _e.get("dps_old") is not None else ""),
+                        (f'bought ¥{_e["cum_amount_jpy"] / 1e9:,.1f}bn so far'
+                         if _e.get("cum_amount_jpy") else ""),
+                        (f'{_e["cum_shares"] / 1e6:,.1f}m sh so far'
+                         if _e.get("cum_shares") and not _e.get("cum_amount_jpy") else ""))
                         if x) or "—"
+                    # Progress as a share of the authorisation it belongs to.
+                    if _e.get("type") == "Buyback progress":
+                        _auth = next((a for a in _events if a.get("type") == "Buyback announced"
+                                      and a.get("date", "") <= _e.get("date", "")), None)
+                        if _auth and _auth.get("amount_jpy") and _e.get("cum_amount_jpy"):
+                            _size += f' ({_e["cum_amount_jpy"] / _auth["amount_jpy"] * 100:.0f}% done)'
                     # What the share count did after the announcement.
                     _before = [t for t in _trend if t[0] <= _e.get("date", "")]
                     _after = _trend[-1] if _trend else None
@@ -5775,9 +6092,47 @@ with tab_research:
             _events = _events_for(_rcode)
             _sugg = CE.suggestions(_tdnet_idx.get(_rcode, []), _rcode, _events)
             if _sugg:
-                st.markdown('<div class="fc-note"><b>From TDnet, not yet logged</b> — each is '
-                            'added as a row below for you to fill in the size.</div>',
-                            unsafe_allow_html=True)
+                st.markdown('<div class="fc-note"><b>From TDnet, not yet logged</b> — 📄 Read '
+                            'fills in the size or the progress from the notice; or fill the row '
+                            'added below by hand.</div>', unsafe_allow_html=True)
+                for _i, _sg in enumerate(_sugg[:6]):
+                    _k1, _k2 = st.columns([5, 1])
+                    with _k1:
+                        st.markdown(f'<div class="fc-note">{_safe_text(_sg["date"])} '
+                                    f'<b>{_safe_text(_sg["type"])}</b> — '
+                                    f'<a href="{_safe_text(_sg["url"])}" target="_blank">'
+                                    f'{_safe_text((_sg["title_en"] or _sg["title"])[:80])}</a></div>',
+                                    unsafe_allow_html=True)
+                    with _k2:
+                        _rd = _read_notice_ui(_rcode, _sg, f"ce_{_rcode}_{_i}")
+                    if _rd:
+                        _ev = NR.to_event(_rd, _rcode, _sg["date"], _sg["title"], _events)
+                        if not _ev:
+                            st.markdown('<div class="fc-note">Not a buyback notice by its '
+                                        'content.</div>', unsafe_allow_html=True)
+                            continue
+                        _bb = _rd.get("buyback") or {}
+                        _bits = [x for x in (
+                            f'authorised ¥{_bb["authorised_amount_jpy"] / 1e9:,.1f}bn'
+                            if _bb.get("authorised_amount_jpy") else "",
+                            f'{_bb["authorised_shares"] / 1e6:,.1f}m shares'
+                            if _bb.get("authorised_shares") else "",
+                            f'to {_bb["period_end"]}' if _bb.get("period_end") else "",
+                            f'bought so far ¥{_bb["cumulative_amount_jpy"] / 1e9:,.1f}bn'
+                            if _bb.get("cumulative_amount_jpy") else "",
+                            f'{_bb["cumulative_shares"] / 1e6:,.2f}m shares'
+                            if _bb.get("cumulative_shares") else "",
+                            f'as of {_bb["as_of"]}' if _bb.get("as_of") else "") if x]
+                        st.markdown(f'<div class="fc-note">Read as <b>{_safe_text(_ev["type"])}</b>: '
+                                    f'{_safe_text(", ".join(_bits) or "no figures stated")}</div>',
+                                    unsafe_allow_html=True)
+                        if st.button("Add to the log", key=f"ce_add_{_rcode}_{_i}"):
+                            _so, _tr = _shares_now(_fc_map, _fundrow)
+                            if _ev.get("shares"):
+                                _ev["pct_shares"] = CE.pct_of_shares(_ev["shares"], _so, _tr)
+                            _ok, _msg = _save_events(_rcode, [_ev])
+                            st.session_state.research_flash = ("success" if _ok else "warning", _msg)
+                            st.rerun()
             _so, _tr = _shares_now(_fc_map, _fundrow)
             _rows = [{"id": _e.get("id"), "date": _e.get("date"), "type": _e.get("type"),
                       "amount_bn": (_e.get("amount_jpy") or 0) / 1e9 or None,
@@ -5792,7 +6147,9 @@ with tab_research:
                       for s in _sugg]
             _nonce = st.session_state.get(f"ce_nonce_{_rcode}", 0)
             _ed = st.data_editor(
-                _rows, key=f"ce_{_rcode}_{_nonce}", hide_index=True, num_rows="dynamic",
+                _editor_rows(_rows, ["id", "date", "type", "amount_bn", "shares_m", "dps_old", "dps_new",
+                              "until", "note", "source", "tdnet_title"]),
+                key=f"ce_{_rcode}_{_nonce}", hide_index=True, num_rows="dynamic",
                 use_container_width=True,
                 column_order=["date", "type", "amount_bn", "shares_m", "dps_old", "dps_new",
                               "until", "note", "source"],
@@ -5815,7 +6172,7 @@ with tab_research:
             _today = now_local().date().isoformat()
             _upsert, _seen = [], set()
             _pool = list(_events)
-            for _r in _ed:
+            for _r in _records(_ed):
                 if not _r.get("date") or not _r.get("type"):
                     continue
                 _ev = {"date": str(_r["date"])[:10], "type": _r["type"],
@@ -5836,6 +6193,501 @@ with tab_research:
             st.session_state.research_flash = ("success" if _ok else "warning", _msg)
             st.session_state[f"ce_nonce_{_rcode}"] = _nonce + 1
             st.rerun()
+
+        # ── Forward view: summary card, flags, charts ─────────────────────
+        # The top of the forecast panel answers the forward questions first —
+        # what is the next result up against, where does the year stand
+        # against guidance and the street, what is the stock paying for it —
+        # and raises the flags that change how to read those numbers. The
+        # detail they are drawn from stays in the table and sections below.
+
+        def _price_history_for(_code: str) -> list:
+            """[(date, close)] weekly, from data/price_history.csv (shared)."""
+            def _load():
+                _st, _txt = gh_read.raw_get(_ec_repo, "data/price_history.csv", _gh_token)
+                _out = {}
+                if _st == 200 and _txt:
+                    import csv as _csv
+                    import io as _io
+                    for _r in _csv.DictReader(_io.StringIO(_txt)):
+                        try:
+                            _out.setdefault(_r["code"], []).append((_r["date"], float(_r["close"])))
+                        except (KeyError, ValueError):
+                            continue
+                return _out
+            if "price_history_map" not in st.session_state:
+                try:
+                    st.session_state.price_history_map = _shared("price_history_map", _load) or {}
+                except Exception as _e:
+                    print(f"price history load error: {_e}")
+                    st.session_state.price_history_map = {}
+            return st.session_state.price_history_map.get(_code, [])
+
+        def _one_offs_for(_code: str) -> list:
+            if "one_offs_map" not in st.session_state:
+                try:
+                    st.session_state.one_offs_map = OO.load_from_github(_ec_repo, _gh_token)
+                except Exception as _e:
+                    print(f"one-offs load error: {_e}")
+                    st.session_state.one_offs_map = {}
+            return st.session_state.one_offs_map.get(_code, [])
+
+        def _main_metric(_get, _years) -> str:
+            """The profit line the summary and charts are drawn on: operating
+            profit where the issuer files it, else the first one it does."""
+            for _m in ("operating_profit", "ordinary_profit", "net_profit"):
+                if any(_get(_m, _y, _b) is not None for _y in _years
+                       for _b in ("actual", "company", "ytd_1q")):
+                    return _m
+            return "operating_profit"
+
+        def _progress_usual(_get, _m, _fy, _n, _years):
+            """(this year's progress at quarter n, the median of prior years')
+            from the panel's own map — so it works before the log has history."""
+            _g = _get(_m, _fy, "company")
+            _ytd = (fund.quarter_breakdown(_get, _m, _fy).get(fund.YTD_PERIODS[_n - 1])
+                    or (None, ""))
+            _this = (_ytd[0] / _g) if (_g and _ytd[0] is not None
+                                       and _ytd[1] in ("actual", "derived")) else None
+            _pri = []
+            for _y in _years:
+                if _y >= _fy:
+                    continue
+                _a = _get(_m, _y, "actual")
+                _p = (fund.quarter_breakdown(_get, _m, _y).get(fund.YTD_PERIODS[_n - 1]) or (None,))[0]
+                if _a and _a > 0 and _p is not None:
+                    _pri.append(_p / _a)
+            _pri.sort()
+            return _this, (_pri[len(_pri) // 2] if _pri else None)
+
+        def _flag_html(_f: dict) -> str:
+            _icon = {"good": "▲", "bad": "▼", "warn": "⚑", "info": "●"}.get(_f.get("tone"), "●")
+            return (f'<details class="fv-flag fv-{_safe_text(_f.get("tone", "info"))}">'
+                    f'<summary>{_icon} {_safe_text(_f.get("title", ""))}</summary>'
+                    f'<div>{_safe_text(_f.get("detail", ""))}</div></details>')
+
+        def _fc_forward(_rcode, _rname, _fc_map, _vi, _fundrow):
+            _get, _years = _vi["get"], sorted({k[1] for k in _fc_map if len(k) == 3 and k[1]})
+            _vals = _vi["vals"]
+            _log = _log_for(_rcode)
+            _events = _events_for(_rcode)
+            _oo = _one_offs_for(_rcode)
+            _live, _rep = _live_fy(_fc_map)
+            _mm = _main_metric(_get, _years)
+            _mlabel = {"operating_profit": "OP", "ordinary_profit": "Ord. profit",
+                       "net_profit": "Net profit"}[_mm]
+            _today = now_local().date().isoformat()
+            _nxt = _next_results(_rcode)
+            _days = ((pd.Timestamp(_nxt) - pd.Timestamp(_today)).days if _nxt else None)
+
+            # Column 1 — the next quarter.
+            _nq = FW.next_quarter(_get, _live, _mm)
+            _last = EL.summarize_latest(_log)
+            _c1 = [f'<div class="fv-k">Next result</div>'
+                   f'<div class="fv-v">{_safe_text(_nq["period"] + " " + _live) if _nq else "—"}</div>'
+                   f'<div class="fv-s">{"on " + _safe_text(_nxt) + (f" · in {_days} days" if _days is not None else "") if _nxt else "date not in the calendar yet"}</div>']
+            if _nq and _nq.get("street") is not None:
+                _c1.append(f'<div class="fv-s">Street {_mlabel} <b>{_bn(_nq["street"])}</b>'
+                           + (f' · needs {_chip(_nq["yoy"])} YoY' if _nq.get("yoy") is not None else '')
+                           + '</div>')
+            else:
+                _c1.append('<div class="fv-s fv-muted">No quarterly street estimate typed '
+                           '— add one under Edit to get a beat/miss.</div>')
+            if _last:
+                _c1.append(f'<div class="fv-s">Last: {_safe_text(_last["period"])} '
+                           + (f'{"beat" if _last["op_vs_street"] >= 0 else "missed"} street '
+                              f'{_chip(_last["op_vs_street"])}' if _last.get("op_vs_street") is not None
+                              else 'no street estimate was logged')
+                           + '</div>')
+
+            # Column 2 — this year against guidance and the street.
+            _g = _get(_mm, _live, "company")
+            _s = _get(_mm, _live, "consensus")
+            _c2 = [f'<div class="fv-k">This year · {_safe_text(_live)}</div>',
+                   f'<div class="fv-v">{_mlabel} guidance {_bn(_g, _mm) if _g is not None else "—"}</div>']
+            if _s is not None and _g:
+                _c2.append(f'<div class="fv-s">Street {_bn(_s, _mm)} · {_chip(_s / _g - 1)} vs guidance</div>')
+            else:
+                _eg, _es = _get("eps", _live, "company"), _get("eps", _live, "consensus")
+                if _eg and _es is not None:
+                    _c2.append(f'<div class="fv-s">Street EPS {_es:,.0f} vs guidance {_eg:,.0f} '
+                               f'· {_chip(_es / _eg - 1)}</div>')
+            _qn = next((_n for _n in (3, 2, 1)
+                        if _progress_usual(_get, _mm, _live, _n, _years)[0] is not None), None)
+            if _qn:
+                _this, _usual = _progress_usual(_get, _mm, _live, _qn, _years)
+                _c2.append(f'<div class="fv-s">Progress at {_qn}Q <b>{_this * 100:.0f}%</b>'
+                           + (f' vs usual {_usual * 100:.0f}%' if _usual is not None else '') + '</div>')
+            _revs = (st.session_state.get("guidance_history") or {}).get(_rcode, {})
+            _r = fund.revision_move(_revs.get((_live, _mm)))
+            if _r:
+                _c2.append(f'<div class="fv-s">Guidance {_r[1]} {_chip(_r[0])} since first given</div>')
+
+            # Column 3 — what the stock pays for it.
+            _pe_now = _vals.get("pe_fy1_consensus") or _vals.get("pe_fy1_company")
+            _c3 = ['<div class="fv-k">Valuation</div>',
+                   f'<div class="fv-v">P/E {_fnum(_vals.get("pe_fy1_consensus"), 1, "×")} '
+                   f'<span class="fv-muted">/ {_fnum(_vals.get("pe_fy2_consensus"), 1, "×")}</span></div>',
+                   '<div class="fv-s">street FY1 / FY2 · on guidance '
+                   f'{_fnum(_vals.get("pe_fy1_company"), 1, "×")}</div>',
+                   f'<div class="fv-s">Yield {_pct(_vals.get("yield_fy1_company"), 2)} · '
+                   f'P/B {_fnum(_vals.get("pb"), 2, "×")}'
+                   + (f' · EV/EBITDA {_fnum(_vals.get("ev_ebitda"), 1, "×")}'
+                      if _vals.get("ev_ebitda") else '') + '</div>']
+            _peh = [p for _, p, _ in FW.pe_history(_price_history_for(_rcode), _log, "company")
+                    if p and p > 0][-52:]
+            if len(_peh) >= 8 and _vals.get("pe_fy1_company"):
+                _cur = _vals["pe_fy1_company"]
+                _rank = sum(1 for p in _peh if p <= _cur) / len(_peh)
+                _c3.append(f'<div class="fv-s">On guidance: {min(_peh):.1f}–{max(_peh):.1f}× over '
+                           f'{len(_peh)} weeks · now at the {_rank * 100:.0f}th percentile</div>')
+
+            # Flags.
+            _flags = []
+            if _vi.get("split_factor"):
+                _flags.append({"tone": "bad", "title": "Stock split — per-share figures suppressed",
+                               "detail": "A split sits between the filed share count and the price; "
+                                         "P/E and yield are blanked until the per-share figures are "
+                                         "restated."})
+            _rq = FW.raise_quality(_log, _live, _mm)
+            if _rq:
+                _flags.append(_rq)
+            _gs = FW.guidance_stance({m: _get(m, _live, "company") for m in fund.METRICS},
+                                     {m: _get(m, _live, "consensus") for m in fund.METRICS},
+                                     fund.conservatism(_revs))
+            if _gs:
+                _flags.append(_gs)
+            _auth = [e for e in _events if e.get("type") == "Buyback announced"]
+            _unread = sum(1 for s in CE.suggestions(_tdnet_idx.get(_rcode, []), _rcode, _events)
+                          if s["type"] == "Buyback progress"
+                          and (not _auth or s["date"] >= _auth[-1].get("date", "")))
+            _bb = FW.buyback_status(_events, _today, _nxt or "", _unread)
+            if _bb:
+                _flags.append(_bb)
+            elif _unread:
+                _flags.append({"tone": "info", "title": f"{_unread} buyback notice(s) not logged",
+                               "detail": "TDnet has buyback notices for this company that are not "
+                                         "in the log. Read them under Track record → Log or "
+                                         "correct a capital-return event."})
+            _res = EL.results_dates(_log)
+            _cand = [c for c in OO.tdnet_candidates(_tdnet_idx.get(_rcode, []), _rcode, _oo, _res)
+                     if c["date"] >= (pd.Timestamp(_today) - pd.Timedelta(days=150)).date().isoformat()]
+            _recent_oo = [e for e in _oo if e.get("fy") == _live]
+            if _recent_oo or _cand:
+                _flags.append({"tone": "warn",
+                               "title": "One-offs this year" if _recent_oo else
+                                        f"{len(_cand)} one-off notice(s) on TDnet",
+                               "detail": ("; ".join(f'{e.get("period")}: {e.get("item")} '
+                                                    f'{_bn(float(e.get("amount_jpy") or 0))}'
+                                                    for e in _recent_oo[:3])
+                                          or "; ".join(f'{c["date"]} {c["kind"]}' for c in _cand[:3]))
+                                         + ". See One-offs & anomalies below; logged items show "
+                                           "as an 'ex one-offs' line in the table."})
+
+            st.markdown(
+                '<div class="fv-card"><div class="fv-grid">'
+                + "".join(f'<div class="fv-col">{"".join(_c)}</div>' for _c in (_c1, _c2, _c3))
+                + '</div>'
+                + ('<div class="fv-flags">' + "".join(_flag_html(f) for f in _flags) + '</div>'
+                   if _flags else '')
+                + '</div>', unsafe_allow_html=True)
+            _fc_charts(_rcode, _fc_map, _vi, _mm, _mlabel, _log)
+
+        def _fc_charts(_rcode, _fc_map, _vi, _mm, _mlabel, _log):
+            """Three small charts: the quarters, the year's path, the multiple."""
+            import altair as alt
+            _get = _vi["get"]
+            _years = sorted({k[1] for k in _fc_map if len(k) == 3 and k[1]
+                             and str(k[1]).startswith("FY")})
+            _live, _rep = _live_fy(_fc_map)
+            _KIND = {"actual": "Reported", "derived": "Reported", "street": "Street est.",
+                     "street_derived": "Street est.", "company": "Guidance-implied",
+                     "company_derived": "Guidance-implied"}
+            _COL = alt.Scale(domain=["Reported", "Street est.", "Guidance-implied"],
+                             range=["#8B5E3C", "#D9B98F", "#9DB3C8"])
+            _qrows = []
+            for _y in [y for y in _years if y <= _live][-3:]:
+                _bd = fund.quarter_breakdown(_get, _mm, _y)
+                _bs = fund.quarter_breakdown(_get, "net_sales", _y)
+                for _n in (1, 2, 3, 4):
+                    _e = _bd.get(f"q{_n}")
+                    if not _e:
+                        continue
+                    _sv = (_bs.get(f"q{_n}") or (None,))[0]
+                    _qrows.append({"q": f"{_n}Q '{_y[-2:]}", "order": f"{_y}{_n}",
+                                   "value": _e[0] / 1e9, "kind": _KIND.get(_e[1], "Reported"),
+                                   "margin": (_e[0] / _sv * 100) if _sv else None})
+            _c1, _c2, _c3 = st.columns(3)
+            _cfg = dict(height=190)
+            with _c1:
+                st.markdown(f'<div class="fv-ch">{_mlabel} by quarter, ¥bn · margin %</div>',
+                            unsafe_allow_html=True)
+                if _qrows:
+                    _df = pd.DataFrame(_qrows)
+                    # An explicit order: a layered chart ignores a sort field.
+                    _x = alt.X("q:N", sort=list(_df.sort_values("order")["q"]), title=None,
+                               axis=alt.Axis(labelAngle=0, labelFontSize=9))
+                    _bars = alt.Chart(_df).mark_bar(cornerRadiusTopLeft=2, cornerRadiusTopRight=2).encode(
+                        x=_x, y=alt.Y("value:Q", title=None, axis=alt.Axis(labelFontSize=9)),
+                        color=alt.Color("kind:N", scale=_COL, legend=alt.Legend(
+                            orient="bottom", title=None, labelFontSize=9, symbolSize=60)),
+                        tooltip=[alt.Tooltip("q:N", title="Quarter"),
+                                 alt.Tooltip("value:Q", title="¥bn", format=",.1f"),
+                                 alt.Tooltip("kind:N", title="")])
+                    _line = alt.Chart(_df.dropna(subset=["margin"])).mark_line(
+                        point=alt.OverlayMarkDef(size=18), color="#1B4F72", strokeWidth=1.5).encode(
+                        x=_x, y=alt.Y("margin:Q", title=None,
+                                      axis=alt.Axis(labelFontSize=9, orient="right", format=".0f")),
+                        tooltip=[alt.Tooltip("margin:Q", title="Margin %", format=".1f")])
+                    st.altair_chart(alt.layer(_bars, _line).resolve_scale(y="independent")
+                                    .properties(**_cfg), use_container_width=True)
+                else:
+                    st.markdown('<div class="fv-muted">No quarterly figures yet.</div>',
+                                unsafe_allow_html=True)
+            with _c2:
+                st.markdown(f'<div class="fv-ch">{_mlabel} by year: reported, and every '
+                            f'guidance / street revision</div>', unsafe_allow_html=True)
+                _prows = []
+                for _y in _years[-5:]:
+                    _a = _get(_mm, _y, "actual")
+                    if _a is not None:
+                        _prows.append({"fy": _y, "value": _a / 1e9, "series": "Reported",
+                                       "date": "", "latest": True})
+                    for _basis, _ser in (("company", "Guidance"), ("consensus", "Street")):
+                        _st = EL.series(_log, _mm, _y, _basis)
+                        if not _st and _get(_mm, _y, _basis) is not None:
+                            _st = [("", _get(_mm, _y, _basis), "")]
+                        for _i, (_d, _v, _) in enumerate(_st):
+                            if _v is not None:
+                                _prows.append({"fy": _y, "value": _v / 1e9, "series": _ser,
+                                               "date": _d, "latest": _i == len(_st) - 1})
+                if _prows:
+                    _df = pd.DataFrame(_prows)
+                    _base = alt.Chart(_df).encode(x=alt.X("fy:N", title=None,
+                                                          axis=alt.Axis(labelAngle=0, labelFontSize=9)))
+                    _bars = _base.transform_filter(alt.datum.series == "Reported").mark_bar(
+                        color="#8B5E3C", opacity=0.85, size=22).encode(
+                        y=alt.Y("value:Q", title=None, axis=alt.Axis(labelFontSize=9)),
+                        tooltip=[alt.Tooltip("fy:N"), alt.Tooltip("value:Q", title="Reported ¥bn",
+                                                                  format=",.1f")])
+                    _pts = _base.transform_filter(alt.datum.series != "Reported").mark_point(
+                        filled=True).encode(
+                        y="value:Q",
+                        color=alt.Color("series:N", scale=alt.Scale(domain=["Guidance", "Street"],
+                                                                    range=["#1B4F72", "#C77C2E"]),
+                                        legend=alt.Legend(orient="bottom", title=None,
+                                                          labelFontSize=9)),
+                        shape=alt.Shape("series:N", scale=alt.Scale(domain=["Guidance", "Street"],
+                                                                    range=["circle", "diamond"]),
+                                        legend=None),
+                        size=alt.condition(alt.datum.latest, alt.value(70), alt.value(22)),
+                        opacity=alt.condition(alt.datum.latest, alt.value(1), alt.value(0.45)),
+                        tooltip=[alt.Tooltip("fy:N"), alt.Tooltip("series:N", title=""),
+                                 alt.Tooltip("value:Q", title="¥bn", format=",.1f"),
+                                 alt.Tooltip("date:N", title="As of")])
+                    st.altair_chart(alt.layer(_bars, _pts).properties(**_cfg),
+                                    use_container_width=True)
+            with _c3:
+                st.markdown('<div class="fv-ch">Forward P/E — on guidance and on the street, '
+                            'weekly</div>', unsafe_allow_html=True)
+                _ph = _price_history_for(_rcode)
+                _pe = ([{"date": d, "pe": p, "basis": "On guidance"}
+                        for d, p, _ in FW.pe_history(_ph, _log, "company")]
+                       + [{"date": d, "pe": p, "basis": "On street"}
+                          for d, p, _ in FW.pe_history(_ph, _log, "consensus")])
+                _pe = [r for r in _pe if 0 < r["pe"] < 200]
+                if len(_pe) >= 4:
+                    _df = pd.DataFrame(_pe)
+                    st.altair_chart(alt.Chart(_df).mark_line(strokeWidth=1.6).encode(
+                        x=alt.X("date:T", title=None, axis=alt.Axis(labelFontSize=9, format="%b %y")),
+                        y=alt.Y("pe:Q", title=None, scale=alt.Scale(zero=False),
+                                axis=alt.Axis(labelFontSize=9, format=".0f")),
+                        color=alt.Color("basis:N", scale=alt.Scale(domain=["On guidance", "On street"],
+                                                                   range=["#1B4F72", "#C77C2E"]),
+                                        legend=alt.Legend(orient="bottom", title=None,
+                                                          labelFontSize=9)),
+                        tooltip=[alt.Tooltip("date:T", format="%Y-%m-%d"),
+                                 alt.Tooltip("basis:N", title=""),
+                                 alt.Tooltip("pe:Q", title="P/E", format=".1f")])
+                        .properties(**_cfg), use_container_width=True)
+                else:
+                    st.markdown('<div class="fv-muted">Not enough weekly prices and EPS '
+                                'history yet.</div>', unsafe_allow_html=True)
+
+        def _chipify(_reads: list) -> str:
+            """The long read-outs as one row of short chips that open to the
+            full sentence. A read is '<span class="fc-read"><b>Label</b> text</span>';
+            the chip shows the label and the text up to its first ' · ' or
+            ' — ', and the whole of it when opened."""
+            import re as _re
+            _out = []
+            for _r in _reads:
+                _m = _re.match(r'<span class="fc-read"><b>(.*?)</b>(.*)</span>$', _r, _re.S)
+                if not _m:
+                    _out.append(_r)
+                    continue
+                _label, _body = _m.group(1), _m.group(2).strip()
+                _short = _re.split(r" · | — |\. ", _body, maxsplit=1)[0]
+                _plain = _re.sub(r"<[^>]+>", "", _short).strip()
+                if len(_plain) > 60:
+                    _short = _safe_text(_plain[:58].rstrip() + "…")
+                _out.append(f'<details class="fc-chip"><summary><b>{_label}</b> {_short}</summary>'
+                            f'<div>{_body}</div></details>')
+            return '<div class="fc-chips">' + "".join(_out) + '</div>'
+
+        # ── One-offs & anomalies ──────────────────────────────────────────
+        def _read_notice_ui(_rcode, _sugg: dict, _key: str):
+            """A '📄 Read' button for one TDnet notice: fetch the PDF, read it
+            with notice_reader, keep the reading in session for review."""
+            _res_key = f"nr_{_key}"
+            if st.button("📄 Read", key=f"nr_btn_{_key}",
+                         help="Fetch this notice and read its numbers with Claude. "
+                              "You review the result before anything is saved."):
+                _api_key = get_secret("ANTHROPIC_API_KEY")
+                if not _api_key:
+                    st.session_state.research_flash = (
+                        "warning", "ANTHROPIC_API_KEY is not set in Streamlit Secrets.")
+                    st.rerun()
+                try:
+                    _bytes = fetch_document_bytes(_sugg["url"])
+                    st.session_state[_res_key] = NR.read_notice(_bytes, _api_key, _rcode,
+                                                                _sugg.get("title", ""))
+                except Exception as _e:
+                    st.session_state.research_flash = ("warning", f"Could not read the notice: {_e}")
+                st.rerun()
+            return st.session_state.get(_res_key)
+
+        def _fc_one_offs(_rcode, _fc_map, _vi):
+            _oo = _one_offs_for(_rcode)
+            _log = _log_for(_rcode)
+            _get = _vi["get"] if _vi else (lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value"))
+            _years = sorted({k[1] for k in _fc_map if len(k) == 3 and str(k[1]).startswith("FY")})
+            _res = EL.results_dates(_log)
+            _cand = OO.tdnet_candidates(_tdnet_idx.get(_rcode, []), _rcode, _oo, _res)
+            _flags = OO.numeric_flags(_get, _years)
+            st.markdown('<div class="fc-note">Items that make a quarter look better or worse than '
+                        'the business underneath it. Logged items show in the forecast table as an '
+                        '<b>ex one-offs</b> line, with YoY on that basis. Net profit moves by the '
+                        'after-tax amount where you give one, else by the pre-tax amount less an '
+                        'assumed 30% tax.</div>', unsafe_allow_html=True)
+
+            if _flags:
+                st.markdown('<div class="fc-qhead">Worth a look — from the numbers</div>'
+                            + '<div class="fv-flags">' + "".join(
+                                _flag_html({"tone": "warn", "title": f["title"], "detail": f["detail"]})
+                                for f in _flags[:6]) + '</div>', unsafe_allow_html=True)
+
+            if _cand:
+                st.markdown('<div class="fc-qhead">TDnet notices not yet logged</div>',
+                            unsafe_allow_html=True)
+                for _i, _c in enumerate(_cand[:6]):
+                    _k1, _k2 = st.columns([5, 1])
+                    with _k1:
+                        st.markdown(f'<div class="fc-note">{_safe_text(_c["date"])} '
+                                    f'<b>{_safe_text(_c["kind"])}</b>'
+                                    + (f' · lands in {_safe_text(_c["period"])} {_safe_text(_c["fy"])}'
+                                       if _c["period"] else '')
+                                    + f' — <a href="{_safe_text(_c["url"])}" target="_blank">'
+                                      f'{_safe_text((_c["title_en"] or _c["title"])[:80])}</a></div>',
+                                    unsafe_allow_html=True)
+                    with _k2:
+                        _rd = _read_notice_ui(_rcode, _c, f"oo_{_rcode}_{_i}")
+                    if _rd and _rd.get("one_offs"):
+                        st.markdown('<div class="fc-note">Read: ' + "; ".join(
+                            f'{_safe_text(o["item"])} {o["amount_jpy"] / 1e9:+,.1f}bn '
+                            f'({_safe_text(OO.LINE_LABEL[o["line"]])}, {_safe_text(o["period"])})'
+                            for o in _rd["one_offs"]) + '</div>', unsafe_allow_html=True)
+                        if st.button("Add these to the log", key=f"oo_add_{_rcode}_{_i}"):
+                            _new, _pool = [], list(_oo)
+                            for o in _rd["one_offs"]:
+                                _e = {"fy": _c["fy"], "period": _c["period"] or "",
+                                      "line": o["line"], "item": o["item"],
+                                      "amount_jpy": o["amount_jpy"], "np_amount_jpy": None,
+                                      "date": _c["date"], "source": "typed:Company data",
+                                      "tdnet_title": _c["title"]}
+                                _e["id"] = CE.new_id(_rcode, _c["date"], "one-off", _pool)
+                                _pool.append(_e)
+                                _new.append(_e)
+                            st.session_state.one_offs_map = CE.apply(
+                                st.session_state.get("one_offs_map") or {}, _rcode, _new)
+                            _ok, _msg = OO.save_via_github(_ec_repo, _gh_token, _rcode, _new)
+                            st.session_state.research_flash = (
+                                "success" if _ok else "warning",
+                                _msg + ("" if _c["period"] else " Set the period for each in the "
+                                                                "grid below."))
+                            st.rerun()
+                    elif _rd:
+                        st.markdown('<div class="fc-note">The notice states no one-off amounts.'
+                                    + (f' {_safe_text(_rd.get("notes", ""))}' if _rd.get("notes") else '')
+                                    + '</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="fc-qhead">Logged one-offs</div>', unsafe_allow_html=True)
+            _live, _ = _live_fy(_fc_map)
+            _fy_opts = sorted(set(_years[-3:]) | {_live} | {e.get("fy") for e in _oo if e.get("fy")},
+                              reverse=True)
+            _rows = [{"id": e.get("id"), "fy": e.get("fy"), "period": e.get("period"),
+                      "line": OO.LINE_LABEL.get(e.get("line"), OO.LINE_LABEL["extraordinary"]),
+                      "item": e.get("item", ""), "note": e.get("note", ""),
+                      "amount_bn": (float(e.get("amount_jpy") or 0) / 1e9),
+                      "np_bn": (None if e.get("np_amount_jpy") in (None, "")
+                                else float(e["np_amount_jpy"]) / 1e9),
+                      "source": fund.source_label(e.get("source", "")) or None,
+                      "tdnet_title": e.get("tdnet_title", "")} for e in _oo]
+            _nonce = st.session_state.get(f"oo_nonce_{_rcode}", 0)
+            _ed = st.data_editor(
+                _editor_rows(_rows, ["id", "fy", "period", "line", "item", "note", "amount_bn", "np_bn",
+                              "source", "tdnet_title"]),
+                key=f"oo_{_rcode}_{_nonce}", hide_index=True, num_rows="dynamic",
+                use_container_width=True,
+                column_order=["fy", "period", "line", "item", "note", "amount_bn", "np_bn", "source"],
+                column_config={
+                    "fy": st.column_config.SelectboxColumn("FY", options=_fy_opts, required=True,
+                                                           default=_live),
+                    "period": st.column_config.SelectboxColumn("Quarter",
+                                                               options=["1Q", "2Q", "3Q", "4Q"],
+                                                               required=True),
+                    "line": st.column_config.SelectboxColumn(
+                        "Where it lands", options=list(OO.LINE_LABEL.values()), required=True,
+                        default=OO.LINE_LABEL["extraordinary"]),
+                    "item": st.column_config.TextColumn("Item"),
+                    "note": st.column_config.TextColumn(
+                        "Note", width="large",
+                        help="What it is — shown in the hover bubble on the One-off adj. line."),
+                    "amount_bn": st.column_config.NumberColumn(
+                        "Pre-tax ¥bn", format="%.2f", required=True,
+                        help="Positive for a gain, negative for a loss."),
+                    "np_bn": st.column_config.NumberColumn(
+                        "After-tax ¥bn", format="%.2f",
+                        help="Optional. Left blank, 70% of the pre-tax amount is used."),
+                    "source": st.column_config.SelectboxColumn("Source",
+                                                               options=list(fund.SOURCE_CHOICES)),
+                })
+            if st.button("💾 Save one-offs", key=f"oo_save_{_rcode}_{_nonce}"):
+                _line_of = {v: k for k, v in OO.LINE_LABEL.items()}
+                _upsert, _seen, _pool = [], set(), list(_oo)
+                for _r in _records(_ed):
+                    if not _r.get("fy") or not _r.get("period") or _r.get("amount_bn") is None:
+                        continue
+                    _e = {"fy": _r["fy"], "period": _r["period"],
+                          "line": _line_of.get(_r.get("line"), "extraordinary"),
+                          "item": _r.get("item") or "", "note": _r.get("note") or "",
+                          "amount_jpy": float(_r["amount_bn"]) * 1e9,
+                          "np_amount_jpy": (None if _r.get("np_bn") is None
+                                            else float(_r["np_bn"]) * 1e9),
+                          "date": now_local().date().isoformat(),
+                          "source": fund.typed_source(_r.get("source")),
+                          "tdnet_title": _r.get("tdnet_title") or ""}
+                    _e["id"] = _r.get("id") or CE.new_id(_rcode, _e["date"], "one-off", _pool)
+                    _pool.append(_e)
+                    _seen.add(_e["id"])
+                    _upsert.append(_e)
+                _remove = [e["id"] for e in _oo if e.get("id") not in _seen]
+                st.session_state.one_offs_map = CE.apply(
+                    st.session_state.get("one_offs_map") or {}, _rcode, _upsert, _remove)
+                _ok, _msg = OO.save_via_github(_ec_repo, _gh_token, _rcode, _upsert, _remove)
+                st.session_state.research_flash = ("success" if _ok else "warning", _msg)
+                st.session_state[f"oo_nonce_{_rcode}"] = _nonce + 1
+                st.rerun()
 
         def _fc_qa(_rcode, _rname):
             """Read a Q&A document, classify each exchange, review, save findings.
@@ -6332,7 +7184,12 @@ with tab_research:
                     _years, _get, _src = _vi["years"], _vi["get"], _vi["src"]
                     _profile, _split_factor = _vi["profile"], _vi["split_factor"]
 
+                    # Forward view first: the summary card, its flags and the
+                    # three charts. The full table follows as the detail.
+                    _fc_forward(_rcode, _rname, _fc_map, _vi, _fundrow)
+
                     _fc_render({
+                        "one_offs": _one_offs_for(_rcode),
                         "years": _years, "get": _get, "src": _src,
                         "vals": _vi["vals"],
                         "fundrow": _fundrow, "price": _price, "mcap": _mcap,
@@ -6399,6 +7256,16 @@ with tab_research:
             _fc_history(_rcode, _rname, _fc_map or {},
                         _valuation_inputs(_rcode)["profile"] if _fc_map else "general",
                         _fundrow or {})
+
+        # ── One-offs & anomalies ──────────────────────────────────────────
+        # What makes a quarter unrepresentative: logged items (which drive the
+        # table's "ex one-offs" line), TDnet notices announcing one, and
+        # quarters whose numbers look out of line with the company's history.
+        if _fc_map:
+            _n_oo = len(_one_offs_for(_rcode))
+            if _toggle_section(f"⚠️ One-offs & anomalies{f' ({_n_oo} logged)' if _n_oo else ''}",
+                               "research_oneoffs_open"):
+                _fc_one_offs(_rcode, _fc_map, _valuation_inputs(_rcode))
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []
