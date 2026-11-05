@@ -1,1 +1,383 @@
-{}
+{
+  "summary_bytime": {
+    "idx": {
+      "1": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "Is the heightened concern about AI regulations due to the Democratic Party's landslide victory an overreaction? Nikkei average plummets by more than 3,000 yen... Hole in \"circulating funds\" supporting huge investments - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE9QeXdSZW9VTHNmMEVfcUR0UEl3cXFZNFRTRVFXLTZkT1RZSTNQdklXQ2Vtd2FELUhyZ0VPcmcwTWRhbFhib3FvZVpoeV9iWGFQbUhKaW5haGRibVV3TFJz?oc=5"
+      },
+      "10": {
+        "source": "Japan Times Business",
+        "title_for_match": "Democrats clinch huge wins on inflation anger and Trump fatigue - The Japan Times",
+        "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxPdVNCM2NPSEo3Y24yRzNuZTA5Tk96SFh1ZzBPbjg0ZG41ZzV2bzU3TVlhRnduT1M1OW1XSFBMYndTSHlFWlZoVXEtLVJFNVVBUHZQYWM3UHNtN3RGUGh1M3ZiQkhuNm5kSWZ6VnZGakpFT1lKZlB0YllvaW5mTHk0S1pvakVSTE52ZVgtamFDbXg1Y1hvcVFEU29n?oc=5"
+      },
+      "11": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "<Correct argument> Reconsidering the memorial service for the victims of the Battle of Leyte Gulf by Jun Kuno, associate professor at Nihon Keizai University - Sankei News",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE9RRFU2MlRQVEV0TnRFQWdWNjZQWE0xbHcwUFVkdHZRaE9mTGRtZzMxT1d3bHFNS0tNc0ZvZWtWRGRZOVAyV3RmV1lZbWFXVDdrcXAwODdzUlRmODlUaEtnT0pfdlVweGFwRE1FSk5Ld3hrU3QtQlE?oc=5"
+      },
+      "12": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "NY Stock Highlights Selection prompted by “Blue Tsunami” Data center selling behind GAFAM high - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9GSkFHbTR0emxBcHM4eXZiS21lTUZVS2ljckRBdVhNc2R0cV9ybnBLaWJWZTBXb2s1bzZIdXNrUC1qNnFRa3hmLUo0cExMOWJBeHQ3R1VJTGJPY012YlJra0VzYkI2aExhQ3pjag?oc=5"
+      },
+      "13": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Dow temporarily up 1,500 points overnight after election",
+        "url": "https://news.yahoo.co.jp/pickup/6601373?source=rss"
+      },
+      "14": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Nikkei average buys aiming for autonomous rebound to avoid US political turmoil (pre-read stock market) - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE0xbEh1dHBkQkxHT3ZJUUtLckpvQ1dMRk0yaXNSeHdzRmxENE50aHI0YWt0T0lueWtTQW81QVJxakdqdFFPVkZZcFJCV3VjOEdKd1p0dEVuRENxN05qZmhyY3dkTFlwTmItWmM5Wg?oc=5"
+      },
+      "15": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Despite the Democratic Party's landslide victory, financial stocks are likely to rise; there is danger in Wall Street's optimism - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5lZXlYUUJlTENHLS0wZU1LTF9uLVgya1pHdnEySFBIZTNXT0FEMVBTa1k0Y1NJZU9LSmM0LUpjekN0RE9YbXJMdi0taG82VFJaZFJoZ0dlaFhTZFlDUWY1bVRRYmEya1JMdmpoeg?oc=5"
+      },
+      "16": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Despite the U.S. coreweave shock, the AI ​​investment boom will not end - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE03b3Y5Q0RKak1WYVBlSU5WeVdjWnZVcG1laWJ2TXdzMS1BU2t4bW1NaDFKR1RFbDR0aHF1ZkRlLXpaZ2tlQzhFQzhDR0pXMjZvanJCb2t1bzdOajU0YW9acThjc21sWGpxSmc0QVdDeWV4TmtjcFJEMHd0MlVOWEk?oc=5"
+      },
+      "17": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Brake to construction of AI data center Opposition wins in Texas, spreads across the U.S. - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE80T1VIRG9fMnFyZUlrMG9BWXJudVBqeGZmQ2RKSnFLci1nZGVMOGVuVWpjbThyTFlfYTdjb3doWDVPeDVma05jS19MRkRTRDc5d3B1WXNSdTN2dXJqX3laMVJwQVNEUGFiTko2bw?oc=5"
+      },
+      "18": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Mr. Vance loses in mid-term elections ``war is the reason'', a flash point with Mr. Trump over Iran - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE4yXzFnV2ZVbGlZNGszbms4RFhGWUwtd0doZWRzS3NXVjd1ZnBLQV9hbGlpblVmREs1S2xEUjJKbkdOMkZhTGtLaHlpV3daRzcwajFYTExsRFBMV09iTVRWMVN1cTg3b2xOcFVWVw?oc=5"
+      },
+      "19": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Bitcoin rebounds to $80,000 level; Trump buys back even after ruling party loses - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1vdEZoZ1VGU2RmdzZGMmZnWDJIVTYxYWdfaGJCWDNLamNxRmtPTW5OTWFacl9mZWNZWVF2VWtzTjBhcHNJNjdXTHNWWXhFZll2Z2FEVU5aU3N2M3FZNWlpOFhRU0I5UXlXX05ZdQ?oc=5"
+      },
+      "2": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "``If people find out, I'll leave you.'' A 47-year-old marriage-hunting man reveals the conclusion the other woman came to in the past. A marriage-hunting scene where you are asked how much to talk about. - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9HY2V4YUpTclBOaGptZWhReTdEYnQ2b3RwNjVDWFZuUE51MF9RSlJ1bk1hVDRvNHVWd1N5TGVxVkpWTm9VZ2YwbDJnZWRKazJZOFE?oc=5"
+      },
+      "20": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Economic measures, 11 requests to the prefecture, etc. Prefectural Chamber of Commerce Federation / Wakayama - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBGODlvZmoyU250LV85NlhFZmpMY2taTl9pZUwzUUJCdTF3RXE0cXJvd1FXX1VPLXM4YVRCRVZiSWhSeVZwTmExc3U1QnlIODBvSmQtbFhvdXc2TkN3LWQ5bjdEcGZXcVo3?oc=5"
+      },
+      "21": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Biz Kyushu/Yamaguchi Economy Joint semiconductor campus in Kumamoto/Kikuyo Town planned by Mitsubishi UFJ, town and others / Fukuoka - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE13RDhFekpZOGY2Rk9zYXJnc0dpc2ZQUVRqaFBXVkdaVDVzcWU2RXlveTQtQlF4RnFUV0FZXy1fSDlYRV84ei1ZeTZkbmhzSllLQ2R5c192MHVkSUVuN1NfZV85RjBab3Bf?oc=5"
+      },
+      "22": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Biz Kyushu/Yamaguchi Economy Enhanced hotel facilities provide \"experiential value\" Fukuoka City successive openings and renewals / Fukuoka - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE0ybzdvNWhrbDd3dmN2bjZVek1LNS1WTmFYdjVxcVdjWXF5Vmozelp4eHg5aGR3NkMwbEl1LUYwWnlZa2g0WmhZcFdpSXdFME1ObEliVy02OVp2RVVqNUpzbVlVTzFwZVMy?oc=5"
+      },
+      "23": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Unauthorized access, choosing not to have personal information Yudetaro abolishes membership system - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5ZSFY5UHVrY2dpNEtWbkdhOGhYanAzOHpNTkxTQ3BmbGloalRrLUdiTHprSkVBLUdZR1pxMlpfdG9nQThsRkdjaWRqdURRT1VLRVVQajhzaEp4V05GQ09tc2Rzanp4OVpGVnFuYw?oc=5"
+      },
+      "24": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "Sumitomo Electric opens submarine cable base in Europe, Scottish factory - Nikkan Kogyo Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5JeU85ZnZvTHR5N0NlMG90ckNyelJmaXhJZVFYMkhXZjBhWThkczlZZkNEUGZjTi1CLXdLUVVFVFNiVzktX2RXSno0RUYyakoxdURuRjdHTEg?oc=5"
+      },
+      "25": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "VACUUM2026 Vacuum Exhibition/Paper Preview (2) - Nikkan Kogyo Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9oQlpSUEtJNkh4b0lyN1c5OExqcEFXeFdxZWtDTjNJZ1BGZW55RmN4RG1nY2FsZTE3NmV2cGZndVZoOENHcFFOQkNTNDkwVHh1dzBuQzNoYjc?oc=5"
+      },
+      "26": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "If Trump moves to impeach, the Democratic Party will collapse, a day after the election defeat - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5nYTRCOTBOTWdXVXNkNUY0XzNxa1kxeHBpN1NwWTlXUkhnbEZYdW5xMW1WNENCWUh6ZEpJNldSaXRHUm0wdjBZOS1WRlAwS09DSXljT1NtTTJ4WVVHSWlKUE5pNnNPaHZpcEpKdA?oc=5"
+      },
+      "27": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Nissan Motor Co.'s stock price drops to its lowest in half a century, falling after Lehman Brothers, looming \"small-cap stock\" - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1uUzMzUFAzNkwwRHgtUXRqS1U3Ym1uV2E4Q3NFeDc3blpxazlNMUw3ZjRCTjJHcmpFa3QyNTlIWjh0V2pvd1BVOHVnSGRTdTlwdGtrVjA0dHU3VXdwZy1ackZhWGVoeWROQldtVA?oc=5"
+      },
+      "28": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "WSJ Japan Edition: US Democratic victory boosted by anger over economy: ``I've had enough'' - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBSQWpFbTd3RVJnSmN1Y2FMTTlseE1UZEd0OHo2aWh5cFQwMUtGMENzdlMyanZJd2toWmFFcVc2R1ZkdVNKWWlrTDhKLWI2Y2UtUVhrSHhXc0VVNGRmYzFYTFphRjJWMkdt?oc=5"
+      },
+      "29": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Mr. Trump is cornered, domestic policy impasse, risk of tilting towards diplomacy with China, Russia and North Korea - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1zMEtzWmhXcUxhRnBYbHhwT25tdGd6ZW1DYWNMZU5mWkdXbWV5bHdhOWtseHVndjYxbFprQnRHMEh2V3JmV1BEUFFVbXl3TkVfaGpsSXpPVGpoOWdvZWhlUVVybnZmemZFMWhJZg?oc=5"
+      },
+      "3": {
+        "source": "Diamond Weekly",
+        "title_for_match": "Worst characteristics of people who will become pathetic in their old age | Shockingly small habits - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE8tMW0wME83c3ZGaENNV1hPY29UWVVXQWpOc2luaklORUFoVDZ3Uzk5bnhTa0dGdlE0cnVPaGtjRmg4Y3pDcTVTNDB5WFM?oc=5"
+      },
+      "30": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "UNESCO recommends that Japanese calligraphy be registered as an intangible cultural heritage - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5NMUtVQjRSVkE0ekFvaVBTdEdMUFF6UWdWU2JZdDlSYkN5QlBsOUlZMmVhWjJKZGdNUFNLMEZpRFYzNEhPdmd0RTNUa2Z4d2VlNmZMSWtlTEUzZzBfMjdqZUVYbl9QalF4NmtZYw?oc=5"
+      },
+      "31": {
+        "source": "Rakumachi",
+        "title_for_match": "[Practical Landlord Column] You can become rich by investing in real estate at \"1 in 8 billion\" - Rakumachi",
+        "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5HMHNyQkZMOW9RRVZwRVhFWThrODhKYTFUOFItNXV2RktlWDlUTkltbTRvWXVoQ2RwVzMxMl8yRXltN3JwTXJla01yX1N0TWJ2TzdsemRYczlWZw?oc=5"
+      },
+      "32": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Consider increasing linear construction costs again",
+        "url": "https://news.yahoo.co.jp/pickup/6601365?source=rss"
+      },
+      "33": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "NY Dow rises by $1,500 at one point, as Trump's ``cooperation with Democrats'' eases caution - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9WSjY5UkFMdWozTTlrcjhuSnNIUXVGVHQ2SFZvN0dETGxwRlRZZVNodjZkR0EwdUtoSjNtVTA3cUhGeWxxZHBMdXNWSVhhWFJkeVI5eHJLNlFzSmVNVDJidWJhSVBNMTY4NzU0aw?oc=5"
+      },
+      "34": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Japan Post Bank invests 20% in Matsui Securities",
+        "url": "https://news.yahoo.co.jp/pickup/6601352?source=rss"
+      },
+      "35": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Sanuki udon restaurant in Kagawa struggles to cope with crowds",
+        "url": "https://news.yahoo.co.jp/pickup/6601347?source=rss"
+      },
+      "36": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "Wang Yi holds foreign ministers' meeting with Mekong countries to \"not tolerate Japanese militarism\" and expands cooperation in AI and digital economy - Sankei News",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE9KbEFRZ0t0TUlNRXJhRmpUdkE2VUJ1SVUzeDM3aHhaRVRNaF9UZTdoSWJsWVkwdGRTYThnRjhvOWxYeHBPNkxON29BeUJIdDVBS1Mzay1YV05UUElmSmhTbTgyaXRCbnRyTXkyMTlhUmRrQ3M0b3c?oc=5"
+      },
+      "37": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Financial Services Agency conducts on-site inspection at Sony FG",
+        "url": "https://news.yahoo.co.jp/pickup/6601346?source=rss"
+      },
+      "38": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "The impact of the US midterm elections on the Japanese economy",
+        "url": "https://news.yahoo.co.jp/pickup/6601343?source=rss"
+      },
+      "39": {
+        "source": "Rakumachi",
+        "title_for_match": "[Practical Landlord Column] It’s been a long time ~First column in a year~ - Rakumachi",
+        "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1DOVNtWjhvWXllS1VTV0dQZ3dCaU16SkpXeVQwWGxHZWVYU0wzVlFsbGtBQ21ESy1kTWtTc2laM0lBSGNfZ3pESlFmVXo2eHpSbWlzUVJicmRMQQ?oc=5"
+      },
+      "4": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "Will Tesla's new Roadster, a \"flying supercar\" unveiled after nine years, really be commercially available? - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFBaMlFPOGxaM29kOVlxVnZTREh1NFZFT3dpT1lvcWdxOUpBZm80LWNnQXZuNk5sRV83MDh6ZFVJZkFpbW81VGxrYmwzNzQzWXhIbkE?oc=5"
+      },
+      "40": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Seibu Railway collaborates with 11 local governments along the Shinjuku Line to participate in regional revitalization council - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9GaWZ2TURoR0JCUnRGcjFkQXZHM29iaE8tanVMOFNMbkpWejRweDhtX3dDLWxKSUJLcy16YVVubHUwTFg0NlFGSVFSZ25MRENraFpsMk5NQXpMR0k4cVU5aEk1VTNDR25NRUg4cw?oc=5"
+      },
+      "41": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "The number of sushi restaurants closing, closing, and disbanding has increased rapidly in 25 years.",
+        "url": "https://news.yahoo.co.jp/pickup/6601334?source=rss"
+      },
+      "42": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "The number of Japanese births in the first half of 2026 increases by 0.4% to 320,000 for the first time in 11 years - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTFBrS1pTOTdvOVRiMEF6c2dnMG94MlNRM0xoVlM2YS1LYlRzMk9zMFhEbU1fcHZlU3JjTWtfUXNGVmxyVDBOZVhlZF9kRFBYajdZQkxsdlJaTF93dU8zMXFlZlNGQk1KX1BMejdOMQ?oc=5"
+      },
+      "43": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Proposal to collect fees from beauty medical institutions; Financial System Council proposes utilization of local medical personnel - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5WXzBGOFBrcDg3Ql96Z1FHTWVoaDRyMFAxRlhwcU9TeG9WLW9TNmZzWk9EMXVLRGh3bEFwYXV5QnFzYl9SYUEtRmk2MXEyTXdfaElkMFB4c2JfcnN6eWRKY1d2bjdNWW5Ea1pmSw?oc=5"
+      },
+      "44": {
+        "source": "Japan Times Business",
+        "title_for_match": "‘Sister Brother Manhole Cover’ wins top prize at Tokyo International Film Festival - The Japan Times",
+        "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxPM050YW53MUZncUtDY0czSk8zMDZ5aTdaNmszYWF4S1Q1UDhlZVpPQUZWNEl0bzlKSWRvMEFtSFRnamhJSXBRUEl6SXB2Vk9yeVowcmxEbC1uUlhSWGlnMjZOeEFKSHhZSnpQVFJUVU5mcTA3S1cyY0xFOThtOHdVbm1EaHIySkhTZVlMYUVXVmVYTWRMVWc?oc=5"
+      },
+      "45": {
+        "source": "Japan Times Business",
+        "title_for_match": "25.7% in Japan to use food tax cut benefits for savings, survey finds - The Japan Times",
+        "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxOS29NZWpKWGFzd1MxbmMzODhtc0xoakdqY2kzRS0yNmZlV21YWG5CY2lIaDdneWxrdGVPeEZva1NLRXdMTHd2NVpQeE9hWml3ZFJsdHhhM09IMTNZNmMxMTdCWk1IZXJhOU5leVRMVWU5OHdUeUY2RXZKMkRiREhUVXF2V1BOYzM4UFE?oc=5"
+      },
+      "46": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "Financial results positive/impact stocks [TSE Prime] Donation… IHI, Mitsubishi Corporation, Itochu (announced on November 4th) - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE1VaFZOc3dwc2ltVmZrSW40ZnpCQmstZE5BZjNDVWtLd0N0a2FNaWZQU1pnanhuT1RCOGVFS2IyUHVndlBsZ3FNZ2ptUlN2cmJOSkE?oc=5"
+      },
+      "47": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "Financial results positive impact stocks [TSE Standard Growth] Donation… Chiyoken, Krasil, Gurunavi (announced on November 4th) - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE1fOHBrTC1Way1XamZRTmNmOVFiVlJGcVpuNEdlU3lPb2hlTWVIMTZoM3dkYTFiRkg5VVo5YVMzd2JXanRSaGZ5RW1MVWNPaTVlNUE?oc=5"
+      },
+      "48": {
+        "source": "QUICK Money World",
+        "title_for_match": "Container shipping company ONE's after-tax profit revised upward to $2 billion for this fiscal year, from $900 million - QUICK Money World",
+        "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFB5N2RDamtweUFPeGwwUzlzVjFPZTEyb3hPN1BJLUJja0JtY1dUcndqSmVTN3hoa0pncUtHaE5SeERuR3RUTnozeGE1dDV2TzUwYk54d09R?oc=5"
+      },
+      "49": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "Rasa Kou is weak, profit-taking selling is dominant even though earnings forecast for this term is raised - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE40aUpLVFpQYm03aHFCZFA2aVE4WTJuZ1poSEVDVDBxa3dNR19wcmxZUEc2SFNRYlpweFNwNjF0YW04RTdBLVF5cHltM0lFVlpZcjNkNmNpQjl1aGY4M3B0Mg?oc=5"
+      },
+      "5": {
+        "source": "Diamond Weekly",
+        "title_for_match": "[Unique] A thorough analysis of the NTT Group's personnel and compensation system, revealing the annual salaries of all 12 grades + specialists for the first time! Managers earn an annual income of 18.4 to 20 million yen, and the number of managers in their 30s has increased to double digits due to the selection of young people...What is the new transfer system using AI? - Diamond Online",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE52VTVRV3ZseW5mN2FsNTk2ZGc5eExxUlBpTGRXYm9Uc0Z4VkNYbkVRS3R2R3NHbnJqTXVLNXp1Tm1lbHFjSlhZZnNkb2s?oc=5"
+      },
+      "50": {
+        "source": "Kabutan Corporate",
+        "title_for_match": "Stocks with good financial results to watch today: AREHD, Rasako, Astellas (announced after the close on the 4th) - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTFBkdkdwUHlKTndkX0lJRFltRDZmMDRpSkt1VGFDZV9mVm9nVzh2TjBwLUdSbC1mRHVUNC1HdTVZSk1XdElreDhyTUJSU2gwTUZQS21nVmZiTy15VzNyVEl4ag?oc=5"
+      },
+      "51": {
+        "source": "Toyo Keizai",
+        "title_for_match": "``Procedures that are like embedding a time bomb in the body'' Can patients win in court against unscrupulous cosmetic surgery clinics? ``Legal Doc Medical Lawyer Arata's Proof'' (Episode 1 ②) | Life | Toyo Keizai Online",
+        "url": "https://toyokeizai.net/articles/-/962938?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "52": {
+        "source": "Toyo Keizai",
+        "title_for_match": "``Surprising words'' said by a doctor to a 35-year-old woman who suffered facial scars from 150,000 yen ``wrinkle removal cosmetic surgery'' ``Legal Doc Medical Lawyer Arata's Proof'' (Episode 1 ①) | Life | Toyo Keizai Online",
+        "url": "https://toyokeizai.net/articles/-/962935?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "53": {
+        "source": "Toyo Keizai",
+        "title_for_match": "《Godzilla-0.0》 “Exceeded the previous work” from the first day of release! A convincing reason why the \"live-action Japanese movie\" is expected to earn \"more than 10 billion yen\" in box office revenue as soon as possible | Life | Toyo Keizai Online",
+        "url": "https://toyokeizai.net/articles/-/963436?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "54": {
+        "source": "Diamond Online",
+        "title_for_match": "Consumption tax revenue has increased more than five times, but the national debt continues to swell...The ``real cause'' that pushed Japan's finances into a corner - News book",
+        "url": "https://diamond.jp/articles/-/400379"
+      },
+      "55": {
+        "source": "Toyo Keizai",
+        "title_for_match": "Is the heightened concern about AI regulations due to the Democratic Party's landslide victory an overreaction? Nikkei average sharply drops by more than 3,000 yen... Hole in \"circulating funds\" supporting huge investments | Politics, Economy, Investment | Toyo Keizai Online",
+        "url": "https://toyokeizai.net/articles/-/963576?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "56": {
+        "source": "Toyo Keizai",
+        "title_for_match": "President Yusuke Tanaka's Locondo management company is making a series of M&As! What are the chances of success in an acquisition worth 10 billion yen per year? Dialogue with shareholders, risk of flaming... a direct hit on Mr. Tanaka | Business | Toyo Keizai Online",
+        "url": "https://toyokeizai.net/articles/-/963219?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "57": {
+        "source": "Kabutan Corporate",
+        "title_for_match": "[IPO] LTV-X＜655A＞----Buying quote, new listing on NaSE Next market today - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5HWEN3VExiV0xMTFlCNkpsQWx0cmpjbTRJYnU0OHkzWFh1b255aEtsRExtTVQ4Rlg0ZTBQcU1CQjZ2R2ZxOEJsSVJTNE5lTjJiSHJOeWJkc0RCaWtPZ0VSSg?oc=5"
+      },
+      "58": {
+        "source": "Minkabu",
+        "title_for_match": "Pineapple Financial (PTIV): Stock price forecast, trading forecast, stock price diagnosis [NYSE MKT] - Minkabu US stocks",
+        "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTFB5R3ZPZTBma195Z2NXclY5MmhfMzlTcTE1YzdNd1hjdlRRWnNRZ0V2RHY4b19xQ3NWcHZlVkdlTnIzUXJhcHZZTWR1UFdZQXlPSEh0clZsQQ?oc=5"
+      },
+      "59": {
+        "source": "Minkabu",
+        "title_for_match": "SPACCircle Acquisition Corp. (SCQCU): Stock price forecast, trading forecast, stock price diagnosis [NASDAQ] - Minkabu US stocks",
+        "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE1pU043MFBxUzAzWC1TcE84NEFEeno2TDNCTkZLUzYyWXhBUm85RWVYRERKLTdGaHNrTGZkSnVxTEV0SC1QLU9IeG1MelZWamtFcU1sc3RDdHI?oc=5"
+      },
+      "6": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "Image | A Giants player causes a huge fire simply because he doesn't take off his hat...New manager Hideki Matsui's greeting video highlights the dangers of the team's official SNS - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE5fOHVrd3habjVndWFmeVBxcFNrVFpZTHEtT3ZLcVAxWDRZc092Y2h0NXBrTjlCcXlwRm5xYmp5QThqQVhJODBPckpOUG45SmZaRG16bndLYw?oc=5"
+      },
+      "60": {
+        "source": "Minkabu",
+        "title_for_match": "BHAV Acquisition Corp II / BHAV Acquisition Corp II (BHAIU): Stock/Stock Price/Forecast/Target Price [NASDAQ] - Minkabu US Stocks",
+        "url": "https://news.google.com/rss/articles/CBMiSkFVX3lxTE9lQmI2dEN4c3laTFVzdXJrUnZvcXJtQnNMX3U2S2pBZUt6Ry1VVFRBVWdQcXRyRDVicE9yY2tHN0xMMWFLV3B2d0Jn?oc=5"
+      },
+      "61": {
+        "source": "Minkabu",
+        "title_for_match": "BHAV Acquisition Corp II (BHAIU): Stock price forecast, trading forecast, stock price diagnosis [NASDAQ] - Minkabu US stocks",
+        "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTFBleFE5bTNuUGlRR0JUa3RXckY4bzVqQUVjRVlvcGJCSWNCZndEN2hXVUJ0Skp3LXdkTFRzT2E3SEY0T1A1U0ExQWdBbXpLYmMxWV91MF9iMks?oc=5"
+      },
+      "62": {
+        "source": "Kabutan Corporate",
+        "title_for_match": "Stock buyback stocks that are attracting attention today (announced after the close on the 4th) - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFA4NTlhU19CcGJzNE1yZGpPT3o3NFpUNFVSUzE2ajEzX2U4WDhEU0VoQ1NyWVp2Q0oybG54QTRCUDdXaW1qUkJxM0RFZUVmMVpzWWc?oc=5"
+      },
+      "63": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "[QCOM] Qualcomm Full-year sales and operating income decreased, sales decreased by 3% to $43.1 billion, operating income decreased by 30% to $8.65 billion, annual dividend increased by $0.14 to $3.62 - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE1FQU83M0RxWS1vR2t2YkpWSWpuVjR1TVctRE1MM2k0OFJCaXN1UUhrazVUSWJ2cFFGVUtFbFFfOFFTaExtbWZHZG5IYXRhTHUycHNaa3ZTMGRidDhhMVBTaU5R?oc=5"
+      },
+      "64": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "McDonald's profits increased 9% from July to September, but customer traffic slowed in the US, supported by Japan and Europe - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5md01lLUwxZVNDNDZiWjg4QXhqcnpZYUhETE04THN6Q29mRXVVZGZXeWktNk1vU0w3SzR5eVdzUUtaQkw0X0hBbS1fWUVaSkFLRjlXNlAteFg5bTZDLWZ4VEN4d1kySlJFd2hxcA?oc=5"
+      },
+      "65": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Biz Kyushu/Yamaguchi Economy Financial results Investment costs increase, Zenrin falls into the red Interim period / Fukuoka - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE5ZMWhqNXprLU5kUWVlTDlJblFjVkVnTEZQVERueVFaeFdoeHBBZkxHYng4UUh0eDBLbnk0UlppWnNUbUZ3UGhKMUFtc0VBRGJYRmF5clplenBqUmRrN2t0Q0xBR1hJRmtV?oc=5"
+      },
+      "66": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Biz Kyushu/Yamaguchi Economy Financial Results Crafteia hits new record for interim profits / Fukuoka - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTFBheXRLZy1HVkFMN3NjN2YyZndia1JnUWtmekxkc2h3V050WWx4d2prVTVleEdsLXdtbHFVSTNSME81TjE2SkJ0c2xOdEJBV2Q4QVQxV3FicmNQeWdCMGNCcndxa0lqaU91?oc=5"
+      },
+      "67": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Biz Kyushu/Yamaguchi Economy Financial Results Kyuden Final Profit Forecast Revised Up to 140 Billion Yen / Fukuoka - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1Od09Mb0dSd2VQRzVmMnJibVVSOXBPS2RLaFBXYVNFdWh5YTlMa0hjdThyWFJUY1hRd0ctdlZRb012T3J2RnVPZkRxelZwa1QzRGk3cW9kNElXSEQ4R0EycjNUZkJsTGJV?oc=5"
+      },
+      "68": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Biz Kyushu/Yamaguchi Economy Financial Results Seibu Gas upwardly revise final profit forecast / Fukuoka - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE9FOVExc0RSYlNGRmpiN0hVU0R3RnRBYjNOUk1GVnRUUHptdndDVGJXWnY0YXlXdkdZUzA4cUNmbTZMMUJLWnBFY0NPQUhwZF9pWnBFUG95d2ZxTTNieWcwY003bXlMSEhX?oc=5"
+      },
+      "69": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "Biz Kyushu/Yamaguchi Economy Financial Results TOTO Interim Final Profit 2.4x / Fukuoka - Mainichi Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA2NUo2WmhHMjJPdGN4NXZOclJPd3JkOXhwZG0wYS1uWU1CX015c0dVMC1LdTNBNW1YclFpMkI2b3ZxSTFwbzRFOENIN2xweFlKMm9RN0dlY0k3LWktRmdHUkNjSFpWd2dI?oc=5"
+      },
+      "7": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "Will Trump's ``revenge'' escalate with the Republican Party's defeat? Criminal proceedings, fines, prison sentences, retirement...The reality told by the targeted person - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1tNy16d1ZuQWNDcjJPRE1oSmtDVTg3bUpnWkJwV2d3ajgxcWR0YllrcDNrWGpTYlc1WnVmU0cteEU4R2hHdUIzM1NSdEhOYUhzUlVMbGxxODg0elJfbHNz?oc=5"
+      },
+      "70": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "More than 40% of Nippon Steel's profits come from US Steel; outlook for July-September; US mid-term elections at risk - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE41WXFIdVJWTWZmd0M3WDlhNmV6OGV5UmMzZzBaN09TdmRhRHZHak10b25ldVZpSk5rR3lzd3ZxcDdtWTMtdWtDUG5sWTgweUtYRWwxZkFacmFyeXhmR0poUFRPdnlOVF9OMzhnQw?oc=5"
+      },
+      "71": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "Mitsui Chemicals to acquire JSR to expand semiconductor materials - Nikkan Kogyo Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9SbWJfU1VjN3UwUHkwUngwRjRmQ0JuejFJdUxLUHFnNG1QMWpRejhKbDNkbkFJZnBpVVg1d1M2ZTVkWGdrcWVIbzh6VnZGa3o1Z1JOajEzVmg?oc=5"
+      },
+      "72": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "NY crude oil price plummets below $90, hopes for progress in negotiations with Iran due to Vance's remarks - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1KYVE2WFVNb0diR3dwU3RGTllwc0pERm1KMUxrNzlSOUFfQmtBS0pBRFpNSjJjTjlhNjF0WmxTNzdDNmFTcEFQLUxMMmg4cFJmOG5hSU1veFVNdFpxbHRtMVY2QWJ5ZlBBTGtqbw?oc=5"
+      },
+      "73": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "Mitsui Chemicals bets on semiconductor materials with huge acquisition of JSR; stock market warns of financial deterioration - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5wLUhJcjlteDIyVmhWUl9IQXRkVm1TY1VZOHd3MExuNGJRVFJ3cEFYYTlscm15Z1huZFJIWjVzYWs0ZW1EazcteGJwT1NzWHE2Z2lvcHpKZzZrVDV6c2hRWTBNX2NlTjBJTDFkVQ?oc=5"
+      },
+      "74": {
+        "source": "Kabutan Corporate",
+        "title_for_match": "[High Dividend Yield Stocks] Best 30 <Special Feature on Undervalued Stocks> November 4th Edition - Stock Search",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5uVEJBRHBMeXAxYTZ2aWF1ck5rTGhjYTFZOU1JWU5JQkI0U283UHJoeXhzRkU4bDFZU1BzLWtqYkZzTWVTeHFuc3U2aDhjYkZtMWl4NXFuWUdZRnlGNE5FVQ?oc=5"
+      },
+      "75": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "Four trading companies report higher performance in the fiscal year ending March 2027, resources tailwind Mitsubishi Corporation buys back 1 trillion yen in shares - Nihon Keizai Shimbun",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE4xNEFram9qcklFdV9WTjJkeEFDLW5zUHlyVFY3XzZLMW1IY3p3ZWJDVk1PYzdRc1VNaURmeC1ONmU4V3NuMVJNLUs1U3BxN2dvRHFyaE9KRnpwc2JmTHQ3TlRGOHZnUU5uaTF0UA?oc=5"
+      },
+      "8": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "``GMO aims to become the Mitsubishi Group,'' he boasted...Charismatic representative Masatoshi Kumagai's distortion of ``me-first and miniature control'' exposed at apology press conference - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE54YlN1enpLbzg1YVJSOGRIOC1WLXVudUlveHo4UEpJOGZFUkJfdGxlVHBTTDJwSUVLMFFRbi12SmZsWUxGSzZqbUhMd0RaYnFER2c?oc=5"
+      },
+      "9": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "``GMO aims to become the Mitsubishi Group,'' he boasted...Charismatic representative Masatoshi Kumagai's distortion of ``me-first and miniature control'' exposed at apology press conference - Toyo Keizai Online",
+        "url": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE5fUUU2MFhHT0RyMUEyT01IYVNUSm5MaDdDM2NFYmlkUWY4TW13RGljZG1ESTZPNEI1d3JGRUptSmVPSDdDNWlEMm5KOHdWeVlCdnI3b1ZWV09pSFU?oc=5"
+      }
+    },
+    "text": "# Japan Equities & Macro Briefing — 5 November 2026\n\nTokyo opens after a violent risk-off session. The Nikkei fell more than 3,000 yen as investors feared the US Democratic midterm landslide (\"Blue Tsunami\") would bring tighter AI and data-center regulation, compounded by a CoreWeave-led selloff in AI infrastructure. Overnight, Wall Street rotated sharply rather than crashing: the Dow rose as much as 1,500 points on financials and \"Trump–Democrat cooperation\" hopes, while data-center names sold off. That sets up an expected technical rebound in Tokyo. Domestic corporate news was constructive: trading houses, utilities and shipping raised guidance, Mitsubishi Corporation unveiled a ¥1 trillion buyback, and semiconductor-materials consolidation accelerated with Mitsui Chemicals' bid for JSR. The top implication is to rotate away from crowded AI-capex and data-center beneficiaries toward cash-rich, shareholder-return names. These include trading houses, utilities and shipping, along with domestic financials. Treat the Nikkei rebound as a chance to trim high-beta AI exposure rather than chase it.\n\n## US Midterms & Global Risk Sentiment\n\n- **The Democrats won decisively**, driven by inflation anger and \"Trump fatigue.\" Exit sentiment captured by WSJ, summed up as \"I've had enough,\" points to cost of living as the decisive issue [10][28]. Historically, a divided Washington after midterms (1994, 2010, 2018) produced gridlock that markets tolerated well. The key difference this time is the explicit threat to AI and data-center buildout, which has been the core earnings driver for Japanese semicap and electrical names. Expect US fiscal expansion to stall. That is mildly positive for UST yields, and thus for yen strength at the margin, and negative for policy-driven US capex themes.\n- **The US equity reaction was a rotation, not a rout.** The Dow rose as much as 1,500 points intraday as Trump signalled \"cooperation with Democrats,\" and financials led [13][33]. Nikkei notes, however, that the GAFAM highs masked heavy selling in data-center plays [12]. A separate Nikkei column warns that Wall Street's optimism on financials is dangerous because a Democratic House could revive bank regulation [15]. The read-through for Japan is that megabanks with US exposure (MUFG via Morgan Stanley, SMFG via Jefferies) may get a sentiment lift. Treat it as tactical.\n- **Political-risk tails have widened.** Nikkei flags that a Trump impeachment push would \"collapse\" Democratic credibility [26], while Toyo Keizai examines whether Trump's \"revenge\" against opponents escalates after defeat [7]. Nikkei also sees a cornered Trump pivoting to diplomacy with China, Russia and North Korea as domestic policy stalls [29]. A US–China thaw would help Japanese exporters' China-exposed earnings (FA, machinery). An unpredictable approach to North Korea, however, raises a security premium for Japan.\n- **Vance has broken with Trump over Iran.** He attributed the loss to \"war,\" opening a flashpoint with Trump over Iran policy [18]. This is the first visible intra-party rift on the Middle East and feeds directly into oil (see Energy). It is a meaningful signal for the 2028 succession race and Republican foreign-policy direction.\n- **Tokyo is set for a rebound.** Nikkei's pre-market preview expects buying aimed at an autonomous rebound after the US political shock [14]. Yahoo frames the midterms' impact on Japan through tariffs, yen and AI capex [38]. For context, the record one-day point drop was 4,451 yen on 5 August 2024, which was followed by a near-full rebound within days. A 3,000+ yen fall ranks among the largest point declines ever. Expect a sharp bounce in oversold large caps, but the AI-regulation overhang will cap tech-led recovery.\n\n## AI, Data Centers & Semiconductors\n\n- **AI-regulation fears drove the Nikkei crash.** Toyo Keizai asks whether the fear is an overreaction. It identifies a \"hole in circulating funds\" as the real vulnerability: hyperscaler and neocloud capex financed by recycled equity and credit flows that can reverse quickly [1][55]. This is the first major test of the AI-capex financing loop. Advantest, Tokyo Electron, SoftBank Group, Fujikura and Furukawa Electric carry the most index weight and crowding. Reduce sizing in names priced for uninterrupted capex growth.\n- **Data-center opposition is spreading.** Opposition candidates won in Texas on platforms to brake AI data-center construction, and the movement is spreading across the US over power, water and grid costs [17]. The constraint is shifting from chips to permits and power. That is negative for pure data-center plays. It is relatively neutral to positive for Japanese grid-equipment makers (Hitachi Energy, Mitsubishi Electric, Fuji Electric), since utilities still need upgrades.\n- **The AI boom is likely intact despite the CoreWeave shock.** Mainichi argues investment will continue despite CoreWeave's collapse in sentiment, because hyperscaler balance sheets remain strong [16]. CoreWeave is the bellwether for leveraged GPU clouds, which suggests stress is concentrated in credit-funded second-tier players rather than Microsoft, Google or Meta. Favour suppliers whose order books are tied to top-tier hyperscalers over those exposed to neoclouds.\n- **The Kyushu semiconductor cluster keeps deepening.** Mitsubishi UFJ, Kikuyo Town and partners plan a joint semiconductor campus in Kumamoto adjacent to TSMC/JASM [21]. This continues the multi-year Kyushu \"Silicon Island\" build-out, supporting regional banks (Kyushu FG, Fukuoka FG), local real estate and construction. It is a structural trend, not a one-off.\n- **Semiconductor-materials consolidation is accelerating.** Mitsui Chemicals' acquisition of JSR, the photoresist leader taken private by JIC in 2024 for roughly ¥900bn, signals JIC's exit path and Japan's push to build scale champions in materials [71][73]. Further consolidation is plausible among resist, wafer and specialty-gas players (Tokyo Ohka, Sumitomo Chemical, Resonac).\n- **Qualcomm's numbers are a weak handset read-through.** FY sales fell 3% to $43.1bn and operating income dropped 30% to $8.65bn, though the dividend was raised to $3.62 [63]. The profit contraction reflects lost Apple modem share and soft handsets. That is mildly negative for Japanese smartphone-component suppliers (Murata, TDK, Taiyo Yuden). Auto and IoT diversification remains the offset.\n- **Subsea cable investment is a secular theme.** Sumitomo Electric opened a European submarine cable base and Scottish factory [24]. Subsea cable demand from offshore wind interconnects and data links is strong. This diversifies Sumitomo Electric away from autos and is less exposed to US data-center permitting risk.\n- **Vacuum technology remains a niche to watch.** Nikkan Kogyo's VACUUM 2026 preview highlights vacuum technology for chip and display tools [25]. Relevant names are ULVAC and Shimadzu.\n\n## Energy & Commodities\n\n- **WTI fell below $90 on hopes of Iran negotiations** after Vance's remarks [72]. This remains well above the $60–75 range of 2025, implying a sizeable geopolitical premium could unwind if talks progress. Lower oil helps Japan's terms of trade and trade balance, which is yen-supportive. It also helps airlines (ANA, JAL), chemicals and utilities' fuel costs. It is negative for INPEX and refiners' inventory valuation (ENEOS, Idemitsu).\n- **Resources still lifted the trading houses.** Four trading houses guided higher for FY3/27 on resource prices [75]. A retreat in oil from elevated levels would compress upside to these guidances in H2. The shareholder-return story is less commodity-sensitive than the earnings story.\n- **Bitcoin rebounded to the $80,000 level**, with Trump reported buying back after the defeat [19]. It remains well below the roughly $126k peak of October 2025, so crypto risk appetite is recovering, not euphoric. Relevant Japanese proxies are Metaplanet, Monex and the SBI group.\n\n## Trade & Geopolitics\n\n- **China is escalating anti-Japan diplomacy.** Wang Yi convened Mekong foreign ministers under a banner of \"not tolerating Japanese militarism\" while expanding AI and digital cooperation [36]. This continues the deterioration in China–Japan relations. China is actively courting ASEAN, which is relevant for a Malaysian investor watching regional supply-chain allegiances. It points to risk for Japanese consumer brands in China (Shiseido, Fast Retailing, Asahi). It supports defence names (Mitsubishi Heavy, Kawasaki Heavy, IHI).\n- **The US political shift is a risk for Nippon Steel.** More than 40% of Nippon Steel's July–September profit outlook comes from US Steel [70]. The June 2025 acquisition, around $14bn with a US government \"golden share,\" now faces a Democratic-controlled House allied with the steelworkers union, raising oversight and investment-commitment scrutiny. Nippon Steel has become a US-political-risk stock. Size accordingly ahead of its results.\n- **A Trump tilt toward China, Russia and North Korea is double-edged for Japan** [29]. Tariff relief through US–China deals would help Japanese industrials. Any US–North Korea deal that bypasses Tokyo would be a security negative and supportive of defence-budget expansion.\n\n## Japan Macro, Fiscal & Demographics\n\n- **Births rose for the first time in 11 years.** Japanese births rose 0.4% to about 320,000 in H1 2026 [42]. This is notable given 2026 is a hinoeuma (\"fire horse\") year; in 1966, births fell roughly 25% on superstition. Calendar-year 2024 births were a record low of about 686,000. One half-year uptick is not a trend reversal, but it modestly tempers the demographic-decline narrative. It could support childcare, baby and education names (Pigeon, JP Holdings, Benesse) if sustained.\n- **The food consumption-tax cut is leaking into savings.** A survey finds 25.7% of people will save the benefits of the food tax cut [45]. That dilutes the consumption multiplier, consistent with persistent precautionary saving. Temper expectations for a broad-based supermarket and food-retail volume boost. Discounters and drugstores (PPIH, Kobe Bussan, Welcia) remain best positioned.\n- **The fiscal debate is intensifying.** Diamond notes consumption-tax revenue has risen more than fivefold since its 1989 introduction while national debt keeps swelling, and analyses the structural cause [54]. Combined with food-tax cuts, this feeds JGB supply and term-premium concerns. Super-long JGB yields remain the key fiscal-risk gauge. Higher long yields benefit life insurers (Dai-ichi Life, T&D) and banks, and hurt REITs and utilities' valuations.\n- **Regional businesses are pressing for stimulus.** The Wakayama chamber federation filed 11 economic-measure requests with the prefecture [20]. This reflects SME cost pressure from wages and energy, consistent with nationwide calls ahead of a supplementary budget.\n- **Cosmetic-medicine oversight is tightening.** A council proposed collecting fees from cosmetic medical institutions and redeploying local medical personnel [43]. Toyo Keizai's legal series on botched cosmetic surgery highlights rising litigation risk in the sector [51][52]. Regulatory tightening is a headwind for cosmetic-clinic operators and the platforms that advertise them.\n\n## Banks, Brokers & Financials\n\n- **Japan Post Bank is taking 20% of Matsui Securities** [34]. This is a major entry into online brokerage as the new NISA drives retail investment flows, giving Japan Post Bank's huge deposit base a distribution channel. Matsui gains a strategic backer and potential re-rating. It raises competitive pressure on SBI, Rakuten and Monex in a zero-commission market. It also signals Japan Post Bank's continued shift from JGB-heavy assets toward fee income.\n- **The FSA has inspected Sony Financial Group on site** [37]. Sony FG was spun off and relisted in September 2025. Scrutiny of a newly independent insurer, bank and asset manager adds near-term headline risk. Watch for findings on governance or product sales.\n- **US financial optimism needs caution.** Nikkei warns against extrapolating US bank strength after the Democratic win [15]. Japanese megabanks rest more on domestic rate normalisation and NIM expansion than on US deregulation, so that thesis is unaffected.\n\n## Infrastructure, Real Estate & Regional Development\n\n- **JR Central may raise Linear costs again.** It is considering another increase in Chuo Shinkansen (maglev) construction costs [32]. The estimate was previously raised to about ¥7trn in 2021 from ¥5.5trn, and the Tokyo–Nagoya opening has already slipped beyond 2027 over Shizuoka delays. Further overruns pressure JR Central's balance sheet and dividend capacity, but benefit general contractors (Obayashi, Kajima, Taisei, Shimizu).\n- **Fukuoka's hotel boom continues.** Successive hotel openings and renewals emphasise \"experiential value\" [22]. This reflects inbound tourism strength and Fukuoka's position as Japan's fastest-growing major city. Positive for hotel REITs and regional developers (Nishi-Nippon Railroad, Kyushu Railway).\n- **Seibu is pursuing regional revitalisation.** Seibu Railway joined 11 local governments along the Shinjuku Line in a regional revitalisation council [40]. It supports Seibu HD's real estate-led strategy and line-side value creation.\n- **Rakumachi landlord columns** promote real-estate investment [31][39]. These reflect continued retail appetite for property despite rising rates, but carry no direct market signal.\n\n## Consumer, Food Service & Entertainment\n\n- **Sushi restaurant failures have surged to a 25-year high** in closures and bankruptcies [41]. Rising fish, rice and labour costs are squeezing independents. This is a consolidation tailwind for scale chains (FOOD & LIFE COMPANIES/Sushiro, Kura Sushi, Zensho), which can absorb costs.\n- **Inbound tourism is now reaching regional Japan.** Sanuki udon restaurants in Kagawa are struggling with crowds [35]. This supports Toridoll (Marugame Seimen) and regional rail and transport operators.\n- **McDonald's Japan is helping offset US weakness.** McDonald's July–September profit rose 9%, with Japan and Europe offsetting slowing US traffic [64]. This confirms McDonald's Holdings Japan (2702) as a structural winner on pricing power and value perception.\n- **Cybersecurity is spreading to mid-size consumer firms.** After unauthorised access, Yudetaro abolished its membership system rather than hold personal data [23]. This follows a string of Japanese cyber incidents and supports demand for security vendors (Trend Micro, LAC, Digital Arts).\n- **Toho's IP franchise is firing.** \"Godzilla -0.0\" opened above its predecessor and is tipped to top ¥10bn at the box office [53]. \"Godzilla Minus One,\" the 2023 Oscar winner, set the benchmark. This is a direct earnings driver for Toho and supports the Japanese content-export thesis.\n\n## Corporate Governance & Business Features\n\n- **GMO's founder exposed governance concerns at an apology press conference.** Toyo Keizai details founder Masatoshi Kumagai's \"me-first, micro-control\" style, including his boast that GMO would become \"the Mitsubishi Group\" [8][9]. Key-man and governance risk is a discount factor across the GMO listed group: GMO Internet Group, GMO Payment Gateway, GMO Financial HD and GMO Internet.\n- **Locondo's aggressive M&A carries integration risk.** Under President Yusuke Tanaka, Locondo is pursuing roughly ¥10bn per year of acquisitions [56]. Shareholder-dialogue and execution risks are high for this small-cap roll-up.\n- **NTT has disclosed its pay structure.** Diamond reveals managers earn ¥18.4–20m, more 30-somethings are being promoted to manager, and an AI-driven transfer system is being introduced [5]. This shows Japan Inc.'s shift away from seniority pay, which supports productivity narratives but adds to structural wage inflation.\n- **Other features carry no direct investment signal.** These cover Tesla's Roadster commercial viability [4], social media missteps around new Giants manager Hideki Matsui's greeting video (Yomiuri, unlisted) [6], marriage-hunting and lifestyle pieces [2][3], a Tokyo film festival award [44], a UNESCO recommendation for Japanese calligraphy [30], and a Battle of Leyte Gulf memorial op-ed [11].\n\n## Company Briefs\n\n- **Earnings & guidance:**\n  - **Trading houses:** Four majors guided higher for FY3/27 on resources [75]. Mitsubishi Corp, Itochu and IHI made Kabutan's positive-results list [46].\n  - **Kyushu Electric:** Raised its full-year net profit forecast to ¥140bn on nuclear utilisation and fuel-cost tailwinds [67].\n  - **Saibu Gas:** Raised its final profit forecast [68].\n  - **TOTO:** Interim net profit rose 2.4x, signalling recovery after restructuring and China weakness [69].\n  - **Zenrin:** Swung to an interim loss on higher investment costs [65].\n  - **Crafteia:** Posted record interim profit [66].\n  - **Ocean Network Express (ONE):** Raised its FY net profit forecast to $2bn from $900m. That is a direct equity-method boost for NYK, MOL and Kawasaki Kisen, which own roughly 38/31/31% [48].\n  - **Rasa Industries:** Weak on profit-taking despite a guidance raise, a sign of \"sell the news\" in crowded semi-adjacent small caps [49].\n  - **Other strong reporters:** AREHD, Rasa and Astellas flagged as post-close standouts [50]. Chiyoken, Krasil and Gurunavi lead among Standard/Growth names [47].\n  - **Nippon Steel:** More than 40% of profits from US Steel heading into results [70].\n  - **Qualcomm:** Sales down 3%, operating income down 30%, dividend raised [63].\n  - **McDonald's:** Profit up 9% on Japan strength [64].\n- **Capital returns:**\n  - **Mitsubishi Corp:** ¥1trn share buyback, matching the scale of last year's programme under Corporate Strategy 2027 [75].\n  - **Buyback screen:** Kabutan lists buybacks announced after the 4 November close, a useful screen given the Nikkei drawdown [62].\n  - **High-yield screen:** Kabutan's top-30 high-dividend undervalued screen [74].\n- **M&A & strategic stakes:**\n  - **Mitsui Chemicals–JSR:** Large semiconductor-materials acquisition. The market warns of balance-sheet deterioration, so expect leverage and rating scrutiny and pressure on Mitsui Chemicals shares [71][73].\n  - **Japan Post Bank–Matsui Securities:** Japan Post Bank acquires 20% of Matsui, a positive re-rating catalyst for Matsui [34].\n  - **Locondo:** Serial M&A at about ¥10bn per year [56].\n- **Regulatory & governance:**\n  - **Sony FG:** FSA on-site inspection [37].\n  - **GMO group:** Founder governance concerns surfaced at an apology press conference [8][9].\n  - **Yudetaro:** Scrapped its membership system after a data breach [23].\n- **Single-stock moves:**\n  - **Nissan:** Shares hit the lowest level in half a century, below post-Lehman lows. Nissan risks sliding toward \"small-cap\" status and index-weight downgrades. Restructuring execution remains the only catalyst [27].\n- **IPO:**\n  - **LTV-X (655A):** Debuts on the Nagoya Stock Exchange Next market with buy orders exceeding supply at the open [57].\n- **Capex & operations:**\n  - **Sumitomo Electric:** European subsea cable base and Scottish factory [24].\n  - **MUFG:** Kumamoto semiconductor campus [21].\n  - **Toho:** Godzilla box-office strength [53].\n  - **JR Central:** Linear cost overrun risk [32].\n\n## What to Watch\n\n- **Nikkei rebound quality (today and this week):** Watch whether the bounce is led by AI and semicap (Advantest, TEL, SoftBank Group) or by value and financials. A value-led recovery would confirm rotation. Track CoreWeave and neocloud credit spreads as the AI-capex stress gauge [1][14][16].\n- **Peak earnings week:** Nippon Steel (US Steel contribution and US political commentary), the megabanks (mid-November), Nissan (restructuring progress) and SoftBank Group (AI-asset marks) are the key reports. Also watch for further trading-house buyback upsizing [70][27][75].\n- **Oil and US–Iran talks:** A sustained WTI break below $85 would boost airlines and chemicals and pressure INPEX. Watch for formal negotiation announcements following Vance's remarks [72][18].\n- **Mitsui Chemicals–JSR deal terms:** Watch price, financing mix (hybrid bonds or equity), rating-agency actions and regulatory approval timelines, including China antitrust given its geopolitical stance [71][73][36].\n- **Japan fiscal and yen signals:** Watch super-long JGB auctions, the supplementary budget size and food-tax-cut implementation. Also watch Q3 GDP (mid-November) for whether tax-cut benefits translate into consumption or savings [45][54].",
+    "ts": "2026-11-05T08:01:21.162487+07:00"
+  }
+}
