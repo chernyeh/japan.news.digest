@@ -1,0 +1,17 @@
+{
+  "6971": [
+    {
+      "amount_jpy": -29500000000.0,
+      "date": "2026-11-06",
+      "fy": "FY2027",
+      "id": "6971-2026-11-06-one-off",
+      "item": "GaN writedown",
+      "line": "operating",
+      "note": "",
+      "np_amount_jpy": null,
+      "period": "2Q",
+      "source": "typed:Company data",
+      "tdnet_title": ""
+    }
+  ]
+}
