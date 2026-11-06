@@ -1191,6 +1191,23 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-metric.fc-exoo { color: #B26A00; }
 .fc-metric.fc-adj { font-weight: 600; }
 .fc-bubble { cursor: help; border-bottom: 1px dotted #B26A00; white-space: nowrap; }
+/* Hover notes in the forecast table. The table's title= attributes are
+   rewritten to data-tip= when it is built: the browser's native tooltip only
+   appears after holding still for a second or more, so all a reader saw was
+   the "?" (help) cursor. This one opens at once, under the thing hovered,
+   leftwards from its right edge (cells are right-aligned), rightwards in the
+   first two columns (.fc-tl) where leftwards would run under the pinned
+   metric column. */
+.fc-table [data-tip]:not(.fc-metric) { position: relative; cursor: help; }
+.fc-table [data-tip]:not(.fc-metric):hover::after {
+    content: attr(data-tip); position: absolute; top: calc(100% + 3px); right: 0;
+    z-index: 30; width: max-content; max-width: 300px; white-space: pre-line;
+    background: #2B2420; color: #FDFAF7; text-align: left; text-transform: none;
+    font: 400 0.7rem/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0; padding: 6px 9px; border-radius: 4px; pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); }
+.fc-table .fc-tl[data-tip]:hover::after,
+.fc-table .fc-tl [data-tip]:hover::after { left: 0; right: auto; }
 .fc-pastest { color: #A0522D; }
 /* Notes are explanations, not findings: smaller and quieter than before. */
 .fc-note { font-size: 0.68rem !important; color: #9B8B7A; border-left: 0 !important;
@@ -5050,8 +5067,12 @@ with tab_research:
         # date at 2Q — reported, or estimated where 2Q is still a street
         # estimate. Treated like a quarter column everywhere except QoQ.
         _H1 = "ytd_2q"
-        _QLIKE = {**_Q_LABEL, _H1: "1H"}
-        _QN = {"q1": 1, "q2": 2, "q3": 3, "q4": 4, _H1: 2}
+        # The second half the same way: 3Q + 4Q, whatever each of them is —
+        # reported, a street estimate, or what guidance leaves for 4Q. Beside
+        # it, "2H co." is what the company's own full-year guidance implies.
+        _H2 = "h2"
+        _QLIKE = {**_Q_LABEL, _H1: "1H", _H2: "2H"}
+        _QN = {"q1": 1, "q2": 2, "q3": 3, "q4": 4, _H1: 2, _H2: 4}
         _Q_HELP = {"q1": "First quarter",
                    "q2": "Second quarter on its own (YTD 2Q less 1Q); the small line "
                          "under it is the year to date",
@@ -5127,11 +5148,19 @@ with tab_research:
 
             def _qb(_m, _y):
                 if (_m, _y) not in _bd:
-                    _bd[(_m, _y)] = (fund.quarter_breakdown(_get, _m, _y)
-                                     if (_y and _m in _Q_METRICS) else {})
+                    _d = (fund.quarter_breakdown(_get, _m, _y)
+                          if (_y and _m in _Q_METRICS) else {})
+                    if "q3" in _d and "q4" in _d:
+                        _d[_H2] = (_d["q3"][0] + _d["q4"][0],
+                                   fund._combine_kind(_d["q3"][1], _d["q4"][1]), None)
+                    _bd[(_m, _y)] = _d
                 return _bd[(_m, _y)]
 
             def _qv(_m, _y, _p):
+                if _m == "dps" and _p == _H1:
+                    # The interim (2Q) dividend: DPS is a rate, not a flow, so
+                    # it has no quarters, but the half-year instalment is real.
+                    return _get("dps", _y, "company_h1")
                 return (_qb(_m, _y).get(_p) or (None, "", None))[0]
 
             _q_years = [_y for _y in _shown
@@ -5163,26 +5192,32 @@ with tab_research:
                         else _get(_m, _y, "actual"))
                 return _ytd / _den if _den else None
 
+            def _h1_reported(_y):
+                """The first half has been reported: 1Q + 2Q are filed (or
+                typed as reported) for at least one profit line."""
+                return _reported_ytd(_y, 2)[0] is not None
+
             def _cell(_m, _y, _b):
                 """Annual-column value for a row, derived for the ratio and
                 synthetic columns."""
                 if _m == "progress":
                     return None
+                if _b == "company_h1" and _h1_reported(_y):
+                    # Once the half is reported, its guidance has nothing left
+                    # to say that the 1H A column beside it does not.
+                    return None
                 if _m in ("roe", "payout"):
-                    return None if _b in ("company_h2", "rest") else _ratio_cell(
+                    return None if _b == "company_h2" else _ratio_cell(
                         _m, _get, _y, _b, _bps, _split)
                 if _b == "company_h2":
-                    return fund.implied_h2(_get(_m, _y, "company"), _get(_m, _y, "company_h1"))
-                if _b == "rest":
-                    # What is left to earn: full-year guidance less the newest
-                    # reported year to date. Only for a year still running.
-                    if _y in _actual_years or _m not in _Q_METRICS:
-                        return None
-                    for _n in (3, 2, 1):
-                        _e = _qb(_m, _y).get(fund.YTD_PERIODS[_n - 1])
-                        if _e and _e[1] in ("actual", "derived"):
-                            return fund.implied_h2(_full_year(_get, _y)(_m), _e[0])
-                    return None
+                    # What the company's full-year guidance leaves for the
+                    # second half: the year less the reported first half, or
+                    # less its own first-half guidance until that is reported.
+                    _e = _qb(_m, _y).get(_H1)
+                    _h1 = (_e[0] if (_e and _e[1] in ("actual", "derived")) else
+                           _get("dps", _y, "company_h1") if _m == "dps" else
+                           _get(_m, _y, "company_h1"))
+                    return fund.implied_h2(_get(_m, _y, "company"), _h1)
                 return _get(_m, _y, _b)
 
             # Where the street's revenue estimate is measuring something other
@@ -5199,15 +5234,16 @@ with tab_research:
                 return (_m == "net_sales" and _b == "consensus"
                         and _suppress_street_top)
 
-            # Columns per year, in the order the year happens: 1Q, 2Q, then the
-            # first half, 3Q, 4Q, the second half, and the full-year block
-            # (reported, guidance, what is left, street). A column appears only
-            # where something is in it, so a year still running reads 1QA, 2QE
-            # (if there is an estimate), 1H, ... without gaps.
-            _ANNUAL = ["actual", "company_h1", "company_h2", "company", "rest", "consensus"]
-            _SEQ = ["q1", "q2", _H1, "company_h1", "q3", "q4", "company_h2",
-                    "actual", "company", "rest", "consensus"]
-            _FY_BLOCK = {"actual", "company", "rest", "consensus"}
+            # Columns per year, in the order the year happens: 1Q, 2Q, the
+            # first half (and its guidance, until the half is reported), 3Q,
+            # 4Q, the second half (3Q + 4Q) and what guidance implies for it,
+            # then the full-year block (reported, guidance, street). A column
+            # appears only where something is in it, so a year still running
+            # reads 1QA, 2QA, 1HA, 3QE, ... without gaps.
+            _ANNUAL = ["actual", "company_h1", "company_h2", "company", "consensus"]
+            _SEQ = ["q1", "q2", _H1, "company_h1", "q3", "q4", _H2, "company_h2",
+                    "actual", "company", "consensus"]
+            _FY_BLOCK = {"actual", "company", "consensus"}
             _cols = {}
             for _y in _shown:
                 _qs = ([_p for _p in fund.QUARTER_PERIODS
@@ -5215,6 +5251,8 @@ with tab_research:
                        if _y in _q_years else [])
                 if "q2" in _qs and any(_H1 in _qb(_m, _y) for _m in _Q_METRICS):
                     _qs.append(_H1)
+                if "q4" in _qs and any(_H2 in _qb(_m, _y) for _m in _Q_METRICS):
+                    _qs.append(_H2)
                 _an = [_b for _b in _ANNUAL
                        if any(_cell(_m, _y, _b) is not None for _m, *_ in _ROWS)]
                 if _qs or _an:
@@ -5229,29 +5267,39 @@ with tab_research:
                 return "A/E" if len(_k) > 1 else (_k.pop() if _k else "")
             _shown = [_y for _y in _shown if _y in _cols]
             _basis_label = {"actual": "Actual", "company_h1": "1H co.",
-                            "company_h2": "Impl. 2H", "company": "Co. FY",
-                            "rest": "Rest of yr", "consensus": "Street", **_QLIKE}
+                            "company_h2": "2H co.", "company": "Co. FY",
+                            "consensus": "Street", **_QLIKE}
             _basis_help = {"actual": "Reported full year, as filed",
-                           "company_h1": "Company guidance — first half",
-                           "company_h2": "Implied second half — the full-year guidance "
-                                         "less the first half. Derived here; not a figure "
-                                         "the company files.",
+                           "company_h1": "Company guidance — first half. Shown only "
+                                         "until the half is reported.",
+                           "company_h2": "Second half implied by company guidance — "
+                                         "Co. FY less the reported 1H (before the half is "
+                                         "reported: less the 1H guidance). Derived here; "
+                                         "not a figure the company files. Compare with "
+                                         "2H to its left.",
                            "company": "Company guidance — full year",
-                           "rest": "What is left to earn — full-year guidance less the "
-                                   "reported year to date. Derived here.",
                            "consensus": "Street consensus — full year", **_Q_HELP,
-                           _H1: "First half — 1Q + 2Q (the year to date at 2Q)"}
+                           _H1: "First half — 1Q + 2Q (the year to date at 2Q). "
+                                "DPS here is the interim (2Q) dividend.",
+                           _H2: "Second half — 3Q + 4Q as shown. Where those are "
+                                "estimates, this is what they add up to; compare with "
+                                "2H co., what guidance implies."}
             _has_nc = any(_src(_m, _y, _b) == "jquants:nonconsolidated"
                           for _m, *_ in _MONEY_ROWS for _y in _shown
                           for _b in _cols.get(_y, ()))
 
+            _first_cols = [(_y, _i) for _y in _shown for _i in range(len(_cols[_y]))][:2]
+
             def _edge(_y, _i, _b):
                 """Rules between years, and a lighter one where a year's
-                quarters and halves give way to its full-year block."""
+                quarters and halves give way to its full-year block. The
+                first two columns also open their hover notes rightwards: a
+                note opening leftwards there would be cut off."""
+                _tl = " fc-tl" if (_y, _i) in _first_cols else ""
                 if _i == 0:
-                    return " fc-ystart"
+                    return " fc-ystart" + _tl
                 _prev = _cols[_y][_i - 1]
-                return " fc-annstart" if (_b in _FY_BLOCK and _prev not in _FY_BLOCK) else ""
+                return (" fc-annstart" if (_b in _FY_BLOCK and _prev not in _FY_BLOCK) else "") + _tl
 
             cells = ['<div class="fc-cell fc-h fc-metric fc-span2">Metric</div>']
             for _y in _shown:
@@ -5264,7 +5312,7 @@ with tab_research:
                     _qs_ = _q_status(_y, _b) if _b in _QLIKE else ""
                     _hcls = ((" fc-qh fc-cons" if _qs_ == "E" else " fc-qh") if _b in _QLIKE else
                              " fc-cons" if _b == "consensus" else
-                             " fc-derived" if _b in ("company_h2", "rest") else "")
+                             " fc-derived" if _b == "company_h2" else "")
                     _htitle = _basis_help[_b] + (
                         {"A": " — reported", "E": " — estimate",
                          "A/E": " — some lines reported, some estimates"}.get(_qs_, ""))
@@ -5300,9 +5348,11 @@ with tab_research:
                 if _st and _st > 0:
                     _g = _v / _st - 1
                     _chip = (f'<span class="fc-delta {"u" if _g >= 0 else "d"}" '
-                             f'title="{"Beat" if _g >= 0 else "Missed"} the street estimate '
-                             f'typed for this quarter ({_fnum(_st, _dp, "", _scale)}) by '
-                             f'{abs(_g) * 100:.1f}%">'
+                             f'title="{"▲ Beat" if _g >= 0 else "▼ Missed"} the street: '
+                             f'reported {_fnum(_v, _dp, "", _scale)} vs the street estimate '
+                             f'of {_fnum(_st, _dp, "", _scale)} typed for this period before '
+                             f'the result — {_g * 100:+.1f}%. Not a YoY change (that is the '
+                             f'YoY line below).">'
                              f'{"▲" if _g >= 0 else "▼"}{abs(_g) * 100:.0f}%</span>')
                 _html = _fnum(_v, _dp, "", _scale) + _src_mark(_mark) + _chip
                 if _show_past and _st:
@@ -5329,7 +5379,7 @@ with tab_research:
                 _v = _cell(_m, _y, _b)
                 _cls = (" fc-cons" if _b == "consensus" else
                         " fc-actual" if _b == "actual" else
-                        " fc-derived" if _b in ("company_h2", "rest") else "")
+                        " fc-derived" if _b == "company_h2" else "")
                 if _kind == "ratio":
                     return (" fc-rrow" + _cls, _pct(_v, _dp)
                             + (_src_mark("derived:ratio") if _v is not None else ""))
@@ -5340,25 +5390,32 @@ with tab_research:
                         _get(_m, _y, "company"), _get(_m, _y, "consensus"))
                     _chip = ('' if _gap is None else
                              f'<span class="fc-delta {"u" if _gap > 0 else "d"}" '
-                             f'title="Street vs company guidance">{_gap * 100:+.0f}%</span>')
+                             f'title="Street vs company guidance: the street&#39;s '
+                             f'{_fnum(_v, _dp, "", _scale)} is {abs(_gap) * 100:.0f}% '
+                             f'{"above" if _gap > 0 else "below"} the company&#39;s '
+                             f'{_fnum(_get(_m, _y, "company"), _dp, "", _scale)}. Shown only '
+                             f'where the gap is 5% or more.">{_gap * 100:+.0f}%</span>')
                     return _cls, (_fnum(_v, _dp, "", _scale)
                                   + _src_mark(_src(_m, _y, "consensus")) + _chip)
-                _mark = ("derived" if (_b in ("company_h2", "rest") and _v is not None)
+                _mark = ("derived" if (_b == "company_h2" and _v is not None)
                          else _src(_m, _y, _b))
                 # How far this guidance has moved since the company first filed it.
                 _rev = (fund.revision_move(_revs.get((_y, _m))) if _b == "company" else None)
                 _rchip = ('' if not _rev else
                           f'<span class="fc-delta {"u" if _rev[0] > 0 else "d"}" '
-                          f'title="Guidance {_rev[1]} '
-                          f'{abs(_rev[0]) * 100:.0f}% since it was first filed on '
+                          f'title="{"▲" if _rev[0] > 0 else "▼"} Guidance {_rev[1]} '
+                          f'{abs(_rev[0]) * 100:.0f}% since the company first filed it on '
                           f'{_safe_text(_revs[(_y, _m)].get("first_as_of", ""))} '
-                          f'({_revs[(_y, _m)].get("revisions", 0)} revision(s))">'
+                          f'({_revs[(_y, _m)].get("revisions", 0)} revision(s)). '
+                          f'Not a YoY change (that is the YoY line below).">'
                           f'{"▲" if _rev[0] > 0 else "▼"}{abs(_rev[0]) * 100:.0f}%</span>')
                 return _cls, _fnum(_v, _dp, "", _scale) + _src_mark(_mark) + _rchip
 
             def _figure(_m, _y, _b):
                 """The number a margin or growth line is computed from."""
                 if _b in _QLIKE:
+                    if _m == "dps" and not _h1_reported(_y):
+                        return None
                     return _qv(_m, _y, _b)
                 return _cell(_m, _y, _b)
 
@@ -5375,8 +5432,6 @@ with tab_research:
                 if _b == "company_h2":
                     _f, _h = _get(_m, _py, "actual"), _qv(_m, _py, "ytd_2q")
                     return None if (_f is None or _h is None) else _f - _h
-                if _b == "rest":
-                    return None
                 _a = _get(_m, _py, "actual")
                 return _a if _a is not None else _get(_m, _py, _b)
 
@@ -5410,8 +5465,20 @@ with tab_research:
                         else _annual_html(_m, _y, _b, _kind, _sc, _d)), " fc-rrow")
                     continue
 
+                def _interim_dps_html(_y, _b, _d):
+                    """DPS under the 1H column: the interim dividend, once the
+                    half is reported (before that it sits under 1H co.)."""
+                    _v = _qv("dps", _y, _b) if (_b == _H1 and _h1_reported(_y)) else None
+                    if _v is None:
+                        return "", ""
+                    return (" fc-actual",
+                            f'<span title="Interim (2Q) dividend per share">'
+                            f'{_fnum(_v, _d, "", 1.0)}</span>'
+                            + _src_mark(_src("dps", _y, "company_h1")))
+
                 _line(_safe_text(_label), lambda _y, _b, _m=_m, _kind=_kind, _sc=_scale, _d=_dp: (
-                    (("", "") if _m not in _Q_METRICS else _quarter_html(_m, _y, _b, _sc, _d))
+                    (_interim_dps_html(_y, _b, _d) if _m == "dps" else
+                     ("", "") if _m not in _Q_METRICS else _quarter_html(_m, _y, _b, _sc, _d))
                     if _b in _QLIKE else _annual_html(_m, _y, _b, _kind, _sc, _d)),
                       " fc-mrow")
 
@@ -5426,6 +5493,7 @@ with tab_research:
                     def _oo_periods(_b):
                         return ((_Q_LABEL[_b],) if _b in _Q_LABEL else
                                 ("1Q", "2Q") if _b == _H1 else
+                                ("3Q", "4Q") if _b == _H2 else
                                 ("1Q", "2Q", "3Q", "4Q") if _b == "actual" else None)
 
                     def _imp(_y, _b, _m=_m):
@@ -5441,8 +5509,7 @@ with tab_research:
                             _i = _imp(_y, _b)
                             if not _i or _figure(_m, _y, _b) is None:
                                 return " fc-sub-cell", ""
-                            _tip = "\n".join(OO.describe(e, _m) for e in
-                                             OO.items_for(_oo, _m, _y, _oo_periods(_b)))
+                            _tip = OO.bubble_text(_oo, _m, _y, _oo_periods(_b), _i)
                             return (" fc-sub-cell fc-exoo",
                                     f'<span class="fc-bubble" title="{_safe_text(_tip)}">'
                                     f'{-_i / _sc:+,.{_d}f} 💬</span>')
@@ -5458,15 +5525,17 @@ with tab_research:
                             if _st and _st > 0:
                                 _g = _a / _st - 1
                                 _html += (f'<span class="fc-delta {"u" if _g >= 0 else "d"}" '
-                                          f'title="Adjusted {"beat" if _g >= 0 else "missed"} the '
-                                          f'street estimate ({_fnum(_st, _d, "", _sc)}) by '
-                                          f'{abs(_g) * 100:.1f}%">'
+                                          f'title="{"▲" if _g >= 0 else "▼"} Adjusted figure '
+                                          f'{"beat" if _g >= 0 else "missed"} the street: '
+                                          f'{_fnum(_a, _d, "", _sc)} vs the street estimate of '
+                                          f'{_fnum(_st, _d, "", _sc)} — {_g * 100:+.1f}%">'
                                           f'{"▲" if _g >= 0 else "▼"}{abs(_g) * 100:.0f}%</span>')
                             _py = fund.prior_fy(_y)
                             _pv = _figure(_m, _py, _b)
                             if _pv is not None and _show_growth:
                                 _pv -= _imp(_py, _b)
-                                _html += (f'<div class="fc-ytd"><small>YoY</small> '
+                                _html += (f'<div class="fc-ytd" title="Adjusted vs the prior '
+                                          f'year adjusted the same way"><small>YoY</small> '
                                           f'{_chg_html(fund.change(_a, _pv), True)}</div>')
                             return " fc-sub-cell fc-exoo", _html
 
@@ -5521,7 +5590,10 @@ with tab_research:
             st.markdown(
                 '<div class="fc-tablewrap"><div class="fc-table" '
                 f'style="--fc-cols:{_ncols};">'
-                + "".join(cells) + '</div></div>'
+                # title= becomes data-tip=: the browser's own tooltip waits a
+                # second or more (and some browsers drop it), leaving only the
+                # "?" cursor; the CSS one in .fc-table shows at once.
+                + "".join(cells).replace(' title="', ' data-tip="') + '</div></div>'
                 '<div class="fc-legend">'
                 '<span><i class="fc-key fc-key-a"></i>reported</span>'
                 '<span><i class="fc-key fc-key-s"></i>street</span>'
@@ -5534,10 +5606,10 @@ with tab_research:
                 + ('<span title="Parent-only (単体) — no consolidated figure filed">'
                    '<b class="fc-src fc-src-p">P</b> parent only</span>' if _has_nc else '')
                 + (f'<span>basis: {_safe_text(_std)}</span>' if _std else '')
-                + '<span title="Quarters are single quarters; the small grey line under 2Q '
-                  'and 3Q is the year to date. ▲▼ on a quarter: beat/miss vs the typed street '
-                  'estimate. On guidance: revision since first filed. On Street: gap to '
-                  'guidance over 5%.">ⓘ ¥bn except per-share · small line = YTD</span></div>',
+                + '<span>¥bn except per-share · small grey line = year to date</span>'
+                '<span>▲▼ under a reported quarter / half = beat or miss vs the street '
+                'estimate · under Co. FY = guidance revision since first filed · ±% under '
+                'Street = gap to guidance (≥5%) · hover any chip for the numbers</span></div>',
                 unsafe_allow_html=True)
 
 

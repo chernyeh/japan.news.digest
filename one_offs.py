@@ -188,7 +188,30 @@ def describe(entry: dict, metric: str = "operating_profit") -> str:
     where = LINE_LABEL.get(entry.get("line"), "")
     # The note is the description now; older entries may carry an item name.
     what = " — ".join(x for x in (entry.get("item"), entry.get("note")) if x) or "One-off"
-    out = f"{entry.get('period', '')} · {what}: {amt / 1e9:+,.1f}bn"
-    if metric == "net_profit" and entry.get("np_amount_jpy") in (None, ""):
-        out += " (after an assumed 30% tax)"
-    return out + f" ({where})"
+    head = f"{entry.get('period', '')} · {what}: "
+    if metric == "net_profit":
+        if entry.get("np_amount_jpy") in (None, ""):
+            # Show the arithmetic: the net-profit adjustment is this item's own
+            # pre-tax amount, taxed — not anything read off the Adj. OP line.
+            pre = float(entry.get("amount_jpy") or 0)
+            return (head + f"{pre / 1e9:+,.1f}bn pre-tax × (1 − {ASSUMED_TAX:.0%}) = "
+                    f"{amt / 1e9:+,.1f}bn, after an assumed {ASSUMED_TAX:.0%} tax ({where})")
+        return head + f"{amt / 1e9:+,.1f}bn after tax, as entered ({where})"
+    return head + f"{amt / 1e9:+,.1f}bn ({where})"
+
+
+def bubble_text(entries: list, metric: str, fy: str, periods, total: float) -> str:
+    """The hover text on the "One-off adj." figure: what the figure is, how it
+    was worked out, then one line per item. `total` is the effect on `metric`
+    (as impact() returns it); the line shows it with the sign flipped, because
+    the adjustment takes the item back out."""
+    line = {"operating_profit": "operating profit", "ordinary_profit": "ordinary profit",
+            "net_profit": "net profit"}.get(metric, metric)
+    out = [f"{-total / 1e9:+,.1f}bn added back to reported {line} to strip out one-offs."]
+    if metric == "net_profit":
+        out.append("Not taken from the Adj. OP line: each item's own after-tax effect "
+                   f"— the after-tax amount where one was entered, else the pre-tax "
+                   f"amount less an assumed {ASSUMED_TAX:.0%} tax. Minority interests "
+                   "are not stripped out.")
+    out += [describe(e, metric) for e in items_for(entries, metric, fy, periods)]
+    return "\n".join(out)
