@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import sys
 import threading
 from datetime import datetime
 import pytz
@@ -31,6 +32,46 @@ import results_day as RD
 import forward as FW
 import one_offs as OO
 import notice_reader as NR
+
+
+def _refresh_local_modules():
+    """Reload this app's own helper modules when their files have changed.
+
+    Streamlit re-runs app.py on a redeploy but keeps already-imported modules
+    in memory, so after a merge app.py can call a function that the cached
+    copy of forward.py (say) does not have yet — an AttributeError until the
+    app is rebooted. Each module remembers the file time it was loaded from;
+    a newer file is reloaded, in dependency order. Unchanged files cost one
+    stat() each per run."""
+    import importlib
+    import sys as _sys
+    reloaded = False
+    for _name in ("fundamentals", "estimates_log", "capital_events", "one_offs",
+                  "results_day", "forward", "notice_reader"):
+        _mod = _sys.modules.get(_name)
+        _path = getattr(_mod, "__file__", None)
+        if not _path:
+            continue
+        try:
+            _mtime = os.path.getmtime(_path)
+        except OSError:
+            continue
+        _seen = getattr(_mod, "_loaded_mtime", None)
+        # A dependency reloaded above means anything after it is reloaded
+        # too, so no module keeps a reference to a superseded one.
+        if _seen is not None and (_mtime > _seen or reloaded):
+            _mod = importlib.reload(_mod)
+            reloaded = True
+        _mod._loaded_mtime = _mtime
+    return reloaded
+
+
+if _refresh_local_modules():
+    fund, EL, CE, RD, FW, OO, NR = (sys.modules["fundamentals"], sys.modules["estimates_log"],
+                                    sys.modules["capital_events"], sys.modules["results_day"],
+                                    sys.modules["forward"], sys.modules["one_offs"],
+                                    sys.modules["notice_reader"])
+    load_capital_events = CE.load_from_github
 import models
 import consensus_vision
 import gh_read
