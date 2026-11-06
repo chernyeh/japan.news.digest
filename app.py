@@ -972,7 +972,7 @@ a.research-link:hover { background: #F0EDE8; }
 .research-type-edinet  { background: #F0EDE8; color: #8B4513; border: 1px solid #E0D5C5; }
 .research-type-tdnet   { background: #EBF5FB; color: #1B4F72; border: 1px solid #AED6F1; }
 .research-type-custom  { background: #F1F8E9; color: #33691E; border: 1px solid #C5E1A5; }
-.research-title { font-size: 0.8rem; line-height: 1.3; padding-top: 0.05rem; }
+.research-title { font-size: 0.76rem; line-height: 1.3; padding-top: 0.05rem; }
 .research-col-header {
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: #9B8B7A;
@@ -1012,12 +1012,12 @@ a.research-link:hover { background: #F0EDE8; }
    at the end of the title. min-height keeps a one-line title's row tall
    enough to contain the buttons. */
 [class*="st-key-research_item_row_"] {
-    position: relative; min-height: 1.75rem;
-    padding: 0.3rem 0; border-bottom: 1px solid #F2EDE6;
+    position: relative; min-height: 1.55rem;
+    padding: 0.18rem 0; border-bottom: 1px solid #F2EDE6;
     flex: 0 0 auto !important;
 }
 [class*="st-key-research_item_row_"] > div:first-child {
-    position: absolute; top: 0.28rem; right: 0; width: auto !important;
+    position: absolute; top: 0.16rem; right: 0; width: auto !important;
     display: flex !important; flex-flow: row nowrap; align-items: center; gap: 0.25rem;
     /* Positioned siblings paint in DOM order when both have z-index:auto, and
        a Streamlit release since this was written started giving its own
@@ -1082,6 +1082,12 @@ a.research-link:hover { background: #F0EDE8; }
    let the rows themselves do the spacing. */
 [class*="st-key-research_items_list"],
 [class*="st-key-research_scan_results"] { gap: 0 !important; }
+/* The list's sort / filter / show controls: labels and boxes a size down. */
+[class*="st-key-research_filter_row"] [data-testid="stWidgetLabel"] p,
+[class*="st-key-research_filter_row"] label p { font-size: 0.7rem !important; }
+[class*="st-key-research_filter_row"] [data-baseweb="select"] > div { min-height: 2rem !important;
+    height: auto !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+[class*="st-key-research_filter_row"] [data-baseweb="select"] div { font-size: 0.74rem !important; }
 /* Smaller filter-pill text in the type multiselect */
 [class*="st-key-research_filter_row"] [data-baseweb="tag"] {
     font-size: 0.68rem !important; padding: 0.05rem 0.4rem !important; height: 1.5rem !important;
@@ -1254,6 +1260,8 @@ a.research-link:hover { background: #F0EDE8; }
                          text-transform: uppercase; color: #8B4513; font-weight: 700;
                          padding: 4px 0 1px; border-bottom: 1px solid #E3DDD3; }
 .bs-table { margin: 4px 0 0 !important; }
+.fc-chip .bs-scroll { overflow-x: auto; padding: 0; }
+@media (max-width: 640px) { .bs-table { min-width: 0; } .bs-table th, .bs-table td { padding-right: 6px; } }
 .bs-wrap .bs-foot { padding: 3px 0 0; }
 /* Raw-HTML blocks in a markdown container inherit Streamlit's -1rem bottom
    margin (meant to cancel a trailing <p>); with no <p> to cancel, the next
@@ -1264,7 +1272,7 @@ a.research-link:hover { background: #F0EDE8; }
 [data-testid="stMarkdownContainer"]:has(> .fv-card),
 [data-testid="stMarkdownContainer"]:has(> .fv-ch) { margin-bottom: 0 !important; }
 .bs-src { font-size: 0.5rem; font-weight: 700; margin-left: 1px; cursor: help; }
-.bs-y { color: #E65100; } .bs-t { color: #8B4513; }
+.bs-y { color: #E65100; } .bs-t { color: #8B4513; } .bs-f { color: #1B4F72; }
 .bs-foot { font-size: 0.6rem; color: #9B8B7A; line-height: 1.4; margin-top: 2px; }
 .fv-ch { font-size: 0.64rem; color: #8B7B6A; letter-spacing: 0.02em; margin: 2px 0 0; }
 .fv-flags, .fc-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; max-width: 1180px; }
@@ -6845,8 +6853,9 @@ with tab_research:
             st.markdown('<div class="fc-qhead">Guidance and street revisions</div>',
                         unsafe_allow_html=True)
             _opts = {lbl: m for m, lbl, *_ in _fc_rows(_profile, with_ratios=False)}
-            _sel = st.selectbox("Line", list(_opts), key=f"tr_metric_{_rcode}",
-                                index=min(1, len(_opts) - 1), label_visibility="collapsed")
+            _sel = st.columns([1, 3])[0].selectbox(
+                "Line", list(_opts), key=f"tr_metric_{_rcode}",
+                index=min(1, len(_opts) - 1), label_visibility="collapsed")
             _m = _opts[_sel]
 
             def _steps_html(_steps):
@@ -7234,6 +7243,8 @@ with tab_research:
 
             def _mark(_c, _f):
                 _per, _fy = _c
+                if _per == "L" and _f == "roe":
+                    return ("F", "forward: guidance EPS ÷ book value per share")
                 if _f not in FIN.FIELDS:
                     return ("", "")
                 if _per == "L":
@@ -7276,10 +7287,12 @@ with tab_research:
             st.markdown(
                 '<details class="fc-chip fc-more bs-wrap" open><summary><b>Balance sheet &amp; cash flow</b> '
                 + _safe_text(_fin_headline(_s, _vi["vals"]) or "¥bn") + '</summary>'
-                '<table class="bs-table">' + _head + "".join(_body) + '</table>'
+                '<div class="bs-scroll"><table class="bs-table">' + _head + "".join(_body)
+                + '</table></div>'
                 '<div class="bs-foot">¥bn. Latest = balance sheet as filed '
                 + (f'{_safe_text(_as_of)} ' if _as_of else '')
-                + '· ROE on average shareholders\' equity (Latest: guidance EPS ÷ BPS) '
+                + '· ROE on average shareholders\' equity '
+                '(<sup class="bs-src bs-f">F</sup> forward: guidance EPS ÷ BPS) '
                 '· FCF = operating cash flow − capex · 1H is six months '
                 '· <sup class="bs-src bs-y">Y</sup> Yahoo (debt usually includes leases) '
                 '<sup class="bs-src bs-t">T</sup> typed'
@@ -7309,7 +7322,7 @@ with tab_research:
                 '<div class="fc-note">¥bn. Capex is the one figure no filed feed carries — type it '
                 'from the tanshin cash-flow statement (有形固定資産の取得による支出, plus '
                 '無形固定資産 if you include software). <strong>Latest</strong> is the newest balance '
-                'sheet; <strong>1H</strong> is six months. A typed cell wins over the collected one; '
+                'sheet (cash, debt, equity only); <strong>1H</strong> is six months of cash flow. A typed cell wins over the collected one; '
                 'clear it to put the collected number back.</div>', unsafe_allow_html=True)
             _df = pd.DataFrame([{**{"Item": FIN.LABELS[_f]},
                                  **{_c: _before[(_f, _c)] for _c in _cols}}

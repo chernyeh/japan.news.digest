@@ -56,6 +56,9 @@ LABELS = {
 # The fields a user may type. Capex is the one no filed feed carries; the rest
 # are here so a wrong Yahoo figure (debt with leases, say) can be corrected.
 TYPEABLE = ("cash", "debt", "sh_equity", "cfo", "capex", "dep_amort")
+# Flows over a period vs balances at a date. The latest balance sheet takes
+# balances only; a first half is shown for its flows only.
+FLOWS = ("cfo", "cfi", "capex", "dep_amort")
 
 # Manual store basis: "<field>|FY2026|fin" for a full year, "<field>|FY2027|fin_h1"
 # for a first half, "<field>|latest|fin" for the latest balance sheet.
@@ -372,6 +375,8 @@ def plan_grid(before: dict, after: dict, manual_now: dict, as_of: str) -> tuple:
     for (field, col), new in after.items():
         old = before.get((field, col))
         fy, period = period_key(col)
+        if (fy == LATEST and field in FLOWS) or (period == "H1" and field not in FLOWS):
+            continue
         key = manual_key(field, fy, period or "FY")
         new = F.to_num(new)
         if new is None:

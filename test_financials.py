@@ -93,6 +93,9 @@ def test_grid_plan_types_changes_and_clears_overrides():
     assert entries["capex|FY2026|fin"]["value"] == 8e9
     assert entries["cfo|FY2027|fin_h1"]["value"] == 9.5e9
     assert removed == ["debt|latest|fin"]
+    # A flow under Latest, or a balance under 1H, is not stored: neither is shown.
+    e2, _ = FIN.plan_grid({}, {("capex", "Latest"): 5.0, ("cash", "1H FY2027"): 5.0}, {}, "x")
+    assert e2 == {}
     # Unchanged cells write nothing.
     assert FIN.plan_grid(before, before, {}, "x") == ({}, [])
 
