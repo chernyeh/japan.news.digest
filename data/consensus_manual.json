@@ -130,6 +130,24 @@
     }
   },
   "6504": {
+    "capex|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 30300000000.0
+    },
+    "cfo|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 82775000000.0
+    },
+    "dep_amort|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 30300000000.0
+    },
     "dps|FY2027|company": {
       "as_of": "2026-11-06",
       "source": "typed:Company data",
