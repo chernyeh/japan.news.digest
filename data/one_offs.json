@@ -1,15 +1,15 @@
 {
   "6971": [
     {
-      "amount_jpy": -7600000000.0,
+      "amount_jpy": 3000000000.0,
       "date": "2026-11-06",
       "fy": "FY2027",
       "id": "6971-2026-11-06-one-off-3",
       "item": "",
       "line": "operating",
-      "note": "Provision related to energy-related products in the Solutions Business",
+      "note": "Gain from sale of real estate",
       "np_amount_jpy": null,
-      "period": "2Q",
+      "period": "1Q",
       "source": "typed:Company data"
     },
     {
