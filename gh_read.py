@@ -92,6 +92,31 @@ def raw_json(repo: str, path: str, token: str = None, default=None):
         return {} if default is None else default
 
 
+def api_json(repo: str, path: str, token: str, timeout: int = 15):
+    """The file parsed as JSON via the Contents API (uncached), or None on any
+    failure so the caller can fall back to raw_json. Needs a token."""
+    import json
+    import requests
+    if not token:
+        return None
+    try:
+        r = requests.get(f"https://api.github.com/repos/{repo}/contents/{path}",
+                         params={"ref": "main"}, timeout=timeout,
+                         headers={"User-Agent": _UA, "Authorization": f"token {token}",
+                                  "Accept": "application/vnd.github.raw+json"})
+    except Exception as exc:
+        print(f"{path} api fetch error: {exc}")
+        return None
+    if r.status_code == 404:
+        return {}
+    if r.status_code != 200:
+        return None
+    try:
+        return json.loads(r.text)
+    except ValueError:
+        return None
+
+
 def token_warning() -> str:
     """One line for the UI, or "" while the token looks fine."""
     if not TOKEN_STATE.get("bad"):

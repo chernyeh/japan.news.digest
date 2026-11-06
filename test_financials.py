@@ -89,15 +89,37 @@ def test_grid_plan_types_changes_and_clears_overrides():
     before = {("capex", "FY2026"): 7.0, ("debt", "Latest"): 12.0, ("cfo", "1H FY2027"): None}
     after = {("capex", "FY2026"): 8.0, ("debt", "Latest"): None, ("cfo", "1H FY2027"): 9.5}
     manual_now = {"debt|latest|fin": {"value": 12e9}}
-    entries, removed = FIN.plan_grid(before, after, manual_now, "2026-11-06")
+    entries, removed, ignored = FIN.plan_grid(before, after, manual_now, "2026-11-06")
     assert entries["capex|FY2026|fin"]["value"] == 8e9
     assert entries["cfo|FY2027|fin_h1"]["value"] == 9.5e9
-    assert removed == ["debt|latest|fin"]
-    # A flow under Latest, or a balance under 1H, is not stored: neither is shown.
-    e2, _ = FIN.plan_grid({}, {("capex", "Latest"): 5.0, ("cash", "1H FY2027"): 5.0}, {}, "x")
-    assert e2 == {}
+    assert removed == ["debt|latest|fin"] and ignored == []
     # Unchanged cells write nothing.
-    assert FIN.plan_grid(before, before, {}, "x") == ({}, [])
+    assert FIN.plan_grid(before, before, {}, "x") == ({}, [], [])
+
+
+def test_first_half_takes_its_balance_sheet_and_latest_flags_a_flow():
+    # The bug: cash / debt / equity typed under 1H were dropped without a word.
+    after = {("cash", "1H FY2027"): 150.0, ("debt", "1H FY2027"): 20.0,
+             ("sh_equity", "1H FY2027"): 600.0, ("capex", "Latest"): 5.0}
+    entries, removed, ignored = FIN.plan_grid({}, after, {}, "x")
+    assert set(entries) == {"cash|FY2027|fin_h1", "debt|FY2027|fin_h1",
+                            "sh_equity|FY2027|fin_h1"}
+    assert ignored == [("capex", "Latest")]
+    assert FIN.describe_key("cash|FY2027|fin_h1") == "Cash & equivalents 1H FY2027"
+
+
+def test_typed_first_half_shows_in_summary():
+    hist = {("FY2026", "FY"): {"sh_equity": 500e9, "cfo": 100e9, "capex": 40e9}}
+    manual = {"cash|FY2027|fin_h1": {"value": 150e9}, "debt|FY2027|fin_h1": {"value": 20e9},
+              "sh_equity|FY2027|fin_h1": {"value": 600e9},
+              "cfo|FY2027|fin_h1": {"value": 82.8e9}, "capex|FY2027|fin_h1": {"value": 30.3e9},
+              "dep_amort|FY2027|fin_h1": {"value": 30.3e9}}
+    h, l, typed = FIN.apply_manual(hist, {}, manual)
+    s = FIN.summary(h, l, 1e12, {})
+    h1 = s["h1"]
+    assert h1["fy"] == "FY2027" and h1["net_cash"] == 130e9 and h1["dep_amort"] == 30.3e9
+    assert abs(h1["fcf"] - 52.5e9) < 1 and abs(h1["nc_to_equity"] - 130 / 600) < 1e-9
+    assert ("FY2027", "H1", "cash") in typed
 
 
 if __name__ == "__main__":
