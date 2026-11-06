@@ -120,7 +120,10 @@ def _usual_progress(rows, metric, fy, n, years=3):
     for _ in range(years):
         y = prior_fy(y)
         ytd, full = _latest(rows, metric, y, f"ytd_{n}q"), _latest(rows, metric, y, "actual")
-        if ytd is not None and full and full > 0:
+        # A year whose later quarters lost money (progress over 100%, or a
+        # negative half) says nothing about the usual pace, and would make an
+        # ordinary year look far behind.
+        if ytd is not None and full and full > 0 and 0 < ytd / full <= 1:
             vals.append(ytd / full)
     if not vals:
         return None
@@ -128,7 +131,8 @@ def _usual_progress(rows, metric, fy, n, years=3):
     return vals[len(vals) // 2]
 
 
-def raise_quality(rows: list, fy: str, metric: str = "operating_profit") -> dict:
+def raise_quality(rows: list, fy: str, metric: str = "operating_profit",
+                  one_offs: float = 0.0) -> dict:
     """How the company's latest quarterly result moved its full-year guidance,
     set against how far the year to date beat the company's own plan.
 
@@ -139,6 +143,10 @@ def raise_quality(rows: list, fy: str, metric: str = "operating_profit") -> dict
       beat  = YTD actual − planned YTD
       raise = new FY guidance − old FY guidance
       rest of year, implied = new FY guidance − YTD actual
+
+    `one_offs` is the year to date's logged one-off impact (a loss negative):
+    the beat is judged on the year to date with it taken out, since guidance
+    is set on the business, not on a writedown.
 
     A raise about the size of the beat leaves the rest of the year where it
     was: the company has banked the outperformance and assumed none of it
@@ -155,6 +163,8 @@ def raise_quality(rows: list, fy: str, metric: str = "operating_profit") -> dict
     new = EL.value_on(rows, metric, fy, "company", date)
     if ytd is None or not old or new is None:
         return None
+    reported_ytd = ytd
+    ytd = ytd - (one_offs or 0.0)
 
     h1 = EL.value_before(rows, metric, fy, "company_h1", date) if n == 2 else None
     if h1:
@@ -180,7 +190,9 @@ def raise_quality(rows: list, fy: str, metric: str = "operating_profit") -> dict
     growth = (f" The rest of the year now implies {_pct(rest_yoy)} YoY against "
               f"{_pct(ytd_yoy)} in the year to date." if rest_yoy is not None and ytd_yoy is not None
               else "")
-    head = (f"{n}Q year to date {_bn(ytd)} vs plan {_bn(plan)} ({plan_basis}): "
+    head = (f"{n}Q year to date {_bn(ytd)}"
+            + (f" ex one-offs (reported {_bn(reported_ytd)})" if one_offs else "")
+            + f" vs plan {_bn(plan)} ({plan_basis}): "
             f"{'beat' if beat >= 0 else 'missed'} by {_bn(abs(beat))}. "
             f"Guidance {_bn(old)} → {_bn(new)} ({_pct(_chg(new, old), 1)}).")
 
@@ -301,3 +313,17 @@ def pe_history(prices: list, rows: list, basis: str = "company") -> list:
                     out.append((d, close / eps, fy))
                 break
     return out
+
+
+def last_reported_quarter(get, fy: str, metric: str = "operating_profit"):
+    """(fy, n, value) of the most recent reported quarter in `fy`, or failing
+    that the year before (its 4Q, where `fy` has not reported yet). None
+    where neither has one."""
+    import fundamentals as F
+    for y in (fy, prior_fy(fy)):
+        bd = F.quarter_breakdown(get, metric, y)
+        for n in (4, 3, 2, 1):
+            q = bd.get(f"q{n}")
+            if q and q[1] in ("actual", "derived"):
+                return y, n, q[0]
+    return None

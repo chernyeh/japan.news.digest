@@ -28,8 +28,12 @@ import fundamentals as F
 
 ONE_OFFS_PATH = "data/one_offs.json"
 LINES = ("operating", "non_operating", "extraordinary")
-LINE_LABEL = {"operating": "Operating (in OP)", "non_operating": "Non-operating (OP→ordinary)",
-              "extraordinary": "Extraordinary (below ordinary)"}
+# Where an item lands decides which lines it is taken out of: an operating
+# item comes out of OP and everything below it; a below-OP item leaves OP
+# alone and adjusts only the lines under it.
+LINE_LABEL = {"operating": "In OP (operating)",
+              "non_operating": "Below OP — non-operating",
+              "extraordinary": "Below OP — extraordinary"}
 ASSUMED_TAX = 0.30
 
 _AFFECTS = {"operating": ("operating_profit", "ordinary_profit", "net_profit"),
@@ -182,10 +186,9 @@ def describe(entry: dict, metric: str = "operating_profit") -> str:
     line, where it sits, and the note."""
     amt = np_impact(entry) if metric == "net_profit" else float(entry.get("amount_jpy") or 0)
     where = LINE_LABEL.get(entry.get("line"), "")
-    out = f"{entry.get('period', '')} · {entry.get('item') or 'One-off'}: {amt / 1e9:+,.1f}bn"
+    # The note is the description now; older entries may carry an item name.
+    what = " — ".join(x for x in (entry.get("item"), entry.get("note")) if x) or "One-off"
+    out = f"{entry.get('period', '')} · {what}: {amt / 1e9:+,.1f}bn"
     if metric == "net_profit" and entry.get("np_amount_jpy") in (None, ""):
         out += " (after an assumed 30% tax)"
-    out += f" — {where}"
-    if entry.get("note"):
-        out += f". {entry['note']}"
-    return out
+    return out + f" ({where})"

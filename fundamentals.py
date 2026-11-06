@@ -1267,7 +1267,17 @@ def quarter_street(get, metric: str, fy: str, period: str):
     if period.startswith("q"):
         return get(metric, fy, f"consensus_{period}")
     if period in ("ytd_2q", "ytd_3q"):
-        return get(metric, fy, f"consensus_{period}")
+        v = get(metric, fy, f"consensus_{period}")
+        if v is not None or period != "ytd_2q":
+            return v
+        # The street's first half where only a 2Q estimate was typed: the
+        # reported 1Q plus the street's 2Q, which is what the market held
+        # going into the half-year result.
+        q1 = get(metric, fy, "ytd_1q")
+        if q1 is None:
+            q1 = get(metric, fy, "actual_q1")
+        q2 = get(metric, fy, "consensus_q2")
+        return None if (q1 is None or q2 is None) else q1 + q2
     if period == "ytd_1q":
         return get(metric, fy, "consensus_q1")
     if period == "fy":
