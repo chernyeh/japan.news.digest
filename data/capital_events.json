@@ -1,0 +1,15 @@
+{
+  "4203": [
+    {
+      "date": "2026-11-07",
+      "dps_new": 140.0,
+      "dps_old": 120.0,
+      "fy": "FY2027",
+      "id": "4203-2026-11-07-dividend-change",
+      "logged_at": "2026-11-07",
+      "note": "DPS 120 → 140 with 2Q results",
+      "source": "typed:Company data",
+      "type": "Dividend change"
+    }
+  ]
+}
