@@ -20,6 +20,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,eps,FY2027,consensus,99.28644,yfinance,backfill,2026-08-27
 2026-09-05,eps,FY2027,consensus,96.89892,yfinance,backfill,2026-09-05
 2026-10-24,eps,FY2027,consensus,96.94892,yfinance,backfill,2026-10-24
+2026-08-10,eps,FY2027,ytd_1q,23.48,jquants,filing,2026-11-06
 2026-08-27,eps,FY2028,consensus,130.99098,yfinance,backfill,2026-08-27
 2026-09-05,eps,FY2028,consensus,127.97241,yfinance,backfill,2026-09-05
 2026-10-24,eps,FY2028,consensus,127.13491,yfinance,backfill,2026-10-24
@@ -35,6 +36,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-02-09,net_profit,FY2026,ytd_3q,16684000000.0,jquants,filing,2026-11-01
 2026-05-12,net_profit,FY2027,company,15000000000.0,jquants,backfill,2026-08-27
 2026-05-12,net_profit,FY2027,company_h1,6000000000.0,jquants,backfill,2026-08-27
+2026-08-10,net_profit,FY2027,ytd_1q,3839000000.0,jquants,filing,2026-11-06
 2025-05-12,net_sales,FY2025,actual,644586000000.0,jquants,filing,2026-11-01
 2024-11-08,net_sales,FY2025,company,645000000000.0,jquants,backfill,2024-11-08
 2024-11-08,net_sales,FY2025,ytd_2q,312017000000.0,jquants,filing,2026-11-01
@@ -49,6 +51,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-05-12,net_sales,FY2027,company_h1,341000000000.0,jquants,backfill,2026-08-27
 2026-08-27,net_sales,FY2027,consensus,701066497500.0,yfinance,backfill,2026-08-27
 2026-10-24,net_sales,FY2027,consensus,698969091930.0,yfinance,backfill,2026-10-24
+2026-08-10,net_sales,FY2027,ytd_1q,167545000000.0,jquants,filing,2026-11-06
 2026-08-27,net_sales,FY2028,consensus,728811577610.0,yfinance,backfill,2026-08-27
 2026-10-24,net_sales,FY2028,consensus,726675306770.0,yfinance,backfill,2026-10-24
 2025-05-12,operating_profit,FY2025,actual,26598000000.0,jquants,filing,2026-11-01
@@ -63,6 +66,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-02-09,operating_profit,FY2026,ytd_3q,26747000000.0,jquants,filing,2026-11-01
 2026-05-12,operating_profit,FY2027,company,40000000000.0,jquants,backfill,2026-08-27
 2026-05-12,operating_profit,FY2027,company_h1,14700000000.0,jquants,backfill,2026-08-27
+2026-08-10,operating_profit,FY2027,ytd_1q,7710000000.0,jquants,filing,2026-11-06
 2025-05-12,ordinary_profit,FY2025,actual,10817000000.0,jquants,filing,2026-11-01
 2024-11-08,ordinary_profit,FY2025,company,22300000000.0,jquants,backfill,2024-11-08
 2024-11-08,ordinary_profit,FY2025,ytd_2q,4492000000.0,jquants,filing,2026-11-01
@@ -75,6 +79,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-02-09,ordinary_profit,FY2026,ytd_3q,17608000000.0,jquants,filing,2026-11-01
 2026-05-12,ordinary_profit,FY2027,company,27400000000.0,jquants,backfill,2026-08-27
 2026-05-12,ordinary_profit,FY2027,company_h1,10100000000.0,jquants,backfill,2026-08-27
+2026-08-10,ordinary_profit,FY2027,ytd_1q,6606000000.0,jquants,filing,2026-11-06
 2025-05-12,shares,FY2025,actual,171459479.0,jquants,filing,2026-11-01
 2024-11-08,shares,FY2025,ytd_2q,171459479.0,jquants,filing,2026-11-01
 2025-02-07,shares,FY2025,ytd_3q,171459479.0,jquants,filing,2026-11-01
@@ -82,6 +87,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2025-08-08,shares,FY2026,ytd_1q,171459479.0,jquants,filing,2026-11-01
 2025-11-10,shares,FY2026,ytd_2q,171459479.0,jquants,filing,2026-11-01
 2026-02-09,shares,FY2026,ytd_3q,171459479.0,jquants,filing,2026-11-01
+2026-08-10,shares,FY2027,ytd_1q,171459479.0,jquants,filing,2026-11-06
 2025-05-12,treasury,FY2025,actual,8363805.0,jquants,filing,2026-11-01
 2024-11-08,treasury,FY2025,ytd_2q,8363660.0,jquants,filing,2026-11-01
 2025-02-07,treasury,FY2025,ytd_3q,8363805.0,jquants,filing,2026-11-01
@@ -89,3 +95,4 @@ date,metric,fy,basis,value,source,origin,logged_at
 2025-08-08,treasury,FY2026,ytd_1q,8363825.0,jquants,filing,2026-11-01
 2025-11-10,treasury,FY2026,ytd_2q,8363935.0,jquants,filing,2026-11-01
 2026-02-09,treasury,FY2026,ytd_3q,8363599.0,jquants,filing,2026-11-01
+2026-08-10,treasury,FY2027,ytd_1q,5244817.0,jquants,filing,2026-11-06

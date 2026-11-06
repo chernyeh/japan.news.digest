@@ -21,11 +21,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,eps,FY2026,consensus,49.975,yfinance,backfill,2026-08-27
 2026-10-10,eps,FY2026,consensus,50.6,yfinance,backfill,2026-10-10
 2026-10-31,eps,FY2026,consensus,50.8,yfinance,backfill,2026-10-31
+2026-11-06,eps,FY2026,consensus,49.6,yfinance,collect,2026-11-06
 2026-04-28,eps,FY2026,ytd_1q,23.46,jquants,filing,2026-11-01
 2026-07-31,eps,FY2026,ytd_2q,34.34,jquants,filing,2026-11-01
 2026-08-27,eps,FY2027,consensus,53.625,yfinance,backfill,2026-08-27
 2026-10-10,eps,FY2027,consensus,54.2,yfinance,backfill,2026-10-10
 2026-10-31,eps,FY2027,consensus,54.45,yfinance,backfill,2026-10-31
+2026-11-06,eps,FY2027,consensus,54.46667,yfinance,collect,2026-11-06
 2025-02-14,net_profit,FY2024,actual,21787000000.0,jquants,filing,2026-11-01
 2024-10-28,net_profit,FY2024,company,21400000000.0,jquants,backfill,2024-10-28
 2024-10-28,net_profit,FY2024,ytd_3q,16374000000.0,jquants,filing,2026-11-01
@@ -55,11 +57,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,net_sales,FY2026,consensus,384600000000.0,yfinance,backfill,2026-08-27
 2026-10-10,net_sales,FY2026,consensus,384314666670.0,yfinance,backfill,2026-10-10
 2026-10-31,net_sales,FY2026,consensus,385538000000.0,yfinance,backfill,2026-10-31
+2026-11-06,net_sales,FY2026,consensus,386922000000.0,yfinance,collect,2026-11-06
 2026-04-28,net_sales,FY2026,ytd_1q,108099000000.0,jquants,filing,2026-11-01
 2026-07-31,net_sales,FY2026,ytd_2q,202070000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2027,consensus,410675000000.0,yfinance,backfill,2026-08-27
 2026-10-10,net_sales,FY2027,consensus,419310250000.0,yfinance,backfill,2026-10-10
 2026-10-31,net_sales,FY2027,consensus,419035250000.0,yfinance,backfill,2026-10-31
+2026-11-06,net_sales,FY2027,consensus,419613666670.0,yfinance,collect,2026-11-06
 2025-02-14,operating_profit,FY2024,actual,22028000000.0,jquants,filing,2026-11-01
 2024-10-28,operating_profit,FY2024,company,21500000000.0,jquants,backfill,2024-10-28
 2024-10-28,operating_profit,FY2024,ytd_3q,17510000000.0,jquants,filing,2026-11-01

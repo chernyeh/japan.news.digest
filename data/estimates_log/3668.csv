@@ -9,11 +9,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2025-08-06,eps,FY2025,ytd_3q,-4.68,jquants,filing,2026-11-01
 2026-08-27,eps,FY2026,consensus,-1.6,yfinance,backfill,2026-08-27
 2026-09-12,eps,FY2026,consensus,14.0,yfinance,backfill,2026-09-12
+2026-11-06,eps,FY2026,consensus,21.8,yfinance,collect,2026-11-06
 2026-02-04,eps,FY2026,ytd_1q,1.32,jquants,filing,2026-11-01
 2026-05-07,eps,FY2026,ytd_2q,6.42,jquants,filing,2026-11-01
 2026-08-05,eps,FY2026,ytd_3q,11.7,jquants,filing,2026-11-01
 2026-08-27,eps,FY2027,consensus,0.8,yfinance,backfill,2026-08-27
 2026-09-12,eps,FY2027,consensus,21.8,yfinance,backfill,2026-09-12
+2026-11-06,eps,FY2027,consensus,24.9,yfinance,collect,2026-11-06
 2024-11-06,net_profit,FY2024,actual,-1866000000.0,jquants,filing,2026-11-01
 2024-11-20,net_profit,FY2024,ytd_3q,-435000000.0,jquants,filing,2026-11-01
 2025-11-05,net_profit,FY2025,actual,-306000000.0,jquants,filing,2026-11-01
@@ -31,11 +33,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2025-08-06,net_sales,FY2025,ytd_3q,18998000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2026,consensus,20100000000.0,yfinance,backfill,2026-08-27
 2026-09-12,net_sales,FY2026,consensus,23000000000.0,yfinance,backfill,2026-09-12
+2026-11-06,net_sales,FY2026,consensus,25000000000.0,yfinance,collect,2026-11-06
 2026-02-04,net_sales,FY2026,ytd_1q,4772000000.0,jquants,filing,2026-11-01
 2026-05-07,net_sales,FY2026,ytd_2q,10088000000.0,jquants,filing,2026-11-01
 2026-08-05,net_sales,FY2026,ytd_3q,15700000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2027,consensus,17700000000.0,yfinance,backfill,2026-08-27
 2026-09-12,net_sales,FY2027,consensus,25000000000.0,yfinance,backfill,2026-09-12
+2026-11-06,net_sales,FY2027,consensus,27500000000.0,yfinance,collect,2026-11-06
 2024-11-06,operating_profit,FY2024,actual,-1208000000.0,jquants,filing,2026-11-01
 2024-11-20,operating_profit,FY2024,ytd_3q,-695000000.0,jquants,filing,2026-11-01
 2025-11-05,operating_profit,FY2025,actual,1002000000.0,jquants,filing,2026-11-01

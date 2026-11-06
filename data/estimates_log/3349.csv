@@ -28,10 +28,12 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-10-10,eps,FY2027,consensus,404.94553,yfinance,backfill,2026-10-10
 2026-10-17,eps,FY2027,consensus,405.45038,yfinance,backfill,2026-10-17
 2026-10-31,eps,FY2027,consensus,404.9604,yfinance,backfill,2026-10-31
+2026-11-06,eps,FY2027,consensus,404.33038,yfinance,collect,2026-11-06
 2026-08-27,eps,FY2028,consensus,430.1507,yfinance,backfill,2026-08-27
 2026-10-10,eps,FY2028,consensus,430.31357,yfinance,backfill,2026-10-10
 2026-10-17,eps,FY2028,consensus,430.43756,yfinance,backfill,2026-10-17
 2026-10-31,eps,FY2028,consensus,427.83755,yfinance,backfill,2026-10-31
+2026-11-06,eps,FY2028,consensus,426.69757,yfinance,collect,2026-11-06
 2025-07-11,net_profit,FY2025,actual,30978000000.0,jquants,filing,2026-11-01
 2024-10-11,net_profit,FY2025,company,24500000000.0,jquants,backfill,2024-10-11
 2024-10-11,net_profit,FY2025,company_h1,11790000000.0,jquants,filing,2026-11-01
@@ -69,10 +71,12 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-10-10,net_sales,FY2027,consensus,1182344100000.0,yfinance,backfill,2026-10-10
 2026-10-17,net_sales,FY2027,consensus,1175555800000.0,yfinance,backfill,2026-10-17
 2026-10-31,net_sales,FY2027,consensus,1172475200000.0,yfinance,backfill,2026-10-31
+2026-11-06,net_sales,FY2027,consensus,1169915200000.0,yfinance,collect,2026-11-06
 2026-08-27,net_sales,FY2028,consensus,1273308300000.0,yfinance,backfill,2026-08-27
 2026-10-10,net_sales,FY2028,consensus,1271787900000.0,yfinance,backfill,2026-10-10
 2026-10-17,net_sales,FY2028,consensus,1263383300000.0,yfinance,backfill,2026-10-17
 2026-10-31,net_sales,FY2028,consensus,1258533700000.0,yfinance,backfill,2026-10-31
+2026-11-06,net_sales,FY2028,consensus,1253793700000.0,yfinance,collect,2026-11-06
 2025-07-11,operating_profit,FY2025,actual,40404000000.0,jquants,filing,2026-11-01
 2024-10-11,operating_profit,FY2025,company,31600000000.0,jquants,backfill,2024-10-11
 2024-10-11,operating_profit,FY2025,company_h1,16000000000.0,jquants,filing,2026-11-01
