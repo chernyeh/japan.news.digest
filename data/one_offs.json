@@ -1,15 +1,15 @@
 {
   "6971": [
     {
-      "amount_jpy": -7600000000.0,
+      "amount_jpy": 15000000000.0,
       "date": "2026-11-06",
       "fy": "FY2027",
       "id": "6971-2026-11-06-one-off-4",
       "item": "",
       "line": "operating",
-      "note": "Provision related to energy-related products",
+      "note": "Gain for Semis Components within Core Components Business, from transfer of Chemicals business to Sumi Bakelite.",
       "np_amount_jpy": null,
-      "period": "2Q",
+      "period": "3Q",
       "source": "typed:Company data"
     },
     {
