@@ -325,16 +325,22 @@
   },
   "6526": {
     "eps|FY2027|consensus": {
-      "as_of": "2026-08-27",
-      "source": "screenshot:IMG_6423.png",
+      "as_of": "2026-11-06",
+      "source": "typed",
       "unit": "jpy",
-      "value": 73.31
+      "value": 68.08
     },
     "eps|FY2028|consensus": {
-      "as_of": "2026-08-27",
-      "source": "screenshot:IMG_6423.png",
+      "as_of": "2026-11-06",
+      "source": "typed",
       "unit": "jpy",
-      "value": 120.64
+      "value": 123.78
+    },
+    "eps|FY2029|consensus": {
+      "as_of": "2026-11-06",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 147.93
     },
     "net_sales|FY2027|consensus": {
       "as_of": "2026-11-06",
