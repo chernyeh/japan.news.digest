@@ -324,6 +324,36 @@
     }
   },
   "6526": {
+    "capex|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 20548000000.0
+    },
+    "cash|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 22757000000.0
+    },
+    "cfo|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": -4753000000.0
+    },
+    "debt|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 8100000000.0
+    },
+    "dep_amort|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 10068000000.0
+    },
     "eps|FY2027|consensus": {
       "as_of": "2026-11-06",
       "source": "typed",
@@ -425,6 +455,12 @@
       "source": "typed:Koyfin",
       "unit": "jpy_abs",
       "value": 35280000000.0
+    },
+    "sh_equity|FY2027|fin_h1": {
+      "as_of": "2026-11-06",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 127720000000.0
     }
   },
   "6588": {
