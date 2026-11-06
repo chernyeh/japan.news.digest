@@ -372,11 +372,23 @@
       "unit": "jpy_abs",
       "value": 54080000000.0
     },
+    "net_sales|FY2027|consensus_q3": {
+      "as_of": "2026-11-05",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 67099999999.99999
+    },
     "operating_profit|FY2027|consensus_q2": {
       "as_of": "2026-11-05",
       "source": "typed:Company data",
       "unit": "jpy_abs",
       "value": 22070000000.0
+    },
+    "operating_profit|FY2027|consensus_q3": {
+      "as_of": "2026-11-05",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 26530000000.0
     }
   }
 }
