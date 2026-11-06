@@ -124,15 +124,40 @@ def resolve_code(name_or_code: str, names_lookup: dict = None) -> str:
             code = next((a for a in aliases if re.fullmatch(r"\d{4}", a)), "")
             if code:
                 return code
-    for code, nm in (names_lookup or {}).items():
-        if _text(nm).lower() == low and _text(nm):
-            return str(code)
+    exact = name_candidates(text, names_lookup)
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        # Two listed companies share this exact name (TOA Corporation, Shinwa
+        # Co., Ltd.). Taking the first was a coin flip that stored the wrong
+        # ticker for one of them; nothing is better than the wrong company.
+        return ""
     # Last resort: a unique substring match, so "Toyota" finds "TOYOTA MOTOR
     # CORPORATION". Ambiguous matches resolve to nothing rather than to a
     # coin flip between two companies.
     hits = [str(c) for c, nm in (names_lookup or {}).items()
             if _text(nm) and low in _text(nm).lower()]
     return hits[0] if len(hits) == 1 else ""
+
+
+def name_candidates(name: str, names_lookup: dict = None) -> list:
+    """Every code whose listed name is exactly `name` (case-insensitive)."""
+    low = _text(name).lower()
+    if not low:
+        return []
+    return sorted(str(c) for c, nm in (names_lookup or {}).items()
+                  if _text(nm) and _text(nm).lower() == low)
+
+
+def display_name(code: str, entry: dict = None, names_lookup: dict = None) -> str:
+    """The name to show for an entry. An entry added by typing its code was
+    stored with the code as its name ("6098"), which is no use in a table;
+    the listed name wins whenever the stored one is blank or just the code."""
+    stored = _text((entry or {}).get("name"))
+    listed = _text((names_lookup or {}).get(code)) if not code.startswith(_UNRESOLVED) else ""
+    if listed and (not stored or stored == code):
+        return listed
+    return stored or listed or code.replace(_UNRESOLVED, "")
 
 
 def key_for(name_or_code: str, names_lookup: dict = None) -> str:
@@ -199,11 +224,17 @@ def add_to_watchlist(company: str, repo: str = "", token: str = "",
         return False, "Nothing to add."
     entries = _read_local()
     key = key_for(company, names_lookup)
+    if key.startswith(_UNRESOLVED):
+        both = name_candidates(company, names_lookup)
+        if len(both) > 1:
+            return False, (f'"{company}" is the listed name of {len(both)} companies '
+                           f'({", ".join(both)}). Add it by its 4-digit code instead.')
+    name = display_name(key, {"name": company}, names_lookup)
     if key in entries:
-        return True, f"{company} is already on the watchlist."
-    entries[key] = {"name": company, "added_at": date.today().isoformat()}
+        return True, f"{name} is already on the watchlist."
+    entries[key] = {"name": name, "added_at": date.today().isoformat()}
     _write_local(entries)
-    return _push(entries, repo, token, f"add {company}")
+    return _push(entries, repo, token, f"add {name}")
 
 
 def remove_from_watchlist(company: str, repo: str = "", token: str = "",
@@ -223,6 +254,117 @@ def remove_from_watchlist(company: str, repo: str = "", token: str = "",
     return _push(entries, repo, token, f"remove {company}")
 
 
+def remove_many(keys: list, repo: str = "", token: str = "") -> tuple:
+    """Remove several entries by their store key in one save (one commit)."""
+    entries = _read_local()
+    gone = [k for k in keys or [] if k in entries]
+    if not gone:
+        return True, "Nothing to remove."
+    for k in gone:
+        entries.pop(k)
+    _write_local(entries)
+    ok, msg = _push(entries, repo, token, "remove " + ", ".join(
+        k.replace(_UNRESOLVED, "") for k in gone))
+    return ok, (f"Removed {len(gone)} compan{'y' if len(gone) == 1 else 'ies'}." if ok else msg)
+
+
+# ── Thesis: the numbers you hold each company to ───────────────────────────
+# Typed in the app and kept on the entry itself, so they travel with the list
+# into data/watchlist.json and every session sees the same figures.
+
+ACTIONS = ("BUY", "ADD", "TRIM", "SELL", "WATCH")
+THESIS_FIELDS = ("conviction", "munger_price", "bear_price", "exit_price", "action",
+                 "review_date", "note")
+NOTE_MAX = 200
+
+
+def _num(value):
+    """A positive float, or None for blank, zero, NaN or anything unparseable."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        out = float(str(value).replace(",", "").replace("¥", "").strip())
+    except (TypeError, ValueError):
+        return None
+    return out if out > 0 and out == out else None
+
+
+def clean_thesis(raw: dict) -> dict:
+    """Validated thesis fields, with every blank or invalid value dropped.
+
+    Conviction is the 1-10 score from the deep-dive template; prices are yen
+    per share (Munger = margin-of-safety entry, Bear = bear-case value, the
+    downside a reward-to-risk ratio is measured against, Exit = fully valued);
+    the review date is ISO (YYYY-MM-DD). Returned without the blank keys so an
+    untouched field never overwrites anything with None. `action_since` is
+    not taken from input: set_theses stamps it."""
+    raw = raw or {}
+    out = {}
+    conv = _num(raw.get("conviction"))
+    if conv is not None and 1 <= conv <= 10:
+        out["conviction"] = int(round(conv))
+    for k in ("munger_price", "bear_price", "exit_price"):
+        v = _num(raw.get(k))
+        if v is not None:
+            out[k] = round(v, 2)
+    act = _text(raw.get("action")).upper()
+    if act in ACTIONS:
+        out["action"] = act
+    rd = raw.get("review_date")
+    if hasattr(rd, "isoformat"):
+        rd = rd.isoformat()
+    rd = _text(rd)[:10]
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", rd):
+        try:
+            date.fromisoformat(rd)
+            out["review_date"] = rd
+        except ValueError:
+            pass
+    note = _text(raw.get("note"))
+    if note:
+        out["note"] = note[:NOTE_MAX]
+    return out
+
+
+def get_thesis(code: str) -> dict:
+    return dict((_read_local().get(code) or {}).get("thesis") or {})
+
+
+def set_theses(updates: dict, repo: str = "", token: str = "") -> tuple:
+    """Replace the thesis of each company in `updates` ({code: raw fields}) and
+    save once. A company whose fields all come back blank has its thesis
+    cleared. Returns (ok, message) with the same meaning as add_to_watchlist;
+    ("nothing", ...) is not a thing — no change is reported as ok."""
+    entries = _read_local()
+    changed = []
+    for code, raw in (updates or {}).items():
+        if code not in entries:
+            continue
+        new = clean_thesis(raw)
+        old = entries[code].get("thesis") or {}
+        # When the action was set, so "on WATCH for 74 days" can be said. Kept
+        # while the action is unchanged; restamped when it changes.
+        if new.get("action"):
+            new["action_since"] = (old["action_since"]
+                                   if new["action"] == old.get("action") and old.get("action_since")
+                                   else date.today().isoformat())
+        if new == old:
+            continue
+        if new:
+            entries[code]["thesis"] = new
+            entries[code]["thesis_updated"] = date.today().isoformat()
+        else:
+            entries[code].pop("thesis", None)
+            entries[code].pop("thesis_updated", None)
+        changed.append(code)
+    if not changed:
+        return True, "No thesis figures changed."
+    _write_local(entries)
+    ok, msg = _push(entries, repo, token, "thesis " + ", ".join(changed))
+    return ok, (f"Saved thesis for {len(changed)} compan{'y' if len(changed) == 1 else 'ies'}."
+                if ok else msg)
+
+
 # ── GitHub-backed durable copy ───────────────────────────────────────────
 # Same shape as research_links.py: read via the public raw URL, write via the
 # authenticated Contents API, retry once on a 409 (someone else's write landed
@@ -233,6 +375,32 @@ def load_from_github(repo: str, token: str = "") -> dict:
     import gh_read
     data = gh_read.raw_json(repo, WATCHLIST_PATH, token, {})
     return data if isinstance(data, dict) else {}
+
+
+def sync_and_report(repo: str, token: str = "") -> dict:
+    """sync_from_github, plus what the app needs to say whether the list is
+    actually saved: {"entries", "remote_found", "remote_count", "seed"}.
+
+    `remote_found` False with entries on hand is the state that silently lost
+    the list on every restart: everything lived in the local cache and the
+    repo had no data/watchlist.json at all. `seed` is the (ok, message) of the
+    push that tries to fix that, or None if none was attempted."""
+    remote = load_from_github(repo, token)
+    local = _read_local()
+    merged = {**local, **remote}
+    if merged:
+        _write_local(merged)
+    seed = None
+    if local and not remote and token:
+        seed = _push(merged, repo, token, "seed from local cache")
+    return {"entries": merged, "remote_found": bool(remote),
+            "remote_count": len(remote), "seed": seed}
+
+
+def save_all(repo: str, token: str = "") -> tuple:
+    """Push the whole local list as it stands — the "Save now" button, for a
+    list that only ever reached the session cache."""
+    return _push(_read_local(), repo, token, "save")
 
 
 def sync_from_github(repo: str, token: str = "") -> dict:
@@ -296,80 +464,111 @@ def _push(entries: dict, repo: str, token: str, what: str) -> tuple:
     return False, "GitHub write failed after retry (concurrent edit)."
 
 
-def get_company_aliases(company_name: str) -> list:
-    """Get all search terms for a company."""
-    # Check known companies first
-    for name, aliases in KNOWN_COMPANIES.items():
-        if company_name.lower() == name.lower():
-            return [name.lower()] + [a.lower() for a in aliases]
-
-    # For custom entries, just use the name itself
-    return [company_name.lower()]
-
-
-def scan_articles_for_company(company_name: str, all_articles: list) -> list:
-    """
-    Find all articles mentioning a specific company.
-    Matches on: keyword aliases in title, AI-extracted company_code,
-    and AI-extracted company_name_clean.
-    """
-    aliases = get_company_aliases(company_name)
-
-    # Extract TSE code from aliases (4-digit numeric)
-    tse_code = next((a for a in aliases if a.isdigit() and len(a) == 4), None)
-
-    matches = []
-    for article in all_articles:
-        matched = False
-
-        # 1. Match on AI-extracted company_code (fastest, most precise)
-        if tse_code and article.get("company_code") == tse_code:
-            matched = True
-
-        # 2. Match on AI-extracted company_name_clean
-        if not matched:
-            ai_name = (article.get("company_name_clean") or "").lower()
-            if ai_name and any(alias in ai_name or ai_name in alias
-                               for alias in aliases if len(alias) > 3):
-                matched = True
-
-        # 3. Fallback: keyword search in title
-        if not matched:
-            text = (
-                (article.get("translated_title") or article.get("title", "")) + " " +
-                article.get("original_title", "")
-            ).lower()
-            for alias in aliases:
-                if alias and len(alias) > 2 and alias in text:
-                    matched = True
-                    break
-
-        if matched:
-            matches.append(article)
-
-    return matches
+# Legal suffixes stripped to get the name a headline actually uses: "Kyocera
+# Corporation" is "Kyocera" in every headline, so matching the full legal name
+# found almost nothing for any company outside KNOWN_COMPANIES.
+_SUFFIX_RE = re.compile(
+    r"[\s,]+(co\.?,?\s*ltd\.?|co\.?,?\s*limited|company,?\s*limited|corporation|"
+    r"corp\.?|incorporated|inc\.?|limited|ltd\.?|k\.?\s?k\.?|plc|holdings?|group)$",
+    re.IGNORECASE)
+# A one-word stem that names a whole group or a place matches other companies'
+# news ("Mitsubishi Corporation" -> "Mitsubishi" would claim Mitsubishi UFJ's
+# headlines), so such a stem is never used alone.
+_GENERIC_STEMS = {
+    "mitsubishi", "mitsui", "sumitomo", "nippon", "japan", "tokyo", "osaka",
+    "toyota", "hitachi", "nissan", "daiwa", "nomura", "fuji", "yamaha", "seven",
+    "east", "west", "central", "kansai", "kyushu", "hokkaido", "chubu", "tohoku",
+    "shikoku", "chugoku", "sanyo", "taiyo", "nihon", "dai", "shin", "toa", "asahi",
+}
 
 
-def scan_all_watchlist(watchlist: list, articles_by_sector: dict) -> dict:
-    """
-    Scan all articles for all watchlist companies.
-    Returns dict of {company_name: [matching_articles]}
-    """
+def short_name(name: str) -> str:
+    """The name with its legal suffixes taken off ("Hitachi, Ltd." -> "Hitachi")."""
+    out = _text(name)
+    while True:
+        trimmed = _SUFFIX_RE.sub("", out).strip(" ,.")
+        if trimmed == out or not trimmed:
+            return out
+        out = trimmed
+
+
+def get_company_aliases(company_name: str, code: str = "") -> list:
+    """Lower-case search terms for a company: its KNOWN_COMPANIES aliases where
+    it is one of those, its name, its short name where that is specific
+    enough, and its ticker."""
+    name = _text(company_name)
+    low = name.lower()
+    out = []
+    for known, aliases in KNOWN_COMPANIES.items():
+        codes = [a for a in aliases if re.fullmatch(r"\d{4}", a)]
+        if low == known.lower() or (code and code in codes):
+            out += [known.lower()] + [a.lower() for a in aliases]
+    if low:
+        out.append(low)
+    stem = short_name(name).lower()
+    if stem and stem != low and len(stem) >= 4 and not (
+            " " not in stem and stem in _GENERIC_STEMS):
+        out.append(stem)
+    if code and not code.startswith(_UNRESOLVED):
+        out.append(code.lower())
+    return list(dict.fromkeys(out))
+
+
+def _alias_in(alias: str, text: str) -> bool:
+    """Whole-word match, so "ntt" does not match inside "button" and "6098"
+    does not match inside "160980". Japanese aliases have no word boundaries
+    to speak of and are matched as plain substrings."""
+    if not alias:
+        return False
+    if not alias.isascii():
+        return alias in text
+    return re.search(r"(?<![a-z0-9])" + re.escape(alias) + r"(?![a-z0-9])", text) is not None
+
+
+def article_matches(article: dict, aliases: list, code: str = "") -> bool:
+    """True if the article is about this company: tagged with its ticker by the
+    AI extraction, extracted company name matches, or a headline mentions it."""
+    tse_code = code or next((a for a in aliases if re.fullmatch(r"\d{4}", a)), "")
+    if tse_code and (article.get("company_code") or "").strip() == tse_code:
+        return True
+    ai_name = (article.get("company_name_clean") or "").lower()
+    if ai_name and any(len(a) > 3 and not a.isdigit() and (a in ai_name or ai_name in a)
+                       for a in aliases):
+        return True
+    text = ((article.get("translated_title") or article.get("title", "") or "") + " "
+            + (article.get("original_title", "") or "")).lower()
+    return any(len(a) > 2 and _alias_in(a, text) for a in aliases)
+
+
+def scan_articles_for_company(company_name: str, all_articles: list, code: str = "") -> list:
+    """Every article mentioning one company (see article_matches)."""
+    aliases = get_company_aliases(company_name, code)
+    return [a for a in all_articles if article_matches(a, aliases, code)]
+
+
+def scan_all_watchlist(watchlist, articles_by_sector: dict, names_lookup: dict = None) -> dict:
+    """{display name: [matching articles]} for every watched company.
+
+    `watchlist` is the entries dict ({code: entry}), so each company is matched
+    on its ticker as well as its name; a plain list of names (the old shape)
+    is still accepted and matched on names alone."""
     if not articles_by_sector or not isinstance(articles_by_sector, dict):
         return {}
     if not watchlist:
         return {}
-    # Flatten all articles
     all_articles = [
         article
         for sector_articles in articles_by_sector.values()
         for article in (sector_articles or [])
     ]
-
+    if isinstance(watchlist, dict):
+        pairs = [(display_name(k, e, names_lookup),
+                  "" if k.startswith(_UNRESOLVED) else k) for k, e in watchlist.items()]
+    else:
+        pairs = [(n, resolve_code(n, names_lookup)) for n in watchlist if _text(n)]
     results = {}
-    for company in watchlist:
-        matches = scan_articles_for_company(company, all_articles)
+    for name, code in pairs:
+        matches = scan_articles_for_company(name, all_articles, code)
         if matches:
-            results[company] = matches
-
+            results[name] = matches
     return results

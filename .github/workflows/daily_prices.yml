@@ -108,6 +108,20 @@ jobs:
                   panel += [str(r.get("Code","")).strip() for r in csv.DictReader(f)
                             if str(r.get("Code","")).strip()]
               print(f"{path}: queued first")
+          # Watchlist companies are queued with the panel, so each one has a
+          # close every day (and so a P/E and a market cap in the Watchlist
+          # grid) even when it sits outside the universe.
+          if os.path.exists("data/watchlist.json"):
+              try:
+                  import json
+                  with open("data/watchlist.json", encoding="utf-8") as f:
+                      _wl = json.load(f)
+                  _wlc = ([c for c in _wl if not str(c).startswith("_unresolved:")]
+                          if isinstance(_wl, dict) else [])
+                  panel += _wlc
+                  print(f"Watchlist codes queued first: {len(_wlc)}")
+              except Exception as e:
+                  print(f"Watchlist read error (skipped): {e}")
           panel = list(dict.fromkeys(panel))
           if panel:
               print(f"Forecast-panel codes queued first: {len(panel)}")

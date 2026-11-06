@@ -14,8 +14,10 @@ from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_
                           fetch_underperformance_screen, TSE_STOCKS)
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES,
-                       sync_from_github as sync_watchlist_from_github,
+                       sync_and_report as watchlist_sync_and_report,
                        load_watchlist_codes, load_watchlist_entries)
+import watchlist as WL
+import watchlist_grid as WG
 from edinet import (load_edinet_filings_from_github, doc_type_label,
                      fetch_edinet_document_bytes, DocumentNotAvailable)
 from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdnet_title
@@ -1211,6 +1213,46 @@ a.research-link:hover { background: #F0EDE8; }
 .tr-steps td { white-space: normal; text-align: left; line-height: 1.5; }
 .tr-adj td { color: #B26A00; font-weight: 600; background: #FFFBF3; }
 .tr-steps td:first-child { white-space: nowrap; }
+/* Watchlist comparison grid. Scrolls sideways inside its own box with the
+   company column pinned, so a phone shows the names while you swipe through
+   the figures. */
+.wl-wrap { overflow-x: auto; max-width: 100%; margin: 0.3rem 0 0.1rem; }
+.wl-grid { border-collapse: separate; border-spacing: 0; font-size: 0.72rem; }
+.wl-grid th, .wl-grid td { padding: 3px 7px; white-space: nowrap; text-align: right;
+                           border-bottom: 1px solid #E8E3DC; font-variant-numeric: tabular-nums; }
+.wl-grid th { font-size: 0.58rem; letter-spacing: 0.04em; text-transform: uppercase;
+              color: #9B8B7A; background: #F0EDE8; font-weight: 600; vertical-align: bottom; }
+.wl-grid th.wl-grp { color: #8B4513; text-align: center; }
+.wl-grid .wl-gs { border-left: 1px solid #D9D3C8; }
+.wl-grid .wl-first { position: sticky; left: 0; z-index: 1; background: #F7F4EF;
+                     text-align: left; white-space: normal; min-width: 150px; max-width: 220px; }
+.wl-grid th.wl-first { background: #F0EDE8; z-index: 2; }
+.wl-grid td.wl-good, .fc-key.wl-good { background: #E3F1E5; }
+.wl-grid td.wl-bad, .fc-key.wl-bad { background: #FBE6E2; }
+.wl-grid tr.wl-sector td { background: #F5F0E8; color: #5C4033; font-weight: 700; text-align: left;
+                           font-size: 0.62rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.wl-grid tr.wl-ref td { color: #7A6A57; font-style: italic; background: #FAF7F2; font-size: 0.66rem; }
+.wl-grid tfoot tr.wl-ref td { border-top: 1px solid #D9D3C8; font-weight: 600; }
+.wl-grid a { color: #1A1A1A; font-weight: 600; text-decoration: none; }
+.wl-grid .wl-pin { position: sticky; left: 7px; }
+.wl-est { font-style: italic; }
+.wl-sub { font-size: 0.6rem; color: #9B8B7A; line-height: 1.3; }
+.wl-buy { color: #1B7F4F; font-weight: 700; }
+.wl-warn { color: #B26A00; }
+.wl-grid td.wl-flags { text-align: left; white-space: normal; min-width: 120px; }
+.wl-chip { display: inline-block; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.03em;
+           padding: 1px 5px; border-radius: 3px; margin: 1px 2px 1px 0; white-space: nowrap; }
+.wl-chip-act { background: #1B7F4F; color: #FFFFFF; }
+.wl-chip-warn { background: #FBE3C4; color: #7A4A00; }
+.wl-chip-info { background: #E9E4DA; color: #5C4033; }
+.wl-decisions { margin: 0.2rem 0 0.6rem; max-width: 1180px; }
+.wl-dec-head { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+               color: #8B4513; margin-bottom: 0.25rem; }
+.wl-dec { font-size: 0.74rem; color: #3D3529; padding: 4px 8px; border-left: 3px solid #D9D3C8;
+          background: #FBF7F0; margin-bottom: 3px; line-height: 1.45; }
+.wl-dec a { color: #1A1A1A; font-weight: 600; text-decoration: none; }
+.wl-dec-act { border-left-color: #1B7F4F; }
+.wl-dec-warn { border-left-color: #E09A3A; }
 .fc-legend .fc-key { display: inline-block; width: 9px; height: 9px; margin-right: 4px;
                      border: 1px solid #D9D3C8; vertical-align: -1px; }
 .fc-key-a { background: #FDFAF7; border-color: #5C4033 !important; }
@@ -1597,6 +1639,441 @@ def _valuation_inputs(_rcode: str, _rmcap=None) -> dict:
     }
 
 
+def _load_valuation_maps():
+    """Load the session maps _valuation_inputs() reads, through the shared
+    process-wide cache, so the Research tab, the Valuation Screen and the
+    Watchlist grid hold one copy between them."""
+    if not st.session_state.get("consensus_map"):
+        st.session_state.consensus_map = _shared(
+            "consensus_map", lambda: fund.load_consensus_from_github(_ec_repo, _gh_token))
+    if not st.session_state.get("fundamentals_map"):
+        st.session_state.fundamentals_map = _shared(
+            "fundamentals_map", lambda: fund.load_fundamentals_from_github(_ec_repo, _gh_token))
+    if not st.session_state.get("jpx400_map"):
+        st.session_state.jpx400_map = _shared(
+            "jpx400_map", lambda: fund.load_universe_from_github(_ec_repo, _gh_token))
+    if not st.session_state.get("consensus_manual_map"):
+        st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
+    if not st.session_state.get("research_prices_map"):
+        st.session_state.research_prices_map = _shared(
+            "prices_map", lambda: load_prices_from_github(_ec_repo, _gh_token))
+    if not st.session_state.get("mktcap_map"):
+        st.session_state.mktcap_map = load_mktcap_from_github(_ec_repo, _gh_token) or {}
+
+
+def _vs_str(x) -> str:
+    return x.strip() if isinstance(x, str) else ""
+
+
+def _company_sector(code: str) -> str:
+    _uni = st.session_state.get("jpx400_map") or {}
+    return (_vs_str((_uni.get(code) or {}).get("sector"))
+            or _vs_str(SECTOR_LOOKUP.get(code)) or "Unclassified")
+
+
+def _valuation_row(code: str) -> dict:
+    """One company's screen row (multiples on the latest close), or {} when it
+    has no forecast data. Needs _load_valuation_maps() to have run."""
+    _mc_map = st.session_state.get("mktcap_map") or {}
+    _uni = st.session_state.get("jpx400_map") or {}
+    try:
+        _vi = _valuation_inputs(code, _mc_map.get(code))
+    except Exception as _ve:
+        print(f"Valuation row: {code} skipped ({_ve})")
+        return {}
+    if not _vi:
+        return {}
+    _v = _vi["vals"]
+    _mcap = _vi["mcap"]
+    _nd = _v.get("net_debt")
+    return {
+        "code": code,
+        "name": _vs_str(NAMES_LOOKUP.get(code)) or _vs_str((_uni.get(code) or {}).get("name")),
+        "sector": _company_sector(code),
+        "fy1": (_vi["fc_years"] or [""])[0],
+        "price": _vi["price"],
+        "mcap_bn": _mcap / 1e9 if _mcap else None,
+        "pe_st": _v.get("pe_fy1_consensus"),
+        "pe_co": _v.get("pe_fy1_company"),
+        "pe_st2": _v.get("pe_fy2_consensus"),
+        "peg": _v.get("peg"),
+        "eps_growth": _v.get("eps_growth"),
+        "pb": _v.get("pb"),
+        "ev_ebitda": _v.get("ev_ebitda"),
+        "net_debt_bn": _nd / 1e9 if _nd is not None else None,
+        "net_cash_pct": (-_nd / _mcap) if (_nd is not None and _mcap) else None,
+        "yield": _v.get("yield_fy1_company") if _v.get("yield_fy1_company") is not None
+                 else _v.get("yield_fy1_consensus"),
+        "split": bool(_vi["split_factor"]),
+    }
+
+
+def _valuation_rows_all() -> list:
+    """A screen row for every company with forecast data (~980)."""
+    _rows = []
+    for _code in sorted(st.session_state.get("consensus_map") or {}):
+        _r = _valuation_row(_code)
+        if _r:
+            _rows.append(_r)
+    return _rows
+
+
+@st.cache_data
+def _company_options() -> list:
+    """"code — name" for every listed company, sorted by name: the picker the
+    Watchlist adds from, same list as the Research search."""
+    opts = [f"{code} — {name}" for code, name in NAMES_LOOKUP.items() if code and name]
+    return sorted(opts, key=lambda s: s.split(" — ", 1)[1].lower())
+
+
+def _load_price_history_map() -> dict:
+    """{code: [(iso date, close)]} weekly, from data/price_history.csv. Same
+    shape and _shared key as the Research tab's loader, so one copy serves both."""
+    _st, _txt = gh_read.raw_get(_ec_repo, "data/price_history.csv", _gh_token)
+    _out = {}
+    if _st == 200 and _txt:
+        import csv as _csv
+        import io as _io
+        for _r in _csv.DictReader(_io.StringIO(_txt)):
+            try:
+                _out.setdefault(_r["code"], []).append((_r["date"], float(_r["close"])))
+            except (KeyError, ValueError):
+                continue
+    return _out
+
+
+_WL_VAL_KEYS = ("pe_st", "pe_co", "peg", "ev_ebitda", "pb", "yield", "net_cash_pct")
+
+
+def _watchlist_grid_data(codes: list) -> dict:
+    """Every figure the Watchlist grid shows, for `codes`, plus the reference
+    medians. Thesis figures are not here: they are merged in at draw time so a
+    saved edit shows without rebuilding all of this."""
+    import splits as _splits
+    _load_valuation_maps()
+    _cons = st.session_state.get("consensus_map") or {}
+    _prices = st.session_state.get("research_prices_map") or {}
+    _mc = st.session_state.get("mktcap_map") or {}
+
+    _perf, _topix = {}, {}
+    try:
+        _pm = _shared("perf_full_map", lambda: (
+            lambda r: r if (r and r[0]) else None)(load_perf_map_from_github(_ec_repo, _gh_token)))
+        if _pm:
+            _perf, _topix = _pm
+    except Exception as _e:
+        print(f"watchlist perf map error: {_e}")
+    try:
+        _liq = _shared("liquidity_map",
+                       lambda: fund.load_liquidity_from_github(_ec_repo, _gh_token)) or {}
+    except Exception as _e:
+        print(f"watchlist liquidity error: {_e}")
+        _liq = {}
+    try:
+        _hist = _shared("price_history_map", _load_price_history_map) or {}
+    except Exception as _e:
+        print(f"watchlist price history error: {_e}")
+        _hist = {}
+    try:
+        _events = _splits.parse_events(gh_read.raw_csv(_ec_repo, "data/split_events.csv", _gh_token))
+    except Exception as _e:
+        print(f"watchlist split events error: {_e}")
+        _events = {}
+    _tpx = WG.topix_series(_hist)
+
+    # The whole collected universe, for the sector reference rows.
+    try:
+        _uni_rows = _shared("valuation_rows_all", _valuation_rows_all) or []
+    except Exception as _e:
+        print(f"watchlist universe rows error: {_e}")
+        _uni_rows = []
+
+    _logs = st.session_state.setdefault("estimates_log_map", {})
+    for _c in codes:
+        if _c not in _logs:
+            try:
+                _logs[_c] = EL.load_from_github(_ec_repo, _c, _gh_token)
+            except Exception as _e:
+                print(f"estimates log load error {_c}: {_e}")
+                _logs[_c] = []
+    _oo_map = st.session_state.get("one_offs_map")
+    if _oo_map is None:
+        try:
+            _oo_map = st.session_state.one_offs_map = OO.load_from_github(_ec_repo, _gh_token)
+        except Exception:
+            _oo_map = {}
+
+    _rows = []
+    for _c in codes:
+        _vr = _valuation_row(_c) if _c in _cons else {}
+        _row = {"code": _c, "sector": _vr.get("sector") or _company_sector(_c),
+                "price": _vr.get("price") or _prices.get(_c),
+                "mcap_bn": _vr.get("mcap_bn") or _mc.get(_c),
+                "fy1": _vr.get("fy1", ""), "covered": _c in _cons,
+                "split": _vr.get("split", False)}
+        for _k in _WL_VAL_KEYS:
+            _row[_k] = _vr.get(_k)
+
+        # Latest result against the street, as the results scorecard reads it.
+        _sm = EL.summarize_latest(_logs.get(_c) or [])
+        if _sm:
+            _row.update({"op_vs_street": _sm.get("op_vs_street"),
+                         "guide_move": _sm.get("guide_move"),
+                         "street_move": _sm.get("street_move"),
+                         "result_label": f'{_sm["period"]} {_sm["fy"]}, reported {_sm["date"]}',
+                         "result_date": _sm["date"]})
+            if _sm.get("op_vs_street") is not None and _sm.get("op_quarter") is not None \
+                    and _sm["period"] != "FY":
+                _i = OO.impact(_oo_map.get(_c) or [], "operating_profit", _sm["fy"],
+                               (_sm["period"],))
+                if _i:
+                    _street = _sm["op_quarter"] / (1 + _sm["op_vs_street"])
+                    _row["op_vs_street_adj"] = (_sm["op_quarter"] - _i) / _street - 1
+
+        # Price against TOPIX: the precomputed figure where there is one, else
+        # measured off the weekly price history (marked as such in the grid).
+        _p = _perf.get(_c) or {}
+        _row.update({"vs3m": _p.get("vs3m"), "vs6m": _p.get("vs6m"), "vs12m": _p.get("vs12m")})
+        _row["perf_est"] = []
+        if any(_row[k] is None for k in ("vs3m", "vs6m", "vs12m")) and _hist.get(_c) and _tpx:
+            _fb = WG.rel_perf_from_history(_hist[_c], _tpx, _events.get(_c, []))
+            for _k, _v in _fb.items():
+                if _row[_k] is None and _v is not None:
+                    _row[_k] = _v
+                    _row["perf_est"].append(_k)
+
+        # How the stock took the latest result, against TOPIX: rule 10's input.
+        if _row.get("result_date") and _hist.get(_c) and _tpx:
+            _rx = WG.reaction_after(_hist[_c], _tpx, _row["result_date"], _events.get(_c, []))
+            if _rx:
+                _row["reaction"], _row["reaction_end"], _row["reaction_settled"] = _rx
+
+        # A company outside the daily price sweep still has a weekly close.
+        if not _row["price"] and _hist.get(_c):
+            _row["price"] = max(_hist[_c])[1]
+            _row["price_weekly"] = True
+        _l = _liq.get(_c) or {}
+        _row["adv_m"] = (_l["adv_jpy_20"] / 1e6) if _l.get("adv_jpy_20") else None
+        _row["days_exit"] = _l.get("days_to_exit_100m")
+        _row["liq_tier"] = _l.get("tier", "")
+        _rows.append(_row)
+
+    return {"rows": _rows,
+            "sector_med": WG.sector_medians(_uni_rows),
+            "uni_med": WG.medians(_uni_rows, WG.SECTOR_MEDIAN_KEYS),
+            "topix": _topix or {},
+            "prices": {r["code"]: r["price"] for r in _rows},
+            "built": now_local()}
+
+
+def _wl_cell(row: dict, key: str, kind: str, shade: str = "") -> str:
+    """One grid cell: formatted figure, rank shade and the reading cues."""
+    v = row.get(key)
+    if kind == "flags":
+        fl = row.get("flags") or []
+        if not fl:
+            return '<td class="wl-flags"><span class="fc-na">—</span></td>'
+        chips = "".join(f'<span class="wl-chip wl-chip-{f["severity"]}" '
+                        f'title="{_safe_text(f["text"])}">{_safe_text(f["short"])}</span>'
+                        for f in fl)
+        return f'<td class="wl-flags">{chips}</td>'
+    txt = WG.fmt(v, kind)
+    cls = [c for c in (f"wl-{shade}" if shade else "",) if c]
+    title = ""
+    if not txt:
+        return f'<td class="{" ".join(cls)}"><span class="fc-na">—</span></td>'
+    if key in ("vs3m", "vs6m", "vs12m"):
+        cls.append("fc-pos" if v >= 0 else "fc-neg")
+        if key in (row.get("perf_est") or []):
+            cls.append("wl-est")
+            title = "Measured from the weekly price history"
+    elif key in ("op_vs_street", "guide_move", "street_move"):
+        cls.append("fc-pos" if v >= 0 else "fc-neg")
+        title = row.get("result_label", "")
+        if key == "op_vs_street" and row.get("op_vs_street_adj") is not None:
+            txt += (f'<div class="fc-ytd"><small>ADJ</small> '
+                    f'{WG.fmt(row["op_vs_street_adj"], "spct1")}</div>')
+    elif key == "reaction":
+        cls.append("fc-pos" if v >= 0 else "fc-neg")
+        title = (f'{row.get("result_label", "")}: vs TOPIX from the close before the result '
+                 f'to {row.get("reaction_end", "")}'
+                 + ("" if row.get("reaction_settled") else " (so far — under 5 days)"))
+        if not row.get("reaction_settled"):
+            cls.append("wl-est")
+    elif key == "rr":
+        hurdle = row.get("_rr_hurdle", WG.DEFAULTS["rr_hurdle"])
+        if v >= hurdle:
+            cls.append("wl-buy")
+            title = f"Clears your {hurdle:.0f}:1 hurdle"
+        elif v < 1:
+            cls.append("fc-neg")
+            title = "Less upside to exit than downside to bear"
+        else:
+            title = f"Below your {hurdle:.0f}:1 hurdle"
+    elif key == "days_exit":
+        if v >= 20:
+            cls.append("fc-neg")
+        elif v >= 5:
+            cls.append("wl-warn")
+        title = row.get("liq_tier", "")
+    elif key == "vs_munger" and v <= 0:
+        cls.append("wl-buy")
+        title = "At or below your Munger price"
+    elif key == "to_exit" and v < 0:
+        cls.append("fc-neg")
+        title = "Above your exit price"
+    elif key == "review_date" and str(v) <= now_local().strftime("%Y-%m-%d"):
+        cls.append("wl-warn")
+        title = "Review date reached"
+    elif key in ("pe_st", "pe_co") and row.get("split"):
+        txt += "*"
+        title = "A share split was detected; per-share figures are adjusted"
+    t = f' title="{_safe_text(title)}"' if title else ""
+    return f'<td class="{" ".join(cls)}"{t}>{txt}</td>'
+
+
+def _watchlist_grid_html(rows: list, data: dict, groups: list, sort_label: str,
+                         descending: bool, by_sector: bool) -> str:
+    """The comparison grid as one HTML table: grouped headers, a sticky
+    company column, rank shading within the list, and reference rows (sector
+    medians across the universe, the list's own median, the universe median)."""
+    groups_shown = [(g, cols) for g, cols in WG.GROUPS if g in groups]
+    cols = [c for _, cs in groups_shown for c in cs]
+    sort_key = {"Company": "name", "Mkt cap ¥bn": "mcap_bn"}.get(
+        sort_label, next((k for lbl, k, *_ in cols if lbl == sort_label), "name"))
+    rows = WG.sort_rows(rows, sort_key, descending)
+    if sort_key == "name" and not descending:
+        rows = sorted(rows, key=lambda r: (r.get("name") or "").lower())
+    shades = {k: WG.rank_shades(rows, k, d) for _, k, _, d in cols}
+    idx = {id(r): i for i, r in enumerate(rows)}
+    n_cols = 3 + len(cols)
+
+    h = ['<div class="wl-wrap"><table class="wl-grid"><thead><tr>'
+         '<th class="wl-first" rowspan="2">Company</th>'
+         '<th rowspan="2">Mkt cap<br>¥bn</th><th rowspan="2">Price<br>¥</th>']
+    for g, cs in groups_shown:
+        h.append(f'<th class="wl-grp wl-gs" colspan="{len(cs)}">{_safe_text(g)}</th>')
+    h.append('</tr><tr>')
+    for _, cs in groups_shown:
+        for j, (lbl, k, _, _) in enumerate(cs):
+            mark = (" ▼" if descending else " ▲") if k == sort_key else ""
+            h.append(f'<th class="{"wl-gs" if j == 0 else ""}">{_safe_text(lbl)}{mark}</th>')
+    h.append('</tr></thead><tbody>')
+
+    def body_row(r):
+        sub = [_safe_text(r["code"])]
+        if not by_sector:
+            sub.append(_safe_text(r.get("sector", "")))
+        if r.get("news"):
+            sub.append(f'📰 {r["news"]}')
+        if not r.get("covered"):
+            sub.append('<span class="wl-warn" title="Not in the collected universe yet: '
+                       'forecasts arrive after the next weekly collection">no forecasts yet</span>')
+        out = [f'<tr><td class="wl-first"><a href="{_research_href(r["code"])}" target="_self">'
+               f'{_safe_text(r.get("name") or r["code"])}</a>'
+               f'<div class="wl-sub">{" · ".join(sub)}</div></td>',
+               f'<td>{WG.fmt(r.get("mcap_bn"), "n0") or "—"}</td>',
+               (f'<td class="wl-est" title="Latest weekly close">{WG.fmt(r.get("price"), "n0")}</td>'
+                if r.get("price_weekly") and r.get("price") else
+                f'<td>{WG.fmt(r.get("price"), "n0") or "—"}</td>')]
+        for _, cs in groups_shown:
+            for j, (_, k, kind, _) in enumerate(cs):
+                c = _wl_cell(r, k, kind, shades[k][idx[id(r)]])
+                if j == 0:
+                    c = c.replace('<td class="', '<td class="wl-gs ', 1)
+                out.append(c)
+        out.append('</tr>')
+        return "".join(out)
+
+    def ref_row(label: str, med: dict):
+        out = [f'<tr class="wl-ref"><td class="wl-first">{_safe_text(label)}</td>',
+               f'<td>{WG.fmt(med.get("mcap_bn"), "n0")}</td><td></td>']
+        for _, cs in groups_shown:
+            for j, (_, k, kind, _) in enumerate(cs):
+                txt = (WG.fmt(med.get(k), kind)
+                       if (k in med and kind not in ("text", "flags")) else "")
+                out.append(f'<td class="{"wl-gs" if j == 0 else ""}">{txt}</td>')
+        out.append('</tr>')
+        return "".join(out)
+
+    sec_med = data.get("sector_med") or {}
+    if by_sector:
+        by = {}
+        for r in rows:
+            by.setdefault(r.get("sector") or "Unclassified", []).append(r)
+        for sector in sorted(by):
+            h.append(f'<tr class="wl-sector"><td colspan="{n_cols}"><span class="wl-pin">'
+                     f'{_safe_text(sector)} · {len(by[sector])}</span></td></tr>')
+            h.extend(body_row(r) for r in by[sector])
+            if sector in sec_med:
+                h.append(ref_row(f'Sector median · universe (n={sec_med[sector]["_n"]})',
+                                 sec_med[sector]))
+    else:
+        h.extend(body_row(r) for r in rows)
+
+    # Yen levels differ by company, so a median of them means nothing.
+    num_keys = ["mcap_bn"] + [k for _, k, kind, _ in cols
+                              if kind not in ("text", "yen", "flags")]
+    h.append('</tbody><tfoot>')
+    h.append(ref_row(f"Watchlist median (n={len(rows)})", WG.medians(rows, num_keys)))
+    if data.get("uni_med", {}).get("_n"):
+        h.append(ref_row(f'Universe median (n={data["uni_med"]["_n"]})', data["uni_med"]))
+    h.append('</tfoot></table></div>')
+
+    tpx = data.get("topix") or {}
+    tpx_txt = " · ".join(f"{p} {tpx[p]:+.1f}%" for p in ("3M", "6M", "12M")
+                         if tpx.get(p) is not None)
+    h.append('<div class="fc-legend" style="margin-bottom:1.1rem;">'
+             '<span><span class="fc-key wl-good"></span>best third of the list on that measure'
+             '</span><span><span class="fc-key wl-bad"></span>worst third</span>'
+             '<span>Multiples on FY1 (first year still forecast); a loss-making or '
+             'negative-book figure is left out of ranks and medians.</span>'
+             '<span>OP vs street: latest result against the estimate logged the day before; '
+             'hover for the period. ADJ = with logged one-offs taken out.</span>'
+             '<span><i>Italic</i> price figures are measured from the weekly price history.'
+             + (f' TOPIX: {tpx_txt}.' if tpx_txt else '') + '</span>'
+             '<span>Days to exit: ¥100m at 20% of 20-day ADV; amber ≥5 days, red ≥20.</span>'
+             '<span>Price vs Munger at or below 0% is in green: at or under your '
+             'margin-of-safety price.</span>'
+             '<span>Reward : risk = (exit − price) ÷ (price − bear); green when it clears '
+             'your hurdle. Stock since result: vs TOPIX from the close before the result to '
+             'the first weekly close at least 5 days on (italic until then).</span>'
+             '<span>Flags: hover a chip for the reasoning; the full list is in Decisions '
+             'waiting above.</span></div>')
+    return "".join(h)
+
+
+def _watchlist_grid_frame(rows: list):
+    """The grid as a flat table for CSV / Excel, raw numbers (not text)."""
+    import pandas as _pd
+    head = [("Code", "code"), ("Company", "name"), ("Sector", "sector"),
+            ("Mkt cap ¥bn", "mcap_bn"), ("Price ¥", "price"), ("FY1", "fy1")]
+    pct_kinds = {"pct0", "pct1", "spct0", "spct1"}
+    out = []
+    for r in rows:
+        rec = {lbl: r.get(k) for lbl, k in head}
+        for g, cs in WG.GROUPS:
+            for lbl, k, kind, _ in cs:
+                v = r.get(k)
+                # Fractions become percentages so the sheet reads like the grid.
+                if kind in pct_kinds:
+                    lbl = f"{lbl} (%)"
+                    if isinstance(v, (int, float)):
+                        v = round(v * 100, 2)
+                rec[lbl] = v
+        rec["OP vs street ADJ (%)"] = (round(r["op_vs_street_adj"] * 100, 2)
+                                       if r.get("op_vs_street_adj") is not None else None)
+        rec["Latest result"] = r.get("result_label", "")
+        if rec.get("Reward : risk") == float("inf"):
+            rec["Reward : risk"] = "∞"          # Excel has no infinity
+        rec.pop("Flags", None)
+        rec["Flags"] = "; ".join(f["short"] for f in r.get("flags") or [])
+        rec["Action since"] = r.get("action_since") or ""
+        rec["Note"] = r.get("note") or ""
+        out.append(rec)
+    return _pd.DataFrame(out)
+
+
 def _research_href(code: str) -> str:
     """Link that reopens the app on the Research tab with `code` selected.
 
@@ -1707,12 +2184,21 @@ except Exception:
 # restart; data/watchlist.json in the repo is the copy that survives. Done once
 # per session behind a sentinel, because load_watchlist() runs several times per
 # rerun and cannot afford an HTTP round trip each time.
+#
+# What the sync found is kept, because "is my list actually saved?" was the
+# question nothing answered: the repo never had a data/watchlist.json, so the
+# list lived only in the cache and emptied itself on every restart, and the
+# warning from a failed save was shown on the Research tab rather than here.
 if "watchlist_synced" not in st.session_state:
     st.session_state.watchlist_synced = True
     try:
-        sync_watchlist_from_github(_ec_repo, _gh_token or "")
+        _wl_sync = watchlist_sync_and_report(_ec_repo, _gh_token or "")
+        st.session_state.watchlist_remote_found = _wl_sync["remote_found"]
+        if _wl_sync["seed"] is not None:
+            st.session_state.watchlist_save_result = _wl_sync["seed"]
     except Exception as _wl_e:
         print(f"Watchlist sync error: {_wl_e}")
+        st.session_state.watchlist_save_result = (False, f"Could not read the saved watchlist: {_wl_e}")
 
 # ── Restore from shared cache on first page load of a new session ─────────────
 if "_cache_loaded" not in st.session_state:
@@ -1790,15 +2276,6 @@ def _article_headline_text(a) -> str:
             " " + (a.get("original_title") or "")).lower()
 
 
-def _matches_watchlist(a, known_aliases) -> bool:
-    """True if article title or company_code matches any KNOWN_COMPANIES alias."""
-    code = (a.get("company_code") or "").strip()
-    if code and code in known_aliases:
-        return True
-    text = _article_headline_text(a)
-    return any(alias in text for alias in known_aliases)
-
-
 def _build_in_brief_items(pool_all, briefing_pool, max_per_section: int = 4):
     """Return an ordered list of (section_label, emoji, [articles]) tuples for
     the In-Brief panel. Each article appears in at most one section
@@ -1856,9 +2333,19 @@ def _build_in_brief_items(pool_all, briefing_pool, max_per_section: int = 4):
     if mover_items:
         sections.append(("Price movers", "📉", mover_items))
 
-    # 3. Watchlist mentions — anything matching KNOWN_COMPANIES not already taken.
-    if known_aliases:
-        watch_items = _take(lambda a: _matches_watchlist(a, known_aliases), max_per_section)
+    # 3. Watchlist mentions — the companies on *your* watchlist, matched on
+    #    ticker and name. This used to match the 30 hardcoded KNOWN_COMPANIES
+    #    whatever the list held, so it showed Toyota and Sony under a
+    #    "Watchlist" label to someone watching neither.
+    try:
+        _wl_alias = [(c, WL.get_company_aliases(WL.display_name(c, e, NAMES_LOOKUP), c))
+                     for c, e in load_watchlist_entries().items()
+                     if not c.startswith("_unresolved:")]
+    except Exception:
+        _wl_alias = []
+    if _wl_alias:
+        watch_items = _take(lambda a: any(WL.article_matches(a, _al, _c) for _c, _al in _wl_alias),
+                            max_per_section)
         if watch_items:
             sections.append(("Watchlist mentions", "👀", watch_items))
 
@@ -2479,8 +2966,8 @@ with col_refresh:
             except Exception as e:
                 st.session_state.sentiment_scores = {}
             try:
-                wl = load_watchlist()
-                st.session_state.watchlist_hits = scan_all_watchlist(wl, st.session_state.articles)
+                st.session_state.watchlist_hits = scan_all_watchlist(
+                    load_watchlist_entries(), st.session_state.articles, NAMES_LOOKUP)
             except Exception as e:
                 st.session_state.watchlist_hits = {}
             if not st.session_state.selected_sector:
@@ -3303,57 +3790,317 @@ with tab_market:
 # TAB 3 — WATCHLIST
 # ════════════════════════════════════════════════════════════
 with tab_watchlist:
-    st.markdown('<div class="section-title">⭐ My Company Watchlist</div>', unsafe_allow_html=True)
-    watchlist = load_watchlist()
+    st.markdown('<div class="section-title">⭐ Watchlist — compare side by side</div>', unsafe_allow_html=True)
 
-    col_inp, col_add = st.columns([3, 1])
-    with col_inp:
-        add_input = st.text_input("Add by name or TSE code:", placeholder="e.g. Toyota, Recruit, 6098")
-    with col_add:
-        st.markdown("<div style='margin-top:1.55rem'>", unsafe_allow_html=True)
-        if st.button("➕ Add", use_container_width=True):
-            if add_input.strip():
-                _ok, _msg = add_to_watchlist(add_input.strip(), _ec_repo,
-                                             _gh_token or "", NAMES_LOOKUP)
-                if not _ok:
-                    # The cache is already updated, so the entry is usable now;
-                    # what failed is the durable write. Say which.
-                    st.session_state.research_flash = ("warning", _msg)
+    def _wl_saved(ok: bool, msg: str, success: str):
+        """Record a save's outcome where this tab can show it. A failed save
+        used to be routed to the Research tab's banner, so it never appeared
+        on the tab where the button was pressed."""
+        st.session_state.watchlist_save_result = (ok, msg)
+        if ok:
+            st.session_state.watchlist_remote_found = True
+        st.session_state.watchlist_flash = (
+            ("success", success) if ok else
+            ("warning", msg if "session only" in msg else f"Kept for this session only — {msg}"))
+
+    _wl_flash = st.session_state.pop("watchlist_flash", None)
+    if _wl_flash:
+        (st.success if _wl_flash[0] == "success" else st.warning)(_wl_flash[1])
+
+    _wl_entries = load_watchlist_entries()
+    _wl_codes = load_watchlist_codes()
+
+    # ── Is the list actually saved? ──────────────────────────────────────
+    _wl_res = st.session_state.get("watchlist_save_result")
+    _wl_need_save = False
+    if not _gh_token:
+        st.markdown('<div class="fc-note fc-warn">No GITHUB_TOKEN is configured, so this list '
+                    'lives only until the app restarts. Add one under Manage app → Settings → '
+                    'Secrets on Streamlit Community Cloud.</div>', unsafe_allow_html=True)
+    elif _wl_res and not _wl_res[0]:
+        st.markdown(f'<div class="fc-note fc-warn"><b>The last save to GitHub failed</b> — the list '
+                    f'below is kept for this session only and will be lost on the next restart. '
+                    f'{_safe_text(_wl_res[1])}</div>', unsafe_allow_html=True)
+        _wl_need_save = True
+    elif _wl_entries and not st.session_state.get("watchlist_remote_found"):
+        st.markdown('<div class="fc-note fc-warn">This list is not saved in the repo yet '
+                    '(there is no data/watchlist.json), so it will be lost on the next restart. '
+                    'Press <b>Save to GitHub now</b>.</div>', unsafe_allow_html=True)
+        _wl_need_save = True
+    elif _wl_entries:
+        st.markdown(f'<div class="wl-sub">Saved in the repo (data/watchlist.json) · '
+                    f'{len(_wl_entries)} compan{"y" if len(_wl_entries) == 1 else "ies"}</div>',
+                    unsafe_allow_html=True)
+    if _wl_need_save and _gh_token:
+        if st.button("💾 Save to GitHub now", key="wl_save_now"):
+            _ok, _msg = WL.save_all(_ec_repo, _gh_token or "")
+            _wl_saved(_ok, _msg, "Watchlist saved to GitHub.")
+            st.rerun()
+
+    # ── Add ──────────────────────────────────────────────────────────────
+    # Picked from the listed companies rather than typed, so every entry is
+    # keyed on its ticker: a typed name could miss, or match two companies.
+    _wl_a1, _wl_a2 = st.columns([4, 1])
+    with _wl_a1:
+        _wl_pick = st.selectbox("Add a company (name or 4-digit code):", options=_company_options(),
+                                index=None, placeholder="Start typing a company name or code…",
+                                key="wl_add_pick")
+    with _wl_a2:
+        st.markdown("<div style='margin-top:1.55rem'></div>", unsafe_allow_html=True)
+        if st.button("➕ Add", use_container_width=True, key="wl_add_btn", disabled=not _wl_pick):
+            _code = _wl_pick.split(" — ", 1)[0]
+            _ok, _msg = add_to_watchlist(_code, _ec_repo, _gh_token or "", NAMES_LOOKUP)
+            _wl_saved(_ok, _msg, f"Added {WL.display_name(_code, None, NAMES_LOOKUP)}.")
+            st.session_state.pop("wl_grid_cache", None)
+            st.rerun()
+
+    if not _wl_entries:
+        st.markdown('<div class="info-box">Watchlist empty. Add companies above, or with '
+                    '<b>☆ Add to Watchlist</b> on the Research tab.</div>', unsafe_allow_html=True)
+
+    # ── Comparison grid ──────────────────────────────────────────────────
+    # One row per company. The figures are the same ones Research shows (the
+    # multiples come from _valuation_inputs), so a number here and a number on
+    # the company's own page never disagree. Built once per session and held,
+    # because it reads several repo files and the estimates log of every
+    # watched company; "Refresh data" rebuilds it.
+    if _wl_codes:
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
+        _gnames = [g for g, _ in WG.GROUPS]
+        _wc1, _wc2, _wc3, _wc4 = st.columns([3, 1.6, 1.1, 1.1])
+        with _wc1:
+            _wl_show = st.multiselect("Column groups", _gnames, default=_gnames, key="wl_groups")
+        _sort_opts = (["Company", "Mkt cap ¥bn"]
+                      + [lbl for g, cols in WG.GROUPS if g in _wl_show for lbl, *_ in cols])
+        with _wc2:
+            _wl_sort = st.selectbox("Sort by", _sort_opts, key="wl_sort")
+        with _wc3:
+            st.markdown("<div style='margin-top:1.55rem'></div>", unsafe_allow_html=True)
+            _wl_desc = st.toggle("Descending", key="wl_desc")
+        with _wc4:
+            st.markdown("<div style='margin-top:1.55rem'></div>", unsafe_allow_html=True)
+            _wl_bysector = st.toggle("By sector", value=True, key="wl_bysector",
+                                     help="Group the rows by sector, with each sector's median "
+                                          "across the whole collected universe under it.")
+
+        _wl_key = tuple(sorted(_wl_codes))
+        _gc = st.session_state.get("wl_grid_cache")
+        if not _gc or _gc.get("key") != _wl_key:
+            with st.spinner("Loading forecasts, prices and results for the watchlist…"):
+                try:
+                    _gc = _watchlist_grid_data(list(_wl_key))
+                    _gc["key"] = _wl_key
+                    st.session_state.wl_grid_cache = _gc
+                except Exception as _ge:
+                    print(f"watchlist grid build error: {_ge}")
+                    st.error(f"Couldn't load the comparison data: {_ge}")
+                    _gc = None
+        if _gc:
+            # Thresholds for the flags. Session-only: they tune what is
+            # flagged, they are not part of any company's thesis.
+            _flag_cfg = dict(WG.DEFAULTS)
+            if st.toggle("Flag thresholds", key="wl_flag_cfg_show"):
+                _t1, _t2, _t3, _t4 = st.columns(4)
+                with _t1:
+                    _flag_cfg["watch_days"] = st.number_input(
+                        "On WATCH for at least (days)", 1, 3650, WG.DEFAULTS["watch_days"], 5,
+                        key="wl_cfg_days")
+                with _t2:
+                    _flag_cfg["rr_hurdle"] = st.number_input(
+                        "Reward : risk hurdle", 0.5, 20.0, WG.DEFAULTS["rr_hurdle"], 0.5,
+                        key="wl_cfg_rr")
+                with _t3:
+                    _flag_cfg["near_exit"] = st.number_input(
+                        "Near exit within (%)", 1, 50, int(WG.DEFAULTS["near_exit"] * 100), 1,
+                        key="wl_cfg_exit") / 100
+                with _t4:
+                    _flag_cfg["result_window_days"] = st.number_input(
+                        "Results reported within (days)", 7, 365,
+                        WG.DEFAULTS["result_window_days"], 7, key="wl_cfg_window")
+
+            _today = now_local().date()
+            _rows = []
+            for _r in _gc["rows"]:
+                _r = dict(_r)
+                _ent = _wl_entries.get(_r["code"]) or {}
+                _r["name"] = WL.display_name(_r["code"], _ent, NAMES_LOOKUP)
+                _r.update(WG.thesis_metrics(_r.get("price"), _ent.get("thesis")))
+                _r["added_at"] = _ent.get("added_at")
+                _r["thesis_updated"] = _ent.get("thesis_updated")
+                _r["news"] = len(st.session_state.watchlist_hits.get(_r["name"]) or [])
+                _r["_rr_hurdle"] = _flag_cfg["rr_hurdle"]
+                _r["flags"] = WG.decision_flags(_r, _today, _flag_cfg)
+                _rows.append(_r)
+            _peer = WG.peer_flags(_rows, _today, _flag_cfg)
+            for _r in _rows:
+                _r["flags"] = _r["flags"] + _peer.get(_r["code"], [])
+                _r["flags_n"] = len(_r["flags"]) or None
+
+            # ── Decisions waiting ─────────────────────────────────────────
+            # Above the grid on purpose: a flag is a decision asked for, and a
+            # decision that has to be scrolled to is one that gets deferred.
+            _all_flags = sorted(((f, _r) for _r in _rows for f in _r["flags"]),
+                                key=lambda t: (WG.SEVERITY_ORDER[t[0]["severity"]],
+                                               (t[1].get("name") or "").lower()))
+            if _all_flags:
+                _n_act = sum(1 for f, _ in _all_flags if f["severity"] == "act")
+                _dh = [f'<div class="wl-decisions"><div class="wl-dec-head">🚩 Decisions waiting · '
+                       f'{len(_all_flags)}' + (f' · {_n_act} to act on' if _n_act else '')
+                       + '</div>']
+                for _f, _r in _all_flags:
+                    _dh.append(
+                        f'<div class="wl-dec wl-dec-{_f["severity"]}">'
+                        f'<span class="wl-chip wl-chip-{_f["severity"]}">{_safe_text(_f["short"])}</span> '
+                        f'<a href="{_research_href(_r["code"])}" target="_self">'
+                        f'{_safe_text(_r.get("name") or _r["code"])}</a> '
+                        f'<span class="fc-na">{_safe_text(_r["code"])}</span> — '
+                        f'{_safe_text(_f["text"])}</div>')
+                st.markdown("".join(_dh) + '</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="wl-sub" style="margin:0.2rem 0 0.4rem;">🚩 No decisions '
+                            'flagged. Flags need thesis figures: a Munger, bear and exit price, an '
+                            'action and a review date.</div>', unsafe_allow_html=True)
+
+            st.markdown(_watchlist_grid_html(_rows, _gc, _wl_show, _wl_sort, _wl_desc, _wl_bysector),
+                        unsafe_allow_html=True)
+
+            _e1, _e2, _e3, _e4 = st.columns([1, 1, 1.2, 3])
+            _wl_df = _watchlist_grid_frame(_rows)
+            with _e1:
+                st.download_button("⬇ CSV", _wl_df.to_csv(index=False).encode("utf-8-sig"),
+                                   file_name=f"watchlist_{now_local():%Y%m%d}.csv",
+                                   mime="text/csv", use_container_width=True, key="wl_csv")
+            with _e2:
+                try:
+                    import io as _io
+                    _xb = _io.BytesIO()
+                    _wl_df.to_excel(_xb, index=False, sheet_name="Watchlist")
+                    st.download_button("⬇ Excel", _xb.getvalue(),
+                                       file_name=f"watchlist_{now_local():%Y%m%d}.xlsx",
+                                       mime="application/vnd.openxmlformats-officedocument."
+                                            "spreadsheetml.sheet",
+                                       use_container_width=True, key="wl_xlsx")
+                except Exception as _xe:
+                    print(f"watchlist excel export error: {_xe}")
+            with _e3:
+                if st.button("🔄 Refresh data", use_container_width=True, key="wl_refresh"):
+                    st.session_state.pop("wl_grid_cache", None)
+                    st.session_state.pop("estimates_log_map", None)
+                    st.rerun()
+            with _e4:
+                st.markdown(f'<div class="wl-sub" style="padding-top:0.4rem;">Built '
+                            f'{_gc["built"]:%Y-%m-%d %H:%M}. Prices are the latest daily close; '
+                            f'consensus is refreshed weekly and after each watched company '
+                            f'reports.</div>', unsafe_allow_html=True)
+
+    # ── Thesis figures (typed here) ──────────────────────────────────────
+    if _wl_codes:
+        st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
+        st.markdown('<div class="section-title">✏️ Your thesis figures</div>', unsafe_allow_html=True)
+        st.markdown('<div class="wl-sub" style="margin-bottom:1.1rem;">Type straight into the '
+                    'table, then press <b>Save thesis figures</b> — nothing is saved until then. '
+                    'Munger = the extraordinary-margin-of-safety entry price; Bear = bear-case '
+                    'value (the downside reward-to-risk is measured to); Exit = fully valued. '
+                    'Clear a cell to remove the figure.</div>', unsafe_allow_html=True)
+        import pandas as _pd
+        _prices = (st.session_state.get("wl_grid_cache") or {}).get("prices") or {}
+        _te_rows = []
+        for _c in _wl_codes:
+            _t = (_wl_entries.get(_c) or {}).get("thesis") or {}
+            _rd = _t.get("review_date")
+            try:
+                _rd = datetime.strptime(_rd, "%Y-%m-%d").date() if _rd else None
+            except (TypeError, ValueError):
+                _rd = None
+            _te_rows.append({
+                "code": _c,
+                "Company": WL.display_name(_c, _wl_entries.get(_c), NAMES_LOOKUP),
+                "Price ¥": _prices.get(_c),
+                "Conviction": _t.get("conviction"),
+                "Munger ¥": _t.get("munger_price"),
+                "Bear ¥": _t.get("bear_price"),
+                "Exit ¥": _t.get("exit_price"),
+                "Action": _t.get("action"),
+                "Since": _t.get("action_since") or "",
+                "Review date": _rd,
+                "Note": _t.get("note") or "",
+            })
+        _te_df = _pd.DataFrame(_te_rows)
+        # Numeric columns as floats even when every cell is blank: an all-None
+        # column is "object" to pandas, which a NumberColumn will not edit.
+        for _col in ("Price ¥", "Conviction", "Munger ¥", "Bear ¥", "Exit ¥"):
+            _te_df[_col] = _pd.to_numeric(_te_df[_col], errors="coerce")
+        with st.form("wl_thesis_form", border=False):
+            _te = st.data_editor(
+                _te_df, hide_index=True, num_rows="fixed",
+                use_container_width=True, key="wl_thesis_editor",
+                disabled=["code", "Company", "Price ¥", "Since"],
+                column_config={
+                    "code": st.column_config.TextColumn("Code", width="small"),
+                    "Price ¥": st.column_config.NumberColumn(format="%.0f", width="small"),
+                    "Conviction": st.column_config.NumberColumn(
+                        min_value=1, max_value=10, step=1, format="%d", width="small",
+                        help="1–10, as in the deep-dive template."),
+                    "Munger ¥": st.column_config.NumberColumn(
+                        min_value=0.0, format="%.0f",
+                        help="Extraordinary-margin-of-safety entry price."),
+                    "Bear ¥": st.column_config.NumberColumn(
+                        min_value=0.0, format="%.0f",
+                        help="Bear-case value: the downside reward-to-risk is measured against."),
+                    "Exit ¥": st.column_config.NumberColumn(min_value=0.0, format="%.0f"),
+                    "Action": st.column_config.SelectboxColumn(options=list(WL.ACTIONS)),
+                    "Since": st.column_config.TextColumn(
+                        width="small", help="When the action was last changed — set on save."),
+                    "Review date": st.column_config.DateColumn(format="YYYY-MM-DD"),
+                    "Note": st.column_config.TextColumn(max_chars=WL.NOTE_MAX, width="large"),
+                })
+            if st.form_submit_button("💾 Save thesis figures"):
+                _upd = {}
+                for _rec in _te.to_dict("records"):
+                    _upd[_rec["code"]] = {
+                        "conviction": _rec.get("Conviction"),
+                        "munger_price": _rec.get("Munger ¥"),
+                        "bear_price": _rec.get("Bear ¥"),
+                        "exit_price": _rec.get("Exit ¥"),
+                        "action": _rec.get("Action"),
+                        "review_date": _rec.get("Review date"),
+                        "note": _rec.get("Note"),
+                    }
+                _ok, _msg = WL.set_theses(_upd, _ec_repo, _gh_token or "")
+                _wl_saved(_ok, _msg, _msg)
                 st.rerun()
 
-    st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
-    watchlist = load_watchlist()
-
-    if not watchlist:
-        st.markdown('<div class="info-box">Watchlist empty. Add companies above.</div>', unsafe_allow_html=True)
-    else:
-        for company in watchlist:
-            c1, c2 = st.columns([4, 1])
-            with c1:
-                hits = st.session_state.watchlist_hits.get(company, [])
-                hit_text = f"— {len(hits)} mention{'s' if len(hits)!=1 else ''} today" if hits else "— no mentions today"
-                st.markdown(
-                    '<div style="font-size:0.86rem;font-weight:600;padding:0.25rem 0;">'
-                    + company + ' <span style="font-size:0.7rem;color:#9B8B7A;">' + hit_text + '</span></div>',
-                    unsafe_allow_html=True
-                )
-            with c2:
-                if st.button("Remove", key=f"rm_{company}"):
-                    _ok, _msg = remove_from_watchlist(company, _ec_repo,
-                                                      _gh_token or "", NAMES_LOOKUP)
-                    if not _ok:
-                        st.session_state.research_flash = ("warning", _msg)
-                    st.rerun()
+    # ── Manage the list ──────────────────────────────────────────────────
+    if _wl_entries:
+        _unres = [k for k in _wl_entries if k.startswith("_unresolved:")]
+        if _unres:
+            st.markdown('<div class="fc-note fc-warn">Not matched to a ticker, so no data can be '
+                        'shown for: <b>' + ", ".join(_safe_text(_wl_entries[k].get("name") or k)
+                                                     for k in _unres)
+                        + '</b>. Remove and re-add by picking the company above.</div>',
+                        unsafe_allow_html=True)
+        _rm_opts = {f'{WL.display_name(k, e, NAMES_LOOKUP)}'
+                    + ("" if k.startswith("_unresolved:") else f" ({k})"): k
+                    for k, e in _wl_entries.items()}
+        _wl_m1, _wl_m2 = st.columns([4, 1])
+        with _wl_m1:
+            _wl_rm = st.multiselect("Remove from the watchlist:", sorted(_rm_opts), key="wl_rm_pick")
+        with _wl_m2:
+            st.markdown("<div style='margin-top:1.55rem'></div>", unsafe_allow_html=True)
+            if st.button("Remove", use_container_width=True, key="wl_rm_btn", disabled=not _wl_rm):
+                _ok, _msg = WL.remove_many([_rm_opts[x] for x in _wl_rm], _ec_repo, _gh_token or "")
+                _wl_saved(_ok, _msg, _msg)
+                st.session_state.pop("wl_grid_cache", None)
+                st.rerun()
 
     # ── Results scorecard ────────────────────────────────────────────────
     # The latest result of every watched company in one table, read off each
     # one's estimates log: did it beat what the street expected going in, what
     # did it do to guidance, how has the street moved since, and did it return
     # cash. Answers "who beat, who raised" without opening each company.
-    _wl_codes = load_watchlist_codes()
     if _wl_codes:
         st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
-        st.markdown('<div class="section-title">📊 Results scorecard</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📊 Latest results — detail</div>', unsafe_allow_html=True)
         _sc1, _sc2 = st.columns([1.2, 3])
         with _sc1:
             # Each company's *latest* result is what is shown, so a wide default
@@ -3379,7 +4126,7 @@ with tab_watchlist:
                 _cev = {}
         _days = {"30 days": 30, "60 days": 60, "90 days": 90, "1 year": 365}.get(_window)
         _cut = ((now_local().date() - pd.Timedelta(days=_days)).isoformat() if _days else "")
-        _names = {c: (e.get("name") or c) for c, e in load_watchlist_entries().items()}
+        _names = {c: WL.display_name(c, e, NAMES_LOOKUP) for c, e in load_watchlist_entries().items()}
         _oo_map = st.session_state.get("one_offs_map")
         if _oo_map is None:
             try:
@@ -3471,113 +4218,6 @@ with tab_watchlist:
                     + date_p + '</div>'
                 )
             st.markdown(html, unsafe_allow_html=True)
-
-    # ── Underperformance vs TOPIX ─────────────────────────────────────────────
-    st.markdown("<hr class='rule-major'>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title" style="font-size:0.95rem;">📉 Underperformance vs TOPIX</div>', unsafe_allow_html=True)
-
-    topix_ret = st.session_state.get("topix_returns", {})
-    screen_data = st.session_state.get("screen_data", [])
-
-    # Build a lookup: company name → screen row (from TSE_STOCKS codes)
-    # Map KNOWN_COMPANIES names to TSE codes
-    _name_to_code = {}
-    for cname, aliases in KNOWN_COMPANIES.items():
-        for a in aliases:
-            if a.isdigit() and len(a) == 4:
-                _name_to_code[cname] = a
-                break
-
-    wl_threshold = st.slider("Flag if underperforms TOPIX by more than (%):", 0, 30, 10, 1, key="wl_under_threshold")
-
-    col_wl_fetch, _ = st.columns([2, 3])
-    with col_wl_fetch:
-        if st.button("📊 Load Performance Data", key="btn_wl_perf", use_container_width=True):
-            with st.spinner("Fetching performance data for watchlist..."):
-                if not topix_ret:
-                    topix_ret = fetch_topix_returns()
-                    st.session_state.topix_returns = topix_ret
-                # Fetch only the watchlist companies
-                _wl_codes = [(c, n) for n in watchlist
-                             for c in [_name_to_code.get(n)] if c]
-                from market_data import fetch_stock_performance
-                _wl_results = {}
-                for code, name in _wl_codes:
-                    d = fetch_stock_performance(code, name)
-                    if d.get("price", 0) > 0:
-                        t3  = topix_ret.get("3M")
-                        t6  = topix_ret.get("6M")
-                        t12 = topix_ret.get("12M")
-                        d["under_3m"]  = (d.get("ret_3m")  - t3)  if d.get("ret_3m")  is not None and t3  is not None else None
-                        d["under_6m"]  = (d.get("ret_6m")  - t6)  if d.get("ret_6m")  is not None and t6  is not None else None
-                        d["under_12m"] = (d.get("ret_12m") - t12) if d.get("ret_12m") is not None and t12 is not None else None
-                        _wl_results[name] = d
-                st.session_state["wl_perf"] = _wl_results
-            st.rerun()
-
-    wl_perf = st.session_state.get("wl_perf", {})
-    topix_3m  = topix_ret.get("3M")
-    topix_6m  = topix_ret.get("6M")
-    topix_12m = topix_ret.get("12M")
-
-    if not wl_perf:
-        st.markdown('<div class="info-box">Click <strong>📊 Load Performance Data</strong> to check underperformance for your watchlist.</div>', unsafe_allow_html=True)
-    else:
-        def _under_badge(val, threshold):
-            if val is None: return '<span style="color:#9B8B7A;font-size:0.72rem;">N/A</span>'
-            color = "#C62828" if val < -threshold else ("#2E7D32" if val >= 0 else "#6B6B6B")
-            flag  = " ⚠️" if val < -threshold else ""
-            return f'<span style="color:{color};font-weight:700;font-size:0.78rem;">{val:+.1f}%{flag}</span>'
-
-        # TOPIX reference row
-        bench_html = (
-            f'<div style="margin-bottom:0.5rem;padding:0.4rem 0.6rem;background:#F0EDE8;border-radius:3px;">'
-            f'<span style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B6B6B;">TOPIX Benchmark</span>'
-            f'&nbsp;&nbsp;'
-            f'<span style="font-size:0.75rem;color:#1A1A1A;">3M: <strong>{f"{topix_3m:+.1f}%" if topix_3m else "N/A"}</strong></span>'
-            f'&nbsp;·&nbsp;'
-            f'<span style="font-size:0.75rem;color:#1A1A1A;">6M: <strong>{f"{topix_6m:+.1f}%" if topix_6m else "N/A"}</strong></span>'
-            f'&nbsp;·&nbsp;'
-            f'<span style="font-size:0.75rem;color:#1A1A1A;">12M: <strong>{f"{topix_12m:+.1f}%" if topix_12m else "N/A"}</strong></span>'
-            f'</div>'
-        )
-        st.markdown(bench_html, unsafe_allow_html=True)
-
-        for name in watchlist:
-            d = wl_perf.get(name)
-            if not d:
-                st.markdown(
-                    f'<div style="padding:0.35rem 0;border-bottom:1px solid #EDE8E0;">'
-                    f'<span style="font-size:0.86rem;font-weight:600;">{name}</span>'
-                    f'&nbsp;<span style="color:#9B8B7A;font-size:0.75rem;">— no price data found</span>'
-                    f'</div>', unsafe_allow_html=True)
-                continue
-            flags = []
-            if d.get("under_3m")  is not None and d["under_3m"]  < -wl_threshold: flags.append("3M")
-            if d.get("under_6m")  is not None and d["under_6m"]  < -wl_threshold: flags.append("6M")
-            if d.get("under_12m") is not None and d["under_12m"] < -wl_threshold: flags.append("12M")
-            flag_html = (
-                f'&nbsp;<span style="background:#C62828;color:white;font-size:0.55rem;font-weight:700;'
-                f'padding:0.05rem 0.3rem;border-radius:2px;letter-spacing:0.06em;">⚠ UNDERPERFORM '
-                f'{" ".join(flags)}</span>'
-            ) if flags else ""
-            pct_today = d.get("pct_change", 0)
-            today_col = "#2E7D32" if pct_today >= 0 else "#C62828"
-            row_html = (
-                f'<div style="padding:0.4rem 0;border-bottom:1px solid #EDE8E0;">'
-                f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-                f'<span style="font-size:0.86rem;font-weight:600;">{name}</span>{flag_html}'
-                f'<span style="font-size:0.8rem;color:{today_col};font-weight:700;">¥{d["price"]:,.0f} ({pct_today:+.2f}% today)</span>'
-                f'</div>'
-                f'<div style="margin-top:0.2rem;">'
-                f'<span style="font-size:0.7rem;color:#6B6B6B;">vs TOPIX → </span>'
-                f'<span style="font-size:0.72rem;margin-right:0.6rem;">3M: {_under_badge(d.get("under_3m"), wl_threshold)}</span>'
-                f'<span style="font-size:0.72rem;margin-right:0.6rem;">6M: {_under_badge(d.get("under_6m"), wl_threshold)}</span>'
-                f'<span style="font-size:0.72rem;">12M: {_under_badge(d.get("under_12m"), wl_threshold)}</span>'
-                f'</div>'
-                f'</div>'
-            )
-            st.markdown(row_html, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════
 
@@ -4233,8 +4873,10 @@ with tab_research:
                 st.button("⭐ In Watchlist", key=f"research_wl_{_rcode}",
                           use_container_width=True, disabled=True)
             elif st.button("☆ Add to Watchlist", key=f"research_wl_{_rcode}", use_container_width=True):
-                _wl_ok, _wl_msg = add_to_watchlist(_rname, _ec_repo, _gh_token or "",
+                # By code, not name: two listed companies can share a name.
+                _wl_ok, _wl_msg = add_to_watchlist(_rcode, _ec_repo, _gh_token or "",
                                                    NAMES_LOOKUP)
+                st.session_state.watchlist_save_result = (_wl_ok, _wl_msg)
                 st.session_state.research_flash = (
                     ("success", f"Added {_rname} to the watchlist.") if _wl_ok
                     else ("warning", f"Added for this session only — {_wl_msg}"))
@@ -8425,67 +9067,11 @@ with tab_valscreen:
         'drop out of those two filters.</div>',
         unsafe_allow_html=True)
 
-    def _vs_load():
-        """Load the maps _valuation_inputs() reads, reusing the same shared
-        cache keys as the Research tab so nothing is held in memory twice."""
-        if not st.session_state.get("consensus_map"):
-            st.session_state.consensus_map = _shared(
-                "consensus_map", lambda: fund.load_consensus_from_github(_ec_repo, _gh_token))
-        if not st.session_state.get("fundamentals_map"):
-            st.session_state.fundamentals_map = _shared(
-                "fundamentals_map", lambda: fund.load_fundamentals_from_github(_ec_repo, _gh_token))
-        if not st.session_state.get("jpx400_map"):
-            st.session_state.jpx400_map = _shared(
-                "jpx400_map", lambda: fund.load_universe_from_github(_ec_repo, _gh_token))
-        if not st.session_state.get("consensus_manual_map"):
-            st.session_state.consensus_manual_map = fund.load_manual_from_github(_ec_repo, _gh_token)
-        if not st.session_state.get("research_prices_map"):
-            st.session_state.research_prices_map = _shared(
-                "prices_map", lambda: load_prices_from_github(_ec_repo, _gh_token))
-        if not st.session_state.get("mktcap_map"):
-            st.session_state.mktcap_map = load_mktcap_from_github(_ec_repo, _gh_token) or {}
-
-    def _vs_str(x) -> str:
-        # Metadata CSVs give NaN (a float) for a blank cell.
-        return x.strip() if isinstance(x, str) else ""
-
-    def _vs_build_rows() -> list:
-        _mc_map = st.session_state.get("mktcap_map") or {}
-        _uni = st.session_state.get("jpx400_map") or {}
-        _rows = []
-        for _code in sorted(st.session_state.get("consensus_map") or {}):
-            try:
-                _vi = _valuation_inputs(_code, _mc_map.get(_code))
-            except Exception as _ve:
-                print(f"Valuation screen: {_code} skipped ({_ve})")
-                continue
-            if not _vi:
-                continue
-            _v = _vi["vals"]
-            _mcap = _vi["mcap"]
-            _nd = _v.get("net_debt")
-            _rows.append({
-                "code": _code,
-                "name": _vs_str(NAMES_LOOKUP.get(_code)) or _vs_str((_uni.get(_code) or {}).get("name")),
-                "sector": (_vs_str((_uni.get(_code) or {}).get("sector"))
-                           or _vs_str(SECTOR_LOOKUP.get(_code)) or "Unclassified"),
-                "fy1": (_vi["fc_years"] or [""])[0],
-                "price": _vi["price"],
-                "mcap_bn": _mcap / 1e9 if _mcap else None,
-                "pe_st": _v.get("pe_fy1_consensus"),
-                "pe_co": _v.get("pe_fy1_company"),
-                "pe_st2": _v.get("pe_fy2_consensus"),
-                "peg": _v.get("peg"),
-                "eps_growth": _v.get("eps_growth"),
-                "pb": _v.get("pb"),
-                "ev_ebitda": _v.get("ev_ebitda"),
-                "net_debt_bn": _nd / 1e9 if _nd is not None else None,
-                "net_cash_pct": (-_nd / _mcap) if (_nd is not None and _mcap) else None,
-                "yield": _v.get("yield_fy1_company") if _v.get("yield_fy1_company") is not None
-                         else _v.get("yield_fy1_consensus"),
-                "split": bool(_vi["split_factor"]),
-            })
-        return _rows
+    # The loader and the row builder live at the top of the file
+    # (_load_valuation_maps / _valuation_rows_all) because the Watchlist grid
+    # uses the same rows for its sector medians.
+    _vs_load = _load_valuation_maps
+    _vs_build_rows = _valuation_rows_all
 
     _vs_c1, _vs_c2 = st.columns([1.3, 3])
     with _vs_c1:
@@ -9120,12 +9706,10 @@ with tab_earnings:
 
         _perf_3m_map_ec = st.session_state.get("perf_3m_map", {})
         # Watchlist lookup
-        _wl_codes = set()
-        for _wn in wl:
-            from watchlist import get_company_aliases as _gca
-            for _a in _gca(_wn):
-                if _a.isdigit() and len(_a) == 4:
-                    _wl_codes.add(_a)
+        # The stored codes. Deriving them from names went through the 30
+        # hardcoded KNOWN_COMPANIES aliases, so any other watched company was
+        # never starred here.
+        _wl_codes = set(load_watchlist_codes())
 
         if not cal_filtered:
             st.markdown('<div class="info-box">No companies match the current filter.</div>', unsafe_allow_html=True)

@@ -810,6 +810,33 @@ def _fy_end_spread(fund_rows: list) -> str:
                       for m, n in sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
+def with_watchlist(universe: list, codes: list = None,
+                   metadata_path: str = "data/metadata.csv") -> list:
+    """The universe plus every watched company not already in it.
+
+    The universe is the TOPIX 1000 by scale category, so a small cap on the
+    watchlist never had forecasts or a balance sheet collected and showed
+    blanks across the Watchlist grid. Its name comes from metadata.csv; the
+    other universe columns are left blank, which the collector does not read.
+    Reading data/watchlist.json off disk needs no token: the workflow has the
+    repo checked out."""
+    if codes is None:
+        import watchlist as WLmod
+        codes = WLmod.load_codes_from_disk()
+    have = {u.get("Code") for u in universe}
+    extra = [c for c in dict.fromkeys(codes or []) if c and c not in have]
+    if not extra:
+        return universe
+    names = {}
+    if os.path.exists(metadata_path):
+        import csv
+        with open(metadata_path, newline="", encoding="utf-8") as fh:
+            names = {r.get("Code", ""): r.get("Name", "") for r in csv.DictReader(fh)}
+    print(f"Watchlist: adding {len(extra)} compan{'y' if len(extra) == 1 else 'ies'} "
+          f"outside the universe: {', '.join(extra)}")
+    return list(universe) + [{"Code": c, "Name": names.get(c, "")} for c in extra]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -914,6 +941,7 @@ def main() -> int:
         print(f"ERROR: {args.universe} is missing or empty. "
               f"Run build_jpx400.py first.", file=sys.stderr)
         return 1
+    universe = with_watchlist(universe)
     if args.only:
         wanted = {c.strip() for c in args.only.split(",") if c.strip()}
         universe = [u for u in universe if u["Code"] in wanted]
