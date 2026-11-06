@@ -1,17 +1,28 @@
 {
   "6971": [
     {
+      "amount_jpy": -7600000000.0,
+      "date": "2026-11-06",
+      "fy": "FY2027",
+      "id": "6971-2026-11-06-one-off-3",
+      "item": "",
+      "line": "operating",
+      "note": "Provision related to energy-related products in the Solutions Business",
+      "np_amount_jpy": null,
+      "period": "2Q",
+      "source": "typed:Company data"
+    },
+    {
       "amount_jpy": -29500000000.0,
       "date": "2026-11-06",
       "fy": "FY2027",
       "id": "6971-2026-11-06-one-off",
       "item": "GaN writedown",
       "line": "operating",
-      "note": "",
+      "note": "Impairment losses in the GaN Devices Business",
       "np_amount_jpy": null,
       "period": "2Q",
-      "source": "typed:Company data",
-      "tdnet_title": ""
+      "source": "typed:Company data"
     }
   ]
 }
