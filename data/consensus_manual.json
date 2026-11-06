@@ -444,6 +444,30 @@
       "unit": "jpy_abs",
       "value": 104870000000.0
     },
+    "operating_profit|FY2028|consensus_q1": {
+      "as_of": "2026-11-06",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 26020000000.0
+    },
+    "operating_profit|FY2028|consensus_q2": {
+      "as_of": "2026-11-06",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 24620000000.0
+    },
+    "operating_profit|FY2028|consensus_q3": {
+      "as_of": "2026-11-06",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 32759999999.999996
+    },
+    "operating_profit|FY2028|consensus_q4": {
+      "as_of": "2026-11-06",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 24210000000.0
+    },
     "operating_profit|FY2029|consensus": {
       "as_of": "2026-11-06",
       "source": "typed:Koyfin",
