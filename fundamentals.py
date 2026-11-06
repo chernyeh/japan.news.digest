@@ -1101,9 +1101,15 @@ def load_universe_from_github(repo: str, token: str = None) -> dict:
 
 
 def load_manual_from_github(repo: str, token: str = None) -> dict:
-    """{code: {"<metric>|<fy>|<basis>": {"value","unit","source","as_of"}}}"""
+    """{code: {"<metric>|<fy>|<basis>": {"value","unit","source","as_of"}}}
+
+    Read through the GitHub API when there is a token, not the raw CDN: this is
+    the file a save has just written, and raw.githubusercontent.com serves a
+    copy up to five minutes old, so reopening the app straight after a save
+    showed the typed values as gone — and read as a save that had failed."""
     import gh_read
-    return gh_read.raw_json(repo, MANUAL_PATH, token, {})
+    fresh = gh_read.api_json(repo, MANUAL_PATH, token) if token else None
+    return fresh if fresh is not None else gh_read.raw_json(repo, MANUAL_PATH, token, {})
 
 
 def load_run_manifest_from_github(repo: str, token: str = None) -> dict:

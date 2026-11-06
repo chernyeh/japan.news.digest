@@ -1245,8 +1245,10 @@ a.research-link:hover { background: #F0EDE8; }
     { font-size: 0.76rem !important; }
 .st-key-research_edit_tabs [data-baseweb="select"] > div { padding-top: 0 !important; padding-bottom: 0 !important; }
 .st-key-research_edit_tabs [data-testid="stVerticalBlock"] { gap: 0.55rem; }
-.st-key-research_edit_tabs .stButton button { min-height: 1.9rem; padding: 0.1rem 0.8rem; }
-.st-key-research_edit_tabs .stButton button p { font-size: 0.76rem !important; }
+.st-key-research_edit_tabs .stButton button,
+.st-key-research_edit_tabs [data-testid="stFormSubmitButton"] button { min-height: 1.9rem; padding: 0.1rem 0.8rem; }
+.st-key-research_edit_tabs .stButton button p,
+.st-key-research_edit_tabs [data-testid="stFormSubmitButton"] button p { font-size: 0.76rem !important; }
 .st-key-research_edit_tabs .fc-note { margin: 4px 0; padding: 4px 9px; font-size: 0.68rem; }
 /* Results notes: the form tight, the earlier notes as one-line folds. */
 [class*="st-key-research_notes_"] [data-testid="stWidgetLabel"] p { font-size: 0.72rem !important; }
@@ -7348,7 +7350,7 @@ with tab_research:
                             "nc_to_mcap": _s["nc_to_mcap"],
                             "roe": _vi["vals"].get("roe_fy1_company")}.get(_f)
                 if _per == "H1":
-                    return _h1.get(_f)
+                    return _h1.get(_f)  # balances at the half-year end, flows for six months
                 _y = _yr.get(_fy) or {}
                 if _f == "nc_to_equity":
                     return (_y["net_cash"] / _y["sh_equity"]
@@ -7374,6 +7376,7 @@ with tab_research:
                      ("nc_to_mcap", "Net cash / mkt cap", "pct"),
                      ("grp", "Cash flow"),
                      ("cfo", "Operating cash flow", "bn"), ("capex", "Capex", "bn"),
+                     ("dep_amort", "D&A", "bn"),
                      ("fcf", "Free cash flow", "bn"), ("fcf_margin", "FCF margin", "pct"),
                      ("cash_conv", "OCF / net profit", "x"), ("capex_to_da", "Capex / D&A", "x"),
                      ("grp", "Returns"),
@@ -7423,8 +7426,11 @@ with tab_research:
             # collector has not reached yet.
             _fys = sorted(set(_fys) | set(_rep[-3:]))[-4:]
             _cols = ["Latest"] + [FIN.period_col(fy, "FY") for fy in reversed(_fys)]
-            _h1s = sorted({fy for (fy, p) in _hist if p == "H1"})
-            _cols.insert(1, FIN.period_col(_h1s[-1] if _h1s else _live, "H1"))
+            # The half being reported now — the year still running — not the
+            # newest half already in the data, which after a collection is a
+            # year old (1H FY2026 while FY2027's first half is coming out), so
+            # a figure typed there landed on last year's half and never showed.
+            _cols.insert(1, FIN.period_col(_live, "H1"))
             _before = {}
             for _f in FIN.TYPEABLE:
                 for _c in _cols:
@@ -7436,19 +7442,31 @@ with tab_research:
                 '<div class="fc-note">¥bn. Capex is the one figure no filed feed carries — type it '
                 'from the tanshin cash-flow statement (有形固定資産の取得による支出, plus '
                 '無形固定資産 if you include software). <strong>Latest</strong> is the newest balance '
-                'sheet (cash, debt, equity only); <strong>1H</strong> is six months of cash flow. A typed cell wins over the collected one; '
+                'sheet (cash, debt, equity only — cash-flow figures need a period); <strong>1H</strong> '
+                'takes the half-year-end balance sheet and six months of cash flow. Type every '
+                'cell you want, then Save once. A typed cell wins over the collected one; '
                 'clear it to put the collected number back.</div>', unsafe_allow_html=True)
             _df = pd.DataFrame([{**{"Item": FIN.LABELS[_f]},
                                  **{_c: _before[(_f, _c)] for _c in _cols}}
                                 for _f in FIN.TYPEABLE])
+            # Numbers throughout: a period with nothing collected yet (the half
+            # being reported) is otherwise an all-None object column.
+            _df[_cols] = _df[_cols].astype("float64")
             _nonce = st.session_state.get(f"fin_typed_nonce_{_rcode}", 0)
-            _ed = _editor(
-                _df, key=f"fin_typed_{_rcode}_{_nonce}", hide_index=True,
-                use_container_width=True, num_rows="fixed",
-                column_config={"Item": st.column_config.TextColumn("Item", disabled=True),
-                               **{_c: st.column_config.NumberColumn(_c, format="%.1f")
-                                  for _c in _cols}})
-            if not st.button("💾 Save", key=f"fin_typed_save_{_rcode}"):
+            # A form, so typing into a cell does not rerun the page. Outside one,
+            # every cell committed reran this whole tab — several seconds — and
+            # a figure typed, or a Save pressed, while that rerun was still
+            # going could be lost: it read as "my inputs do not save". In a
+            # form every cell goes in together when Save is pressed.
+            with st.form(key=f"fin_typed_form_{_rcode}_{_nonce}", border=False):
+                _ed = _editor(
+                    _df, key=f"fin_typed_{_rcode}_{_nonce}", hide_index=True,
+                    use_container_width=True, num_rows="fixed",
+                    column_config={"Item": st.column_config.TextColumn("Item", disabled=True),
+                                   **{_c: st.column_config.NumberColumn(_c, format="%.1f")
+                                      for _c in _cols}})
+                _go = st.form_submit_button("💾 Save")
+            if not _go:
                 return
             _lab = {v: k for k, v in FIN.LABELS.items()}
             _after = {}
@@ -7457,11 +7475,16 @@ with tab_research:
                 for _c in _cols:
                     _after[(_f, _c)] = _r.get(_c)
             _manual_now = st.session_state.consensus_manual_map.get(_rcode, {})
-            _entries, _removed = FIN.plan_grid(_before, _after, _manual_now,
-                                               now_local().date().isoformat())
+            _entries, _removed, _ignored = FIN.plan_grid(_before, _after, _manual_now,
+                                                         now_local().date().isoformat())
             st.session_state[f"fin_typed_nonce_{_rcode}"] = _nonce + 1
+            _skip = ("" if not _ignored else
+                     " Not saved — a cash-flow figure needs a period, so type it under "
+                     "1H or a fiscal year, not Latest: "
+                     + ", ".join(f"{FIN.LABELS[f]} ({c})" for f, c in _ignored) + ".")
             if not _entries and not _removed:
-                st.session_state.research_flash = ("info", "No changes to save.")
+                st.session_state.research_flash = (
+                    "warning" if _ignored else "info", ("No changes to save." + _skip).strip())
                 st.rerun()
             _block = st.session_state.consensus_manual_map.setdefault(_rcode, {})
             _block.update(_entries)
@@ -7469,9 +7492,13 @@ with tab_research:
                 _block.pop(_k, None)
             _ok, _msg = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode,
                                                    _entries, remove=_removed)
+            _what = "; ".join([f"saved {FIN.describe_key(k)} {v['value'] / 1e9:,.1f}"
+                               for k, v in sorted(_entries.items())]
+                              + [f"cleared {FIN.describe_key(k)}" for k in _removed])
             st.session_state.research_flash = (
-                "success" if _ok else "warning",
-                _msg if _ok else f"Applied for this session, but not saved: {_msg}")
+                "success" if (_ok and not _ignored) else "warning",
+                (f"Balance sheet & cash flow: {_what}." + _skip) if _ok
+                else f"Applied for this session ({_what}), but not saved to GitHub: {_msg}" + _skip)
             st.rerun()
 
         def _fc_forward(_rcode, _rname, _fc_map, _vi, _fundrow):

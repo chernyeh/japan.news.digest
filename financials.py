@@ -57,7 +57,7 @@ LABELS = {
 # are here so a wrong Yahoo figure (debt with leases, say) can be corrected.
 TYPEABLE = ("cash", "debt", "sh_equity", "cfo", "capex", "dep_amort")
 # Flows over a period vs balances at a date. The latest balance sheet takes
-# balances only; a first half is shown for its flows only.
+# balances only — a flow needs a period.
 FLOWS = ("cfo", "cfi", "capex", "dep_amort")
 
 # Manual store basis: "<field>|FY2026|fin" for a full year, "<field>|FY2027|fin_h1"
@@ -335,12 +335,19 @@ def summary(hist: dict, latest: dict, mcap, net_profit_by_fy: dict,
     last = next((y for y in reversed(out["years"]) if y["fcf"] is not None), None)
     out["fcf_latest"] = last
     out["fcf_yield"] = _div(last["fcf"], mcap) if last else None
-    # The newest first-half cash flow, if it is newer than the last full year.
+    # The newest first half, if it is newer than the last full year: its
+    # balance sheet at the half-year end and its six months of cash flow.
     h1 = sorted((fy for (fy, p) in hist if p == "H1"), reverse=True)
     if h1 and (not fys or h1[0] > fys[-1]):
         r = hist[(h1[0], "H1")]
-        out["h1"] = {"fy": h1[0], "cfo": r.get("cfo"), "capex": r.get("capex"),
-                     "fcf": fcf(r)}
+        cash, debt = r.get("cash"), r.get("debt")
+        nc = None if (cash is None and debt is None) else (cash or 0) - (debt or 0)
+        out["h1"] = {"fy": h1[0], "cash": cash, "debt": debt, "net_cash": nc,
+                     "sh_equity": r.get("sh_equity"),
+                     "nc_to_equity": _div(nc, r.get("sh_equity")),
+                     "cfo": r.get("cfo"), "capex": r.get("capex"),
+                     "dep_amort": r.get("dep_amort"), "fcf": fcf(r),
+                     "capex_to_da": _div(r.get("capex"), r.get("dep_amort"))}
     return out
 
 
@@ -365,20 +372,28 @@ def period_col(fy: str, period: str) -> str:
 
 
 def plan_grid(before: dict, after: dict, manual_now: dict, as_of: str) -> tuple:
-    """(entries, removed) from a grid edit. `before` / `after` are
+    """(entries, removed, ignored) from a grid edit. `before` / `after` are
     {(field, column): value_in_bn_or_None}.
 
     A changed cell becomes a typed entry. A cell cleared where a typed value
     existed removes the override, so the collected number shows through again
-    — clearing never stores a blank. An unchanged cell writes nothing."""
-    entries, removed = {}, []
+    — clearing never stores a blank. An unchanged cell writes nothing.
+
+    Every period column takes every field: a first half is a balance sheet at
+    the half-year end as well as six months of cash flow. The one cell that
+    cannot be stored is a cash-flow figure under Latest — a flow needs a
+    period — and it is returned in `ignored` as (field, column) so the screen
+    can say so rather than drop it without a word."""
+    entries, removed, ignored = {}, [], []
     for (field, col), new in after.items():
         old = before.get((field, col))
         fy, period = period_key(col)
-        if (fy == LATEST and field in FLOWS) or (period == "H1" and field not in FLOWS):
+        new = F.to_num(new)
+        if fy == LATEST and field in FLOWS:
+            if new is not None and (old is None or abs(new - old) >= 5e-4):
+                ignored.append((field, col))
             continue
         key = manual_key(field, fy, period or "FY")
-        new = F.to_num(new)
         if new is None:
             if old is not None and key in (manual_now or {}):
                 removed.append(key)
@@ -387,4 +402,14 @@ def plan_grid(before: dict, after: dict, manual_now: dict, as_of: str) -> tuple:
             continue
         entries[key] = {"value": new * 1e9, "unit": "jpy_abs", "source": "typed",
                         "as_of": as_of}
-    return entries, removed
+    return entries, removed, ignored
+
+
+def describe_key(key: str) -> str:
+    """"capex|FY2027|fin_h1" -> "Capex 1H FY2027", for a save message."""
+    parts = str(key).split("|")
+    if len(parts) != 3:
+        return key
+    field, fy, basis = parts
+    col = "Latest" if fy == LATEST else period_col(fy, "H1" if basis == "fin_h1" else "FY")
+    return f"{LABELS.get(field, field)} {col}"
