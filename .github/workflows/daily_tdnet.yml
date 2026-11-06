@@ -69,7 +69,7 @@ jobs:
           # under `bash -e`, and would throw away the collection above.
           for f in data/tdnet_filings.csv data/consensus.csv \
                    data/fundamentals.csv data/guidance_history.csv \
-                   data/estimates_log; do
+                   data/financials_history.csv data/estimates_log; do
             if [ -e "$f" ]; then git add "$f"; fi
           done
           if git diff --staged --quiet; then

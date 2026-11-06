@@ -59,6 +59,7 @@ from tdnet import load_tdnet_filings_from_github, classify_title as classify_tdn
 from research_links import load_links_from_github, save_link, delete_link, DOC_TYPES as RESEARCH_DOC_TYPES
 from ir_scanner import ScanResults, scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
+import financials as FIN
 import estimates_log as EL
 import capital_events as CE
 from capital_events import load_from_github as load_capital_events
@@ -1094,7 +1095,10 @@ a.research-link:hover { background: #F0EDE8; }
    section header rather than a generic centered button. */
 [class*="st-key-research_section_toggle"] button {
     text-align: left !important; justify-content: flex-start !important;
+    min-height: 1.9rem !important; padding: 0.1rem 0.7rem !important;
 }
+[class*="st-key-research_section_toggle"] button p { font-size: 0.82rem !important; }
+[class*="st-key-research_section_toggle"] { margin-bottom: -0.45rem; }
 /* Streamlit now wraps the label in a full-width flex <div> of its own that
    centres it, so left-aligning the button alone no longer moved the text. */
 [class*="st-key-research_section_toggle"] button > div {
@@ -1109,7 +1113,7 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-table { display: grid; min-width: 340px; font-size: 0.76rem;
             grid-template-columns: minmax(88px, 1.1fr)
                                    repeat(var(--fc-cols, 2), minmax(84px, 1fr)); }
-.fc-cell { padding: 5px 8px; text-align: right; border-bottom: 1px solid #E8E3DC;
+.fc-cell { padding: 3px 7px; text-align: right; border-bottom: 1px solid #E8E3DC;
            font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* nowrap above keeps a figure and its source marker on one line: on a phone
    "48,036.7" used to wrap its superscript "A" onto a line of its own. The
@@ -1172,7 +1176,7 @@ a.research-link:hover { background: #F0EDE8; }
    its margin / YoY / QoQ lines sit tight underneath in a smaller face with no
    rules between, so each metric reads as one block. */
 .fc-mrow { border-bottom: 0; border-top: 1px solid #E3DDD3; }
-.fc-subrow, .fc-sub-cell { border-bottom: 0; padding-top: 0; padding-bottom: 3px;
+.fc-subrow, .fc-sub-cell { border-bottom: 0; padding-top: 0; padding-bottom: 1px;
                            font-size: 0.66rem; }
 .fc-metric.fc-subrow { font-weight: 400; padding-left: 16px; color: #9B8B7A;
                        font-size: 0.62rem; letter-spacing: 0.02em; }
@@ -1212,10 +1216,61 @@ a.research-link:hover { background: #F0EDE8; }
 .fv-card ul.fv-ul li.fv-s { font-size: 0.72rem; margin: 0 0 1px; padding: 0; }
 .fv-card ul.fv-ul li.fv-s::marker { color: #B8A898; }
 .fv-muted, .fv-s.fv-muted { color: #A89A8A; font-style: italic; }
-.fv-ch { font-size: 0.64rem; color: #8B7B6A; letter-spacing: 0.02em; margin: 2px 0 -4px; }
-.fv-flags, .fc-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; max-width: 1180px; }
-.fv-flag, .fc-chip { font-size: 0.7rem; border-radius: 12px; padding: 2px 10px;
+/* The table's view controls (quarters, margins, past estimates) on one
+   short line, the radio's own label inline with its options. */
+.st-key-fc_view_row [data-testid="stHorizontalBlock"] { align-items: center; gap: 0.8rem; }
+.st-key-fc_view_row [data-testid="stRadio"] { display: flex; flex-direction: row;
+                                              align-items: center; gap: 0.6rem; }
+.st-key-fc_view_row [data-testid="stRadio"] [data-testid="stWidgetLabel"] { margin: 0; min-height: 0; }
+.st-key-fc_view_row p { font-size: 0.7rem !important; }
+.st-key-fc_view_row [role="radiogroup"] { gap: 0.2rem 0.8rem; }
+.st-key-fc_view_row [data-testid="stCheckbox"] label { min-height: 0; }
+.st-key-fc_view_row { margin-bottom: -0.4rem; }
+/* The Edit tabs: smaller tab labels, widget labels and inputs, so a form
+   reads as a form rather than a page of large controls. */
+.st-key-research_edit_tabs [role="tab"] p { font-size: 0.76rem !important; }
+.st-key-research_edit_tabs [role="tab"] { padding: 0.15rem 0.55rem !important; height: auto !important; }
+.st-key-research_edit_tabs [data-testid="stWidgetLabel"] p,
+.st-key-research_edit_tabs label p { font-size: 0.72rem !important; }
+.st-key-research_edit_tabs [data-baseweb="select"] > div,
+.st-key-research_edit_tabs [data-baseweb="input"] { min-height: 2rem !important; }
+.st-key-research_edit_tabs input, .st-key-research_edit_tabs [data-baseweb="select"] div
+    { font-size: 0.76rem !important; }
+.st-key-research_edit_tabs [data-baseweb="select"] > div { padding-top: 0 !important; padding-bottom: 0 !important; }
+.st-key-research_edit_tabs [data-testid="stVerticalBlock"] { gap: 0.55rem; }
+.st-key-research_edit_tabs .stButton button { min-height: 1.9rem; padding: 0.1rem 0.8rem; }
+.st-key-research_edit_tabs .stButton button p { font-size: 0.76rem !important; }
+.st-key-research_edit_tabs .fc-note { margin: 4px 0; padding: 4px 9px; font-size: 0.68rem; }
+/* Balance sheet & cash flow: a compact ruled table inside an open chip. */
+.bs-wrap[open] { background: #FFFDFA; padding: 4px 10px 6px; }
+.bs-table { border-collapse: collapse; font-size: 0.7rem; margin: 4px 0 2px;
+            font-variant-numeric: tabular-nums; width: auto; min-width: 420px; }
+.bs-table th, .bs-table td { padding: 1px 10px 1px 6px; border: 0; border-bottom: 1px solid #EFEAE2;
+                             text-align: right; white-space: nowrap; line-height: 1.35; }
+.bs-table tr > th:first-child { text-align: left; font-weight: 500; color: #3D3529; padding-left: 0; }
+.bs-table tr:first-child th { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase;
+                              color: #9B8B7A; font-weight: 600; border-bottom: 1px solid #D9D3C8; }
+.bs-table tr.bs-grp td { text-align: left; font-size: 0.58rem; letter-spacing: 0.07em;
+                         text-transform: uppercase; color: #8B4513; font-weight: 700;
+                         padding: 4px 0 1px; border-bottom: 1px solid #E3DDD3; }
+.bs-table { margin: 4px 0 0 !important; }
+.bs-wrap .bs-foot { padding: 3px 0 0; }
+/* Raw-HTML blocks in a markdown container inherit Streamlit's -1rem bottom
+   margin (meant to cancel a trailing <p>); with no <p> to cancel, the next
+   element rides up over them — it clipped the second row of chips and hid
+   the chart titles behind the charts. Zeroed for each such block. */
+[data-testid="stMarkdownContainer"]:has(> .fc-chips),
+[data-testid="stMarkdownContainer"]:has(> .bs-wrap),
+[data-testid="stMarkdownContainer"]:has(> .fv-card),
+[data-testid="stMarkdownContainer"]:has(> .fv-ch) { margin-bottom: 0 !important; }
+.bs-src { font-size: 0.5rem; font-weight: 700; margin-left: 1px; cursor: help; }
+.bs-y { color: #E65100; } .bs-t { color: #8B4513; }
+.bs-foot { font-size: 0.6rem; color: #9B8B7A; line-height: 1.4; margin-top: 2px; }
+.fv-ch { font-size: 0.64rem; color: #8B7B6A; letter-spacing: 0.02em; margin: 2px 0 0; }
+.fv-flags, .fc-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; max-width: 1180px; }
+.fv-flag, .fc-chip { font-size: 0.66rem; border-radius: 10px; padding: 1px 8px; line-height: 1.5;
                      background: #F4F0EA; color: #4A4036; border: 1px solid #E6DFD4; }
+.fc-chip summary b, .fv-flag summary b { font-weight: 600; color: #3D3529; }
 .fv-flag summary, .fc-chip summary { cursor: pointer; list-style: none; white-space: nowrap; }
 .fv-flag summary::-webkit-details-marker, .fc-chip summary::-webkit-details-marker { display: none; }
 .fv-flag[open], .fc-chip[open] { border-radius: 8px; flex-basis: 100%; }
@@ -1225,8 +1280,9 @@ a.research-link:hover { background: #F0EDE8; }
 .fv-warn { background: #FDF3E4; border-color: #F1DDBA; color: #7A4A12; }
 .fv-info { background: #F1F3F6; border-color: #DCE2EA; color: #34495E; }
 .fv-oo { color: #B26A00; cursor: help; }
-.fc-more { margin-top: 6px; }
+.fc-more { background: #FFFDFA; }
 .fc-more[open] { background: #FFFDFA; }
+.fc-more .fc-vgrid { margin-top: 4px; }
 /* The "ex one-offs" line: same weight as the other sub-lines, amber label. */
 .fc-metric.fc-exoo { color: #B26A00; }
 .fc-metric.fc-adj { font-weight: 600; }
@@ -1315,8 +1371,9 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-key-a { background: #FDFAF7; border-color: #5C4033 !important; }
 .fc-key-s { background: #F4EADC; }
 .fc-key-d { background: #EAF0F5; }
-.fc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.68rem;
-             color: #9B8B7A; margin: 6px 0 2px; }
+.fc-legend { display: flex; gap: 2px 12px; flex-wrap: wrap; font-size: 0.62rem;
+             color: #9B8B7A; margin: 4px 0 0; max-width: 1180px; }
+[data-testid="stMarkdownContainer"]:has(> .fc-tablewrap) { margin-bottom: 0 !important; }
 /* Findings drawn from the company's own filing history. Deliberately louder
    than .fc-note -- a note explains why a column is empty, these say something
    about the business -- and deliberately quieter than the table itself. */
@@ -1583,6 +1640,22 @@ if st.session_state.ui_zoom != ZOOM_DEFAULT:
     st.markdown(
         f"<style>html {{ font-size: {st.session_state.ui_zoom}% !important; }}</style>",
         unsafe_allow_html=True)
+
+
+# Grids in the Research tab at a tighter row height than Streamlit's 35px
+# default, which made a five-line grid most of a screen. Passed only where the
+# installed Streamlit knows the argument, so an older one still renders.
+import inspect as _inspect
+_GRID_KW = ({"row_height": 27}
+            if "row_height" in _inspect.signature(st.data_editor).parameters else {})
+
+
+def _editor(*args, **kwargs):
+    return st.data_editor(*args, **{**_GRID_KW, **kwargs})
+
+
+def _frame(*args, **kwargs):
+    return st.dataframe(*args, **{**_GRID_KW, **kwargs})
 
 
 def _valuation_inputs(_rcode: str, _rmcap=None) -> dict:
@@ -5147,7 +5220,7 @@ with tab_research:
             # table), and whether the margin / growth lines are shown under
             # each figure or folded away to read the money lines alone.
             with st.container(key="fc_view_row"):
-                _vc1, _vc2, _vc3 = st.columns([2.2, 1, 1])
+                _vc1, _vc2, _vc3, _ = st.columns([2.1, 1, 1, 1.4])
                 with _vc1:
                     _q_mode = st.radio(
                         "Quarters", ["Latest 2 years", "All years", "Off"], horizontal=True,
@@ -5367,12 +5440,16 @@ with tab_research:
                 which returns (extra classes, inner html). `_cls` marks the
                 whole row — a money line, or one of the lines under it."""
                 _rc = " fc-mrow" if "fc-mrow" in _cls else ""
+                _row = [(_y, _i, _b) + tuple(_render(_y, _b))
+                        for _y in _shown for _i, _b in enumerate(_cols[_y])]
+                # A margin / YoY / QoQ line with nothing in any column is a
+                # blank strip of table — QoQ under a line with no quarters.
+                if "fc-subrow" in _cls and not any(str(_h).strip() for *_, _h in _row):
+                    return
                 cells.append(f'<div class="fc-cell fc-metric{_cls}">{_label}</div>')
-                for _y in _shown:
-                    for _i, _b in enumerate(_cols[_y]):
-                        _xc, _html = _render(_y, _b)
-                        cells.append(f'<div class="fc-cell fc-num{_edge(_y, _i, _b)}{_rc}{_xc}">'
-                                     f'{_html}</div>')
+                for _y, _i, _b, _xc, _html in _row:
+                    cells.append(f'<div class="fc-cell fc-num{_edge(_y, _i, _b)}{_rc}{_xc}">'
+                                 f'{_html}</div>')
 
             def _quarter_html(_m, _y, _p, _scale, _dp):
                 _v, _k, _bs = _qb(_m, _y).get(_p) or (None, "", None)
@@ -5647,9 +5724,8 @@ with tab_research:
                    '<b class="fc-src fc-src-p">P</b> parent only</span>' if _has_nc else '')
                 + (f'<span>basis: {_safe_text(_std)}</span>' if _std else '')
                 + '<span>¥bn except per-share · small grey line = year to date</span>'
-                '<span>▲▼ under a reported quarter / half = beat or miss vs the street '
-                'estimate · under Co. FY = guidance revision since first filed · ±% under '
-                'Street = gap to guidance (≥5%) · hover any chip for the numbers</span></div>',
+                '<span>▲▼ beat / miss vs Street (quarters) · revision since first filed '
+                '(Co. FY) · gap to guidance ≥5% (Street) · hover for numbers</span></div>',
                 unsafe_allow_html=True)
 
 
@@ -5815,9 +5891,8 @@ with tab_research:
                        'edited before publication</em>' if not _qa["verbatim_events"] else '')
                     + '</span>')
 
-            if _reads:
-                st.markdown(_chipify(_reads),
-                            unsafe_allow_html=True)
+            # The reads are drawn further down, in one chip row with the
+            # valuation multiples, after any warning that must stay in view.
 
             # A missing API key is a broken pipeline the reader has to act
             # on, so it stays on screen unconditionally. Everything that used
@@ -5896,6 +5971,7 @@ with tab_research:
                 ("EV/EBITDA", _fnum(_vals.get("ev_ebitda"), 1, "×"),
                  _fundrow.get("ebitda_basis") or "no EBITDA"),
                 ("Net debt", _fnum(_vals.get("net_debt"), 1, "B", 1e9), "¥ debt − cash"),
+                (f"ROE {_yy(_y1)} co.", _pct(_vals.get("roe_fy1_company")), "guidance EPS ÷ BPS"),
             ]) + [
                 ("Div yield", _pct(_vals.get("yield_fy1_company"), 2), "guidance DPS"),
                 ("EPS growth", _pct(_vals.get("eps_growth")),
@@ -5907,14 +5983,15 @@ with tab_research:
             _tile_help = {"Equity/assets": fund.CAPITAL_DISCLAIMER}
             # Folded: the summary card above carries the headline multiples,
             # so the full set opens on demand rather than filling the screen.
-            st.markdown('<details class="fc-chip fc-more"><summary><b>All valuation multiples</b> '
-                        'P/E on guidance and street, P/B, EV/EBITDA, yield, PEG</summary>'
-                        '<div class="fc-vgrid">' + "".join(
+            _more = ('<details class="fc-chip fc-more"><summary><b>All valuation multiples</b> '
+                     'P/E, P/B, EV/EBITDA, ROE, yield, PEG</summary>'
+                     '<div class="fc-vgrid">' + "".join(
                 f'<div class="fc-vcell"'
                 + (f' title="{_safe_text(_tile_help[k])}"' if k in _tile_help else '')
                 + f'><span class="fc-k">{_safe_text(k)}</span>'
                 f'<span class="fc-v">{v}</span><span class="fc-vsub">{_safe_text(sub)}</span></div>'
-                for k, v, sub in _tiles) + '</div></details>', unsafe_allow_html=True)
+                for k, v, sub in _tiles) + '</div></details>')
+            st.markdown(_chipify(_reads, extra=[_more]), unsafe_allow_html=True)
 
         def _fc_exports(_rcode, _rname, _fc_map):
             """Copy / CSV / Excel as a row of small chips under the tiles.
@@ -6149,7 +6226,7 @@ with tab_research:
             # under the same key would apply its pending edits to the wrong ones.
             _view = abs(hash((tuple(_f_metric), tuple(_f_fy), tuple(_f_kind),
                               tuple(_f_src), _sort, _show_past_est))) % 10**8
-            _edited = st.data_editor(
+            _edited = _editor(
                 _rows, key=f"fc_typed_{_rcode}_{_nonce}_{_view}", hide_index=True,
                 num_rows="dynamic", use_container_width=True,
                 column_config={
@@ -6425,7 +6502,7 @@ with tab_research:
                     f"Reported — {_what}", format="%.2f",
                     help="¥bn, or ¥ per share for EPS. Leave blank to skip a line."),
             }
-            _ed = st.data_editor(_grid, key=f"rd_rep_{_rcode}_{_vkey}", hide_index=True,
+            _ed = _editor(_grid, key=f"rd_rep_{_rcode}_{_vkey}", hide_index=True,
                                  use_container_width=True, num_rows="fixed", column_config=_cfg)
 
             # One-offs in this result — typed alongside the figures, because the
@@ -6442,7 +6519,7 @@ with tab_research:
                          "amount_bn": float(e.get("amount_jpy") or 0) / 1e9,
                          "np_bn": (None if e.get("np_amount_jpy") in (None, "")
                                    else float(e["np_amount_jpy"]) / 1e9)} for e in _oo_here]
-            _oo_ed = st.data_editor(
+            _oo_ed = _editor(
                 _editor_rows(_oo_grid, ["id", "item", "note", "line", "amount_bn", "np_bn"]),
                 key=f"rd_oo_{_rcode}_{_vkey}", hide_index=True, num_rows="dynamic",
                 use_container_width=True, column_order=["line", "amount_bn", "note"],
@@ -6559,7 +6636,7 @@ with tab_research:
                         "previous": (None if _get(_m, _gfy, "company") is None
                                      else _get(_m, _gfy, "company") / _unit(_m)),
                         "new": None} for _m, _lbl, *_ in _g_rows_def]
-            _g_ed = st.data_editor(
+            _g_ed = _editor(
                 _g_grid, key=f"rd_guide_{_rcode}_{_vkey}", hide_index=True,
                 use_container_width=True, num_rows="fixed",
                 column_config={
@@ -6913,7 +6990,7 @@ with tab_research:
                        "note": "", "source": "Company data", "tdnet_title": s["title"]}
                       for s in _sugg]
             _nonce = st.session_state.get(f"ce_nonce_{_rcode}", 0)
-            _ed = st.data_editor(
+            _ed = _editor(
                 _editor_rows(_rows, ["id", "date", "type", "amount_bn", "shares_m", "dps_old", "dps_new",
                               "until", "note", "source", "tdnet_title"]),
                 key=f"ce_{_rcode}_{_nonce}", hide_index=True, num_rows="dynamic",
@@ -7045,6 +7122,231 @@ with tab_research:
                     f'<summary>{_icon} {_safe_text(_f.get("title", ""))}</summary>'
                     f'<div>{_safe_text(_f.get("detail", ""))}</div></details>')
 
+        # ── Balance sheet & cash flow ─────────────────────────────────────
+        # Net cash against equity and market cap, operating cash flow less
+        # capex, and ROE on average shareholders' equity. See financials.py
+        # for where each number comes from and what it is not.
+
+        def _fin_for(_rcode, _fc_map, _vi, _fundrow):
+            """(summary, typed, hist, latest) with typed values applied."""
+            if "fin_history_map" not in st.session_state:
+                try:
+                    st.session_state.fin_history_map = _shared(
+                        "fin_history_map",
+                        lambda: FIN.load_from_github(_ec_repo, _gh_token)) or {}
+                except Exception as _e:
+                    print(f"financials history load error: {_e}")
+                    st.session_state.fin_history_map = {}
+            _hist = dict(st.session_state.fin_history_map.get(_rcode, {}))
+            # Until the collector has written a history for this company, the
+            # snapshot still holds the cash flow of the filing it was taken
+            # from — a full-year tanshin's is that year's, a 2Q one's is H1.
+            _dt = str(_fundrow.get("doc_type") or "")
+            _fe = str(_fundrow.get("fy_end") or "")
+            if not _hist and _fundrow.get("cfo") is not None and _fe[:4].isdigit():
+                if _dt.startswith("FY"):
+                    _hist[(f"FY{int(_fe[:4]) - 1}", "FY")] = {
+                        "cfo": _fundrow.get("cfo"), "cash": _fundrow.get("cash"),
+                        "sh_equity": FIN.latest_balance(_fundrow).get("sh_equity"),
+                        "sources": "cfo=jquants:CFO;cash=jquants:CashEq"}
+                elif _dt.startswith("2Q"):
+                    _hist[(f"FY{_fe[:4]}", "H1")] = {"cfo": _fundrow.get("cfo"),
+                                                    "sources": "cfo=jquants:CFO"}
+            _manual = (st.session_state.get("consensus_manual_map") or {}).get(_rcode, {})
+            _hist, _latest, _typed = FIN.apply_manual(_hist, FIN.latest_balance(_fundrow), _manual)
+
+            def _by_fy(_m):
+                return {k[1]: (e or {}).get("value") for k, e in _fc_map.items()
+                        if len(k) == 3 and k[0] == _m and k[2] == "actual"}
+            _sum = FIN.summary(_hist, _latest, _vi.get("mcap"),
+                               _by_fy("net_profit"), _by_fy("net_sales"))
+            return _sum, _typed, _hist, _latest
+
+        def _fin_headline(_s, _vals) -> str:
+            """One line for the forward card: net cash and FCF yield."""
+            _bits = []
+            if _s.get("net_cash") is not None:
+                _nc = _s["net_cash"]
+                _bits.append(f'{"Net cash" if _nc >= 0 else "Net debt"} '
+                             f'¥{abs(_nc) / 1e9:,.1f}bn'
+                             + (f' ({abs(_s["nc_to_mcap"]) * 100:.0f}% of mkt cap)'
+                                if _s.get("nc_to_mcap") is not None else ''))
+            if _s.get("fcf_yield") is not None:
+                _bits.append(f'FCF yield {_s["fcf_yield"] * 100:.1f}%')
+            _roe = next((y["roe"] for y in reversed(_s.get("years") or []) if y.get("roe")), None)
+            if _roe is not None:
+                _bits.append(f'ROE {_roe * 100:.0f}%')
+            elif _vals.get("roe_fy1_company") is not None:
+                _bits.append(f'ROE fwd {_vals["roe_fy1_company"] * 100:.0f}%')
+            return " · ".join(_bits)
+
+        def _fc_balance(_rcode, _fc_map, _vi, _fundrow):
+            """The balance-sheet and cash-flow table: up to four full years,
+            the newest first half, and the latest balance sheet."""
+            if _vi.get("profile") in fund.NO_ENTERPRISE_VALUE:
+                return
+            _s, _typed, _hist, _latest = _fin_for(_rcode, _fc_map, _vi, _fundrow)
+            _yrs = _s["years"]
+            _h1 = _s.get("h1")
+            _cols = ([("FY", y["fy"]) for y in _yrs]
+                     + ([("H1", _h1["fy"])] if _h1 else []) + [("L", "latest")])
+
+            def _src(_fy, _per, _f):
+                if (_fy, _per, _f) in _typed:
+                    return ("T", "typed by you")
+                _row = _hist.get((_fy, _per)) or {}
+                _m = dict(p.split("=", 1) for p in str(_row.get("sources") or "").split(";") if "=" in p)
+                _v = _m.get(_f, "")
+                if _v.startswith("yfinance"):
+                    return ("Y", "Yahoo Finance — secondary source")
+                return ("", "")
+
+            def _cell(_v, _kind="bn", _mark=("", "")):
+                if _v is None:
+                    return '<td class="fc-na">—</td>'
+                if _kind == "pct":
+                    _t = f"{_v * 100:,.0f}%" if abs(_v) >= 0.1 else f"{_v * 100:,.1f}%"
+                elif _kind == "x":
+                    _t = f"{_v:,.1f}×"
+                else:
+                    _t = f"{_v / 1e9:,.1f}"
+                _neg = ' class="fc-neg"' if (_kind != "x" and _v < 0) else ''
+                _sup = (f'<sup class="bs-src bs-{_mark[0].lower()}" title="{_mark[1]}">{_mark[0]}</sup>'
+                        if _mark[0] else '')
+                return f'<td{_neg}>{_t}{_sup}</td>'
+
+            _yr = {y["fy"]: y for y in _yrs}
+
+            def _val(_c, _f):
+                _per, _fy = _c
+                if _per == "L":
+                    return {"cash": _s["cash"], "debt": _s["debt"], "net_cash": _s["net_cash"],
+                            "sh_equity": _s["sh_equity"], "nc_to_equity": _s["nc_to_equity"],
+                            "nc_to_mcap": _s["nc_to_mcap"],
+                            "roe": _vi["vals"].get("roe_fy1_company")}.get(_f)
+                if _per == "H1":
+                    return _h1.get(_f)
+                _y = _yr.get(_fy) or {}
+                if _f == "nc_to_equity":
+                    return (_y["net_cash"] / _y["sh_equity"]
+                            if _y.get("net_cash") is not None and _y.get("sh_equity") else None)
+                return _y.get(_f)
+
+            def _mark(_c, _f):
+                _per, _fy = _c
+                if _f not in FIN.FIELDS:
+                    return ("", "")
+                if _per == "L":
+                    return (("T", "typed by you") if ("latest", "", _f) in _typed
+                            else ("Y", "Yahoo Finance — secondary source") if _f == "debt"
+                            else ("", ""))
+                return _src(_fy, "H1" if _per == "H1" else "FY", _f)
+
+            _ROWS = [("grp", "Balance sheet"),
+                     ("cash", "Cash & equivalents", "bn"), ("debt", "Interest-bearing debt", "bn"),
+                     ("net_cash", "Net cash", "bn"), ("sh_equity", "Shareholders' equity", "bn"),
+                     ("nc_to_equity", "Net cash / equity", "pct"),
+                     ("nc_to_mcap", "Net cash / mkt cap", "pct"),
+                     ("grp", "Cash flow"),
+                     ("cfo", "Operating cash flow", "bn"), ("capex", "Capex", "bn"),
+                     ("fcf", "Free cash flow", "bn"), ("fcf_margin", "FCF margin", "pct"),
+                     ("cash_conv", "OCF / net profit", "x"), ("capex_to_da", "Capex / D&A", "x"),
+                     ("grp", "Returns"),
+                     ("roe", "ROE", "pct")]
+            _head = ('<tr><th></th>' + "".join(
+                f'<th>{"Latest" if p == "L" else ("1H " + fy) if p == "H1" else fy}</th>'
+                for p, fy in _cols) + '</tr>')
+            _body = []
+            for _r in _ROWS:
+                if _r[0] == "grp":
+                    _body.append(f'<tr class="bs-grp"><td colspan="{len(_cols) + 1}">{_r[1]}</td></tr>')
+                    continue
+                _f, _lbl, _kind = _r
+                _vals_r = [_val(c, _f) for c in _cols]
+                if all(v is None for v in _vals_r):
+                    continue
+                _body.append(f'<tr><th>{_lbl}</th>'
+                             + "".join(_cell(v, _kind, _mark(c, _f)) for c, v in zip(_cols, _vals_r))
+                             + '</tr>')
+            _as_of = _latest.get("as_of") or ""
+            _note = []
+            if not any(y.get("capex") is not None for y in _yrs):
+                _note.append("Capex arrives with the next weekly collection (Yahoo); "
+                             "type it under Edit → Balance sheet & cash flow meanwhile.")
+            st.markdown(
+                '<details class="fc-chip fc-more bs-wrap" open><summary><b>Balance sheet &amp; cash flow</b> '
+                + _safe_text(_fin_headline(_s, _vi["vals"]) or "¥bn") + '</summary>'
+                '<table class="bs-table">' + _head + "".join(_body) + '</table>'
+                '<div class="bs-foot">¥bn. Latest = balance sheet as filed '
+                + (f'{_safe_text(_as_of)} ' if _as_of else '')
+                + '· ROE on average shareholders\' equity (Latest: guidance EPS ÷ BPS) '
+                '· FCF = operating cash flow − capex · 1H is six months '
+                '· <sup class="bs-src bs-y">Y</sup> Yahoo (debt usually includes leases) '
+                '<sup class="bs-src bs-t">T</sup> typed'
+                + ('' if not _note else ' · <em>' + _safe_text(" ".join(_note)) + '</em>')
+                + '</div></details>', unsafe_allow_html=True)
+
+        def _fc_typed_fin(_rcode, _fc_map, _vi, _fundrow):
+            """Type or correct cash, debt, equity, operating cash flow, capex
+            and D&A — one grid, periods across, ¥bn."""
+            _s, _typed, _hist, _latest = _fin_for(_rcode, _fc_map, _vi, _fundrow)
+            _fys = sorted({fy for (fy, p) in _hist if p == "FY"})[-4:]
+            _live, _rep = _live_fy(_fc_map)
+            # The reported years too, so capex can be typed for a year the
+            # collector has not reached yet.
+            _fys = sorted(set(_fys) | set(_rep[-3:]))[-4:]
+            _cols = ["Latest"] + [FIN.period_col(fy, "FY") for fy in reversed(_fys)]
+            _h1s = sorted({fy for (fy, p) in _hist if p == "H1"})
+            _cols.insert(1, FIN.period_col(_h1s[-1] if _h1s else _live, "H1"))
+            _before = {}
+            for _f in FIN.TYPEABLE:
+                for _c in _cols:
+                    _fy, _per = FIN.period_key(_c)
+                    _v = (_latest.get(_f) if _fy == FIN.LATEST
+                          else (_hist.get((_fy, _per)) or {}).get(_f))
+                    _before[(_f, _c)] = None if _v is None else round(_v / 1e9, 3)
+            st.markdown(
+                '<div class="fc-note">¥bn. Capex is the one figure no filed feed carries — type it '
+                'from the tanshin cash-flow statement (有形固定資産の取得による支出, plus '
+                '無形固定資産 if you include software). <strong>Latest</strong> is the newest balance '
+                'sheet; <strong>1H</strong> is six months. A typed cell wins over the collected one; '
+                'clear it to put the collected number back.</div>', unsafe_allow_html=True)
+            _df = pd.DataFrame([{**{"Item": FIN.LABELS[_f]},
+                                 **{_c: _before[(_f, _c)] for _c in _cols}}
+                                for _f in FIN.TYPEABLE])
+            _nonce = st.session_state.get(f"fin_typed_nonce_{_rcode}", 0)
+            _ed = _editor(
+                _df, key=f"fin_typed_{_rcode}_{_nonce}", hide_index=True,
+                use_container_width=True, num_rows="fixed",
+                column_config={"Item": st.column_config.TextColumn("Item", disabled=True),
+                               **{_c: st.column_config.NumberColumn(_c, format="%.1f")
+                                  for _c in _cols}})
+            if not st.button("💾 Save", key=f"fin_typed_save_{_rcode}"):
+                return
+            _lab = {v: k for k, v in FIN.LABELS.items()}
+            _after = {}
+            for _r in _records(_ed):
+                _f = _lab.get(_r.get("Item"))
+                for _c in _cols:
+                    _after[(_f, _c)] = _r.get(_c)
+            _manual_now = st.session_state.consensus_manual_map.get(_rcode, {})
+            _entries, _removed = FIN.plan_grid(_before, _after, _manual_now,
+                                               now_local().date().isoformat())
+            st.session_state[f"fin_typed_nonce_{_rcode}"] = _nonce + 1
+            if not _entries and not _removed:
+                st.session_state.research_flash = ("info", "No changes to save.")
+                st.rerun()
+            _block = st.session_state.consensus_manual_map.setdefault(_rcode, {})
+            _block.update(_entries)
+            for _k in _removed:
+                _block.pop(_k, None)
+            _ok, _msg = fund.save_manual_overrides(_ec_repo, _gh_token, _rcode,
+                                                   _entries, remove=_removed)
+            st.session_state.research_flash = (
+                "success" if _ok else "warning",
+                _msg if _ok else f"Applied for this session, but not saved: {_msg}")
+            st.rerun()
+
         def _fc_forward(_rcode, _rname, _fc_map, _vi, _fundrow):
             _get, _years = _vi["get"], sorted({k[1] for k in _fc_map if len(k) == 3 and k[1]})
             _vals = _vi["vals"]
@@ -7141,6 +7443,10 @@ with tab_research:
                    f'P/B {_fnum(_vals.get("pb"), 2, "×")}'
                    + (f' · EV/EBITDA {_fnum(_vals.get("ev_ebitda"), 1, "×")}'
                       if _vals.get("ev_ebitda") else '') + '</li>']
+            if _vi.get("profile") not in fund.NO_ENTERPRISE_VALUE:
+                _fh = _fin_headline(_fin_for(_rcode, _fc_map, _vi, _fundrow)[0], _vals)
+                if _fh:
+                    _c3.append(f'<li class="fv-s">{_safe_text(_fh)}</li>')
             _peh = [p for _, p, _ in FW.pe_history(_price_history_for(_rcode), _log, "company")
                     if p and p > 0][-52:]
             if len(_peh) >= 8 and _vals.get("pe_fy1_company"):
@@ -7335,7 +7641,7 @@ with tab_research:
                     st.markdown('<div class="fv-muted">Not enough weekly prices and EPS '
                                 'history yet.</div>', unsafe_allow_html=True)
 
-        def _chipify(_reads: list) -> str:
+        def _chipify(_reads: list, extra=()) -> str:
             """The long read-outs as one row of short chips that open to the
             full sentence. A read is '<span class="fc-read"><b>Label</b> text</span>';
             the chip shows the label and the text up to its first ' · ' or
@@ -7354,7 +7660,7 @@ with tab_research:
                     _short = _safe_text(_plain[:58].rstrip() + "…")
                 _out.append(f'<details class="fc-chip"><summary><b>{_label}</b> {_short}</summary>'
                             f'<div>{_body}</div></details>')
-            return '<div class="fc-chips">' + "".join(_out) + '</div>'
+            return '<div class="fc-chips">' + "".join(_out + list(extra)) + '</div>'
 
         # ── One-offs & anomalies ──────────────────────────────────────────
         def _read_notice_ui(_rcode, _sugg: dict, _key: str):
@@ -7455,7 +7761,7 @@ with tab_research:
                       "source": fund.source_label(e.get("source", "")) or None,
                       "tdnet_title": e.get("tdnet_title", "")} for e in _oo]
             _nonce = st.session_state.get(f"oo_nonce_{_rcode}", 0)
-            _ed = st.data_editor(
+            _ed = _editor(
                 _editor_rows(_rows, ["id", "fy", "period", "line", "item", "note", "amount_bn", "np_bn",
                               "source", "tdnet_title"]),
                 key=f"oo_{_rcode}_{_nonce}", hide_index=True, num_rows="dynamic",
@@ -7625,7 +7931,7 @@ with tab_research:
                         'act from appearing to answer while not doing so.</div>',
                         unsafe_allow_html=True)
                 if _qres["exchanges"]:
-                    st.dataframe(pd.DataFrame(_qres["exchanges"])[
+                    _frame(pd.DataFrame(_qres["exchanges"])[
                         ["topic", "classification", "question", "evidence_quote",
                          "answered_by", "why", "page_number"]],
                         hide_index=True, use_container_width=True)
@@ -7633,7 +7939,7 @@ with tab_research:
                     st.markdown('<div class="fc-note">No question-and-answer exchanges found in '
                                 'this document.</div>', unsafe_allow_html=True)
                 if _qres["unreadable"]:
-                    st.dataframe(pd.DataFrame(_qres["unreadable"]), hide_index=True,
+                    _frame(pd.DataFrame(_qres["unreadable"]), hide_index=True,
                                  use_container_width=True)
                 _label = st.text_input("Event label", value=_qres.get("event_label", ""),
                                        key=f"qa_label_{_rcode}",
@@ -7758,7 +8064,7 @@ with tab_research:
                                          "the rate that guidance actually assumed.")
                 if _res["assumptions"]:
                     st.markdown("**Assumed rates**")
-                    st.dataframe(pd.DataFrame(_res["assumptions"]), hide_index=True,
+                    _frame(pd.DataFrame(_res["assumptions"]), hide_index=True,
                                  use_container_width=True)
                 else:
                     st.markdown('<div class="fc-note">No assumed rate found in this document. '
@@ -7767,7 +8073,7 @@ with tab_research:
                                 unsafe_allow_html=True)
                 if _res["sensitivities"]:
                     st.markdown("**Disclosed sensitivity** (yen of operating profit per ¥1 move)")
-                    st.dataframe(pd.DataFrame(_res["sensitivities"]), hide_index=True,
+                    _frame(pd.DataFrame(_res["sensitivities"]), hide_index=True,
                                  use_container_width=True)
                 else:
                     st.markdown('<div class="fc-note">No sensitivity disclosed. Many issuers '
@@ -7776,7 +8082,7 @@ with tab_research:
                                 unsafe_allow_html=True)
                 if _res["unreadable"]:
                     st.markdown("**Could not be read with confidence** — check these pages yourself")
-                    st.dataframe(pd.DataFrame(_res["unreadable"]), hide_index=True,
+                    _frame(pd.DataFrame(_res["unreadable"]), hide_index=True,
                                  use_container_width=True)
                 if _res.get("notes"):
                     st.markdown(f'<div class="fc-note">{_safe_text(_res["notes"])}</div>',
@@ -7885,7 +8191,7 @@ with tab_research:
                     "analysts": c.get("n_analysts"),
                     "from_image": c.get("from_image", ""),
                 } for c in _cells]
-                _edited = st.data_editor(
+                _edited = _editor(
                     _editor_rows, key=f"fc_editor_{_rcode}", hide_index=True,
                     use_container_width=True,
                     column_config={
@@ -8040,6 +8346,7 @@ with tab_research:
                     })
                     # Exporting is one click on what is already on screen, so
                     # it stays out in the open; editing gets a fold of its own.
+                    _fc_balance(_rcode, _fc_map, _vi, _fundrow)
                     _fc_exports(_rcode, _rname, _fc_map)
                     # Folded away by default. Filling gaps is occasional work
                     # — it is the table and the multiples the panel is opened
@@ -8054,14 +8361,18 @@ with tab_research:
                         # Results day first: on the day a company reports,
                         # it is the one screen that takes everything the
                         # result changes. The grid stays for corrections.
-                        _tab_rd, _tab_type, _tab_shot, _tab_fx, _tab_qa = st.tabs(
+                        _edit_box = st.container(key="research_edit_tabs")
+                        _tab_rd, _tab_type, _tab_bs, _tab_shot, _tab_fx, _tab_qa = _edit_box.tabs(
                             ["📋 Results day", "✏️ Type or correct values",
+                             "🏦 Balance sheet & cash flow",
                              "📸 Read a screenshot", "💴 Read FX assumptions",
                              "🗣️ Read a Q&A"])
                         with _tab_rd:
                             _fc_results_day(_rcode, _rname, _fc_map, _profile, _fundrow)
                         with _tab_type:
                             _fc_typed(_rcode, _rname, _years, _fc_map, _profile)
+                        with _tab_bs:
+                            _fc_typed_fin(_rcode, _fc_map, _vi, _fundrow)
                         with _tab_shot:
                             _fc_screenshots(_rcode, _rname, _years)
                         with _tab_fx:

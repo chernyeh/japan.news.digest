@@ -158,6 +158,10 @@ def rows_from_manual(entries: dict, logged_at: str) -> list:
         parts = flat.split("|")
         if len(parts) != 3:
             continue
+        # Typed balance-sheet / cash-flow figures are corrections to a filed
+        # number, not an estimate whose path is worth logging.
+        if parts[2] in ("fin", "fin_h1"):
+            continue
         src = e.get("source", "typed")
         out.append({"date": (e.get("as_of") or logged_at)[:10], "metric": parts[0],
                     "fy": parts[1], "basis": parts[2], "value": e.get("value"),

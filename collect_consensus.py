@@ -33,6 +33,7 @@ import time
 from datetime import date, datetime, timezone
 
 import estimates_log as EL
+import financials as FIN
 import fundamentals as F
 
 _JQ_BASE = "https://api.jquants.com/v2"
@@ -439,11 +440,24 @@ def company_guidance(records: list) -> tuple:
         fund["fy_end_next"] = nxt
 
     for concept in ("equity", "total_assets", "bps", "cash", "debt", "dep_amort",
-                    "shares", "cfo", "equity_to_assets"):
+                    "shares", "equity_to_assets"):
         val, key = newest(concept)
         if val is not None:
             fund[concept] = val
             fund.setdefault("_sources", {})[concept] = f"jquants:{key}"
+    # Operating cash flow from the newest FULL-YEAR filing, across years.
+    # Read from the current year only, it went blank after every Q1 and Q3
+    # tanshin (neither carries a cash-flow statement) and after a 2Q one it
+    # held six months of cash flow under a field read as a year's.
+    for rec in reversed(records):
+        if not F.jq_pick_str(rec, "period_type")[0].upper().startswith("FY"):
+            continue
+        val, key = F.jq_pick(rec, "cfo")
+        if val is not None:
+            fund["cfo"] = val
+            fund.setdefault("_sources", {})["cfo"] = (
+                f"jquants:{key}@{fy_label(F.jq_pick_str(rec, 'fy_end')[0][:10])}")
+            break
     op, _ = newest("operating_profit")
     if op is not None:
         fund["op_actual"] = op
@@ -672,6 +686,14 @@ def fetch_yahoo(code: str, fy1: str, fy2: str) -> tuple:
                 fund.setdefault("_sources", {})[concept] = f"yfinance:{k}"
                 break
 
+    # Annual statements for the balance-sheet and cash-flow history
+    # (financials.py): capex, debt and D&A are carried by no filed feed here.
+    try:
+        fund["_fin"] = FIN.yahoo_rows(t.cashflow, t.balance_sheet)
+    except Exception as exc:
+        print(f"  {code}: yahoo annual statements: {exc}")
+        fund["_fin"] = []
+
     # .info's bookValue is per-share; the balance sheet gives the absolute
     # figures, which are the ones EV needs and which .info sometimes omits.
     try:
@@ -843,6 +865,7 @@ def main() -> int:
     ap.add_argument("--universe", default=F.UNIVERSE_PATH)
     ap.add_argument("--out-consensus", default=F.CONSENSUS_PATH)
     ap.add_argument("--out-fundamentals", default=F.FUNDAMENTALS_PATH)
+    ap.add_argument("--out-financials", default=FIN.FIN_HISTORY_PATH)
     ap.add_argument("--log-dir", default=EL.LOG_DIR,
                     help="Where the per-company estimates log lives.")
     ap.add_argument("--out-manifest", default=F.RUN_MANIFEST_PATH,
@@ -959,6 +982,7 @@ def main() -> int:
               "Yahoo balance-sheet data are still collected.")
 
     cons_rows, fund_rows, hist_all, failures = [], [], [], []
+    fin_rows = []
     # Estimates-log rows per company, written after the CSVs below.
     log_rows = {}
     today = date.today().isoformat()
@@ -966,6 +990,7 @@ def main() -> int:
     for i, row in enumerate(universe, 1):
         code, name = row["Code"], row.get("Name", "")
         guide, actual, ytd, jq_fund, jq_as_of, fy1 = {}, {}, {}, {}, "", ""
+        jq_fin = []
         hist_rows = []
         nonconsolidated = set()
         if api_key:
@@ -975,6 +1000,7 @@ def main() -> int:
                 actual, _fy0, _, _nc_a = company_actuals(_records)
                 ytd, _nc_y = company_ytd(_records)
                 hist_rows = guidance_history(_records, code, name)
+                jq_fin = FIN.jq_rows(_records)
                 log_rows.setdefault(code, []).extend(filing_log_rows(_records, today))
                 nonconsolidated = _nc_g | _nc_a | _nc_y
             except JQuantsAuthError as exc:
@@ -1002,6 +1028,8 @@ def main() -> int:
         fund_rows.append(merge_fundamentals(code, name, jq_fund, y_fund,
                                             jq_as_of or y_as_of))
         hist_all.extend(hist_rows)
+        fin_rows.extend(FIN.merge(code, jq_fin, y_fund.get("_fin") or [],
+                                  jq_as_of or y_as_of))
         print(f"  [{i}/{len(universe)}] {code} {name[:36]:36} "
               f"guide={len(guide):2} ytd={len(ytd):2} cons={len(cons):2} "
               f"fy1={fy1 or '?'}")
@@ -1072,6 +1100,8 @@ def main() -> int:
                  sorted(_hist.values(),
                         key=lambda r: (r["code"], r["fy"], r["metric"])))
 
+    FIN.write_local(fin_rows, args.out_financials)
+
     import json
     os.makedirs(os.path.dirname(args.out_manifest) or ".", exist_ok=True)
     with open(args.out_manifest, "w", encoding="utf-8") as fh:
@@ -1080,6 +1110,7 @@ def main() -> int:
     print(f"\nWrote {len(merged)} consensus rows -> {args.out_consensus}")
     print(f"Wrote {len(by_code)} fundamentals rows -> {args.out_fundamentals}")
     print(f"Wrote {len(_hist)} guidance-history rows -> {F.GUIDANCE_HISTORY_PATH}")
+    print(f"Wrote {len(fin_rows)} balance-sheet / cash-flow rows -> {args.out_financials}")
     print(f"Wrote run manifest -> {args.out_manifest}")
     print(f"Estimates log: {_grew} new row(s) across {len(log_rows)} companies -> {args.log_dir}")
     return 0
