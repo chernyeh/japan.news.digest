@@ -468,6 +468,23 @@ def test_going_in_guidance_with_new_guidance_goes_to_the_log_only():
     assert log[0]["basis"] == "company" and log[0]["date"] == "2026-11-01"
     assert RD.going_in_basis("street", "FY") == "consensus"
 
+
+def test_last_reported_quarter_falls_back_to_last_year():
+    m = {("operating_profit", "FY2026", "ytd_3q"): 70.0, ("operating_profit", "FY2026", "ytd_2q"): 40.0,
+         ("operating_profit", "FY2026", "ytd_1q"): 18.0, ("operating_profit", "FY2026", "actual"): 118.0,
+         ("operating_profit", "FY2027", "ytd_1q"): 49.0, ("operating_profit", "FY2027", "ytd_2q"): 65.6}
+    g = lambda a, b, c: m.get((a, b, c))
+    fy, n, v = FW.last_reported_quarter(g, "FY2027")
+    assert (fy, n) == ("FY2027", 2) and abs(v - 16.6) < 1e-9
+    assert FW.last_reported_quarter(g, "FY2028")[:2] == ("FY2027", 2)
+
+
+def test_street_first_half_is_reported_1q_plus_street_2q():
+    import fundamentals as F
+    m = {("operating_profit", "FY2027", "ytd_1q"): 49.1, ("operating_profit", "FY2027", "consensus_q2"): 37.45}
+    assert abs(F.quarter_street(lambda a, b, c: m.get((a, b, c)), "operating_profit",
+                                "FY2027", "ytd_2q") - 86.55) < 1e-9
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

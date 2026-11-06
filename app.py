@@ -5046,6 +5046,12 @@ with tab_research:
         # so the quarter, the cumulative figure and how both moved are read
         # off one grid. The quarterly arithmetic is fundamentals.quarter_breakdown.
         _Q_LABEL = {"q1": "1Q", "q2": "2Q", "q3": "3Q", "q4": "4Q"}
+        # The first half as a column of its own: 1Q + 2Q, i.e. the year to
+        # date at 2Q — reported, or estimated where 2Q is still a street
+        # estimate. Treated like a quarter column everywhere except QoQ.
+        _H1 = "ytd_2q"
+        _QLIKE = {**_Q_LABEL, _H1: "1H"}
+        _QN = {"q1": 1, "q2": 2, "q3": 3, "q4": 4, _H1: 2}
         _Q_HELP = {"q1": "First quarter",
                    "q2": "Second quarter on its own (YTD 2Q less 1Q); the small line "
                          "under it is the year to date",
@@ -5199,7 +5205,7 @@ with tab_research:
             # where something is in it, so a year still running reads 1QA, 2QE
             # (if there is an estimate), 1H, ... without gaps.
             _ANNUAL = ["actual", "company_h1", "company_h2", "company", "rest", "consensus"]
-            _SEQ = ["q1", "q2", "company_h1", "q3", "q4", "company_h2",
+            _SEQ = ["q1", "q2", _H1, "company_h1", "q3", "q4", "company_h2",
                     "actual", "company", "rest", "consensus"]
             _FY_BLOCK = {"actual", "company", "rest", "consensus"}
             _cols = {}
@@ -5207,6 +5213,8 @@ with tab_research:
                 _qs = ([_p for _p in fund.QUARTER_PERIODS
                         if any(_p in _qb(_m, _y) for _m in _Q_METRICS)]
                        if _y in _q_years else [])
+                if "q2" in _qs and any(_H1 in _qb(_m, _y) for _m in _Q_METRICS):
+                    _qs.append(_H1)
                 _an = [_b for _b in _ANNUAL
                        if any(_cell(_m, _y, _b) is not None for _m, *_ in _ROWS)]
                 if _qs or _an:
@@ -5222,7 +5230,7 @@ with tab_research:
             _shown = [_y for _y in _shown if _y in _cols]
             _basis_label = {"actual": "Actual", "company_h1": "1H co.",
                             "company_h2": "Impl. 2H", "company": "Co. FY",
-                            "rest": "Rest of yr", "consensus": "Street", **_Q_LABEL}
+                            "rest": "Rest of yr", "consensus": "Street", **_QLIKE}
             _basis_help = {"actual": "Reported full year, as filed",
                            "company_h1": "Company guidance — first half",
                            "company_h2": "Implied second half — the full-year guidance "
@@ -5231,7 +5239,8 @@ with tab_research:
                            "company": "Company guidance — full year",
                            "rest": "What is left to earn — full-year guidance less the "
                                    "reported year to date. Derived here.",
-                           "consensus": "Street consensus — full year", **_Q_HELP}
+                           "consensus": "Street consensus — full year", **_Q_HELP,
+                           _H1: "First half — 1Q + 2Q (the year to date at 2Q)"}
             _has_nc = any(_src(_m, _y, _b) == "jquants:nonconsolidated"
                           for _m, *_ in _MONEY_ROWS for _y in _shown
                           for _b in _cols.get(_y, ()))
@@ -5252,8 +5261,8 @@ with tab_research:
                              f'title="{_safe_text(_y)}">{_safe_text(_short)}</div>')
             for _y in _shown:
                 for _i, _b in enumerate(_cols[_y]):
-                    _qs_ = _q_status(_y, _b) if _b in _Q_LABEL else ""
-                    _hcls = ((" fc-qh fc-cons" if _qs_ == "E" else " fc-qh") if _b in _Q_LABEL else
+                    _qs_ = _q_status(_y, _b) if _b in _QLIKE else ""
+                    _hcls = ((" fc-qh fc-cons" if _qs_ == "E" else " fc-qh") if _b in _QLIKE else
                              " fc-cons" if _b == "consensus" else
                              " fc-derived" if _b in ("company_h2", "rest") else "")
                     _htitle = _basis_help[_b] + (
@@ -5300,9 +5309,10 @@ with tab_research:
                     _html += (f'<div class="fc-ytd fc-pastest" title="The street estimate for this '
                               f'quarter, as typed before the result">est. '
                               f'{_fnum(_st, _dp, "", _scale)}</div>')
-                # The year to date as a second, quieter line on 2Q and 3Q (1Q
-                # is its own YTD; 4Q's is the full year beside it).
-                if _p in ("q2", "q3"):
+                # The year to date as a second, quieter line on 3Q (1Q is its
+                # own YTD, 2Q's is the 1H column beside it — or under 2Q where
+                # that column is not shown — and 4Q's is the full year).
+                if _p == "q3" or (_p == "q2" and _H1 not in _cols.get(_y, ())):
                     _ytd = _qb(_m, _y).get(f"ytd_{_p[1]}q")
                     if _ytd:
                         _html += (f'<div class="fc-ytd" title="Year to date through '
@@ -5348,7 +5358,7 @@ with tab_research:
 
             def _figure(_m, _y, _b):
                 """The number a margin or growth line is computed from."""
-                if _b in _Q_LABEL:
+                if _b in _QLIKE:
                     return _qv(_m, _y, _b)
                 return _cell(_m, _y, _b)
 
@@ -5358,7 +5368,7 @@ with tab_research:
                 year's reported number, else the prior year's figure on the
                 same basis — street against street two years out."""
                 _py = fund.prior_fy(_y)
-                if _b in _Q_LABEL:
+                if _b in _QLIKE:
                     return _qv(_m, _py, _b)
                 if _b == "company_h1":
                     return _qv(_m, _py, "ytd_2q")
@@ -5372,8 +5382,8 @@ with tab_research:
 
             # Progress % only shows on reported quarter columns; with none on
             # screen it would leave a "Derived" heading over nothing.
-            if not any(_progress(_y, int(_b[1])) is not None
-                       for _y in _shown for _b in _cols[_y] if _b in _Q_LABEL):
+            if not any(_progress(_y, _QN[_b]) is not None
+                       for _y in _shown for _b in _cols[_y] if _b in _QLIKE):
                 _ROWS = [_r for _r in _ROWS if _r[0] != "progress"]
 
             _ratio_started = False
@@ -5389,20 +5399,20 @@ with tab_research:
                     # year to date has come, and a forecast quarter has no
                     # year to date to measure.
                     _line(_safe_text(_label), lambda _y, _b: (
-                        (" fc-rrow", _pct(_progress(_y, int(_b[1])), 0)
-                         if _progress(_y, int(_b[1])) is not None else "")
-                        if _b in _Q_LABEL else (" fc-rrow", "")), " fc-rrow")
+                        (" fc-rrow", _pct(_progress(_y, _QN[_b]), 0)
+                         if _progress(_y, _QN[_b]) is not None else "")
+                        if _b in _QLIKE else (" fc-rrow", "")), " fc-rrow")
                     continue
 
                 if _kind == "ratio":
                     _line(_safe_text(_label), lambda _y, _b, _m=_m, _kind=_kind, _sc=_scale, _d=_dp: (
-                        (" fc-rrow", "") if _b in _Q_LABEL
+                        (" fc-rrow", "") if _b in _QLIKE
                         else _annual_html(_m, _y, _b, _kind, _sc, _d)), " fc-rrow")
                     continue
 
                 _line(_safe_text(_label), lambda _y, _b, _m=_m, _kind=_kind, _sc=_scale, _d=_dp: (
                     (("", "") if _m not in _Q_METRICS else _quarter_html(_m, _y, _b, _sc, _d))
-                    if _b in _Q_LABEL else _annual_html(_m, _y, _b, _kind, _sc, _d)),
+                    if _b in _QLIKE else _annual_html(_m, _y, _b, _kind, _sc, _d)),
                       " fc-mrow")
 
                 # One-offs: what was added back, and the figure after it. Where a
@@ -5415,6 +5425,7 @@ with tab_research:
                 if _oo and _m in ("operating_profit", "ordinary_profit", "net_profit"):
                     def _oo_periods(_b):
                         return ((_Q_LABEL[_b],) if _b in _Q_LABEL else
+                                ("1Q", "2Q") if _b == _H1 else
                                 ("1Q", "2Q", "3Q", "4Q") if _b == "actual" else None)
 
                     def _imp(_y, _b, _m=_m):
@@ -5442,7 +5453,7 @@ with tab_research:
                                 return " fc-sub-cell", ""
                             _a = _v - _i
                             _html = f'<b>{_fnum(_a, _d, "", _sc)}</b>'
-                            _st = (fund.quarter_street(_get, _m, _y, _b) if _b in _Q_LABEL
+                            _st = (fund.quarter_street(_get, _m, _y, _b) if _b in _QLIKE
                                    else None)
                             if _st and _st > 0:
                                 _g = _a / _st - 1
@@ -5481,7 +5492,7 @@ with tab_research:
                     _html = _chg_html(fund.change(_v, _pv), _v is not None and _pv is not None)
                     # Under 2Q / 3Q, the year to date's own YoY, matching the
                     # YTD line under the figure above.
-                    if _b in ("q2", "q3"):
+                    if _b == "q3" or (_b == "q2" and _H1 not in _cols.get(_y, ())):
                         _yb = f"ytd_{_b[1]}q"
                         _yv, _ypv = _qv(_m, _y, _yb), _qv(_m, fund.prior_fy(_y), _yb)
                         if _yv is not None:
@@ -6322,29 +6333,31 @@ with tab_research:
             _oo_ed = st.data_editor(
                 _editor_rows(_oo_grid, ["id", "item", "note", "line", "amount_bn", "np_bn"]),
                 key=f"rd_oo_{_rcode}_{_vkey}", hide_index=True, num_rows="dynamic",
-                use_container_width=True, column_order=["item", "note", "line", "amount_bn", "np_bn"],
+                use_container_width=True, column_order=["line", "amount_bn", "note"],
                 column_config={
-                    "item": st.column_config.TextColumn("Item", help="e.g. Impairment, Gain on "
-                                                                     "sale of securities"),
-                    "note": st.column_config.TextColumn(
-                        "Note", width="large",
-                        help="What it is — shown in the hover bubble on the One-off adj. line."),
                     "line": st.column_config.SelectboxColumn(
                         "Where it lands", options=list(OO.LINE_LABEL.values()), required=True,
-                        default=OO.LINE_LABEL["operating"]),
+                        default=OO.LINE_LABEL["operating"],
+                        help="In OP: taken out of OP and every line below. Below OP: OP is "
+                             "left alone and only the lines below are adjusted."),
                     "amount_bn": st.column_config.NumberColumn(
-                        "Pre-tax ¥bn", format="%.2f", help="Gain positive, loss negative."),
-                    "np_bn": st.column_config.NumberColumn(
-                        "After-tax ¥bn", format="%.2f",
-                        help="Optional. Blank uses 70% of the pre-tax amount."),
+                        "Impact ¥bn (− = loss)", format="%.2f",
+                        help="The pre-tax effect on profit: a loss negative, a gain positive."),
+                    "note": st.column_config.TextColumn(
+                        "Note (shown on hover)", width="large",
+                        help="What it is — e.g. 'GaN writedown'. Shown in the bubble on the "
+                             "One-off adj. line."),
                 })
             _line_of = {v: k for k, v in OO.LINE_LABEL.items()}
+            # Item and after-tax are no longer asked for; an entry that had
+            # them keeps them, read back from the store by id.
+            _was = {e.get("id"): e for e in _oo_here}
             _oo_new = [{"id": r.get("id"), "fy": _fy, "period": _oo_period,
                         "line": _line_of.get(r.get("line"), "operating"),
-                        "item": r.get("item") or "", "note": r.get("note") or "",
+                        "item": (_was.get(r.get("id")) or {}).get("item", ""),
+                        "note": r.get("note") or "",
                         "amount_jpy": float(r["amount_bn"]) * 1e9,
-                        "np_amount_jpy": (None if r.get("np_bn") is None
-                                          else float(r["np_bn"]) * 1e9)}
+                        "np_amount_jpy": (_was.get(r.get("id")) or {}).get("np_amount_jpy")}
                        for r in _records(_oo_ed) if r.get("amount_bn") is not None]
             # What the readout adjusts by: this period's items as typed here,
             # plus earlier periods' logged items for the year to date.
@@ -6897,7 +6910,9 @@ with tab_research:
                     continue
                 _a = _get(_m, _y, "actual")
                 _p = (fund.quarter_breakdown(_get, _m, _y).get(fund.YTD_PERIODS[_n - 1]) or (None,))[0]
-                if _a and _a > 0 and _p is not None:
+                # Skip a year whose later quarters lost money: its "progress"
+                # runs past 100% and is no guide to the usual pace.
+                if _a and _a > 0 and _p is not None and 0 < _p / _a <= 1:
                     _pri.append(_p / _a)
             _pri.sort()
             return _this, (_pri[len(_pri) // 2] if _pri else None)
@@ -6924,22 +6939,45 @@ with tab_research:
 
             # Column 1 — the next quarter.
             _nq = FW.next_quarter(_get, _live, _mm)
-            _last = EL.summarize_latest(_log)
             _c1 = [f'<div class="fv-k">Next result</div>'
                    f'<div class="fv-v">{_safe_text(_nq["period"] + " " + _live) if _nq else "—"}</div>'
                    f'<div class="fv-s">{"on " + _safe_text(_nxt) + (f" · in {_days} days" if _days is not None else "") if _nxt else "date not in the calendar yet"}</div>']
+            # The last reported quarter, reported and ex one-offs: the base a
+            # QoQ is read from, and the beat/miss the next result follows.
+            _lq = FW.last_reported_quarter(_get, _live, _mm)
+            _lq_imp = (OO.impact(_oo, _mm, _lq[0], (f"{_lq[1]}Q",)) if _lq else 0.0)
+            _lq_adj = (_lq[2] - _lq_imp) if (_lq and _lq_imp) else None
             if _nq and _nq.get("street") is not None:
-                _c1.append(f'<div class="fv-s">Street {_mlabel} <b>{_bn(_nq["street"])}</b>'
-                           + (f' · needs {_chip(_nq["yoy"])} YoY' if _nq.get("yoy") is not None else '')
+                _st_n = _nq["street"]
+                _qoq = _chg(_st_n, _lq[2]) if _lq else None
+                _qoq_adj = _chg(_st_n, _lq_adj) if _lq_adj is not None else None
+                # YoY against last year's same quarter, ex its one-offs too.
+                _ly_imp = OO.impact(_oo, _mm, fund.prior_fy(_live), (_nq["period"],))
+                _yoy_adj = (_chg(_st_n, _nq["last_year"] - _ly_imp)
+                            if (_ly_imp and _nq.get("last_year") is not None) else None)
+                _c1.append(f'<div class="fv-s">Street {_mlabel} <b>{_bn(_st_n)}</b></div>')
+                _c1.append('<div class="fv-s">needs '
+                           + (f'{_chip(_nq["yoy"])} YoY' if _nq.get("yoy") is not None else 'YoY n/a')
+                           + (f' <span class="fv-muted">(ex one-offs {_chip(_yoy_adj)})</span>'
+                              if _yoy_adj is not None else '')
+                           + ' · '
+                           + (f'{_chip(_qoq)} QoQ' if _qoq is not None else 'QoQ n/a')
+                           + (f' <span class="fv-muted">(vs adj. {_lq[1]}Q {_chip(_qoq_adj)})</span>'
+                              if _qoq_adj is not None else '')
                            + '</div>')
             else:
                 _c1.append('<div class="fv-s fv-muted">No quarterly street estimate typed '
                            '— add one under Edit to get a beat/miss.</div>')
-            if _last:
-                _c1.append(f'<div class="fv-s">Last: {_safe_text(_last["period"])} '
-                           + (f'{"beat" if _last["op_vs_street"] >= 0 else "missed"} street '
-                              f'{_chip(_last["op_vs_street"])}' if _last.get("op_vs_street") is not None
-                              else 'no street estimate was logged')
+            # The last result against the street — reported, and ex one-offs.
+            _lq_st = (fund.quarter_street(_get, _mm, _lq[0], f"q{_lq[1]}") if _lq else None)
+            _rep_vs = _chg(_lq[2], _lq_st) if (_lq and _lq_st) else None
+            _adj_vs = _chg(_lq_adj, _lq_st) if (_lq_adj is not None and _lq_st) else None
+            if _lq:
+                _c1.append(f'<div class="fv-s">Last: {_lq[1]}Q '
+                           + (f'{"beat" if _rep_vs >= 0 else "missed"} street {_chip(_rep_vs)}'
+                              if _rep_vs is not None else 'no street estimate typed')
+                           + (f' · <b>ex one-offs {"beat" if _adj_vs >= 0 else "missed"} '
+                              f'{_chip(_adj_vs)}</b>' if _adj_vs is not None else '')
                            + '</div>')
 
             # Column 2 — this year against guidance and the street.
@@ -6991,7 +7029,20 @@ with tab_research:
                                "detail": "A split sits between the filed share count and the price; "
                                          "P/E and yield are blanked until the per-share figures are "
                                          "restated."})
-            _rq = FW.raise_quality(_log, _live, _mm)
+            if _rep_vs is not None and _adj_vs is not None and (_rep_vs >= 0) != (_adj_vs >= 0):
+                _items = "; ".join(OO.describe(e, _mm) for e in
+                                   OO.items_for(_oo, _mm, _lq[0], (f"{_lq[1]}Q",)))
+                _flags.append({
+                    "tone": "good" if _adj_vs >= 0 else "warn",
+                    "title": (f"{_lq[1]}Q missed street, beat ex one-offs" if _adj_vs >= 0
+                              else f"{_lq[1]}Q beat street only on one-offs"),
+                    "detail": (f"Reported {_mlabel} {_bn(_lq[2])} vs street {_bn(_lq_st)} "
+                               f"({_rep_vs * 100:+.1f}%); ex one-offs {_bn(_lq_adj)} "
+                               f"({_adj_vs * 100:+.1f}%). {_items}.")})
+            # Judged on the year to date ex one-offs.
+            _rq_n = (_lq[1] if (_lq and _lq[0] == _live and _lq[1] < 4) else None)
+            _rq = FW.raise_quality(_log, _live, _mm, OO.impact(
+                _oo, _mm, _live, tuple(f"{i}Q" for i in range(1, (_rq_n or 0) + 1))))
             if _rq:
                 _flags.append(_rq)
             _gs = FW.guidance_stance({m: _get(m, _live, "company") for m in fund.METRICS},
@@ -7281,7 +7332,7 @@ with tab_research:
                               "source", "tdnet_title"]),
                 key=f"oo_{_rcode}_{_nonce}", hide_index=True, num_rows="dynamic",
                 use_container_width=True,
-                column_order=["fy", "period", "line", "item", "note", "amount_bn", "np_bn", "source"],
+                column_order=["fy", "period", "line", "amount_bn", "note", "source"],
                 column_config={
                     "fy": st.column_config.SelectboxColumn("FY", options=_fy_opts, required=True,
                                                            default=_live),
@@ -7290,14 +7341,16 @@ with tab_research:
                                                                required=True),
                     "line": st.column_config.SelectboxColumn(
                         "Where it lands", options=list(OO.LINE_LABEL.values()), required=True,
-                        default=OO.LINE_LABEL["extraordinary"]),
-                    "item": st.column_config.TextColumn("Item"),
+                        default=OO.LINE_LABEL["operating"],
+                        help="In OP: taken out of OP and every line below. Below OP: OP is "
+                             "left alone and only the lines below are adjusted."),
                     "note": st.column_config.TextColumn(
-                        "Note", width="large",
-                        help="What it is — shown in the hover bubble on the One-off adj. line."),
+                        "Note (shown on hover)", width="large",
+                        help="What it is — e.g. 'GaN writedown'. Shown in the bubble on the "
+                             "One-off adj. line."),
                     "amount_bn": st.column_config.NumberColumn(
-                        "Pre-tax ¥bn", format="%.2f", required=True,
-                        help="Positive for a gain, negative for a loss."),
+                        "Impact ¥bn (− = loss)", format="%.2f", required=True,
+                        help="The pre-tax effect on profit: a loss negative, a gain positive."),
                     "np_bn": st.column_config.NumberColumn(
                         "After-tax ¥bn", format="%.2f",
                         help="Optional. Left blank, 70% of the pre-tax amount is used."),
@@ -7307,15 +7360,16 @@ with tab_research:
             if st.button("💾 Save one-offs", key=f"oo_save_{_rcode}_{_nonce}"):
                 _line_of = {v: k for k, v in OO.LINE_LABEL.items()}
                 _upsert, _seen, _pool = [], set(), list(_oo)
+                _was = {e.get("id"): e for e in _oo}
                 for _r in _records(_ed):
                     if not _r.get("fy") or not _r.get("period") or _r.get("amount_bn") is None:
                         continue
+                    _prev = _was.get(_r.get("id")) or {}
                     _e = {"fy": _r["fy"], "period": _r["period"],
-                          "line": _line_of.get(_r.get("line"), "extraordinary"),
-                          "item": _r.get("item") or "", "note": _r.get("note") or "",
+                          "line": _line_of.get(_r.get("line"), "operating"),
+                          "item": _prev.get("item", ""), "note": _r.get("note") or "",
                           "amount_jpy": float(_r["amount_bn"]) * 1e9,
-                          "np_amount_jpy": (None if _r.get("np_bn") is None
-                                            else float(_r["np_bn"]) * 1e9),
+                          "np_amount_jpy": _prev.get("np_amount_jpy"),
                           "date": now_local().date().isoformat(),
                           "source": fund.typed_source(_r.get("source")),
                           "tdnet_title": _r.get("tdnet_title") or ""}
