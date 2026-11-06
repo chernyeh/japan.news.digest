@@ -1206,6 +1206,11 @@ a.research-link:hover { background: #F0EDE8; }
 .fv-v { font-size: 1.02rem; font-weight: 600; color: #2B2420; margin: 1px 0 3px;
         font-variant-numeric: tabular-nums; }
 .fv-s { font-size: 0.72rem; color: #5A5044; line-height: 1.45; }
+/* The lines under each headline figure are a bulleted list. Streamlit's own
+   markdown styles size and indent every li, so this is spelled out in full. */
+.fv-card ul.fv-ul { margin: 0; padding: 0 0 0 1.05em; list-style: disc outside; }
+.fv-card ul.fv-ul li.fv-s { font-size: 0.72rem; margin: 0 0 1px; padding: 0; }
+.fv-card ul.fv-ul li.fv-s::marker { color: #B8A898; }
 .fv-muted, .fv-s.fv-muted { color: #A89A8A; font-style: italic; }
 .fv-ch { font-size: 0.64rem; color: #8B7B6A; letter-spacing: 0.02em; margin: 2px 0 -4px; }
 .fv-flags, .fc-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; max-width: 1180px; }
@@ -7024,6 +7029,16 @@ with tab_research:
             _pri.sort()
             return _this, (_pri[len(_pri) // 2] if _pri else None)
 
+        def _ordinal(_n: int) -> str:
+            return f"{_n}{'th' if 10 <= _n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(_n % 10, 'th')}"
+
+        def _fv_col(_items: list) -> str:
+            """A forward-view column: the label and headline figure as they
+            are, and every line under them as one bulleted list."""
+            _head = [i for i in _items if not i.startswith("<li")]
+            _li = [i for i in _items if i.startswith("<li")]
+            return "".join(_head) + (f'<ul class="fv-ul">{"".join(_li)}</ul>' if _li else "")
+
         def _flag_html(_f: dict) -> str:
             _icon = {"good": "▲", "bad": "▼", "warn": "⚑", "info": "●"}.get(_f.get("tone"), "●")
             return (f'<details class="fv-flag fv-{_safe_text(_f.get("tone", "info"))}">'
@@ -7046,9 +7061,14 @@ with tab_research:
 
             # Column 1 — the next quarter.
             _nq = FW.next_quarter(_get, _live, _mm)
-            _c1 = [f'<div class="fv-k">Next result</div>'
-                   f'<div class="fv-v">{_safe_text(_nq["period"] + " " + _live) if _nq else "—"}</div>'
-                   f'<div class="fv-s">{"on " + _safe_text(_nxt) + (f" · in {_days} days" if _days is not None else "") if _nxt else "date not in the calendar yet"}</div>']
+            _when = (("On " + _safe_text(_nxt)
+                      + ("" if _days is None else " · Today" if _days == 0
+                         else f" · In {_days} day{'s' if _days != 1 else ''}"
+                         if _days > 0 else f" · {-_days} day{'s' if _days != -1 else ''} ago"))
+                     if _nxt else "Date not in the calendar yet")
+            _c1 = ['<div class="fv-k">Next result</div>',
+                   f'<div class="fv-v">{_safe_text(_nq["period"] + " " + _live) if _nq else "—"}</div>',
+                   f'<li class="fv-s">{_when}</li>']
             # The last reported quarter, reported and ex one-offs: the base a
             # QoQ is read from, and the beat/miss the next result follows.
             _lq = FW.last_reported_quarter(_get, _live, _mm)
@@ -7062,8 +7082,8 @@ with tab_research:
                 _ly_imp = OO.impact(_oo, _mm, fund.prior_fy(_live), (_nq["period"],))
                 _yoy_adj = (_chg(_st_n, _nq["last_year"] - _ly_imp)
                             if (_ly_imp and _nq.get("last_year") is not None) else None)
-                _c1.append(f'<div class="fv-s">Street {_mlabel} <b>{_bn(_st_n)}</b></div>')
-                _c1.append('<div class="fv-s">needs '
+                _c1.append(f'<li class="fv-s">Street {_mlabel} <b>{_bn(_st_n)}</b></li>')
+                _c1.append('<li class="fv-s">Needs '
                            + (f'{_chip(_nq["yoy"])} YoY' if _nq.get("yoy") is not None else 'YoY n/a')
                            + (f' <span class="fv-muted">(ex one-offs {_chip(_yoy_adj)})</span>'
                               if _yoy_adj is not None else '')
@@ -7071,21 +7091,21 @@ with tab_research:
                            + (f'{_chip(_qoq)} QoQ' if _qoq is not None else 'QoQ n/a')
                            + (f' <span class="fv-muted">(vs adj. {_lq[1]}Q {_chip(_qoq_adj)})</span>'
                               if _qoq_adj is not None else '')
-                           + '</div>')
+                           + '</li>')
             else:
-                _c1.append('<div class="fv-s fv-muted">No quarterly street estimate typed '
-                           '— add one under Edit to get a beat/miss.</div>')
+                _c1.append('<li class="fv-s fv-muted">No quarterly Street estimate typed '
+                           '— add one under Edit to get a beat/miss.</li>')
             # The last result against the street — reported, and ex one-offs.
             _lq_st = (fund.quarter_street(_get, _mm, _lq[0], f"q{_lq[1]}") if _lq else None)
             _rep_vs = _chg(_lq[2], _lq_st) if (_lq and _lq_st) else None
             _adj_vs = _chg(_lq_adj, _lq_st) if (_lq_adj is not None and _lq_st) else None
             if _lq:
-                _c1.append(f'<div class="fv-s">Last: {_lq[1]}Q '
-                           + (f'{"beat" if _rep_vs >= 0 else "missed"} street {_chip(_rep_vs)}'
-                              if _rep_vs is not None else 'no street estimate typed')
-                           + (f' · <b>ex one-offs {"beat" if _adj_vs >= 0 else "missed"} '
+                _c1.append(f'<li class="fv-s">Last: {_lq[1]}Q '
+                           + (f'{"beat" if _rep_vs >= 0 else "missed"} Street {_chip(_rep_vs)}'
+                              if _rep_vs is not None else 'no Street estimate typed')
+                           + (f' · <b>Ex one-offs {"beat" if _adj_vs >= 0 else "missed"} '
                               f'{_chip(_adj_vs)}</b>' if _adj_vs is not None else '')
-                           + '</div>')
+                           + '</li>')
 
             # Column 2 — this year against guidance and the street.
             _g = _get(_mm, _live, "company")
@@ -7093,41 +7113,42 @@ with tab_research:
             _c2 = [f'<div class="fv-k">This year · {_safe_text(_live)}</div>',
                    f'<div class="fv-v">{_mlabel} guidance {_bn(_g, _mm) if _g is not None else "—"}</div>']
             if _s is not None and _g:
-                _c2.append(f'<div class="fv-s">Street {_bn(_s, _mm)} · {_chip(_s / _g - 1)} vs guidance</div>')
+                _c2.append(f'<li class="fv-s">Street {_bn(_s, _mm)} · {_chip(_s / _g - 1)} vs guidance</li>')
             else:
                 _eg, _es = _get("eps", _live, "company"), _get("eps", _live, "consensus")
                 if _eg and _es is not None:
-                    _c2.append(f'<div class="fv-s">Street EPS {_es:,.0f} vs guidance {_eg:,.0f} '
-                               f'· {_chip(_es / _eg - 1)}</div>')
+                    _c2.append(f'<li class="fv-s">Street EPS {_es:,.0f} vs guidance {_eg:,.0f} '
+                               f'· {_chip(_es / _eg - 1)}</li>')
             _qn = next((_n for _n in (3, 2, 1)
                         if _progress_usual(_get, _mm, _live, _n, _years)[0] is not None), None)
             if _qn:
                 _this, _usual = _progress_usual(_get, _mm, _live, _qn, _years)
-                _c2.append(f'<div class="fv-s">Progress at {_qn}Q <b>{_this * 100:.0f}%</b>'
-                           + (f' vs usual {_usual * 100:.0f}%' if _usual is not None else '') + '</div>')
+                _c2.append(f'<li class="fv-s">Progress at {_qn}Q: <b>{_this * 100:.0f}%</b>'
+                           + (f' vs usual {_usual * 100:.0f}%' if _usual is not None else '') + '</li>')
             _revs = (st.session_state.get("guidance_history") or {}).get(_rcode, {})
             _r = fund.revision_move(_revs.get((_live, _mm)))
             if _r:
-                _c2.append(f'<div class="fv-s">Guidance {_r[1]} {_chip(_r[0])} since first given</div>')
+                _c2.append(f'<li class="fv-s">Guidance {_r[1]} {_chip(_r[0])} since first given</li>')
 
             # Column 3 — what the stock pays for it.
             _pe_now = _vals.get("pe_fy1_consensus") or _vals.get("pe_fy1_company")
             _c3 = ['<div class="fv-k">Valuation</div>',
                    f'<div class="fv-v">P/E {_fnum(_vals.get("pe_fy1_consensus"), 1, "×")} '
                    f'<span class="fv-muted">/ {_fnum(_vals.get("pe_fy2_consensus"), 1, "×")}</span></div>',
-                   '<div class="fv-s">street FY1 / FY2 · on guidance '
-                   f'{_fnum(_vals.get("pe_fy1_company"), 1, "×")}</div>',
-                   f'<div class="fv-s">Yield {_pct(_vals.get("yield_fy1_company"), 2)} · '
+                   '<li class="fv-s">Street FY1 / FY2 · On guidance '
+                   f'{_fnum(_vals.get("pe_fy1_company"), 1, "×")}</li>',
+                   f'<li class="fv-s">Yield {_pct(_vals.get("yield_fy1_company"), 2)} · '
                    f'P/B {_fnum(_vals.get("pb"), 2, "×")}'
                    + (f' · EV/EBITDA {_fnum(_vals.get("ev_ebitda"), 1, "×")}'
-                      if _vals.get("ev_ebitda") else '') + '</div>']
+                      if _vals.get("ev_ebitda") else '') + '</li>']
             _peh = [p for _, p, _ in FW.pe_history(_price_history_for(_rcode), _log, "company")
                     if p and p > 0][-52:]
             if len(_peh) >= 8 and _vals.get("pe_fy1_company"):
                 _cur = _vals["pe_fy1_company"]
                 _rank = sum(1 for p in _peh if p <= _cur) / len(_peh)
-                _c3.append(f'<div class="fv-s">On guidance: {min(_peh):.1f}–{max(_peh):.1f}× over '
-                           f'{len(_peh)} weeks · now at the {_rank * 100:.0f}th percentile</div>')
+                _c3.append(f'<li class="fv-s">P/E on guidance: {min(_peh):.1f}–{max(_peh):.1f}× over '
+                           f'{len(_peh)} weeks · Now at the {_ordinal(round(_rank * 100))} '
+                           'percentile</li>')
 
             # Flags.
             _flags = []
@@ -7186,7 +7207,7 @@ with tab_research:
 
             st.markdown(
                 '<div class="fv-card"><div class="fv-grid">'
-                + "".join(f'<div class="fv-col">{"".join(_c)}</div>' for _c in (_c1, _c2, _c3))
+                + "".join(f'<div class="fv-col">{_fv_col(_c)}</div>' for _c in (_c1, _c2, _c3))
                 + '</div>'
                 + ('<div class="fv-flags">' + "".join(_flag_html(f) for f in _flags) + '</div>'
                    if _flags else '')
