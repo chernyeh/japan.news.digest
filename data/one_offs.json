@@ -1,13 +1,13 @@
 {
   "6971": [
     {
-      "amount_jpy": 3000000000.0,
+      "amount_jpy": -2100000000.0,
       "date": "2026-11-06",
-      "fy": "FY2027",
+      "fy": "FY2026",
       "id": "6971-2026-11-06-one-off-3",
       "item": "",
       "line": "operating",
-      "note": "Gain from sale of real estate",
+      "note": "Loss related to transfer of Silicon Diode Power Semis Business",
       "np_amount_jpy": null,
       "period": "1Q",
       "source": "typed:Company data"
