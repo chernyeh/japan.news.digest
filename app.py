@@ -60,6 +60,7 @@ from research_links import load_links_from_github, save_link, delete_link, DOC_T
 from ir_scanner import ScanResults, scan_page_for_documents, build_zip, fetch_document_bytes
 import fundamentals as fund
 import financials as FIN
+import results_notes as RN
 import estimates_log as EL
 import capital_events as CE
 from capital_events import load_from_github as load_capital_events
@@ -1247,6 +1248,22 @@ a.research-link:hover { background: #F0EDE8; }
 .st-key-research_edit_tabs .stButton button { min-height: 1.9rem; padding: 0.1rem 0.8rem; }
 .st-key-research_edit_tabs .stButton button p { font-size: 0.76rem !important; }
 .st-key-research_edit_tabs .fc-note { margin: 4px 0; padding: 4px 9px; font-size: 0.68rem; }
+/* Results notes: the form tight, the earlier notes as one-line folds. */
+[class*="st-key-research_notes_"] [data-testid="stWidgetLabel"] p { font-size: 0.72rem !important; }
+[class*="st-key-research_notes_"] textarea { font-size: 0.78rem !important; line-height: 1.45; }
+[class*="st-key-research_notes_"] [data-baseweb="select"] > div,
+[class*="st-key-research_notes_"] [data-baseweb="input"] { min-height: 2rem !important; }
+[class*="st-key-research_notes_"] .stButton button { min-height: 1.9rem; padding: 0.1rem 0.8rem; }
+[class*="st-key-research_notes_"] .stButton button p { font-size: 0.76rem !important; }
+.rn-list { display: flex; flex-direction: column; gap: 3px; max-width: 1180px; margin-top: 2px; }
+.rn-item { font-size: 0.72rem; border: 1px solid #E6DFD4; border-radius: 5px;
+           background: #FFFDFA; padding: 3px 9px; color: #4A4036; }
+.rn-item summary { cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rn-item[open] summary { white-space: normal; }
+.rn-date { color: #9B8B7A; font-size: 0.66rem; margin: 0 4px; }
+.rn-body { white-space: pre-wrap; line-height: 1.5; margin-top: 3px; }
+.fv-flag .rn-body { color: #4A4036; }
+[data-testid="stMarkdownContainer"]:has(> .rn-list) { margin-bottom: 0 !important; }
 /* Balance sheet & cash flow: a compact ruled table inside an open chip. */
 .bs-wrap[open] { background: #FFFDFA; padding: 4px 10px 6px; }
 .bs-table { border-collapse: collapse; font-size: 0.7rem; margin: 4px 0 2px;
@@ -6769,6 +6786,103 @@ with tab_research:
             st.session_state[f"rd_nonce_{_rcode}"] = _nonce + 1
             st.rerun()
 
+        # ── Results notes ─────────────────────────────────────────────────
+        # Your own read of each result: the numbers, and what it says about
+        # the quarters ahead. One note per result, kept as a diary.
+
+        def _notes_for(_code: str) -> list:
+            if "results_notes_map" not in st.session_state:
+                try:
+                    st.session_state.results_notes_map = RN.load_from_github(_ec_repo, _gh_token)
+                except Exception as _e:
+                    print(f"results notes load error: {_e}")
+                    st.session_state.results_notes_map = {}
+            return st.session_state.results_notes_map.get(_code, [])
+
+        def _note_default(_rcode, _fc_map) -> str:
+            """The result a note is most likely about: the next one once its
+            date has come, else the last one reported."""
+            _get = lambda m, y, b: (_fc_map.get((m, y, b)) or {}).get("value")
+            _live, _ = _live_fy(_fc_map)
+            _nxt = _next_results(_rcode)
+            _today = now_local().date().isoformat()
+            _nq = FW.next_quarter(_get, _live, "operating_profit")
+            if _nq and _nxt and _nxt <= _today:
+                return RN.label(_live, "FY" if _nq["period"] == "4Q" else _nq["period"])
+            _lq = FW.last_reported_quarter(_get, _live, "operating_profit")
+            if _lq:
+                return RN.label(_lq[0], "FY" if _lq[1] == 4 else f"{_lq[1]}Q")
+            return RN.label(_live, "1Q")
+
+        def _note_html(_e: dict) -> str:
+            return f'<div class="rn-body">{_safe_text(RN.text_of(_e))}</div>'
+
+        def _fc_notes(_rcode, _fc_map):
+            _notes = _notes_for(_rcode)
+            _live, _ = _live_fy(_fc_map) if _fc_map else (f"FY{now_local().year}", [])
+            _opts = RN.options(_live)
+            _def = _note_default(_rcode, _fc_map) if _fc_map else _opts[0]
+            for _e in _notes:
+                _l = RN.label(_e.get("fy", ""), _e.get("period", ""))
+                if _l not in _opts:
+                    _opts.append(_l)
+            if _def not in _opts:
+                _opts.insert(0, _def)
+            with st.container(key=f"research_notes_{_rcode}"):
+                _c1, _c2, _ = st.columns([1.1, 1, 2.4])
+                with _c1:
+                    _sel = st.selectbox("Result", _opts, index=_opts.index(_def),
+                                        key=f"rn_sel_{_rcode}")
+                _fy, _per = RN.parse_label(_sel)
+                _cur = RN.find(_notes, _fy, _per) or {}
+                _nonce = st.session_state.get(f"rn_nonce_{_rcode}", 0)
+                _k = f"{_rcode}_{_fy}_{_per}_{_nonce}"
+                with _c2:
+                    _d = st.date_input(
+                        "Reported on",
+                        value=(pd.Timestamp(_cur["date"]).date() if _cur.get("date")
+                               else now_local().date()),
+                        key=f"rn_date_{_k}")
+                _txt = st.text_area(
+                    "Note — the numbers and what they say about the quarters ahead",
+                    value=RN.text_of(_cur), height=170, key=f"rn_txt_{_k}",
+                    placeholder="The numbers: beat / miss and why, margins, segments, "
+                                "one-offs, cash flow, what surprised you.\n"
+                                "Forward-looking: guidance and how conservative it looks, "
+                                "what management said about next quarter, what to watch, "
+                                "what would change your view.")
+                _b1, _b2, _ = st.columns([1, 1, 3.4])
+                _save = _b1.button("💾 Save note", key=f"rn_save_{_k}",
+                                   use_container_width=True)
+                _del = _b2.button("Delete", key=f"rn_del_{_k}", disabled=not _cur,
+                                  use_container_width=True)
+            if _save or _del:
+                _today = now_local().date().isoformat()
+                _entry = None if _del else RN.make_entry(
+                    _rcode, _fy, _per, _txt, _d.isoformat() if _d else _today, _today)
+                _up = [_entry] if _entry else []
+                _rm = [] if _entry else [RN.note_id(_rcode, _fy, _per)]
+                st.session_state.results_notes_map = RN.apply(
+                    st.session_state.get("results_notes_map") or {}, _rcode, _up, _rm)
+                _ok, _msg = RN.save_via_github(_ec_repo, _gh_token, _rcode, _up, _rm)
+                st.session_state.research_flash = (
+                    "success" if _ok else "warning",
+                    (f"Note {'saved' if _entry else 'deleted'} for {_sel}." if _ok
+                     else f"Note not saved to GitHub — {_msg}"))
+                st.session_state[f"rn_nonce_{_rcode}"] = _nonce + 1
+                st.rerun()
+
+            _others = [e for e in _notes
+                       if (e.get("fy"), e.get("period")) != (_fy, _per)]
+            if _others:
+                st.markdown(
+                    '<div class="fc-qhead">Earlier notes</div><div class="rn-list">' + "".join(
+                        f'<details class="rn-item"><summary><b>'
+                        f'{_safe_text(RN.label(e.get("fy", ""), e.get("period", "")))}</b> '
+                        f'<span class="rn-date">{_safe_text(e.get("date", ""))}</span> '
+                        f'{_safe_text(RN.preview(e))}</summary>{_note_html(e)}</details>'
+                        for e in _others) + '</div>', unsafe_allow_html=True)
+
         # ── Track record ──────────────────────────────────────────────────
         def _fc_history(_rcode, _rname, _fc_map, _profile, _fundrow):
             """What the log says about this company over time: each result
@@ -7129,7 +7243,7 @@ with tab_research:
             _icon = {"good": "▲", "bad": "▼", "warn": "⚑", "info": "●"}.get(_f.get("tone"), "●")
             return (f'<details class="fv-flag fv-{_safe_text(_f.get("tone", "info"))}">'
                     f'<summary>{_icon} {_safe_text(_f.get("title", ""))}</summary>'
-                    f'<div>{_safe_text(_f.get("detail", ""))}</div></details>')
+                    f'<div>{_f.get("detail_html") or _safe_text(_f.get("detail", ""))}</div></details>')
 
         # ── Balance sheet & cash flow ─────────────────────────────────────
         # Net cash against equity and market cap, operating cash flow less
@@ -7509,6 +7623,13 @@ with tab_research:
                                "detail": "TDnet has buyback notices for this company that are not "
                                          "in the log. Read them under Track record → Log or "
                                          "correct a capital-return event."})
+            # Your own note on the latest result, one click away.
+            _rn = sorted(_notes_for(_rcode), key=lambda e: (e.get("date", ""), e.get("id", "")))
+            if _rn:
+                _flags.append({"tone": "info",
+                               "title": "📝 Your note: " + RN.label(_rn[-1].get("fy", ""),
+                                                                   _rn[-1].get("period", "")),
+                               "detail_html": _note_html(_rn[-1])})
             _res = EL.results_dates(_log)
             _cand = [c for c in OO.tdnet_candidates(_tdnet_idx.get(_rcode, []), _rcode, _oo, _res)
                      if c["date"] >= (pd.Timestamp(_today) - pd.Timedelta(days=150)).date().isoformat()]
@@ -8392,6 +8513,13 @@ with tab_research:
                             _fc_fx(_rcode, _rname, _years)
                         with _tab_qa:
                             _fc_qa(_rcode, _rname)
+
+        # ── Results notes ─────────────────────────────────────────────────
+        # Closed by default; the count says whether there is anything inside.
+        _n_rn = len(_notes_for(_rcode))
+        if _toggle_section(f"📝 Results notes{f' ({_n_rn})' if _n_rn else ''}",
+                           "research_notes_open"):
+            _fc_notes(_rcode, _fc_map or {})
 
         # ── Track record ──────────────────────────────────────────────────
         # Read off the estimates log and the capital-events store: how each
