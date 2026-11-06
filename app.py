@@ -5,6 +5,41 @@ import os
 import threading
 from datetime import datetime
 import pytz
+import sys as _sys
+
+
+def _drop_stale_local_modules():
+    """After a deploy, Streamlit Cloud re-runs the new app.py but keeps this
+    repo's helper modules (one_offs, fundamentals, ...) as they were first
+    imported, so new code calls functions the old module does not have
+    (AttributeError: module 'one_offs' has no attribute 'bubble_text').
+    Where any local module's file is newer than when it was loaded, drop
+    every local module so the imports below load them all afresh — all of
+    them, not just the changed ones, so no module keeps a reference to an
+    old copy of another."""
+    _here = os.path.dirname(os.path.abspath(__file__))
+    _local = {}
+    for _name, _mod in list(_sys.modules.items()):
+        _f = getattr(_mod, "__file__", None)
+        if (_name == "__main__" or not _f
+                or os.path.dirname(os.path.abspath(_f)) != _here):
+            continue
+        _local[_name] = _mod
+    _stale = False
+    for _mod in _local.values():
+        try:
+            _mt = os.path.getmtime(_mod.__file__)
+        except OSError:
+            continue
+        _seen = _mod.__dict__.setdefault("_jnd_loaded_mtime", _mt)
+        _stale = _stale or _mt > _seen
+    if _stale:
+        for _name in _local:
+            _sys.modules.pop(_name, None)
+
+
+_drop_stale_local_modules()
+
 from collector import (fetch_all_news, fetch_source_headlines,
                         SOURCE_DIRECTORY, SOURCE_GROUPS, FEATURE_SOURCES,
                         CORP_ACTION_META, PRIORITY_ACTIONS, DIRECTION_ORDER)
