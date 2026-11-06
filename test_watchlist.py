@@ -101,7 +101,8 @@ def test_set_theses_saves_changes_and_clears_blank_rows():
     W.add_to_watchlist("5331", names_lookup=NAMES)
     W.set_theses({"6971": {"munger_price": 1800, "exit_price": 3200, "action": "BUY"},
                   "5331": {}})
-    assert W.get_thesis("6971") == {"munger_price": 1800.0, "exit_price": 3200.0, "action": "BUY"}
+    assert W.get_thesis("6971") == {"munger_price": 1800.0, "exit_price": 3200.0, "action": "BUY",
+                                    "action_since": date.today().isoformat()}
     assert W.get_thesis("5331") == {}
     ok, msg = W.set_theses({"6971": {"munger_price": 1800, "exit_price": 3200, "action": "BUY"}})
     assert ok and "No thesis" in msg
@@ -205,6 +206,128 @@ def test_format_and_sort():
     rows = [{"k": 3}, {"k": None}, {"k": 1}]
     assert [r["k"] for r in G.sort_rows(rows, "k")] == [1, 3, None]
     assert [r["k"] for r in G.sort_rows(rows, "k", True)] == [3, 1, None]
+
+
+# ── Phase 2: reward-to-risk, reaction, decision flags ──────────────────────
+
+def test_reward_to_risk():
+    assert abs(G.reward_to_risk(1000, 800, 1600) - 3.0) < 1e-9     # 600 up / 200 down
+    assert G.reward_to_risk(1000, 1000, 1600) == float("inf")      # no measured downside
+    assert G.reward_to_risk(1700, 800, 1600) is None               # past the exit
+    assert G.reward_to_risk(1000, None, 1600) is None
+    assert G.fmt(3.04, "rr") == "3.0:1" and G.fmt(float("inf"), "rr") == "∞"
+
+
+@_in_scratch
+def test_action_since_is_stamped_on_change_and_kept_otherwise():
+    W.add_to_watchlist("6971", names_lookup=NAMES)
+    W.set_theses({"6971": {"action": "WATCH"}})
+    t = W.get_thesis("6971")
+    assert t["action_since"] == date.today().isoformat()
+    # Pretend it was set long ago; an unrelated edit must not reset the clock.
+    e = W.load_watchlist_entries()
+    e["6971"]["thesis"]["action_since"] = "2026-01-05"
+    W.save_watchlist(e)
+    W.set_theses({"6971": {"action": "WATCH", "munger_price": 2000}})
+    assert W.get_thesis("6971")["action_since"] == "2026-01-05"
+    W.set_theses({"6971": {"action": "BUY", "munger_price": 2000}})
+    assert W.get_thesis("6971")["action_since"] == date.today().isoformat()
+    # The input cannot forge the stamp.
+    assert "action_since" not in W.clean_thesis({"action_since": "2020-01-01"})
+
+
+def _fridays(start: date, closes: list) -> list:
+    return [((start + timedelta(weeks=i)).isoformat(), c) for i, c in enumerate(closes)]
+
+
+def test_reaction_after_a_result():
+    start = date(2026, 9, 4)                      # a Friday
+    stock = _fridays(start, [100, 100, 100, 95, 94])
+    topix = _fridays(start, [100, 100, 100, 101, 101])
+    # Results on Tue 2026-09-22: base is Fri 09-18 (100); Fri 09-25 is only
+    # three days on, so the first close 5+ days later is Fri 10-02 (94).
+    rel, end, settled = G.reaction_after(stock, topix, "2026-09-22")
+    assert end == "2026-10-02" and settled
+    assert rel == round((0.94 / 1.01 - 1) * 100, 1)
+    # Results the day of the latest close: nothing to measure yet.
+    assert G.reaction_after(stock, topix, "2026-10-02") is None
+    # Results two days before the latest close: the move so far, unsettled.
+    rel2, end2, settled2 = G.reaction_after(stock, topix, "2026-09-29")
+    assert end2 == "2026-10-02" and not settled2
+    # A hole in the history: the nearest closes are a month apart, which would
+    # measure drift, not the reaction.
+    gappy = [("2026-07-28", 100), ("2026-08-28", 131)]
+    tpx = _fridays(date(2026, 7, 24), [100] * 6)
+    assert G.reaction_after(gappy, tpx, "2026-08-07") is None
+
+
+def _row(**kw):
+    base = {"code": "6971", "name": "Kyocera", "sector": "Technology", "price": 1000}
+    base.update(kw)
+    base.update({k: v for k, v in G.thesis_metrics(base["price"], kw.get("thesis")).items()
+                 if v is not None})
+    return base
+
+
+TODAY = date(2026, 11, 6)
+
+
+def _kinds(row, **cfg):
+    return [f["kind"] for f in G.decision_flags(row, TODAY, cfg or None)]
+
+
+def test_flag_below_munger_and_still_on_watch():
+    r = _row(thesis={"munger_price": 1100, "action": "WATCH"})
+    fl = G.decision_flags(r, TODAY)
+    assert fl[0]["kind"] == "below_munger" and fl[0]["severity"] == "act"
+    assert "Still on WATCH" in fl[0]["text"]
+
+
+def test_flags_near_and_past_exit_unless_already_trimming():
+    assert _kinds(_row(thesis={"exit_price": 1080})) == ["near_exit"]
+    assert _kinds(_row(thesis={"exit_price": 950})) == ["past_exit"]
+    assert _kinds(_row(thesis={"exit_price": 950, "action": "TRIM"})) == []
+    assert _kinds(_row(thesis={"exit_price": 1300})) == []
+
+
+def test_flag_stuck_on_watch_needs_both_the_hurdle_and_the_days():
+    th = {"bear_price": 900, "exit_price": 1400, "action": "WATCH"}   # 4.0:1
+    assert "stuck_watch" in _kinds(_row(thesis={**th, "action_since": "2026-08-01"}))
+    assert "stuck_watch" not in _kinds(_row(thesis={**th, "action_since": "2026-10-20"}))
+    weak = {"bear_price": 800, "exit_price": 1300, "action": "WATCH",
+            "action_since": "2026-01-01"}                             # 1.5:1
+    assert "stuck_watch" not in _kinds(_row(thesis=weak))
+    # A tighter hurdle setting flags it.
+    assert "stuck_watch" in _kinds(_row(thesis=weak), rr_hurdle=1.5)
+    # No action_since (a thesis saved before stamping): falls back to added_at.
+    assert "stuck_watch" in _kinds(_row(thesis=th, added_at="2026-07-01"))
+
+
+def test_flag_review_due():
+    assert "review_due" in _kinds(_row(thesis={"review_date": "2026-11-01"}))
+    assert "review_due" in _kinds(_row(thesis={"review_date": "2026-11-06"}))
+    assert "review_due" not in _kinds(_row(thesis={"review_date": "2026-11-30"}))
+
+
+def test_flag_beat_but_stock_fell_rule_10():
+    r = _row(op_vs_street=0.06, reaction=-3.2, reaction_settled=True,
+             result_date="2026-10-28", result_label="2Q FY2027, reported 2026-10-28")
+    fl = [f for f in G.decision_flags(r, TODAY) if f["kind"] == "beat_fell"]
+    assert fl and "+6.0%" in fl[0]["text"] and "-3.2%" in fl[0]["text"]
+    assert "beat_fell" not in _kinds(_row(op_vs_street=0.06, reaction=2.0, result_date="2026-10-28"))
+    assert "beat_fell" not in _kinds(_row(op_vs_street=-0.1, reaction=-5.0, result_date="2026-10-28"))
+    # No street figure: a raised guide counts as the good news.
+    assert "beat_fell" in _kinds(_row(guide_move=0.08, reaction=-1.0, result_date="2026-10-28"))
+    # Too old to be a reaction any more.
+    assert "beat_fell" not in _kinds(_row(op_vs_street=0.06, reaction=-3.0, result_date="2026-05-01"))
+
+
+def test_peer_flag_reaches_other_names_in_the_same_sector():
+    a = _row(code="8035", name="TEL", op_vs_street=0.05, reaction=-4.0, result_date="2026-11-06")
+    b = _row(code="6857", name="Advantest")
+    c = _row(code="7203", name="Toyota", sector="Consumer Cyclical")
+    pf = G.peer_flags([a, b, c], TODAY)
+    assert list(pf) == ["6857"] and "TEL" in pf["6857"][0]["text"]
 
 
 # ── Collection coverage ─────────────────────────────────────────────────────

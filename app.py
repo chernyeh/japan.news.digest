@@ -1234,10 +1234,25 @@ a.research-link:hover { background: #F0EDE8; }
 .wl-grid tr.wl-ref td { color: #7A6A57; font-style: italic; background: #FAF7F2; font-size: 0.66rem; }
 .wl-grid tfoot tr.wl-ref td { border-top: 1px solid #D9D3C8; font-weight: 600; }
 .wl-grid a { color: #1A1A1A; font-weight: 600; text-decoration: none; }
+.wl-grid .wl-pin { position: sticky; left: 7px; }
 .wl-est { font-style: italic; }
 .wl-sub { font-size: 0.6rem; color: #9B8B7A; line-height: 1.3; }
 .wl-buy { color: #1B7F4F; font-weight: 700; }
 .wl-warn { color: #B26A00; }
+.wl-grid td.wl-flags { text-align: left; white-space: normal; min-width: 120px; }
+.wl-chip { display: inline-block; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.03em;
+           padding: 1px 5px; border-radius: 3px; margin: 1px 2px 1px 0; white-space: nowrap; }
+.wl-chip-act { background: #1B7F4F; color: #FFFFFF; }
+.wl-chip-warn { background: #FBE3C4; color: #7A4A00; }
+.wl-chip-info { background: #E9E4DA; color: #5C4033; }
+.wl-decisions { margin: 0.2rem 0 0.6rem; max-width: 1180px; }
+.wl-dec-head { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+               color: #8B4513; margin-bottom: 0.25rem; }
+.wl-dec { font-size: 0.74rem; color: #3D3529; padding: 4px 8px; border-left: 3px solid #D9D3C8;
+          background: #FBF7F0; margin-bottom: 3px; line-height: 1.45; }
+.wl-dec a { color: #1A1A1A; font-weight: 600; text-decoration: none; }
+.wl-dec-act { border-left-color: #1B7F4F; }
+.wl-dec-warn { border-left-color: #E09A3A; }
 .fc-legend .fc-key { display: inline-block; width: 9px; height: 9px; margin-right: 4px;
                      border: 1px solid #D9D3C8; vertical-align: -1px; }
 .fc-key-a { background: #FDFAF7; border-color: #5C4033 !important; }
@@ -1805,7 +1820,8 @@ def _watchlist_grid_data(codes: list) -> dict:
             _row.update({"op_vs_street": _sm.get("op_vs_street"),
                          "guide_move": _sm.get("guide_move"),
                          "street_move": _sm.get("street_move"),
-                         "result_label": f'{_sm["period"]} {_sm["fy"]}, reported {_sm["date"]}'})
+                         "result_label": f'{_sm["period"]} {_sm["fy"]}, reported {_sm["date"]}',
+                         "result_date": _sm["date"]})
             if _sm.get("op_vs_street") is not None and _sm.get("op_quarter") is not None \
                     and _sm["period"] != "FY":
                 _i = OO.impact(_oo_map.get(_c) or [], "operating_profit", _sm["fy"],
@@ -1825,6 +1841,12 @@ def _watchlist_grid_data(codes: list) -> dict:
                 if _row[_k] is None and _v is not None:
                     _row[_k] = _v
                     _row["perf_est"].append(_k)
+
+        # How the stock took the latest result, against TOPIX: rule 10's input.
+        if _row.get("result_date") and _hist.get(_c) and _tpx:
+            _rx = WG.reaction_after(_hist[_c], _tpx, _row["result_date"], _events.get(_c, []))
+            if _rx:
+                _row["reaction"], _row["reaction_end"], _row["reaction_settled"] = _rx
 
         # A company outside the daily price sweep still has a weekly close.
         if not _row["price"] and _hist.get(_c):
@@ -1847,6 +1869,14 @@ def _watchlist_grid_data(codes: list) -> dict:
 def _wl_cell(row: dict, key: str, kind: str, shade: str = "") -> str:
     """One grid cell: formatted figure, rank shade and the reading cues."""
     v = row.get(key)
+    if kind == "flags":
+        fl = row.get("flags") or []
+        if not fl:
+            return '<td class="wl-flags"><span class="fc-na">—</span></td>'
+        chips = "".join(f'<span class="wl-chip wl-chip-{f["severity"]}" '
+                        f'title="{_safe_text(f["text"])}">{_safe_text(f["short"])}</span>'
+                        for f in fl)
+        return f'<td class="wl-flags">{chips}</td>'
     txt = WG.fmt(v, kind)
     cls = [c for c in (f"wl-{shade}" if shade else "",) if c]
     title = ""
@@ -1863,6 +1893,23 @@ def _wl_cell(row: dict, key: str, kind: str, shade: str = "") -> str:
         if key == "op_vs_street" and row.get("op_vs_street_adj") is not None:
             txt += (f'<div class="fc-ytd"><small>ADJ</small> '
                     f'{WG.fmt(row["op_vs_street_adj"], "spct1")}</div>')
+    elif key == "reaction":
+        cls.append("fc-pos" if v >= 0 else "fc-neg")
+        title = (f'{row.get("result_label", "")}: vs TOPIX from the close before the result '
+                 f'to {row.get("reaction_end", "")}'
+                 + ("" if row.get("reaction_settled") else " (so far — under 5 days)"))
+        if not row.get("reaction_settled"):
+            cls.append("wl-est")
+    elif key == "rr":
+        hurdle = row.get("_rr_hurdle", WG.DEFAULTS["rr_hurdle"])
+        if v >= hurdle:
+            cls.append("wl-buy")
+            title = f"Clears your {hurdle:.0f}:1 hurdle"
+        elif v < 1:
+            cls.append("fc-neg")
+            title = "Less upside to exit than downside to bear"
+        else:
+            title = f"Below your {hurdle:.0f}:1 hurdle"
     elif key == "days_exit":
         if v >= 20:
             cls.append("fc-neg")
@@ -1943,7 +1990,8 @@ def _watchlist_grid_html(rows: list, data: dict, groups: list, sort_label: str,
                f'<td>{WG.fmt(med.get("mcap_bn"), "n0")}</td><td></td>']
         for _, cs in groups_shown:
             for j, (_, k, kind, _) in enumerate(cs):
-                txt = WG.fmt(med.get(k), kind) if (k in med and kind != "text") else ""
+                txt = (WG.fmt(med.get(k), kind)
+                       if (k in med and kind not in ("text", "flags")) else "")
                 out.append(f'<td class="{"wl-gs" if j == 0 else ""}">{txt}</td>')
         out.append('</tr>')
         return "".join(out)
@@ -1954,8 +2002,8 @@ def _watchlist_grid_html(rows: list, data: dict, groups: list, sort_label: str,
         for r in rows:
             by.setdefault(r.get("sector") or "Unclassified", []).append(r)
         for sector in sorted(by):
-            h.append(f'<tr class="wl-sector"><td colspan="{n_cols}">{_safe_text(sector)} · '
-                     f'{len(by[sector])}</td></tr>')
+            h.append(f'<tr class="wl-sector"><td colspan="{n_cols}"><span class="wl-pin">'
+                     f'{_safe_text(sector)} · {len(by[sector])}</span></td></tr>')
             h.extend(body_row(r) for r in by[sector])
             if sector in sec_med:
                 h.append(ref_row(f'Sector median · universe (n={sec_med[sector]["_n"]})',
@@ -1965,7 +2013,7 @@ def _watchlist_grid_html(rows: list, data: dict, groups: list, sort_label: str,
 
     # Yen levels differ by company, so a median of them means nothing.
     num_keys = ["mcap_bn"] + [k for _, k, kind, _ in cols
-                              if kind not in ("text", "yen")]
+                              if kind not in ("text", "yen", "flags")]
     h.append('</tbody><tfoot>')
     h.append(ref_row(f"Watchlist median (n={len(rows)})", WG.medians(rows, num_keys)))
     if data.get("uni_med", {}).get("_n"):
@@ -1986,7 +2034,12 @@ def _watchlist_grid_html(rows: list, data: dict, groups: list, sort_label: str,
              + (f' TOPIX: {tpx_txt}.' if tpx_txt else '') + '</span>'
              '<span>Days to exit: ¥100m at 20% of 20-day ADV; amber ≥5 days, red ≥20.</span>'
              '<span>Price vs Munger at or below 0% is in green: at or under your '
-             'margin-of-safety price.</span></div>')
+             'margin-of-safety price.</span>'
+             '<span>Reward : risk = (exit − price) ÷ (price − bear); green when it clears '
+             'your hurdle. Stock since result: vs TOPIX from the close before the result to '
+             'the first weekly close at least 5 days on (italic until then).</span>'
+             '<span>Flags: hover a chip for the reasoning; the full list is in Decisions '
+             'waiting above.</span></div>')
     return "".join(h)
 
 
@@ -2011,6 +2064,11 @@ def _watchlist_grid_frame(rows: list):
         rec["OP vs street ADJ (%)"] = (round(r["op_vs_street_adj"] * 100, 2)
                                        if r.get("op_vs_street_adj") is not None else None)
         rec["Latest result"] = r.get("result_label", "")
+        if rec.get("Reward : risk") == float("inf"):
+            rec["Reward : risk"] = "∞"          # Excel has no infinity
+        rec.pop("Flags", None)
+        rec["Flags"] = "; ".join(f["short"] for f in r.get("flags") or [])
+        rec["Action since"] = r.get("action_since") or ""
         rec["Note"] = r.get("note") or ""
         out.append(rec)
     return _pd.DataFrame(out)
@@ -3838,14 +3896,71 @@ with tab_watchlist:
                     st.error(f"Couldn't load the comparison data: {_ge}")
                     _gc = None
         if _gc:
+            # Thresholds for the flags. Session-only: they tune what is
+            # flagged, they are not part of any company's thesis.
+            _flag_cfg = dict(WG.DEFAULTS)
+            if st.toggle("Flag thresholds", key="wl_flag_cfg_show"):
+                _t1, _t2, _t3, _t4 = st.columns(4)
+                with _t1:
+                    _flag_cfg["watch_days"] = st.number_input(
+                        "On WATCH for at least (days)", 1, 3650, WG.DEFAULTS["watch_days"], 5,
+                        key="wl_cfg_days")
+                with _t2:
+                    _flag_cfg["rr_hurdle"] = st.number_input(
+                        "Reward : risk hurdle", 0.5, 20.0, WG.DEFAULTS["rr_hurdle"], 0.5,
+                        key="wl_cfg_rr")
+                with _t3:
+                    _flag_cfg["near_exit"] = st.number_input(
+                        "Near exit within (%)", 1, 50, int(WG.DEFAULTS["near_exit"] * 100), 1,
+                        key="wl_cfg_exit") / 100
+                with _t4:
+                    _flag_cfg["result_window_days"] = st.number_input(
+                        "Results reported within (days)", 7, 365,
+                        WG.DEFAULTS["result_window_days"], 7, key="wl_cfg_window")
+
+            _today = now_local().date()
             _rows = []
             for _r in _gc["rows"]:
                 _r = dict(_r)
-                _r["name"] = WL.display_name(_r["code"], _wl_entries.get(_r["code"]), NAMES_LOOKUP)
-                _r.update(WG.thesis_metrics(_r.get("price"),
-                                            (_wl_entries.get(_r["code"]) or {}).get("thesis")))
+                _ent = _wl_entries.get(_r["code"]) or {}
+                _r["name"] = WL.display_name(_r["code"], _ent, NAMES_LOOKUP)
+                _r.update(WG.thesis_metrics(_r.get("price"), _ent.get("thesis")))
+                _r["added_at"] = _ent.get("added_at")
+                _r["thesis_updated"] = _ent.get("thesis_updated")
                 _r["news"] = len(st.session_state.watchlist_hits.get(_r["name"]) or [])
+                _r["_rr_hurdle"] = _flag_cfg["rr_hurdle"]
+                _r["flags"] = WG.decision_flags(_r, _today, _flag_cfg)
                 _rows.append(_r)
+            _peer = WG.peer_flags(_rows, _today, _flag_cfg)
+            for _r in _rows:
+                _r["flags"] = _r["flags"] + _peer.get(_r["code"], [])
+                _r["flags_n"] = len(_r["flags"]) or None
+
+            # ── Decisions waiting ─────────────────────────────────────────
+            # Above the grid on purpose: a flag is a decision asked for, and a
+            # decision that has to be scrolled to is one that gets deferred.
+            _all_flags = sorted(((f, _r) for _r in _rows for f in _r["flags"]),
+                                key=lambda t: (WG.SEVERITY_ORDER[t[0]["severity"]],
+                                               (t[1].get("name") or "").lower()))
+            if _all_flags:
+                _n_act = sum(1 for f, _ in _all_flags if f["severity"] == "act")
+                _dh = [f'<div class="wl-decisions"><div class="wl-dec-head">🚩 Decisions waiting · '
+                       f'{len(_all_flags)}' + (f' · {_n_act} to act on' if _n_act else '')
+                       + '</div>']
+                for _f, _r in _all_flags:
+                    _dh.append(
+                        f'<div class="wl-dec wl-dec-{_f["severity"]}">'
+                        f'<span class="wl-chip wl-chip-{_f["severity"]}">{_safe_text(_f["short"])}</span> '
+                        f'<a href="{_research_href(_r["code"])}" target="_self">'
+                        f'{_safe_text(_r.get("name") or _r["code"])}</a> '
+                        f'<span class="fc-na">{_safe_text(_r["code"])}</span> — '
+                        f'{_safe_text(_f["text"])}</div>')
+                st.markdown("".join(_dh) + '</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="wl-sub" style="margin:0.2rem 0 0.4rem;">🚩 No decisions '
+                            'flagged. Flags need thesis figures: a Munger, bear and exit price, an '
+                            'action and a review date.</div>', unsafe_allow_html=True)
+
             st.markdown(_watchlist_grid_html(_rows, _gc, _wl_show, _wl_sort, _wl_desc, _wl_bysector),
                         unsafe_allow_html=True)
 
@@ -3884,8 +3999,9 @@ with tab_watchlist:
         st.markdown('<div class="section-title">✏️ Your thesis figures</div>', unsafe_allow_html=True)
         st.markdown('<div class="wl-sub" style="margin-bottom:1.1rem;">Type straight into the '
                     'table, then press <b>Save thesis figures</b> — nothing is saved until then. '
-                    'Munger = the extraordinary-margin-of-safety entry price; Exit = fully '
-                    'valued. Clear a cell to remove the figure.</div>', unsafe_allow_html=True)
+                    'Munger = the extraordinary-margin-of-safety entry price; Bear = bear-case '
+                    'value (the downside reward-to-risk is measured to); Exit = fully valued. '
+                    'Clear a cell to remove the figure.</div>', unsafe_allow_html=True)
         import pandas as _pd
         _prices = (st.session_state.get("wl_grid_cache") or {}).get("prices") or {}
         _te_rows = []
@@ -3902,30 +4018,39 @@ with tab_watchlist:
                 "Price ¥": _prices.get(_c),
                 "Conviction": _t.get("conviction"),
                 "Munger ¥": _t.get("munger_price"),
+                "Bear ¥": _t.get("bear_price"),
                 "Exit ¥": _t.get("exit_price"),
                 "Action": _t.get("action"),
+                "Since": _t.get("action_since") or "",
                 "Review date": _rd,
                 "Note": _t.get("note") or "",
             })
         _te_df = _pd.DataFrame(_te_rows)
         # Numeric columns as floats even when every cell is blank: an all-None
         # column is "object" to pandas, which a NumberColumn will not edit.
-        for _col in ("Price ¥", "Conviction", "Munger ¥", "Exit ¥"):
+        for _col in ("Price ¥", "Conviction", "Munger ¥", "Bear ¥", "Exit ¥"):
             _te_df[_col] = _pd.to_numeric(_te_df[_col], errors="coerce")
         with st.form("wl_thesis_form", border=False):
             _te = st.data_editor(
                 _te_df, hide_index=True, num_rows="fixed",
                 use_container_width=True, key="wl_thesis_editor",
-                disabled=["code", "Company", "Price ¥"],
+                disabled=["code", "Company", "Price ¥", "Since"],
                 column_config={
                     "code": st.column_config.TextColumn("Code", width="small"),
                     "Price ¥": st.column_config.NumberColumn(format="%.0f", width="small"),
                     "Conviction": st.column_config.NumberColumn(
                         min_value=1, max_value=10, step=1, format="%d", width="small",
                         help="1–10, as in the deep-dive template."),
-                    "Munger ¥": st.column_config.NumberColumn(min_value=0.0, format="%.0f"),
+                    "Munger ¥": st.column_config.NumberColumn(
+                        min_value=0.0, format="%.0f",
+                        help="Extraordinary-margin-of-safety entry price."),
+                    "Bear ¥": st.column_config.NumberColumn(
+                        min_value=0.0, format="%.0f",
+                        help="Bear-case value: the downside reward-to-risk is measured against."),
                     "Exit ¥": st.column_config.NumberColumn(min_value=0.0, format="%.0f"),
                     "Action": st.column_config.SelectboxColumn(options=list(WL.ACTIONS)),
+                    "Since": st.column_config.TextColumn(
+                        width="small", help="When the action was last changed — set on save."),
                     "Review date": st.column_config.DateColumn(format="YYYY-MM-DD"),
                     "Note": st.column_config.TextColumn(max_chars=WL.NOTE_MAX, width="large"),
                 })
@@ -3935,6 +4060,7 @@ with tab_watchlist:
                     _upd[_rec["code"]] = {
                         "conviction": _rec.get("Conviction"),
                         "munger_price": _rec.get("Munger ¥"),
+                        "bear_price": _rec.get("Bear ¥"),
                         "exit_price": _rec.get("Exit ¥"),
                         "action": _rec.get("Action"),
                         "review_date": _rec.get("Review date"),

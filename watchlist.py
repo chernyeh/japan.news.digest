@@ -273,7 +273,7 @@ def remove_many(keys: list, repo: str = "", token: str = "") -> tuple:
 # into data/watchlist.json and every session sees the same figures.
 
 ACTIONS = ("BUY", "ADD", "TRIM", "SELL", "WATCH")
-THESIS_FIELDS = ("conviction", "munger_price", "exit_price", "action",
+THESIS_FIELDS = ("conviction", "munger_price", "bear_price", "exit_price", "action",
                  "review_date", "note")
 NOTE_MAX = 200
 
@@ -293,14 +293,17 @@ def clean_thesis(raw: dict) -> dict:
     """Validated thesis fields, with every blank or invalid value dropped.
 
     Conviction is the 1-10 score from the deep-dive template; prices are yen
-    per share; the review date is ISO (YYYY-MM-DD). Returned without the
-    blank keys so an untouched field never overwrites anything with None."""
+    per share (Munger = margin-of-safety entry, Bear = bear-case value, the
+    downside a reward-to-risk ratio is measured against, Exit = fully valued);
+    the review date is ISO (YYYY-MM-DD). Returned without the blank keys so an
+    untouched field never overwrites anything with None. `action_since` is
+    not taken from input: set_theses stamps it."""
     raw = raw or {}
     out = {}
     conv = _num(raw.get("conviction"))
     if conv is not None and 1 <= conv <= 10:
         out["conviction"] = int(round(conv))
-    for k in ("munger_price", "exit_price"):
+    for k in ("munger_price", "bear_price", "exit_price"):
         v = _num(raw.get(k))
         if v is not None:
             out[k] = round(v, 2)
@@ -338,7 +341,14 @@ def set_theses(updates: dict, repo: str = "", token: str = "") -> tuple:
         if code not in entries:
             continue
         new = clean_thesis(raw)
-        if new == (entries[code].get("thesis") or {}):
+        old = entries[code].get("thesis") or {}
+        # When the action was set, so "on WATCH for 74 days" can be said. Kept
+        # while the action is unchanged; restamped when it changes.
+        if new.get("action"):
+            new["action_since"] = (old["action_since"]
+                                   if new["action"] == old.get("action") and old.get("action_since")
+                                   else date.today().isoformat())
+        if new == old:
             continue
         if new:
             entries[code]["thesis"] = new
