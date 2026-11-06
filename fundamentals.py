@@ -556,6 +556,9 @@ _JQ_ALIASES = {
     "shares":       ("ShOutFY", "NumberOfIssuedShares"),
     "treasury":     ("TrShFY", "NumberOfTreasuryStock"),
     "cfo":          ("CFO", "CashFlowsFromOperatingActivities"),
+    # Investing cash flow. Not capex — it includes time deposits, securities
+    # and acquisitions — so it is stored for reference and never used as one.
+    "cfi":          ("CFI", "CashFlowsFromInvestingActivities"),
     # The tanshin's own equity-to-assets ratio (自己資本比率), filed on the
     # front page of every summary. This is an ACCOUNTING ratio — shareholders'
     # equity less subscription rights and non-controlling interests, over total
@@ -1110,6 +1113,10 @@ def load_run_manifest_from_github(repo: str, token: str = None) -> dict:
     return gh_read.raw_json(repo, RUN_MANIFEST_PATH, token, {})
 
 
+# The manual-store bases financials.py owns (see financials.MANUAL_BASIS).
+FIN_MANUAL_BASES = frozenset({"fin", "fin_h1"})
+
+
 def apply_manual_overrides(auto: dict, manual_for_code: dict) -> dict:
     """Overlay a company's manual entries onto its auto-collected map. Manual
     always wins — the whole point is that the user is reading a terminal this
@@ -1118,6 +1125,11 @@ def apply_manual_overrides(auto: dict, manual_for_code: dict) -> dict:
     for flat_key, entry in (manual_for_code or {}).items():
         parts = flat_key.split("|")
         if len(parts) != 3:
+            continue
+        # Balance-sheet and cash-flow overrides share the store but not the
+        # forecast map: their "fy" can be "latest", which would otherwise be
+        # read as a fiscal year column. financials.apply_manual reads them.
+        if parts[2] in FIN_MANUAL_BASES:
             continue
         val = to_num(entry.get("value"))
         if val is None:
