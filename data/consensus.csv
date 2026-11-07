@@ -42157,14 +42157,14 @@ code,name,metric,fy,basis,value,unit,source,as_of
 8136,"Sanrio Company,Ltd.",dps,FY2027,company_h1,8.0,jpy,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",eps,FY2027,company,52.62,jpy,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",eps,FY2027,company_h1,25.24,jpy,jquants,2026-08-10
-8136,"Sanrio Company,Ltd.",eps,FY2027,consensus,53.3264,jpy,yfinance,2026-11-06
+8136,"Sanrio Company,Ltd.",eps,FY2027,consensus,53.3264,jpy,yfinance,2026-11-07
 8136,"Sanrio Company,Ltd.",eps,FY2027,ytd_1q,12.8,jpy,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",net_profit,FY2027,company,63800000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",net_profit,FY2027,company_h1,30600000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",net_profit,FY2027,ytd_1q,15516000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",net_sales,FY2027,company,229800000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",net_sales,FY2027,company_h1,107200000000.0,jpy_abs,jquants,2026-08-10
-8136,"Sanrio Company,Ltd.",net_sales,FY2027,consensus,233842885480.0,jpy_abs,yfinance,2026-11-06
+8136,"Sanrio Company,Ltd.",net_sales,FY2027,consensus,233842885480.0,jpy_abs,yfinance,2026-11-07
 8136,"Sanrio Company,Ltd.",net_sales,FY2027,ytd_1q,52035000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",operating_profit,FY2027,company,89500000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",operating_profit,FY2027,company_h1,42300000000.0,jpy_abs,jquants,2026-08-10
@@ -42172,8 +42172,8 @@ code,name,metric,fy,basis,value,unit,source,as_of
 8136,"Sanrio Company,Ltd.",ordinary_profit,FY2027,company,90200000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",ordinary_profit,FY2027,company_h1,42600000000.0,jpy_abs,jquants,2026-08-10
 8136,"Sanrio Company,Ltd.",ordinary_profit,FY2027,ytd_1q,22624000000.0,jpy_abs,jquants,2026-08-10
-8136,"Sanrio Company,Ltd.",eps,FY2028,consensus,60.5405,jpy,yfinance,2026-11-06
-8136,"Sanrio Company,Ltd.",net_sales,FY2028,consensus,262727675820.0,jpy_abs,yfinance,2026-11-06
+8136,"Sanrio Company,Ltd.",eps,FY2028,consensus,60.5405,jpy,yfinance,2026-11-07
+8136,"Sanrio Company,Ltd.",net_sales,FY2028,consensus,262727675820.0,jpy_abs,yfinance,2026-11-07
 8153,"MOS FOOD SERVICES,INC.",dps,FY2025,actual,30.0,jpy,jquants,2026-08-07
 8153,"MOS FOOD SERVICES,INC.",eps,FY2025,actual,102.1,jpy,jquants,2026-08-07
 8153,"MOS FOOD SERVICES,INC.",eps,FY2025,ytd_2q,57.76,jpy,jquants,2026-08-07
