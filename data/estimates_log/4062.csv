@@ -46,6 +46,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-10-17,eps,FY2028,consensus,237.31728,yfinance,backfill,2026-10-17
 2026-10-24,eps,FY2028,consensus,237.63316,yfinance,backfill,2026-10-24
 2026-10-31,eps,FY2028,consensus,246.58618,yfinance,backfill,2026-10-31
+2026-11-07,eps,FY2028,consensus,246.41562,yfinance,collect,2026-11-07
 2025-05-08,net_profit,FY2025,actual,33704000000.0,jquants,filing,2026-11-01
 2024-10-31,net_profit,FY2025,company,24000000000.0,jquants,backfill,2024-10-31
 2025-02-04,net_profit,FY2025,company,25000000000.0,jquants,backfill,2025-02-04

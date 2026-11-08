@@ -25,6 +25,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-07-28,eps,FY2027,company_h1,34.97,jquants,backfill,2026-10-24
 2026-08-27,eps,FY2027,consensus,80.06531,yfinance,backfill,2026-08-27
 2026-10-31,eps,FY2027,consensus,46.57,yfinance,backfill,2026-10-31
+2026-11-07,eps,FY2027,consensus,87.37428,yfinance,collect,2026-11-07
 2026-07-28,eps,FY2027,ytd_1q,21.38,jquants,filing,2026-11-01
 2026-08-27,eps,FY2028,consensus,173.4023,yfinance,backfill,2026-08-27
 2026-10-31,eps,FY2028,consensus,157.98653,yfinance,backfill,2026-10-31

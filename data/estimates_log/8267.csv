@@ -22,11 +22,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-09-05,eps,FY2027,consensus,26.02799,yfinance,backfill,2026-09-05
 2026-10-17,eps,FY2027,consensus,25.61513,yfinance,backfill,2026-10-17
 2026-10-24,eps,FY2027,consensus,24.22942,yfinance,backfill,2026-10-24
+2026-11-07,eps,FY2027,consensus,23.40085,yfinance,collect,2026-11-07
 2026-07-10,eps,FY2027,ytd_1q,4.99,jquants,filing,2026-11-01
 2026-08-27,eps,FY2028,consensus,34.86957,yfinance,backfill,2026-08-27
 2026-09-05,eps,FY2028,consensus,34.82179,yfinance,backfill,2026-09-05
 2026-10-17,eps,FY2028,consensus,33.33327,yfinance,backfill,2026-10-17
 2026-10-24,eps,FY2028,consensus,31.82077,yfinance,backfill,2026-10-24
+2026-11-07,eps,FY2028,consensus,31.52077,yfinance,collect,2026-11-07
 2025-04-11,net_profit,FY2025,actual,28783000000.0,jquants,filing,2026-11-01
 2024-10-09,net_profit,FY2025,company,46000000000.0,jquants,backfill,2024-10-09
 2024-10-09,net_profit,FY2025,ytd_2q,5488000000.0,jquants,filing,2026-11-01
@@ -52,10 +54,12 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,net_sales,FY2027,consensus,11880283091330.0,yfinance,backfill,2026-08-27
 2026-10-17,net_sales,FY2027,consensus,11876414852750.0,yfinance,backfill,2026-10-17
 2026-10-24,net_sales,FY2027,consensus,11883914852750.0,yfinance,backfill,2026-10-24
+2026-11-07,net_sales,FY2027,consensus,11877664852750.0,yfinance,collect,2026-11-07
 2026-07-10,net_sales,FY2027,ytd_1q,2941981000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2028,consensus,12187851908610.0,yfinance,backfill,2026-08-27
 2026-10-17,net_sales,FY2028,consensus,12182712647190.0,yfinance,backfill,2026-10-17
 2026-10-24,net_sales,FY2028,consensus,12186462647190.0,yfinance,backfill,2026-10-24
+2026-11-07,net_sales,FY2028,consensus,12181462647190.0,yfinance,collect,2026-11-07
 2025-04-11,operating_profit,FY2025,actual,237747000000.0,jquants,filing,2026-11-01
 2024-10-09,operating_profit,FY2025,company,270000000000.0,jquants,backfill,2024-10-09
 2024-10-09,operating_profit,FY2025,ytd_2q,98600000000.0,jquants,filing,2026-11-01
