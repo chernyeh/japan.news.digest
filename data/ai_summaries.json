@@ -1,1 +1,383 @@
-{}
+{
+  "summary_bytime": {
+    "idx": {
+      "1": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "夫の不倫､殴り合いの修羅場も\"ネタ\"に——漫画家になった40代女性の｢想定外すぎる人生｣ - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE1wWUpGdjYxdVhIWTg5anJ3MVhSeEwzZ3BfWVlKRTRGeDdfd2d2bElrV0l2UlphMm1RZmlQQWtjWmJkb285T1NwRkdRT0FoeFJkRnc?oc=5"
+      },
+      "10": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "藤堂高虎だけではない！秀長を支え続けて\"家臣団トップの給与\"が与えられた､超有能な｢最強の側近｣ - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE1ldFdzdy13UWo3aGlyRlpjNU1xUnhCN0gwalpCTVhZZlUzNTlyd2llandkSkVQVi1jemJxX3dKMko3WU51M2hVb0JDUDA3YXJXNmo3S21QNzNBX3c?oc=5"
+      },
+      "11": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "相手が感情的で自分は論理的､糾弾し合う保守とリベラル 『社会が壊れるその前に』磯野真穂氏に聞く - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1pcHItYmhQUHdWTERTVWVELXF1alQ1Z1Z4NW9XR1E2QUQ5Q094Y0w2c3dRTFYxYzFONE1OaVFkUnBtbGtuZXFrZFRJR3VqWGRRaXhqOVd0ZHVaNVduUGI4?oc=5"
+      },
+      "12": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "日経平均株価が反発、一時800円高 米ハイテク株高で買い先行 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTFA4T0pMS3k2TDBZaHFTR1FaaFVxanlOVDhJZUhsRk12Nmg0TVpKQXVaUGVDejg4a3pQZTNDOHk2cFRuMGNMTm40d2t2QWZTb2poWDNFWFAxLXJWWlgtc3M2b0RwSXlOYnF1QXBWOA?oc=5"
+      },
+      "13": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "小学館、199万件の個人情報漏洩か アララ不正アクセス - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5WOEF2a1R1eTJHTFVRbF9RdGdqRDlnNEF5RzZtOHdISTZOOGt1ZnQ4bXdteWhhVkFJSzJsYlVXZkRTWUNteE5vTG0wYVpnRUV0Um5keTNGRmR3SU9YeGxlN004ZGpNbGlyNUR6MQ?oc=5"
+      },
+      "14": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "日経平均株価、米ハイテク株高が追い風（先読み株式相場） - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9aVGpMWE5fdTVpdW1rYkRmYXFCTC0yNFNIbHdDUUJSWG9iUF9GeEpzbTRVcHJXT1lOdlhZOHFxNFRibWQtdHB5dkpYaW1nLUhwMnAtLWdhYllGTi1fbUtvMmliX09WbVc2S3BiNA?oc=5"
+      },
+      "15": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "来年スタート こどもNISA「それ、子への贈与です」 - 毎日新聞",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE5FRklHb1c1SnNGOE9NbF9ZaFZCUkZKRFFYVG02RWZuYTM1azZoWkxWaDZROFIyVlFWLTR3bGQwNUpqUjBVWm5CZk00cGNndldrSkRKSzJwbmRuWUVZaTg5TVpHR2llYzlXZl92VlNqWi1kSVljTkNPdDluRUlmUm8?oc=5"
+      },
+      "16": {
+        "source": "Bloomberg Japan",
+        "title_for_match": "Japan Works to Shield Takaichi From Any Xi Snub at China Summit - Bloomberg",
+        "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxNeGl6X3V6LU55TkRZNHo0TW5VZFR0cnBCdkRQVnAyQU9hS3dkcnQ1ME1JVm9XTHBHWDdKUmpQX2Z3dGFjRFU0ZWVGU25rckozakpFNDNSZTRwc3dpdzBXZHl0ZEZMZkJ2ckh2MXpicmJsVVRfblJBT0gwMGhEanZGTHdOMVBJaTJUTzUtN1BLWlRZUFMwTDBGdkdLT2dPVTZVNTh2X3IwenFmTXZQZ2ZpS19fYVo?oc=5"
+      },
+      "17": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "トランプ氏、イランと戦闘再開「可能性低い」 核など交渉進展なら - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTFBMVGh4OE1tN2UyT1Bfdk9iWDdsV0NuNjBGenFyRlhqLXlhU1dxc3pBclVid1M2NVFsMk8xUUdhclJrNDhCQ1d0TXNqWGtNWFA1NGpnQjEyemZuRU4tYjNqbDlVNEFDTGRkVTJEag?oc=5"
+      },
+      "18": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "「弱気相場」入りの日経平均、下値どこまで 米AI規制の行方焦点 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE0zNVlVS1R0QUJRRmZBakJubzV1RHZzeW5SbG1RTFMtTERTaGNDYXNrNjA1TE0yYTY4YmMyVnhCVW1GcnF5SnhoZmxJT2gyNm1UZ2ZuUkFDRkc3TEhjWmxwWk4wWmNzUkx3NmFUcQ?oc=5"
+      },
+      "19": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "生産量は「ラピダスの40倍」 マスク氏半導体工場、調達部隊が極秘来日 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE95NFpubHp2WlZBQzI4bHdfbHJWamJFN1F3Z2JjVXBnay1GMmlZM2hUV3dzemJPV2RpM25MdzhyVEhwNlhLXzFRUkpwLWNnWnJkRDBwN3I5MEt6X1hYZmdsUW5tVVB4ZHl5SVhRVA?oc=5"
+      },
+      "2": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "画像 | なぜ東京駅の寿司店に朝から客が集まるのか…ご飯おかわり自由､1078円の\"特大豚汁定食\"が駅弁より割安に感じるワケ - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE1TX1pYTHVmRzJhQjVDdW9QMk9jc2FGUHhFQW5qaTI5MGhzdkg2WjlaV2F4aHFUaWtHWXF4V2gxYUQ5T2RrenFxUmhuQ0lKR1lFbDZDWm41Yw?oc=5"
+      },
+      "20": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "社宅や社員寮、家賃高騰で人材獲得の売りに 最新事情がわかる7選 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5RWW1nRE9NSFYzOG54M0k4VHZwN1BmcWcxaUM2c2JWeV9mSS1kczBZSmNmZUtMc0RPOFdjZ2NBalZTU1JzV2pQT0NSTVNhWmNremtpS1F5SFZfMlYyckhUSWdGVUl0TDNra0pLTw?oc=5"
+      },
+      "21": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "仮想通貨業界、資産流出経験で「より強固・安全に」 バイナンス創業者 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTFB1YjhSN2QtZVNQTm11ZnN1MFVsckx2aFUyUlBEMTNzd21kWEZtUGdXNGNRSFVoUmxqcTJEQ2hoeHhlUnBtVjQ0Y2RPaDd5MC1xNVhGTTdDYy1LMk5NTWtDV1JQb1F5OF8zc2lGWg?oc=5"
+      },
+      "22": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "【不正アクセス急増】金融サービスあえて止める選択も サイバー防御で1ヶ月停止「あり得る」 寺井理・官民部会座長 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE11X1hSTkhENnFHUzFJUzBJSFhOc294WnVtSkIzWE5ERnR4QTRtdW9XQndkaWtscmlEUmdjVWhrOEdvZ2tyWGEzZ2dCOWQwOElENEpPenA2bEQ3eWIybDFwMnllbGNQaXpPRVVKbw?oc=5"
+      },
+      "23": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "明治は消費税減税前に値上げ 食品大手、値下げ期待と原料高で板挟み - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9nakF4a1NLb3RvZ25lVHNDcUppZFRpbU82WjZmOThDM01zNDBqeW9VNXkxaWFOSFZzSTNBczk5YjJLamIydGZRS0RmQlFYaXkyZTJCYzZhX2Z4TWUtemdhNzU3LTNmQXdoWU1PYg?oc=5"
+      },
+      "24": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "ふるさと納税、自治体の手数料は下がるか スタートアップ「ふるコミ」、2.5%掲げ寡占市場に参入 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9ic1l0U3FkWk9ZZnIxYW1UbkhxUWFiYl9lNVpiVS04NmFhb1BrcmpfYmhSUFZTM3NKelJNeHVtVmZpS1VCQlVyelBwRjJYQ1UxUGlHcjJUcm9Xd1dqNko3VFZST0dxNEZEMDhvNA?oc=5"
+      },
+      "25": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "フランス化粧品大手イヴ・ロシェが日本で専門店出店 自然由来の原料が売り、30年に10店舗出店 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTFBZS2hXQUgtTlJHMlVYZ2FOdjgtc1k0LW90djNpZ19zdkxMQlExQkdMRFpFZ1hySlVvM1pWZW5QUTcyT0FlOVVrdlo3YVlfbmFpbHJhTTdaYnlWVmNoVTJWN256X1U2NURlSkZLaw?oc=5"
+      },
+      "26": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "惑星の磁場を再現する「ダイポール型」で核融合実用化目指す まずがん治療装置で、東京大学など - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE14bXYweG1DZXd6cEZVOFVpNy1UaVAxZGlEMjJSSHNxMy1zYS16Xy1CcEtRSzBiX0JGbWFhMGtmSDlEOTlFNVVSak1menhVa01MV3BpSVNfRTBLV1RtY3duWjZQTUFCS1NHZXVOaA?oc=5"
+      },
+      "27": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "COP31、9日開幕 議長国トルコ「電化率35%へ引き上げ」掲げる - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9NYlB3MjJ3LVBZejhsVjRfaXhNZjFUT3dFM1FJTHpIV2twMW5meFlQQnpiaVJNX08wZkNReXpJMEFPazJCckpidjR0Y0MweHJ4RGUtdlFxQVJIZGZpMDRZNjhRZTY1QmpuU3E2UA?oc=5"
+      },
+      "28": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "中国飲料チェーン最大手「蜜雪」、閉店相次ぐ 薄利多売の成長崩れる - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTFBFaXF3Q1NlUlBDNThQVGVmZkx1dFdlajc2YW5wUTI4REpCRnlReEdPZ3oyT09WWDExSG83RTZBWHMyTFd3UVpmdmNGS0d1V1J3YzNSb3hWVkxjUU5GRFh6TUtxSnNJMEowd2xjUQ?oc=5"
+      },
+      "29": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "証券口座に再び不正取引リスクが高まる 「パスキー」頼みではなく、Googleなどアカウント管理が重要 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE01eThYV1dHa3c2OVlSdGw3UzU4QUI2MDBEQmNpZFhrSlJoQ1lCYVp1Vldia2thQU5ZRDY1T2pHZkljald6Z3RpSE1FaXU4a3AtX29nQmFkUTBsb3NwUHlFVmY0SElsVngyLVlYdw?oc=5"
+      },
+      "3": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "27年でたった8店舗…自前の和食が育たなかったモスバーガーが112億円で｢おぼんdeごはん｣を買った切実な事情 - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9kU1hiYkZUMm5KQVJJSFUtb3Fyb0Zic21HTEFYUGRhd1RObGk1MlNqNW4ycTVfb3BMcXRuM2pnUmVINHZjU0Z5eV90czBIbklXT3c?oc=5"
+      },
+      "30": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "中部電力、浜岡原発は巨額減損でも廃炉せず 再稼働遅れれば収支悪化 - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE1PZEpQVW5vaUUzWFV1aUpQLUx2VUdSWFNGc3VJbXhtVjdsaDlwVURJbkYtRWFrSndIdFpkYUpmaW1ZZEV1c1ZmTUVEOEY1RzJ1ZjBkUjV3N1d1WVRkMmthazg5NF81NFJoQS1zMA?oc=5"
+      },
+      "31": {
+        "source": "Rakumachi",
+        "title_for_match": "【実践大家コラム】緊急コラム：金融投資、大チャンス到来？？？ - 楽待",
+        "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTFBqakNobEJ5eWZwdkdsWGNyZG1nUEVTRXJzQ3FOUHlmWW1VMC1fVVduS3J4OE93WWs1dG5hRDR6VUVWeHF5UTJWZkJSS1dUQkJnallZSFNkUnFJQQ?oc=5"
+      },
+      "32": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "JTのロシア事業、FSB元職員の企業が管理か 現地メディア、軍需企業につながり指摘 - 産経ニュース",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTFBFT3hqM09FYVJEbVlhNFNiLUJTY3VRTHRCQmp6SGZzNkpnUURoTncydWNXaHozd3g3NHBNd2NpRl9Gc1BDeUtMaTZQcW9jQUhYNnE5c2ZrSEtjWk5kSjhVczZ5YTlpSkYwQ1F1VVI3YWxSc2ZvQnc?oc=5"
+      },
+      "33": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "商品に個体差「不揃い」バズる訳",
+        "url": "https://news.yahoo.co.jp/pickup/6601846?source=rss"
+      },
+      "34": {
+        "source": "Nikkan Kogyo",
+        "title_for_match": "企業リリース - 日刊工業新聞",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBHWlY2R0JCMGZfUXNqSXZHUUtraWxaeHlLRnYtVE5WamlGekRZVkRWRkZyVnVDUmZ0aTllOFpQc0tjVjdqOEd3bXk2Nl9fZTF3V05qaDJ0QmFmMWVlQkM4?oc=5"
+      },
+      "35": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "ロシアのJT管理は「侵略的政策で国際企業に経済的リスク」 ウクライナ、Xで非難声明 - 産経ニュース",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE1nUklabDNzWm9qWFpPalhRNDU1N3VQWFpWOGFxaDRGVnBBeXRvakZYZGM0aDRLQ2xUMWR0Snk5V2xBdzNlQWVkVTlBVm5aUmFCdnAtV25iVVh3aXhhZEhtb0xReDZOV3BKdGdTR2xXTFF6V05XSlE?oc=5"
+      },
+      "36": {
+        "source": "Rakumachi",
+        "title_for_match": "【実践大家コラム】金利1％上昇で借入3億円の大家はどうなる？ - 楽待",
+        "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE56ZmZNM0hsRVJmVXpRU1NlcGh0ekNZR2ktWWdhbFpFWkxlVXM0ZTlTSTQxY3F3RXFHUW93aWtNaFBqckF6QTZKZU1JTW1yQnNXcU55QUdlbkNiQQ?oc=5"
+      },
+      "37": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "MAZDA3セダン 北米で売れる理由",
+        "url": "https://news.yahoo.co.jp/pickup/6601813?source=rss"
+      },
+      "38": {
+        "source": "Sankei Shimbun",
+        "title_for_match": "TOPIX改革 継続的な企業価値向上迫る 経営者には覚悟が問われる 日曜経済講座 論説副委員長 高橋俊一 - 産経ニュース",
+        "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE9HdEU1S0FNS0NNa1J4YTlmdDZFS1JUZ2xfaExFTkZRcFJuMWpPaVYwVm1wYWhwUVpsdGpFNXRieHF0X0pOWnN1blgwNHozVGR3dVgxd1FNYnJmenZTanhFQVpCRU9QYlc3aG5acFdMeWo2ekdhaVE?oc=5"
+      },
+      "39": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "倉庫には古米の山 赤字覚悟で販売",
+        "url": "https://news.yahoo.co.jp/pickup/6601793?source=rss"
+      },
+      "4": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "ANAがエア･ドゥ､ソラシドエアを完全子会社化･･･各社が訴える｢国内線の実質赤字｣､30年に及んだ航空自由化は終焉へ - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFA0U1ozYURZWXdTaVlKeEVEYVktVEd0V2JaZ0VHRUM4NElxbndtNWlaRm5EX2dWTF9mRlN0Z01iaFlDaHhYUHgxMGRrSTkxNUwzVmhTVjVWbExieGJuQ1l3?oc=5"
+      },
+      "40": {
+        "source": "Mainichi Shimbun",
+        "title_for_match": "「日曜日の恐怖」におびえる米国人、対処法は？ - 毎日新聞",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE1sTW9mS1dXUHhIQTg4R3JEMWpnZUFmN2ZOTlU4QUpSV3dPYm4yOG9UTmtfN0EtZEc2WFMzX2o1aDlXaHppYm4xbDNFN3Rhd2lKa2NMaDVRMkhjcXAwNHB3X2xiYjltY0lTOFpPYVdGZlR5djBnSjg4aW1WTUVHLXM?oc=5"
+      },
+      "41": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "迫る蛍光灯製造禁止 家庭も対応を",
+        "url": "https://news.yahoo.co.jp/pickup/6601786?source=rss"
+      },
+      "42": {
+        "source": "Japan Times Business",
+        "title_for_match": "How China’s clean-tech machine is reshaping the global climate fight - The Japan Times",
+        "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxPQ2NhaUlILWJkVUp4Z0Y3ZHM4cFFtelFNMlEwb1A3MnB3TXpCQndtVVRkSkp0d19tVmJTemU2U0VzdGp2SlZYNjQ2UVlPNXZrZFZyTTJvNk00dnh3bENQd3o3bVdreVdWWFlUS0VSeDQxRy1ndHlDcjVFM25ieVNua2xRNnZvZw?oc=5"
+      },
+      "43": {
+        "source": "Rakumachi",
+        "title_for_match": "【実践大家コラム】なんと6年ぶりの楽待１位！感謝しかない。これで心残りはない！ - 楽待",
+        "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1zNlFzR0lDaFNGVXBGMWQ1akpWVlJzVG44eXk5M1c2YS1XREZSRkhxeWtJbEMxMHVGSUI0YnFWT2xSTlRtNU1BcVlJTG0zUlM2bXF6SV9IZ0owQQ?oc=5"
+      },
+      "44": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "決算プラス・インパクト銘柄 【東証プライム】寄付 … 三菱重、ＴＯＷＡ、ＪＦＥ (11月6日発表分) - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9md3JNUXY5VlUzbHpPamctQXo0emNhU3BoZGY2aW5CRTdaSHVxY05lX2szbDVWdXFWdzVVcTA3eDRPRE43a0hFMFJKbDRHUWxxVmc?oc=5"
+      },
+      "45": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "決算マイナス・インパクト銘柄 【東証プライム】寄付 … サンリオ、ＫＤＤＩ、三井不 (11月6日発表分) - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE1Ja3hsMjN2ejEyUGllN245Sk1RUk1rZDVxU2VLZUl3Q3pDeHFCNTZLcmh6c0tBRVlKWHhiaG9YUE4zT3l5Z1hSTFBkRV9NSEc0V0E?oc=5"
+      },
+      "46": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "決算プラス・インパクト銘柄 【東証スタンダード・グロース】寄付 … オンコリス、アコム、木村化 (11月6日発表分) - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFBaTDIxYXVsNzY2eHlZZ0V1Nl9nMEpKVVVFY0JpWHJWR2xETG96TmxKWXJXN2lKMFdJTlBCVHJCTUtDa3I4c2V0Umg1RGJTTXAyWWc?oc=5"
+      },
+      "47": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "決算マイナス・インパクト銘柄 【東証スタンダード・グロース】寄付 … アイグリッド、共栄タ、Ｔワークス (11月6日発表分) - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFB6MEEzV1JrR3Qwb1Q5cjc1aTJmU0VQWHN3NXoxRjEtLTNxMnBRdnN1STloU2xRUS1ic1VFWExpaEtkZE1xYy1BT184dzc2MlNZRVE?oc=5"
+      },
+      "48": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "ｓａｎｔｅｃがカイ気配切り上げ、光部品好調で今期業績・配当予想を上方修正 - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5aLV91OFIwMnVzTXVmSHdPWHJJSHh1VkdUR21WYlBVUEtjZXA0Z3N4MnZMdEhfay1wV0FSZnE3YTVfQ3NKc0tseV9FOXZaSDdiZkRfdnpxYzNoNGRZeTFrbA?oc=5"
+      },
+      "49": {
+        "source": "Minkabu",
+        "title_for_match": "中部飼料、上期は増収増益で着地、自己株取得・増配を予定 畜産飼料の販売計画達成等により通期計画の達成を目指す - みんかぶ",
+        "url": "https://news.google.com/rss/articles/CBMiSEFVX3lxTFBTMF9DaXctOG9uSW1tN2RxM1lsMHJVdXZST2F4WDdrTFE0ZjZuRVdtYmF3UVJ5TU41VDVoQjBSZnRjZlYzTGwwcg?oc=5"
+      },
+      "5": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "全国397機関の信金･信組｢サバイバル力｣ランキング…含み損拡大､預金流出など課題山積の中､生き残れるのはどこか - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE5qLXRETThnRzZsbWhiTW5EXy1XTV81Z2RWYTllV1BvRzNXY2QxdHlpSkpQSlA4cGRGbURqMlpJalFIdUVSdllMeWZUTTBnUlJ4UDB6R2RvNjZqeEN2TjA4?oc=5"
+      },
+      "50": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "本日注目すべき【好決算】銘柄 ＴＯＷＡ、メイコー、ニチコン (6日引け後 発表分) - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE52azYzeS0zS1hpNVAtU1NrNS12bTVpbjYyXzFnamVEdjZreUlOTDNFSTRzd2cwXy1JSno3WlVZMFdBZlVrQjJqdzk2UDBGRFQxWlpZeTM4RlRvdU82cVdUVQ?oc=5"
+      },
+      "51": {
+        "source": "Toyo Keizai",
+        "title_for_match": "総合商社5社がそろって増益､過去最高益も続出…資源高と事業改革が追い風も景気後退に耐える｢本当の稼ぐ力｣が焦点 | ビジネス | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/963744?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "52": {
+        "source": "Toyo Keizai",
+        "title_for_match": "市場は｢アメリカ共和党大敗｣で何を恐れたのか？｢今回の株価急落はバブル崩壊ではない｣と言える｢6つのポイント｣ | 政治・経済・投資 | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/964032?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "53": {
+        "source": "Toyo Keizai",
+        "title_for_match": "【絶好調】ソニー決算｢スパイダーマン｣とゲームで2度目の上方修正･･･エンタメ投資\"実りの秋\"､最高益のカギは｢GTA6｣ | ビジネス | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/963877?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "54": {
+        "source": "Minkabu",
+        "title_for_match": "Canary Staked INJ ETF（INJC）:株価予想・売買予想・株価診断 [NASDAQ] - みんかぶ米国株",
+        "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE5ZaXJQWk4tV21FaFBzekJCa01RdHZEYTRvTmlIMV9ydlhPTlFpajlJODZ5QnlObFZBekNPbUhsSUNDNlZzX1ZWeGdsejZSZU5ZWmIwQUtXMA?oc=5"
+      },
+      "55": {
+        "source": "Yahoo Japan Business",
+        "title_for_match": "Netflix 増収増益でリストラの訳",
+        "url": "https://news.yahoo.co.jp/pickup/6601865?source=rss"
+      },
+      "56": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "パーソルＨＤ【2181】2026年11月09日 開示情報 - 通期連結業績予想の修正に関するお知らせ - 株探",
+        "url": "https://news.google.com/rss/articles/CBMicEFVX3lxTE96Q28zOVk5OHFKUF9Wazc5QXNBUk92Y2x4Y1RlTFl0d1UwUlBvTVBQR0ZWU2ZhNmgtN2twd1VXYzUzalBseTRybTBPTEtkMkdCb0h6LUppczRwR0JUUHAyZEYxcG1ncWpyaXV1RzJoM2w?oc=5"
+      },
+      "57": {
+        "source": "Nikkei IR / Earnings",
+        "title_for_match": "パーソルホールディングス[2181]：通期連結業績予想の修正に関するお知らせ 2026年11月9日(適時開示) ：日経会社情報DIGITAL - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE9KOGdkYlIwRkhPaTRxZnlUTXkwRkZuWWh4WS12MFB4TXRPRTU2eUR5RHZ4Q1VFM0RDczNqeVFYQ0xCQllIRU1USklfV1lxWHFKdkdqOWpIU2Uwa0xpenlPS2JJRGdsMUdOV3c?oc=5"
+      },
+      "58": {
+        "source": "Minkabu",
+        "title_for_match": "連結子会社の異動（株式譲渡）及び子会社株式売却益の計上に関するお知らせ 投稿日時： 2026/11/09 07:30[適時開示] - みんかぶ",
+        "url": "https://news.google.com/rss/articles/CBMiSEFVX3lxTE1meHJsTkNnVHNQZS16VFZjSkcwWW15bUR6ZW5DcW1Vb3pTcHQ5U3EzOE9DNW1SZDdrZjJ3bWU3UUNFaVVtVEFGTg?oc=5"
+      },
+      "59": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "本日の決算発表予定 … ＪＸ金属、古河電、コクサイエレなど 175社 (11月9日) - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5QMWFxRGE5Yjl3SkN5QWp5SnhDX1VSeUdGcHZOMVMxLWtadncwcjlOYldVeXhzZUlIQmJuSmZIX2QwVGFIem4wbTlmT0dzcmhsWExSMjZGQlNHenBGblJEWA?oc=5"
+      },
+      "6": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "画像 | インド｢国産高速列車｣初公開､新幹線の立場どうなる 1つの路線に｢欧州式と日本式｣信号混在の不安 - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE11eVc4UnpDWlRpQlVjTHcteDFJSV9KcHpfVFRWbks5OUljYnA3ZUhvZ1A2Y3U3al9UdjZLM1Y2LVMyR2Y5MkVfYVY1MG1FNElicWJIeGZsTQ?oc=5"
+      },
+      "60": {
+        "source": "Nikkei Shimbun",
+        "title_for_match": "「配当狙いなら今は中小型の高配当株が魅力的」 個人投資家が参考にする識者・楽天証券の窪田真之氏に聞く - 日本経済新聞",
+        "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5GNWZ3eThYdTB6U25ad2NDOFlPMnJtVS1IT1NYVTZsX1lacWdUVkFjQ3BVWnRSMnZQQ2ZvYl9YeU5CODhZdXdQQlhSeHJueFVoX0V3My1wMUpkQjlJSjhpSFItOGVSOFJMTmJjOA?oc=5"
+      },
+      "61": {
+        "source": "Kabutan Earnings",
+        "title_for_match": "今週の決算発表予定 リクルート、三菱ＵＦＪ、ＳＢＧなど (11月9日～13日) - 株探",
+        "url": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE4yT3dJd3VoTVItd3lkRHVsV3I4VnZWZ1JfZXFMRkI2U1pPb1RrZU5zWmZfMWdIU2cwRTcwbW5BenBnRXN0UURRbExyYlRmOWI1QVBsbXQwdkFBMmxnRHZTRA?oc=5"
+      },
+      "62": {
+        "source": "Toyo Keizai",
+        "title_for_match": "｢仲間外れにされた人｣は過激な集団に加わる傾向がある？　社会的排斥やストレス､欠乏の深刻な影響 | ライフ | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/954629?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "63": {
+        "source": "Toyo Keizai",
+        "title_for_match": "日本で｢仕事を奪うAI｣は定着しなかった…JR東日本や野村不動産HDなど4800社超の現場で見えた｢\"間\"に入るAI｣の可能性 | ビジネス | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/961668?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "64": {
+        "source": "Diamond Online",
+        "title_for_match": "日産「新型エルグランド」はアルファードと「全長もホイールベースも同じ」なのに…乗ってわかった“意外な違い” - フェルディナント・ヤマグチの走りながら考える",
+        "url": "https://diamond.jp/articles/-/402824"
+      },
+      "65": {
+        "source": "Toyo Keizai",
+        "title_for_match": "日本の存在感は本当に薄れたのか？海外を旅して見えてきた｢モノづくり大国｣の変貌と世界に広がる新たな強み | キャリア・教育 | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/962796?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "66": {
+        "source": "Toyo Keizai",
+        "title_for_match": "｢銀行です｣の電話から始まる巨額詐欺､AIで社長や弁護士の声まで偽造される時代に企業が備えるべきこと | ビジネス | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/963721?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "67": {
+        "source": "Diamond Online",
+        "title_for_match": "「まるでミニ天安門事件」…中国人転売屋のiPhone欲しさの暴動がヤバすぎる - アップル自壊",
+        "url": "https://diamond.jp/articles/-/402819"
+      },
+      "68": {
+        "source": "Diamond Online",
+        "title_for_match": "「本当は幸せなのに、自分では不幸だと思っている人」の共通点・ワースト1 - 人生は気づかぬうちにすぎるから。「自分第一」で生きるための時間術",
+        "url": "https://diamond.jp/articles/-/402774"
+      },
+      "69": {
+        "source": "Diamond Online",
+        "title_for_match": "室温20℃→25℃でミスが44％減。一流がエアコン代を“最も安い投資”と呼ぶ根拠 - 野性の仕事術",
+        "url": "https://diamond.jp/articles/-/402762"
+      },
+      "7": {
+        "source": "Diamond Weekly",
+        "title_for_match": "【動画リポート】トヨタ元会長・奥田碩氏を偲ぶ「感謝の会」に密着、参列した政財界の超大物の顔ぶれとは？政界の重鎮やライバル企業元首脳が明かす“素顔と功績” - ダイヤモンド・オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1YemFyNzBfOERHcTBmV2RKZXBuMEEwdjJKTlhXQ3k2YlBMbHZabEM4bEg5UDVRREkzc2sxUGlHNnVTZ055TFJWVmZNbGY?oc=5"
+      },
+      "70": {
+        "source": "Toyo Keizai",
+        "title_for_match": "日本では過去最高視聴も､Netflix本社で｢1000人削減｣｢株価3割安｣…相次ぐ異変の背景と《強すぎる敵》の正体 | ビジネス | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/963872?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "71": {
+        "source": "Diamond Online",
+        "title_for_match": "東洋大学？ 日本大学？ GMARCHに続く大学の序列はどうなった？【2026年最新版序列マップ付き】 - 大学図鑑！2027 有名大学80校のすべてがわかる！",
+        "url": "https://diamond.jp/articles/-/402559"
+      },
+      "72": {
+        "source": "Diamond Online",
+        "title_for_match": "部下から「注意するのが苦手です」と相談されたら、リーダーが言うべき一言・ベスト1 - 3000件の職場の悩みを解決したプロが教える リーダーのふるまい大全",
+        "url": "https://diamond.jp/articles/-/402589"
+      },
+      "73": {
+        "source": "Diamond Online",
+        "title_for_match": "「～さんを見習って」は逆効果。部下のやる気を奪う上司の残念な褒め方 - 冷えた組織を熱くする リーダーの切り札",
+        "url": "https://diamond.jp/articles/-/402722"
+      },
+      "74": {
+        "source": "Toyo Keizai",
+        "title_for_match": "\"毒親育ち\"や\"セックスレス\"もありのまま描く——｢想定外の人生｣が開いた漫画家への道 | ライフ | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/963863?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "75": {
+        "source": "Toyo Keizai",
+        "title_for_match": "夫の不倫､殴り合いの修羅場も\"ネタ\"に——漫画家になった40代女性の｢想定外すぎる人生｣ | ライフ | 東洋経済オンライン",
+        "url": "https://toyokeizai.net/articles/-/963857?utm_source=rss&utm_medium=http&utm_campaign=link_back"
+      },
+      "8": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "〈下院3勝33敗､上院は全敗か〉世界一の富豪イーロン･マスク氏の共和党への大盤振る舞いは完全な空振りに - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1QVm9POTVXWHhxU3dVYllCVUVWQVRjdEdhcTNHZG95MGpqRzJiNy1fMXE2MlVPM1BJRzhOenJyVmR5eGgtcjQ1UFJhVHRLSEd4U19Lempldy1iZlFyd1A0?oc=5"
+      },
+      "9": {
+        "source": "Toyo Keizai Weekly",
+        "title_for_match": "｢銃殺刑ライブ配信｣をトランプ大統領が中止…ヘグセス米国防長官が進めようとした異例の計画と､その危うさ - 東洋経済オンライン",
+        "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBSMUlnRklIYV9QLUc2NzREci1PejhwZU1Wbk9PTU5Ia1lCbXpSRHlBMjZ5SVBaa3gwcVdVRFdYeUtsanBwcEV1RnYxZXNwcTBhR1J3M2FZTWoxNXlhUEVV?oc=5"
+      }
+    },
+    "text": "Japan equities open the week in relief-rally mode, with the Nikkei up as much as ¥800 intraday on a US tech rebound. The index is still technically in a bear market after a selloff tied to the US Republicans' heavy midterm losses and fears of tighter US AI regulation [12][18][52]. Macro attention is split between three things: US political and regulatory risk, Prime Minister Takaichi's China summit diplomacy, and domestic stresses from rising rates (regional lenders, leveraged property owners) and cost-push inflation ahead of a consumption-tax cut [16][5][36][23]. On the corporate side, earnings season is bifurcated. Sony, the trading houses, TOWA and Mitsubishi Heavy beat, while KDDI, Sanrio and Mitsui Fudosan disappointed [44][45][51][53]. The top implication: use the bounce to rotate toward earnings-backed cyclicals, Japanese semiconductor equipment and materials, and consolidating oligopolies (domestic aviation), rather than chasing the broad index before the US AI-regulation picture clears.\n\n## Market Tone & US Political Shock\n\n- **Nikkei rebound:** The Nikkei rebounded as much as ¥800 in early Monday trade, tracking an overnight rally in US tech [12][14]. This is a reflex bounce inside a downtrend: Nikkei Shimbun frames the index as having entered a \"bear market\" (a 20%+ drawdown from peak), with the key unknown being how far US AI regulation goes [18]. Treat rallies led by AI and semiconductor heavyweights (Advantest, Tokyo Electron, SoftBank Group) as tradeable but fragile until the policy direction is clearer.\n\n- **Midterm shock:** The selloff was triggered by a heavy Republican defeat in the US midterms. Elon Musk's donations reportedly went 3-for-36 in House races and zero-for-all in the Senate [8][52]. Toyo Keizai argues in six points that this is a policy-repricing event, not a bubble collapse [52]. The investment read is that the market is pricing a divided or Democrat-leaning Congress more willing to regulate AI and Big Tech, which hits the AI capex chain and Japanese suppliers levered to US hyperscaler spending.\n\n- **Political noise:** President Trump cancelled a reported plan by Defense Secretary Hegseth to livestream an execution [9]. It has no direct market impact but adds to a backdrop of US institutional unpredictability, which tends to support the yen in risk-off episodes. Malaysian investors holding unhedged Japan exposure should note that yen strength in a selloff partly cushions MYR-based returns.\n\n- **Retail sentiment:** A Rakumachi property-investor column asks whether this is a \"big chance for financial investment\" [31]. Separately, Rakuten Securities' Masayuki Kubota recommends small- and mid-cap high-dividend stocks over large caps [60]. Contrarian retail buying into dips has been a stabilizer in past Japanese corrections (for example, after August 2024), and mid-cap yield names are less exposed to the US AI-regulation overhang.\n\n## Trade & Geopolitics\n\n- **Japan–China summit:** Tokyo is working to shield Prime Minister Takaichi from a possible snub by Xi Jinping at their summit [16]. Japan–China relations have been strained by Takaichi's hawkish positioning, and Chinese pressure has historically shown up through tourism advisories, seafood bans and rare-earth leverage. A cold outcome would weigh on inbound/duty-free names (department stores, Shiseido, Kosé) and China-exposed industrials (Fanuc, Yaskawa, Komatsu). A cordial one would offer relief.\n\n- **Iran:** Trump says resuming fighting with Iran is \"unlikely\" if nuclear talks progress [17]. That lowers the tail risk of an oil spike, which matters for Japan as a near-total crude importer. It is mildly negative for upstream names (Inpex) and positive for airlines, chemicals and utilities' fuel costs.\n\n- **China consumer slowdown:** Mixue, China's largest beverage chain, is closing stores as its high-volume, low-margin growth model breaks down [28]. A riot by Chinese iPhone resellers (\"like a mini Tiananmen\") points to grey-market and consumer-channel stress in China [67]. Both reinforce the case to stay underweight Japanese consumer brands dependent on Chinese mass-market demand.\n\n- **India high-speed rail:** India unveiled its domestically built high-speed train. A planned line mixing European and Japanese signalling systems raises integration concerns and questions the Shinkansen's role [6]. This is a negative trend signal for Japan's flagship rail-export model on the Mumbai–Ahmedabad project. Watch Hitachi Rail, Kawasaki Heavy and Nippon Signal for scope reduction.\n\n## Tech, Semiconductors & AI\n\n- **Musk fab procurement:** A procurement team for an Elon Musk-led semiconductor fab, planned at roughly 40x Rapidus's output, reportedly made a secret visit to Japan [19]. This is a material potential demand source for Japanese equipment and materials makers: Tokyo Electron, Screen, Kokusai Electric, Lasertec, Disco, and wafer/chemical suppliers such as Shin-Etsu, SUMCO, Resonac and JSR. It partly offsets US AI-regulation fears for the equipment chain. Position via equipment and materials rather than chip designers.\n\n- **AI demand in reported numbers:** Back-end and optical names are already showing it. TOWA (molding equipment) posted strong results [44][50], and santec raised guidance and its dividend on strong optical components [48]. Optical interconnect for AI datacentres is a multi-quarter trend, not a one-off. JX Advanced Metals, Furukawa Electric and Kokusai Electric report today and will test it [59].\n\n- **Enterprise AI adoption:** A Toyo Keizai survey of 4,800+ companies, including JR East and Nomura Real Estate HD, finds that job-replacing AI has not taken hold in Japan. AI is being used \"in between\" human tasks instead [63]. That favours SI and consulting vendors selling workflow integration (NTT Data, Fujitsu, NEC, TIS) over pure labour-substitution plays, and implies slower productivity gains than US narratives assume.\n\n- **Fusion research:** A University of Tokyo group is pursuing fusion via a \"dipole\" design that mimics planetary magnetic fields, starting with a cancer-therapy device [26]. This is very long-dated with no near-term earnings relevance, but it adds to the steady flow of fusion headlines supporting thematic interest in Japanese fusion supply-chain names.\n\n## Cybersecurity & Financial Fraud\n\n- **Cyberattacks on finance:** Unauthorized access is surging. The chair of a public–private working group says financial services may deliberately halt operations, possibly for up to a month, as a cyber-defence measure [22]. Brokerage accounts face renewed unauthorized-trading risk, with experts saying passkeys alone are insufficient and Google and other account management is critical [29]. This follows the spring 2025 wave of account takeovers across major online brokers, so it is a recurring trend. Expect higher security capex and compliance costs for online brokers (SBI, Rakuten, Monex, Matsui) and banks, and structural demand for security vendors (Trend Micro, Digital Arts, FFRI, NRI Secure).\n\n- **Data breach:** Shogakukan may have leaked 1.99 million personal records via unauthorized access through \"Alara\" [13]. It is another large breach in a rising series, supporting the identity and security spending theme.\n\n- **AI-driven fraud:** AI can now clone the voices of CEOs and lawyers in fraud schemes that start with a call claiming to be \"from your bank\" [66]. Corporate anti-fraud and authentication spending is a durable tailwind.\n\n- **Crypto:** Binance's founder says the industry has become \"stronger and safer\" after asset-outflow incidents [21]. This is relevant to Japan's crypto policy shift (moving crypto under financial-instruments regulation and toward separate taxation), which supports Monex (Coincheck) and SBI.\n\n## Banks, Rates & Financials\n\n- **Shinkin and shinkumi stress:** Toyo Keizai ranks the \"survival power\" of all 397 shinkin banks and credit cooperatives, citing widening unrealized losses on bond portfolios and deposit outflows [5]. This is the second-order effect of BOJ normalization from negative rates (exited March 2024). Rising JGB yields create mark-to-market losses on securities books, while deposits migrate to higher-paying megabanks and net banks. Expect accelerating consolidation. Megabanks (MUFG reports this week) and net banks are net beneficiaries, while weaker regional lenders face capital pressure [61].\n\n- **Leveraged property owners:** A Rakumachi column models a landlord with ¥300 million of debt facing a 1-percentage-point rate rise, which adds roughly ¥3 million a year in interest [36]. Small-landlord leverage is a vulnerability if the BOJ keeps hiking. It is negative for banks heavily exposed to apartment loans and for real-estate tech and brokerage names serving retail landlords.\n\n- **Children's NISA:** The new \"Kodomo NISA\" launches next year, and Mainichi warns that parental contributions count as gifts to the child [15]. The tax-advantaged account expansion continues the structural shift of household savings into equities after the 2024 NISA overhaul. Positive for online brokers and asset managers, with tax-compliance friction a minor drag on uptake.\n\n## Energy & Utilities\n\n- **Chubu Electric / Hamaoka:** Chubu is taking a huge impairment on the Hamaoka nuclear plant but will not decommission it. Earnings will deteriorate if restart slips further [30]. Hamaoka has been offline since 2011, and its review was further clouded by the 2026 seismic-data controversy. This removes some balance-sheet ambiguity but leaves Chubu as the weakest restart story among major utilities. Prefer Kansai Electric and Kyushu Electric, whose nuclear fleets are already running.\n\n- **COP31:** The conference opens on the 9th, with host Turkey targeting a 35% electrification rate [27]. Separately, China's clean-tech manufacturing scale is reshaping global climate policy [42]. Chinese dominance in solar, batteries and EVs continues to compress margins for Japanese competitors. Japanese upside lies in grid equipment, transformers and cables (Hitachi, Mitsubishi Electric, Fujikura, Furukawa Electric) rather than generation hardware.\n\n- **Fluorescent-lamp ban:** The manufacturing ban under the Minamata mercury convention, phasing in through end-2027, is approaching, and households are being urged to switch to LED [41]. This is a time-limited replacement cycle benefiting Panasonic, Iwasaki Electric and Endo Lighting, plus electrical contractors.\n\n## Consumer, Food & Inflation\n\n- **Food price squeeze:** Meiji is raising prices ahead of the planned consumption-tax cut, and food majors are caught between consumers expecting cheaper food and rising raw-material costs [23]. Price hikes before a tax cut risk volume backlash once consumers compare post-cut shelf prices. Margin protection is the near-term priority, but watch volume data for Meiji, Morinaga and Ezaki Glico through Q1 2027.\n\n- **Rice glut:** Warehouses are piled with old-crop rice now being sold at a loss [39]. This reverses the 2024–25 rice shortage and price spike, which triggered government stockpile releases. Rice deflation eases food CPI, supporting BOJ caution, but hurts rice wholesalers and JA-linked distributors. It helps restaurant chains' input costs.\n\n- **Value dining:** A Tokyo Station sushi shop draws crowds from morning with a ¥1,078 jumbo pork-miso-soup set with free rice refills, seen as cheaper than a station bento [2]. Value-focused dining is winning in an inflationary environment.\n\n- **\"Imperfect\" products:** Products sold as \"uneven\" or irregular are going viral [33]. This reflects price-sensitive consumers accepting imperfect goods, positive for discount formats (PPIH, Trial, Kobe Bussan).\n\n- **Mos Food Services M&A:** Mos Food bought Obon de Gohan for ¥11.2 billion. In 27 years it had grown its in-house Japanese-cuisine concept to only 8 stores [3]. This is part of a broader trend of Japanese restaurant groups buying formats to diversify beyond saturated core concepts. Watch whether Mos can lift Obon de Gohan's margins without diluting the brand.\n\n- **Yves Rocher entry:** French cosmetics group Yves Rocher is opening specialty stores in Japan, targeting 10 by 2030 on natural ingredients [25]. A modest scale, but it adds competition for mid-price domestic natural-cosmetics players.\n\n- **Corporate housing:** Company housing and dormitories have become a recruiting selling point as rents soar [20]. It confirms persistent Tokyo rental inflation, positive for residential REITs and corporate-housing operators, and an added labour cost for employers.\n\n## Government Policy & Market Structure\n\n- **TOPIX reform:** The TOPIX overhaul is pressing companies to raise corporate value continuously, and Sankei says management resolve is being tested [38]. The phased removal of small and illiquid constituents keeps pressure on boards for buybacks, unwinding of cross-shareholdings and MBOs. Small caps at risk of removal are tactical candidates for corporate action; passive selling hits names that fail to act.\n\n- **Furusato nozei fees:** Startup \"Furukomi\" is entering the hometown-tax-donation platform market with a 2.5% fee, versus much higher incumbent take rates [24]. With point incentives banned from October 2025, platforms compete on price. This is negative for incumbent margins (Trust Bank's Furusato Choice, Satofull, Rakuten).\n\n## Industry & Sector Trends\n\n- **Domestic aviation consolidation:** ANA is making Air Do and Solaseed Air wholly owned subsidiaries, and the carriers say domestic routes are effectively loss-making [4]. This marks the end of the ~30-year aviation deregulation experiment that created these independents, which were already grouped under a joint holding company. Consolidation should allow capacity rationalization and pricing discipline. It is mildly positive for ANA HD and JAL's domestic margins and negative for consumer fares.\n\n- **Trading houses:** All five major sogo shosha posted profit gains, several at record highs, helped by high resource prices and business restructuring. The open question is earnings power in a recession [51]. This continues a multi-year trend supported by Berkshire's stakes and aggressive buybacks. Favour houses with higher non-resource profit mix (Itochu, Mitsubishi Corp) if the commodity cycle turns.\n\n- **Entertainment winners and losers:** Netflix is cutting 1,000 jobs with its stock down about 30%, despite record Japan viewing and revenue and profit growth [55][70]. Meanwhile Sony raised guidance for the second time on Spider-Man and gaming [53]. The divergence favours IP owners with multi-channel monetization over pure streaming platforms. It also argues for Japanese IP holders (Sony, Toho, Kadokawa, Toei Animation) whose content licensing benefits regardless of which platform wins.\n\n- **Autos:** The Mazda3 sedan sells well in North America despite the US shift to SUVs [37]. Nissan's new Elgrand matches the Alphard on length and wheelbase but drives differently [64]. Mazda's US sedan niche is a modest support amid tariff headwinds. The Elgrand is Nissan's attempt to retake the premium-minivan segment Toyota's Alphard dominates, relevant to Nissan's restructuring recovery but unlikely to move the needle alone.\n\n- **Manufacturing reinvention:** Toyo Keizai argues Japan's \"monozukuri\" identity has shifted from finished consumer goods toward components, materials and soft power [65]. This supports the strategy of owning upstream suppliers (materials, components, equipment) over assemblers.\n\n- **Toyota's Okuda:** Political and business heavyweights attended a memorial for former Toyota chairman Hiroshi Okuda [7]. No market impact; a symbolic generational marker for Toyota's governance lineage.\n\n## Company Briefs\n\n- **Earnings & guidance (Nov 6 releases):**\n  - Mitsubishi Heavy, TOWA and JFE Holdings: positive earnings impact at the open. MHI's defence and energy backlog and TOWA's AI back-end demand remain the core thesis [44][50].\n  - Meiko and Nichicon: flagged among strong results, consistent with AI server and EV/power-component demand [50].\n  - Sanrio, KDDI and Mitsui Fudosan: negative earnings reactions. Sanrio faces a high bar after a multi-year rerating; KDDI and Mitsui Fudosan are defensive names hit by expectation gaps [45].\n  - Oncolys BioPharma, Acom and Kimura Chemical: positive reactions among Standard and Growth names [46].\n  - iGrid Solutions, Kyoei Tanker and T-Works: negative reactions [47].\n  - santec: bid limit-up after raising full-year profit and dividend guidance on optical components [48].\n  - Chubu Shiryo: first-half revenue and profit growth, with planned buyback and dividend increase [49].\n  - Sony: second upward revision on Spider-Man and games; GTA6's release, scheduled for Nov 19, is the swing factor for a record profit [53].\n  - Persol HD: announced a full-year consolidated guidance revision (Nov 9 disclosure); check the direction before the open [56][57].\n- **M&A & restructuring:**\n  - ANA HD: Air Do and Solaseed Air to become wholly owned subsidiaries [4].\n  - Mos Food Services: ¥11.2 billion acquisition of Obon de Gohan [3].\n  - Undisclosed issuer: subsidiary share transfer with a gain on sale (07:30 filing); identify the name for an earnings bump [58].\n  - Chubu Electric: large Hamaoka impairment, with no decommissioning [30].\n- **Regulatory, legal & geopolitical risk:**\n  - Japan Tobacco: Russian media report its Russia business is managed by a company tied to former FSB staff with defence-industry links, and Ukraine condemned the arrangement [32][35]. This raises seizure, sanctions and ESG risk for a meaningful profit contributor; expect a discount until resolved.\n  - Shogakukan: suspected leak of 1.99 million personal records [13].\n\n## What to Watch\n\n- **Today's 175 results (Nov 9):** JX Advanced Metals, Furukawa Electric and Kokusai Electric will test whether AI demand (materials, optical cables, deposition equipment) offsets US regulatory fears [59].\n- **This week's bellwethers (Nov 9–13):** Recruit (US hiring data read-through), MUFG (rate-hike net interest income, with read-across to regional-bank stress) and SoftBank Group (AI asset marks after the selloff) [61][5].\n- **Takaichi–Xi summit:** Watch the tone and any measures on tourism, seafood or rare earths, which drive inbound and China-exposed industrials [16].\n- **US AI-regulation signals and COP31:** Watch post-midterm policy moves on AI. COP31 opens Nov 9 and will shape grid and electrification themes [18][52][27].\n- **Sony catalyst:** GTA6's launch (Nov 19) and early sales data. Also track domestic food price-hike passthrough and consumption-tax-cut timing for consumer staples [53][23].",
+    "ts": "2026-11-09T07:48:29.658736+07:00"
+  }
+}
