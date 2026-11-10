@@ -2408,6 +2408,23 @@ try:
 except Exception:
     _ec_repo = _ec_repo_default
 
+# ── Gloomberg (the portfolio app) ─────────────────────────────────────────────
+# Its address, for the "↗ Gloomberg" link beside a company in Research, which
+# opens that company's holding or watchlist entry there (?ticker=7203.T). Set
+# GLOOMBERG_URL in the Streamlit secrets; with none set the link is not drawn.
+# Only https addresses are used: this goes straight into an href.
+_gloomberg_url = (get_secret("GLOOMBERG_URL") or "").strip().rstrip("/")
+GLOOMBERG_URL = _gloomberg_url if _gloomberg_url.startswith("https://") else ""
+
+
+def gloomberg_link(code: str) -> str:
+    """The Gloomberg address for a TSE code, or '' when no address is set."""
+    from urllib.parse import quote
+    c = str(code or "").strip().upper()
+    if not GLOOMBERG_URL or not (len(c) == 4 and c.isalnum()):
+        return ""
+    return f"{GLOOMBERG_URL}/?ticker={quote(c)}.T"
+
 # ── Watchlist: pull the durable copy down once per session ────────────────────
 # The local watchlist.json is only a cache and is wiped on every Streamlit Cloud
 # restart; data/watchlist.json in the repo is the copy that survives. Done once
@@ -5302,6 +5319,11 @@ with tab_research:
                 _meta.append(
                     f'<span style="color:{"#1B7F4F" if _p3m >= 0 else "#B3261E"};">'
                     f'{_p3m:+.1f}% vs TOPIX 3M</span>')
+            if gloomberg_link(_rcode):
+                # Opens the holding or watchlist entry in Gloomberg, which
+                # says so if the company is in neither.
+                _meta.append(f'<a href="{_safe_text(gloomberg_link(_rcode))}" target="_blank" '
+                             'style="color:#8B4513;">↗ Gloomberg</a>')
             st.markdown(
                 f'<div style="font-size:1.1rem;font-weight:700;color:#2B2420;">{_safe_text(_rname)} '
                 f'<span style="font-family:monospace;font-weight:400;font-size:0.85rem;color:#9B8B7A;">({_rcode})</span></div>'
