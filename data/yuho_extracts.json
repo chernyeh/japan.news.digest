@@ -1,0 +1,60 @@
+{
+  "8136": [
+    {
+      "blocks_found": [
+        "cross_holdings"
+      ],
+      "date": "2026-06-30",
+      "doc_id": "S100YNR0",
+      "errors": {},
+      "facts": {
+        "avg_age": {
+          "parent": {
+            "label": "平均年齢（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 37.0
+          }
+        },
+        "avg_salary": {
+          "parent": {
+            "label": "平均年間給与、提出会社の状況、従業員の状況",
+            "unit": "円",
+            "value": 6999923.0
+          }
+        },
+        "avg_tenure": {
+          "parent": {
+            "label": "平均勤続年数（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 12.0
+          }
+        },
+        "employees": {
+          "parent": {
+            "label": "従業員数",
+            "unit": "",
+            "value": 2157.0
+          }
+        }
+      },
+      "fy": "FY2026",
+      "id": "yuho_FY2026",
+      "period_end": "2026-03-31",
+      "read_on": "2026-11-11",
+      "sections": {
+        "cross_holdings": {
+          "issues": [],
+          "notes": "The excerpt contains only footnote 1 to the 特定投資株式 table. It says a quantitative holding effect is hard to state, so the verification method is described instead. No issue count, total balance-sheet value, named-issue table or みなし保有株式 appear, so the totals are 0 for not stated. Verification reference date: 2026-03-31.",
+          "policy_summary": "The excerpt states only how holdings are reviewed. Each year, issue by issue, Sanrio checks whether each holding covers its cost of capital, given profitability. The review as of March 31, 2026 confirmed all current cross-shareholdings serve the policy's purposes. No reduction commitment appears in the excerpt.",
+          "reduction_stated": false,
+          "total_book_value_jpy": 0.0,
+          "total_issues": 0
+        }
+      },
+      "usage": {
+        "input": 1514,
+        "output": 343
+      }
+    }
+  ]
+}
