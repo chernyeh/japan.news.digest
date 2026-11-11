@@ -918,11 +918,47 @@
     }
   },
   "8050": {
+    "dps|FY2027|company": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 120.0
+    },
+    "eps|FY2027|company": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 392.57
+    },
+    "eps|FY2027|ytd_2q": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 278.4
+    },
     "eps|FY2029|consensus": {
       "as_of": "2026-11-11",
       "source": "typed:Koyfin",
       "unit": "jpy",
       "value": 555.7
+    },
+    "net_profit|FY2027|company": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 32000000000.0
+    },
+    "net_profit|FY2027|ytd_2q": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 22487000000.0
+    },
+    "net_sales|FY2027|company": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 390000000000.0
     },
     "net_sales|FY2027|consensus_q2": {
       "as_of": "2026-11-11",
@@ -942,11 +978,23 @@
       "unit": "jpy_abs",
       "value": 91160000000.0
     },
+    "net_sales|FY2027|ytd_2q": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 196303000000.0
+    },
     "net_sales|FY2029|consensus": {
       "as_of": "2026-11-11",
       "source": "typed:Koyfin",
       "unit": "jpy_abs",
       "value": 447470000000.0
+    },
+    "operating_profit|FY2027|company": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 47000000000.0
     },
     "operating_profit|FY2027|consensus": {
       "as_of": "2026-11-11",
@@ -972,6 +1020,12 @@
       "unit": "jpy_abs",
       "value": 4179999999.9999995
     },
+    "operating_profit|FY2027|ytd_2q": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 31429000000.0
+    },
     "operating_profit|FY2028|consensus": {
       "as_of": "2026-11-11",
       "source": "typed:Koyfin",
@@ -983,6 +1037,18 @@
       "source": "typed:Koyfin",
       "unit": "jpy_abs",
       "value": 65300000000.0
+    },
+    "ordinary_profit|FY2027|company": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 47500000000.0
+    },
+    "ordinary_profit|FY2027|ytd_2q": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 31593000000.0
     }
   },
   "8136": {
