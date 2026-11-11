@@ -9321,7 +9321,8 @@ with tab_research:
                     with st.spinner("Fetching the tagged data from EDINET…"):
                         try:
                             _zip = YX.fetch_csv_zip(_pick, _edinet_api_key)
-                            st.session_state[_pkey] = YX.prepare(_zip)
+                            st.session_state[_pkey] = YX.prepare(
+                                _zip, (_filing.get("SubmitDateTime") or "")[:10])
                         except Exception as _fe:
                             st.session_state.pop(_pkey, None)
                             st.warning(f"Could not fetch that filing: {_fe}")
@@ -9330,10 +9331,10 @@ with tab_research:
                     st.markdown('<div class="fc-note">EDINET_API_KEY is not set in Streamlit Secrets, '
                                 'so filings cannot be fetched.</div>', unsafe_allow_html=True)
                 else:
-                    st.markdown('<div class="fc-note">Step 1 fetches the filing\'s tagged values '
-                                '(no AI, no cost) and shows what sections it has; step 2 reads '
-                                'the sections with Claude and saves the card.</div>',
-                                unsafe_allow_html=True)
+                    st.markdown('<div class="fc-note">Step 1 fetches the filing\'s tagged values and '
+                                'parses the officers table (no AI, no cost) and shows what sections '
+                                'it has; step 2 reads cross-holdings, the capex plan and pay with '
+                                'Claude and saves the card.</div>', unsafe_allow_html=True)
             _prep = st.session_state.get(_pkey)
             if _prep:
                 _f = _prep["facts"]
@@ -9350,36 +9351,70 @@ with tab_research:
                                       + (f' {_safe_text(_v["unit"])}' if _v.get("unit") and _k == "cross_book_value" else ""))
                 _nblk = len(_prep.get("catalog") or [])
                 _unmatched = [c for c in (_prep.get("catalog") or []) if not c["kind"]][:6]
+                _board = _prep.get("officers") or {}
+                _nboard = len(_board.get("officers") or [])
                 st.markdown('<div class="fc-note">Tagged values: ' + (" · ".join(_fbits) or "none found")
                             + f'. Sections found: {", ".join(sorted(_prep["blocks"])) or "none"} '
                             f'(of {_nblk} text blocks in the filing; {_prep["n_rows"]:,} tagged rows). '
+                            + (f'<b>Board: {_nboard} officers parsed from the table, no AI.</b> '
+                               if _nboard else '<b>No officers table could be parsed.</b> ')
                             + (('Largest blocks not taken for any section: ' + ", ".join(
                                 f'{_safe_text(c["label"] or c["element"])} ({c["chars"]:,} chars)'
-                                for c in _unmatched) + '. ') if _unmatched and len(_prep["blocks"]) < 6 else '')
-                            + 'Reading them is about '
-                            f'${_prep["estimate"]["usd"]:.2f} ({_prep["estimate"]["input_tokens"]:,} '
-                            f'input tokens, estimated) on <code>{YX.MODEL}</code>.</div>',
-                            unsafe_allow_html=True)
+                                for c in _unmatched) + '. ') if _unmatched and len(_prep["blocks"]) < 5 else '')
+                            + '</div>', unsafe_allow_html=True)
+                _m1, _m2 = st.columns([1.2, 2])
+                with _m1:
+                    _model = st.selectbox(
+                        "Model", list(YX.MODEL_CHOICES),
+                        format_func=lambda m: f"{m.replace('claude-', '')}  (${models.price(m)[0]:g} / "
+                                              f"${models.price(m)[1]:g} per MTok)",
+                        key=f"yx_model_{_rcode}", label_visibility="collapsed",
+                        help="What reads cross-holdings, the capex plan and pay. Haiku reads a "
+                             "table against a fixed schema well; pick a larger one if a read "
+                             "looks wrong.")
+                with _m2:
+                    _summ_on = st.checkbox(
+                        "English career summaries for the board (Haiku, well under 1¢)",
+                        value=True, key=f"yx_summ_{_rcode}", disabled=not _nboard)
+                _est = YX.estimate_cost(_prep["blocks"], _model)
+                _jobs = _est["jobs"]
+                st.markdown(f'<div class="fc-note">Reading {", ".join(_jobs) or "nothing"} is about '
+                            f'${_est["usd"]:.3f} ({_est["input_tokens"]:,} input tokens, estimated) '
+                            f'on <code>{_model}</code>.</div>', unsafe_allow_html=True)
                 if not _api_key:
                     st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
-                                'Secrets, so the sections cannot be read.</div>', unsafe_allow_html=True)
-                if st.button(f"🏛️ Read the sections with Claude (~${_prep['estimate']['usd']:.2f})",
+                                'Secrets, so the sections cannot be read; the board can still be '
+                                'saved from the parsed table.</div>', unsafe_allow_html=True)
+                if st.button(f"🏛️ Read and save (~${_est['usd']:.2f})",
                              key=f"yx_go_{_rcode}_{_pick}", type="primary",
-                             disabled=not (_api_key and _prep["blocks"])):
+                             disabled=not (_nboard or (_api_key and _jobs))):
                     _status = st.status("Reading the yuho…", expanded=True)
-                    _secs, _errs, _use = YX.read_blocks(
-                        _prep["blocks"], _api_key, _rcode, _rname,
-                        progress=lambda k: _status.write(f"Reading {k.replace('_', ' ')}…"))
+                    _secs, _errs, _use = {}, {}, {"input": 0, "output": 0, "usd": 0.0}
+                    if _api_key and _jobs:
+                        _secs, _errs, _use = YX.read_blocks(
+                            _prep["blocks"], _api_key, _rcode, _rname,
+                            progress=lambda k: _status.write(f"Reading {k.replace('_', ' ')}…"),
+                            model=_model)
+                    if _nboard:
+                        if _summ_on and _api_key:
+                            _status.write("English career summaries…")
+                            try:
+                                _board, _u2 = YX.summarise_careers(_board, _api_key, _rcode, _rname)
+                                for _k in ("input", "output", "usd"):
+                                    _use[_k] += _u2.get(_k, 0)
+                            except Exception as _xe:
+                                _errs["career_summaries"] = str(_xe)[:300]
+                        _secs["officers"] = _board
                     _entry = YX.build_entry(_filing, _prep, _secs, _errs, _use,
-                                            now_local().date().isoformat())
+                                            now_local().date().isoformat(), _model)
                     _ok, _m = YX.save_via_github(_ec_repo, _gh_token, _rcode, _entry)
                     st.session_state.yuho_map = CE.apply(st.session_state.get("yuho_map") or {},
                                                          _rcode, [_entry], ())
                     st.session_state.pop(_pkey, None)
                     _status.update(label="Done", state="complete", expanded=False)
-                    _cost = (_use["input"] / 1e6) * YX.INPUT_USD_PER_MTOK + (_use["output"] / 1e6) * YX.OUTPUT_USD_PER_MTOK
-                    _msg = (f"Read {len(_secs)} section{'s' if len(_secs) != 1 else ''} of the "
-                            f"{_entry['fy']} yuho (${_cost:.2f}). "
+                    _msg = (f"Saved the {_entry['fy']} yuho: board of {_nboard}"
+                            + (f", {', '.join(k for k in _secs if k != 'officers')}" if len(_secs) > 1 else "")
+                            + f" (${_use['usd']:.3f}). "
                             + (f"Could not read: {', '.join(_errs)}. " if _errs else "")
                             + (_m if _ok else f"Kept for this session, not saved: {_m}"))
                     st.session_state.research_flash = ("success" if _ok else "warning", _msg)

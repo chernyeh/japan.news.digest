@@ -45,9 +45,23 @@ USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
 YUHO_DOC_TYPE = "120"
 STORE_PATH = "data/yuho_extracts.json"
 
-MODEL = models.DOC_EXTRACT_MODEL
+# The sections are tables read against a fixed schema, which the smallest
+# model does well, and the officers table is parsed without a model at all.
+# Haiku 5.5 is 40x cheaper than Opus 5.5 on both sides; the screen offers the
+# larger ones for a read that looks wrong.
+MODEL_CHOICES = ("claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5")
+MODEL = MODEL_CHOICES[0]
 FALLBACK_MODEL = models.DOC_EXTRACT_FALLBACK_MODEL
 INPUT_USD_PER_MTOK, OUTPUT_USD_PER_MTOK = models.price(MODEL)
+
+# What is sent to a model. Officers are parsed; major shareholders and the
+# ownership table are not read (not wanted); the rest are.
+READ_KINDS = ("cross_holdings", "exec_pay", "capex")
+
+
+def cost_usd(usage: dict, model: str = MODEL) -> float:
+    i, o = models.price(model)
+    return (usage.get("input", 0) / 1e6) * i + (usage.get("output", 0) / 1e6) * o
 
 # How much of a text block goes to the model. The officers table of a large
 # board runs to ~40k characters; the cross-holdings table lists up to sixty
@@ -727,14 +741,31 @@ _PROMPTS = {
 }
 
 
-def estimate_cost(blocks: dict) -> dict:
-    """A rough cost for reading these blocks: Japanese text runs about one token "
-    "per character on this model family."""
-    n_in = sum(min(len(html_to_text(v)), MAX_BLOCK_CHARS) for v in blocks.values())
-    n_in += 600 * len(blocks)
-    n_out = 2500 * len(blocks)
-    usd = (n_in / 1e6) * INPUT_USD_PER_MTOK + (n_out / 1e6) * OUTPUT_USD_PER_MTOK
-    return {"input_tokens": n_in, "output_tokens": n_out, "usd": usd}
+def _read_jobs(blocks: dict) -> list:
+    """[(kind, text)] for the sections a model reads. The capex plan and
+    the capex overview go in one call."""
+    jobs = []
+    for kind in READ_KINDS:
+        if kind != "capex" and blocks.get(kind):
+            jobs.append((kind, html_to_text(blocks[kind])))
+    if blocks.get("capex_plan") or blocks.get("capex_overview"):
+        txt = ""
+        if blocks.get("capex_overview"):
+            txt += "【設備投資等の概要】\n" + html_to_text(blocks["capex_overview"]) + "\n\n"
+        if blocks.get("capex_plan"):
+            txt += "【設備の新設、除却等の計画】\n" + html_to_text(blocks["capex_plan"])
+        jobs.append(("capex", txt))
+    return jobs
+
+
+def estimate_cost(blocks: dict, model: str = MODEL) -> dict:
+    """A rough cost for reading the sections a model reads: Japanese text
+    runs about one token per character on this model family."""
+    jobs = _read_jobs(blocks)
+    n_in = sum(min(len(t), MAX_BLOCK_CHARS) for _, t in jobs) + 600 * len(jobs)
+    n_out = 2500 * len(jobs)
+    return {"input_tokens": n_in, "output_tokens": n_out, "jobs": [k for k, _ in jobs],
+            "usd": cost_usd({"input": n_in, "output": n_out}, model), "model": model}
 
 
 def extract_block(kind: str, text: str, api_key: str, code: str = "", name: str = "",
@@ -894,7 +925,7 @@ def normalise(kind: str, raw: dict) -> dict:
 
 # ── 6. The read, end to end ──────────────────────────────────────────────
 
-def prepare(csv_zip: bytes) -> dict:
+def prepare(csv_zip: bytes, filed: str = "") -> dict:
     """Everything that needs no model: the parsed facts, the text blocks, and
     a cost estimate for reading them. The screen shows this first, so the
     numbers are on screen before any money is spent."""
@@ -902,47 +933,41 @@ def prepare(csv_zip: bytes) -> dict:
     blocks = text_blocks(rows)
     cat = [{k: v for k, v in c.items() if not k.startswith("_")} for c in catalog(rows)]
     return {"facts": numeric_facts(rows), "blocks": blocks, "n_rows": len(rows),
-            "estimate": estimate_cost(blocks), "catalog": cat[:80]}
+            "estimate": estimate_cost(blocks), "catalog": cat[:80],
+            "officers": parse_officers(blocks["officers"], filed) if blocks.get("officers") else {}}
 
 
 def read_blocks(blocks: dict, api_key: str, code: str = "", name: str = "",
-                progress=None) -> tuple:
+                progress=None, model: str = MODEL) -> tuple:
     """(sections, errors, usage) — every block the model could read, normalised.
     `progress(kind)` is called before each block so a screen can say which one
     is running. The capex plan and the capex overview go in one call."""
     sections, errors = {}, {}
-    usage = {"input": 0, "output": 0}
-    jobs = []
-    for kind in ("officers", "major_shareholders", "share_status", "cross_holdings", "exec_pay"):
-        if blocks.get(kind):
-            jobs.append((kind, html_to_text(blocks[kind])))
-    if blocks.get("capex_plan") or blocks.get("capex_overview"):
-        txt = ""
-        if blocks.get("capex_overview"):
-            txt += "【設備投資等の概要】\n" + html_to_text(blocks["capex_overview"]) + "\n\n"
-        if blocks.get("capex_plan"):
-            txt += "【設備の新設、除却等の計画】\n" + html_to_text(blocks["capex_plan"])
-        jobs.append(("capex", txt))
-    for kind, text in jobs:
+    usage = {"input": 0, "output": 0, "usd": 0.0}
+    for kind, text in _read_jobs(blocks):
         if progress:
             progress(kind)
         try:
-            raw = extract_block(kind, text, api_key, code, name)
+            raw = extract_block(kind, text, api_key, code, name, model=model)
         except Exception as exc:
             errors[kind] = str(exc)[:300]
             continue
         u = raw.pop("_usage", {}) or {}
         usage["input"] += u.get("input", 0)
         usage["output"] += u.get("output", 0)
+        usage["usd"] += cost_usd(u, model)
         sections[kind] = normalise(kind, raw)
     return sections, errors, usage
 
 
 def build_entry(filing: dict, prepared: dict, sections: dict, errors: dict,
-                usage: dict, read_on: str) -> dict:
+                usage: dict, read_on: str, model: str = "") -> dict:
     """The store entry for one yuho, keyed by fiscal year."""
     fy = fy_label(filing.get("PeriodEnd"))
+    if "officers" in sections:
+        sections = {**sections, "officers": strip_private(sections["officers"])}
     return {
+        "model": model,
         "id": f"yuho_{fy}", "fy": fy, "date": (filing.get("SubmitDateTime") or "")[:10],
         "doc_id": filing.get("DocID", ""), "period_end": filing.get("PeriodEnd", ""),
         "read_on": read_on, "facts": prepared.get("facts", {}),
@@ -1144,3 +1169,325 @@ def load_from_github(repo: str, token: str = None) -> dict:
 def save_via_github(repo: str, token: str, code: str, entry: dict) -> tuple:
     return CE.save_via_github(repo, token, code, [entry], (), path=STORE_PATH,
                               what="yuho extract")
+
+
+# ── 9. The board, parsed without a model ────────────────────────────────
+# The 役員の状況 table has fixed columns — 役職名, 氏名, 生年月日, 略歴, 任期,
+# 所有株式数 — so everything but an English career summary comes straight
+# out of the HTML: name, title, age, shares, term, inside / outside, the
+# year joined (the 略歴 line with 当社…入社) and the year made a director
+# (the first 当社 取締役 line). Background tags come from keywords in the
+# career history. Costs nothing; the summaries are an optional, cheap pass.
+
+_ERA = {"明治": 1867, "大正": 1911, "昭和": 1925, "平成": 1988, "令和": 2018}
+_DATE_RE = re.compile(r"(?:(\d{4})|(明治|大正|昭和|平成|令和)\s*(\d{1,2}|元))\s*年\s*(\d{1,2})\s*月(?:\s*(\d{1,2})\s*日)?")
+_OTHER_CO = ("株式会社", "㈱", "(株)", "（株）", "銀行", "信託", "商事", "物産", "Co.", "Inc", "Ltd",
+             "Corporation", "省", "庁", "大学", "法律事務所", "会計事務所", "監査法人", "証券")
+
+
+def _ymd(m) -> tuple:
+    if m.group(1):
+        y = int(m.group(1))
+    else:
+        n = 1 if m.group(3) == "元" else int(m.group(3))
+        y = _ERA[m.group(2)] + n
+    return y, int(m.group(4)), int(m.group(5)) if m.group(5) else 0
+
+
+def _clean_cell(s: str) -> str:
+    lines = [re.sub(r"[ \t　]+", " ", ln).strip() for ln in s.split("\n")]
+    return "\n".join(ln for ln in lines if ln)
+
+
+class _Tables(HTMLParser):
+    """Every <table> as rows of cell texts. A nested table flattens into the
+    cell that holds it, one line per row; <br> and <p> break lines."""
+
+    def __init__(self):
+        super().__init__()
+        self.tables, self._stack = [], []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            self._stack.append({"rows": [], "row": None, "cell": None})
+            return
+        if not self._stack:
+            return
+        t = self._stack[-1]
+        if tag == "tr":
+            t["row"] = []
+        elif tag in ("td", "th"):
+            t["cell"] = []
+        elif tag in ("br", "p", "div") and t["cell"] is not None:
+            t["cell"].append("\n")
+
+    def handle_endtag(self, tag):
+        if not self._stack:
+            return
+        t = self._stack[-1]
+        if tag in ("td", "th"):
+            if t["cell"] is not None and t["row"] is not None:
+                t["row"].append(_clean_cell("".join(t["cell"])))
+            t["cell"] = None
+        elif tag == "tr":
+            if t["row"] is not None:
+                t["rows"].append(t["row"])
+            t["row"] = None
+        elif tag == "table":
+            done = self._stack.pop()
+            if self._stack and self._stack[-1]["cell"] is not None:
+                self._stack[-1]["cell"].append(
+                    "\n" + "\n".join(" ".join(c for c in r if c) for r in done["rows"]) + "\n")
+            else:
+                self.tables.append(done["rows"])
+
+    def handle_data(self, data):
+        if self._stack and self._stack[-1]["cell"] is not None:
+            self._stack[-1]["cell"].append(data)
+
+
+def html_tables(html: str) -> list:
+    p = _Tables()
+    try:
+        p.feed(html or "")
+        p.close()
+    except Exception:
+        return []
+    return p.tables
+
+
+def _career_lines(text: str) -> list:
+    """[(year, month, event)] from a 略歴 cell, whether the dates start new
+    lines or run on."""
+    out = []
+    ms = list(_DATE_RE.finditer(text or ""))
+    for i, m in enumerate(ms):
+        end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
+        ev = re.sub(r"\s+", " ", text[m.end():end]).strip(" 　:：|")
+        y, mo, _ = _ymd(m)
+        if 1900 < y < 2100:
+            out.append((y, mo, ev))
+    return out
+
+
+def _this_company(ev: str) -> bool:
+    """Whether a career line is about this company. 当社 / 当行 says so; a
+    named company, bank, ministry or firm says not; 同社 / 同行 refers back
+    to the other company named on the line before."""
+    if "当社" in ev or "当行" in ev:
+        return True
+    if any(w in ev for w in ("同社", "同行", "同省", "同庁", "同所", "同法人")):
+        return False
+    return not any(w in ev for w in _OTHER_CO)
+
+
+_TAG_WORDS = (
+    ("ex_bank", ("銀行", "信託銀行", "日本政策投資", "信用金庫", "日本銀行")),
+    ("finance_accounting", ("経理", "財務", "会計", "公認会計士", "税理士", "CFO", "主計")),
+    ("sales_marketing", ("営業", "販売", "マーケティング", "セールス")),
+    ("engineering_rd", ("技術", "開発", "研究", "設計", "エンジニア", "品質")),
+    ("manufacturing", ("製造", "工場", "生産", "調達")),
+    ("overseas", ("海外", "米国", "欧州", "アメリカ", "ヨーロッパ", "中国", "アジア", "Inc", "Ltd",
+                  "Corporation", "GmbH", "駐在", "現地法人", "国際")),
+    ("legal", ("弁護士", "法務", "法律事務所")),
+    ("hr_admin", ("人事", "総務", "労務")),
+    ("planning_strategy", ("経営企画", "企画", "戦略")),
+    ("ex_government", ("財務省", "大蔵省", "経済産業省", "通商産業省", "経産省", "国土交通省", "金融庁",
+                       "総務省", "厚生労働省", "農林水産省", "防衛省", "外務省", "内閣府", "県庁", "市役所")),
+    ("ex_trading_house", ("商事", "物産", "伊藤忠", "丸紅", "双日", "豊田通商")),
+    ("academic", ("教授", "大学", "研究所")),
+    ("consulting", ("コンサルティング", "マッキンゼー", "ボストン", "アクセンチュア")),
+)
+
+
+def _tags(lines: list) -> list:
+    text = " ".join(ev for _, _, ev in lines)
+    tags = [t for t, words in _TAG_WORDS if any(w in text for w in words)]
+    if any(re.search(r"(社長|代表取締役|取締役|執行役員|役員|CEO)", ev) and not _this_company(ev)
+           for _, _, ev in lines):
+        tags.append("other_company_executive")
+    return [t for t in BACKGROUND_TAGS if t in tags]
+
+
+def _role(title: str, outside: bool) -> str:
+    t = title or ""
+    if "監査等委員" in t:
+        return "audit_committee_member"
+    if "監査役" in t:
+        return "outside_auditor" if outside else "corporate_auditor"
+    if "取締役" in t:
+        if "代表" in t:
+            return "representative_director"
+        return "outside_director" if outside else "director"
+    if "執行役" in t:
+        return "executive_officer"
+    return "other"
+
+
+def _outside_names(block_text: str) -> set:
+    """Names the notes call 社外: '取締役A及びBは、社外取締役であります' and
+    the like. Names are compared with spaces removed."""
+    out = set()
+    for sent in re.split(r"[。\n]", block_text or ""):
+        if "社外取締役" in sent or "社外監査役" in sent:
+            out.add(re.sub(r"[\s　]+", "", sent))
+    return out
+
+
+def parse_officers(html: str, filed: str = "") -> dict:
+    """The officers section in the same shape normalise('officers') gives,
+    read from the table alone. `filed` (ISO date) sets the ages."""
+    tables = html_tables(html)
+    text = html_to_text(html)
+    m = re.search(r"(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日\s*現在", text)
+    as_of = f"{m.group(1)}年{m.group(2)}月{m.group(3)}日現在" if m else ""
+    try:
+        fy, fm, fd = (int(filed[:4]), int(filed[5:7]), int(filed[8:10]))
+    except (TypeError, ValueError):
+        fy = int(m.group(1)) if m else 0
+        fm, fd = (int(m.group(2)), int(m.group(3))) if m else (12, 31)
+    note_hits = _outside_names(text)
+
+    table, header = None, None
+    for t in tables:
+        for i, row in enumerate(t[:3]):
+            joined = "".join(row)
+            if "氏名" in joined and ("略歴" in joined or "所有株式数" in joined):
+                table, header = t[i + 1:], row
+                break
+        if table is not None:
+            break
+    if table is None:
+        return {"as_of": as_of, "officers": [], "notes": "No officers table found."}
+
+    def col(*words):
+        for i, h in enumerate(header):
+            if any(w in h for w in words):
+                return i
+        return None
+    c_name, c_birth = col("氏名"), col("生年月日")
+    c_career, c_term, c_shares = col("略歴"), col("任期"), col("所有株式数")
+    c_roles = [i for i, h in enumerate(header) if any(w in h for w in ("役職", "役名", "職名"))
+               and i != c_name]
+    shares_unit = 1000 if any("千" in h for h in header) else 1
+    n = len(header)
+
+    officers, cur = [], None
+    for row in table:
+        is_new = (len(row) >= max(3, n - 1) and c_name is not None and c_name < len(row)
+                  and row[c_name].strip() and (c_birth is None or c_birth >= len(row)
+                                                or _DATE_RE.search(row[c_birth] or "")))
+        if is_new:
+            cur = {"title": " ".join(row[i] for i in c_roles if i < len(row)).replace("\n", " ").strip(),
+                   "name": re.sub(r"[\s　]+", " ", row[c_name]).strip(),
+                   "birth": row[c_birth] if c_birth is not None and c_birth < len(row) else "",
+                   "career": row[c_career] if c_career is not None and c_career < len(row) else "",
+                   "term": row[c_term] if c_term is not None and c_term < len(row) else "",
+                   "shares": row[c_shares] if c_shares is not None and c_shares < len(row) else ""}
+            officers.append(cur)
+        elif cur is not None and row:
+            # A continuation row of a rowspan layout: more career lines.
+            cur["career"] += "\n" + " ".join(c for c in row if c)
+    out = []
+    for o in officers:
+        bm = _DATE_RE.search(o["birth"])
+        by, bmo, bd = _ymd(bm) if bm else (0, 0, 0)
+        age = (fy - by - (1 if (fm, fd) < (bmo, bd or 1) else 0)) if (by and fy) else 0
+        lines = _career_lines(o["career"])
+        joined = next((y for y, _, ev in lines
+                       if any(w in ev for w in ("入社", "入行", "入所", "入庫", "入局"))
+                       and _this_company(ev)), 0)
+        since = next((y for y, _, ev in lines if "取締役" in ev and "退任" not in ev
+                      and "辞任" not in ev and _this_company(ev)), 0)
+        title = o["title"]
+        name_key = re.sub(r"[\s　]+", "", o["name"])
+        outside = ("社外" in title) or any(name_key in s for s in note_hits)
+        sh = _num(re.sub(r"[^\d.,-]", "", o["shares"]) or "")
+        summ = "; ".join(f"{y}.{mo} {ev}" for y, mo, ev in (lines[:2] + lines[-1:] if len(lines) > 3 else lines))
+        out.append({
+            "name": o["name"][:80], "title": title[:120], "role_kind": _role(title, outside),
+            "outside": outside, "age": age if 18 < age < 100 else 0, "birth_year": by,
+            "joined_company_year": joined, "director_since_year": since,
+            "is_ceo": bool(re.search(r"(?<!副)社長|CEO|最高経営責任者", title)),
+            "is_chair": ("会長" in title and "副会長" not in title),
+            "is_cfo": bool(re.search(r"CFO|最高財務責任者|財務|経理", title)),
+            "career_summary": summ[:400], "background_tags": _tags(lines),
+            "shares_held": int(sh * shares_unit) if sh else 0, "term_end": o["term"][:40],
+            "_career": o["career"][:4000],
+        })
+    return {"as_of": as_of, "officers": out, "notes": ""}
+
+
+def _schema_careers():
+    return {
+        "type": "object", "additionalProperties": False, "required": ["items"],
+        "properties": {"items": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["name", "summary", "background_tags"],
+            "properties": {
+                "name": {"type": "string", "description": "Exactly as given."},
+                "summary": {"type": "string",
+                            "description": "In English, at most 40 words: prior employers "
+                            "and the functions held, in order, then the current role."},
+                "background_tags": {"type": "array", "items": {
+                    "type": "string", "enum": list(BACKGROUND_TAGS)}},
+            }}}},
+    }
+
+
+SUMMARY_MODEL = "claude-haiku-5-5"
+
+
+def summarise_careers(board: dict, api_key: str, code: str = "", name: str = "",
+                      model: str = SUMMARY_MODEL) -> tuple:
+    """(board with English summaries and the model's tags merged in, usage).
+    One small call for the whole board; the parsed facts are never
+    overwritten, only the summary text and the tag list."""
+    import anthropic
+    from fx_extract import _loads_lenient
+    offs = board.get("officers") or []
+    if not offs:
+        return board, {"input": 0, "output": 0, "usd": 0.0}
+    who = f" of {name} ({code})" if (name or code) else ""
+    listing = "\n\n".join(f"### {o['name']} — {o['title']}\n{o.get('_career') or o['career_summary']}"
+                          for o in offs)
+    prompt = (f"Below are the career histories (略歴) of the officers{who}, from the company's "
+              "annual securities report. For each, give a one-sentence English summary and "
+              "the background tags the history supports. Use the names exactly as given.\n\n"
+              + listing)
+    client = anthropic.Anthropic(api_key=api_key)
+    attempts = ({"output_config": {"format": {"type": "json_schema", "schema": _schema_careers()}}}, {})
+    last = None
+    for extra in attempts:
+        try:
+            resp = client.messages.create(model=model, max_tokens=8000,
+                                          messages=[{"role": "user", "content": prompt}], **extra)
+            break
+        except (TypeError, anthropic.BadRequestError) as exc:
+            last = exc
+    else:
+        raise RuntimeError(f"Could not call the model: {last}")
+    reply = next((b.text for b in resp.content if getattr(b, "type", "") == "text"), "")
+    data = _loads_lenient(reply)
+    by_name = {re.sub(r"[\s　]+", "", str(i.get("name") or "")): i for i in (data.get("items") or [])}
+    out = []
+    for o in offs:
+        o = {k: v for k, v in o.items() if k != "_career"}
+        hit = by_name.get(re.sub(r"[\s　]+", "", o["name"]))
+        if hit:
+            if _s(hit.get("summary")):
+                o["career_summary"] = _s(hit.get("summary"), 400)
+            tags = set(o["background_tags"]) | {t for t in (hit.get("background_tags") or [])
+                                                if t in BACKGROUND_TAGS}
+            o["background_tags"] = [t for t in BACKGROUND_TAGS if t in tags]
+        out.append(o)
+    u = getattr(resp, "usage", None)
+    usage = {"input": getattr(u, "input_tokens", 0) or 0, "output": getattr(u, "output_tokens", 0) or 0}
+    usage["usd"] = cost_usd(usage, model)
+    return {**board, "officers": out}, usage
+
+
+def strip_private(board: dict) -> dict:
+    """The board without the raw career text, for storing."""
+    return {**board, "officers": [{k: v for k, v in o.items() if not k.startswith("_")}
+                                  for o in (board.get("officers") or [])]}
