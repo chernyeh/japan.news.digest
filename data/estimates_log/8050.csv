@@ -94,7 +94,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-02-10,operating_profit,FY2026,ytd_3q,28959000000.0,jquants,filing,2026-11-01
 2026-05-13,operating_profit,FY2027,company,33500000000.0,jquants,backfill,2026-08-27
 2026-08-07,operating_profit,FY2027,company,41000000000.0,jquants,backfill,2026-10-31
+2026-11-11,operating_profit,FY2027,consensus,51070000000.0,typed:Koyfin,typed,2026-11-11
+2026-11-11,operating_profit,FY2027,consensus_q2,15050000000.0,typed:Koyfin,typed,2026-11-11
+2026-11-11,operating_profit,FY2027,consensus_q3,16850000000.000002,typed:Koyfin,typed,2026-11-11
+2026-11-11,operating_profit,FY2027,consensus_q4,4179999999.9999995,typed:Koyfin,typed,2026-11-11
 2026-08-07,operating_profit,FY2027,ytd_1q,15440000000.0,jquants,filing,2026-11-01
+2026-11-11,operating_profit,FY2028,consensus,58470000000.0,typed:Koyfin,typed,2026-11-11
+2026-11-11,operating_profit,FY2029,consensus,65300000000.0,typed:Koyfin,typed,2026-11-11
 2025-05-13,ordinary_profit,FY2025,actual,20769000000.0,jquants,filing,2026-11-01
 2024-08-13,ordinary_profit,FY2025,company,18000000000.0,jquants,backfill,2024-08-13
 2025-02-12,ordinary_profit,FY2025,company,20000000000.0,jquants,backfill,2025-02-12
