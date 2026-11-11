@@ -11,5 +11,18 @@
       "source": "typed:Company data",
       "type": "Dividend change"
     }
+  ],
+  "8050": [
+    {
+      "date": "2026-11-11",
+      "dps_new": 120.0,
+      "dps_old": 105.0,
+      "fy": "FY2027",
+      "id": "8050-2026-11-11-dividend-change",
+      "logged_at": "2026-11-11",
+      "note": "DPS 105 → 120 with 2Q results",
+      "source": "typed:Company data",
+      "type": "Dividend change"
+    }
   ]
 }
