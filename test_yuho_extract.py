@@ -75,6 +75,58 @@ def test_text_blocks_are_picked_by_id_or_label_current_year_only():
     assert b["capex_plan"] == "<p>capex plan</p>"
 
 
+PAY_HTML = ("<table><tr><th>役員区分</th><th>報酬等の総額</th><th>対象となる役員の員数</th></tr>"
+            "<tr><td>取締役</td><td>612</td><td>6</td></tr></table>")
+CROSS_HTML = ("<p>特定投資株式</p><table><tr><th>銘柄</th><th>保有目的</th><th>貸借対照表計上額</th>"
+              "<th>当社の株式の保有の有無</th></tr><tr><td>Bank X</td><td>取引関係</td><td>9,100</td><td>有</td></tr></table>")
+PLAN_HTML = ("<table><tr><th>会社名</th><th>投資予定金額</th><th>既支払額</th><th>資金調達方法</th><th>着手</th><th>完了</th></tr>"
+             "<tr><td>Morioka</td><td>9,500</td><td>1,200</td><td>自己資金</td><td>2026.4</td><td>2027.9</td></tr></table>")
+OWNER_HTML = ("<p>所有者別状況</p><table><tr><th>政府及び地方公共団体</th><th>金融機関</th><th>外国法人等</th></tr>"
+              "<tr><td>0</td><td>31.2</td><td>22.4</td></tr></table>")
+
+
+def test_sections_are_found_by_content_when_tags_and_labels_say_nothing():
+    """The first real filing matched none of the documented tag names: the
+    text itself has to identify a section."""
+    parent = "<div>" + OFFICERS_HTML + PAY_HTML + CROSS_HTML + "</div>"
+    rows = [
+        {"element": "jpcrp_cor:CorporateGovernanceTextBlock", "label": "コーポレート・ガバナンスの状況等",
+         "context": "FilingDateInstant", "value": parent},
+        {"element": "jpcrp_cor:SomeOddNameTextBlock", "label": "(2)", "context": "FilingDateInstant",
+         "value": OFFICERS_HTML},
+        {"element": "jpcrp_cor:AnotherOddNameTextBlock", "label": "", "context": "FilingDateInstant",
+         "value": PAY_HTML},
+        {"element": "jpcrp_cor:ThirdOddNameTextBlock", "label": "", "context": "FilingDateInstant",
+         "value": CROSS_HTML},
+        {"element": "jpcrp_cor:FourthTextBlock", "label": "", "context": "FilingDateInstant", "value": PLAN_HTML},
+        {"element": "jpcrp_cor:FifthTextBlock", "label": "", "context": "FilingDateInstant", "value": OWNER_HTML},
+        {"element": "jpcrp_cor:FifthTextBlock", "label": "", "context": "Prior1YearInstant", "value": OWNER_HTML},
+        {"element": "jpcrp_cor:PolicyHeadingTextBlock", "label": "株式の保有状況", "context": "FilingDateInstant",
+         "value": "<p>保有方針</p>"},
+    ]
+    b = YX.text_blocks(rows)
+    # Each section is its own sub-block, not the parent that holds all three,
+    # and the content-rich cross-holdings table beats the heading that merely
+    # carries the label.
+    assert b["officers"] == OFFICERS_HTML and b["exec_pay"] == PAY_HTML
+    assert b["cross_holdings"] == CROSS_HTML and b["capex_plan"] == PLAN_HTML
+    assert b["share_status"] == OWNER_HTML
+    cat = YX.catalog(rows)
+    assert cat[0]["element"] == "CorporateGovernanceTextBlock" and cat[0]["chars"] > cat[1]["chars"]
+    assert {c["kind"] for c in cat} >= {"officers", "exec_pay", "cross_holdings", "capex_plan", "share_status"}
+    assert all(not k.startswith("_") for k in YX.prepare(_zip({"a.csv": _csv(ROWS)}))["catalog"][0])
+
+
+def test_consolidated_is_read_from_the_context_id_first():
+    assert YX._consolidated({"context": "CurrentYearInstant", "cons": "個別"}) is False
+    assert YX._consolidated({"context": "CurrentYearInstant_NonConsolidatedMember", "cons": "連結"}) is False
+    assert YX._consolidated({"context": "CurrentYearInstant", "cons": ""}) is True
+    e = {"facts": {}, "sections": {"share_status": YX.normalise("share_status", {
+        "as_of": "", "foreign_pct": 22.4, "financial_institutions_pct": 31.2, "individuals_pct": 20.0,
+        "treasury_shares": 10, "shares_issued": 1000, "shareholders_count": 28400, "notes": ""})}}
+    assert YX.foreign_pct(e) == 22.4 and YX.shareholders_count(e) == 28400
+
+
 def test_html_flattening_keeps_table_rows_and_cells():
     t = YX.html_to_text(OFFICERS_HTML)
     lines = t.split("\n")

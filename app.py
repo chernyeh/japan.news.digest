@@ -9175,8 +9175,8 @@ with tab_research:
 
                 # Ownership
                 _ms = _secs.get("major_shareholders") or {}
-                _fp = YX.fact(_latest, "foreign_pct")
-                _nsh = YX.fact(_latest, "shareholders")
+                _fp = YX.foreign_pct(_latest)
+                _nsh = YX.shareholders_count(_latest)
                 _own_bits = []
                 if _fp is not None:
                     _own_bits.append(f"foreign holders {_fp:.1f}%")
@@ -9348,9 +9348,15 @@ with tab_research:
                     if _v.get("value") is not None:
                         _fbits.append(f'{_lbl} {_plain_num(_v["value"])}'
                                       + (f' {_safe_text(_v["unit"])}' if _v.get("unit") and _k == "cross_book_value" else ""))
+                _nblk = len(_prep.get("catalog") or [])
+                _unmatched = [c for c in (_prep.get("catalog") or []) if not c["kind"]][:6]
                 st.markdown('<div class="fc-note">Tagged values: ' + (" · ".join(_fbits) or "none found")
                             + f'. Sections found: {", ".join(sorted(_prep["blocks"])) or "none"} '
-                            f'({_prep["n_rows"]:,} tagged rows). Reading them is about '
+                            f'(of {_nblk} text blocks in the filing; {_prep["n_rows"]:,} tagged rows). '
+                            + (('Largest blocks not taken for any section: ' + ", ".join(
+                                f'{_safe_text(c["label"] or c["element"])} ({c["chars"]:,} chars)'
+                                for c in _unmatched) + '. ') if _unmatched and len(_prep["blocks"]) < 6 else '')
+                            + 'Reading them is about '
                             f'${_prep["estimate"]["usd"]:.2f} ({_prep["estimate"]["input_tokens"]:,} '
                             f'input tokens, estimated) on <code>{YX.MODEL}</code>.</div>',
                             unsafe_allow_html=True)
