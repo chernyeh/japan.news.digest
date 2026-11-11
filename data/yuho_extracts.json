@@ -1,0 +1,60 @@
+{
+  "8136": [
+    {
+      "blocks_found": [
+        "cross_holdings"
+      ],
+      "date": "2026-06-30",
+      "doc_id": "S100YNR0",
+      "errors": {},
+      "facts": {
+        "avg_age": {
+          "parent": {
+            "label": "平均年齢（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 37.0
+          }
+        },
+        "avg_salary": {
+          "parent": {
+            "label": "平均年間給与、提出会社の状況、従業員の状況",
+            "unit": "円",
+            "value": 6999923.0
+          }
+        },
+        "avg_tenure": {
+          "parent": {
+            "label": "平均勤続年数（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 12.0
+          }
+        },
+        "employees": {
+          "parent": {
+            "label": "従業員数",
+            "unit": "",
+            "value": 2157.0
+          }
+        }
+      },
+      "fy": "FY2026",
+      "id": "yuho_FY2026",
+      "period_end": "2026-03-31",
+      "read_on": "2026-11-11",
+      "sections": {
+        "cross_holdings": {
+          "issues": [],
+          "notes": "The supplied excerpt contains only footnote 1 to the 特定投資株式 table, so the table itself, the issue count and the total balance-sheet value are absent and are reported as 0 / empty rather than as actual zero holdings. The note says quantitative holding effects are hard to state, which is why no issue could be classed as quantified_effect_stated. No みなし保有株式 (deemed holdings) appear in the excerpt.",
+          "policy_summary": "Sanrio says quantifying the benefit of each holding is difficult. Instead it reviews each issue every year against its cost of capital and profitability. Its review as of 31 March 2026 confirmed all current cross-shareholdings are held for purposes consistent with policy. No commitment to reduce them is stated.",
+          "reduction_stated": false,
+          "total_book_value_jpy": 0.0,
+          "total_issues": 0
+        }
+      },
+      "usage": {
+        "input": 1514,
+        "output": 373
+      }
+    }
+  ]
+}
