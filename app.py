@@ -42,10 +42,10 @@ _drop_stale_local_modules()
 
 from collector import (fetch_all_news, fetch_source_headlines,
                         SOURCE_DIRECTORY, SOURCE_GROUPS, FEATURE_SOURCES,
-                        CORP_ACTION_META, PRIORITY_ACTIONS, DIRECTION_ORDER)
+                        CORP_ACTION_META, PRIORITY_ACTIONS, DIRECTION_ORDER,
+                        RSS_SOURCES, SCRAPE_SOURCES)
 from emailer import subscribe_email, send_digest, get_secret, load_subscribers
-from market_data import (fetch_market_overview, fetch_tse_movers, fetch_foreign_flow,
-                          fetch_jpx_daily_movers, fetch_topix_returns,
+from market_data import (fetch_market_overview, fetch_tse_movers,
                           fetch_underperformance_screen, TSE_STOCKS)
 from watchlist import (load_watchlist, add_to_watchlist, remove_from_watchlist,
                        scan_all_watchlist, KNOWN_COMPANIES,
@@ -244,23 +244,49 @@ st.set_page_config(
 
 # ── Viewer's local timezone ───────────────────────────────────────────────────
 # Detected from the browser (Intl API) via a one-time redirect that appends
-# ?tz=<IANA name> to the URL. Falls back to Malaysia time until that redirect
-# lands (first paint only) or if detection fails for any reason.
+# ?tz=<IANA name> to the URL. Falls back to Tokyo time -- the market's own
+# clock, and the one zone every reader of a Japan digest can place -- until
+# that redirect lands (first paint only) or if detection fails for any reason.
+# It used to fall back to Malaysia time, which was right only for the reader
+# the app was first built for.
+_FALLBACK_TZ = "Asia/Tokyo"
 _tz_name = st.query_params.get("tz")
 if not _tz_name:
     # The browser reports its own zone to Streamlit on connect, so no redirect
     # is needed on any release that exposes it. The redirect below cannot work
     # on current releases anyway: components run in a sandboxed iframe without
     # allow-top-navigation, so the browser refuses location.replace() and every
-    # visitor silently got the Malaysia fallback. It stays for older releases.
+    # visitor silently got the fallback zone. It stays for older releases.
     try:
         _tz_name = st.context.timezone or None
     except Exception:
         _tz_name = None
 try:
-    LOCAL_TZ = pytz.timezone(_tz_name) if _tz_name else pytz.timezone("Asia/Kuala_Lumpur")
+    LOCAL_TZ = pytz.timezone(_tz_name) if _tz_name else pytz.timezone(_FALLBACK_TZ)
+    _tz_detected = bool(_tz_name)
 except pytz.UnknownTimeZoneError:
-    LOCAL_TZ = pytz.timezone("Asia/Kuala_Lumpur")
+    LOCAL_TZ = pytz.timezone(_FALLBACK_TZ)
+    _tz_detected = False
+
+
+def tz_place_name(zone: str):
+    """The place an IANA zone is named after, for the dateline strip:
+    'Asia/Kuala_Lumpur' -> 'Kuala Lumpur', 'America/Argentina/Buenos_Aires'
+    -> 'Buenos Aires'. None for zones that name no place ('UTC', 'Etc/GMT+8').
+
+    This is the city the zone is named for, not the reader's own town: a
+    reader in Petaling Jaya reports Asia/Kuala_Lumpur, so the strip says
+    Kuala Lumpur. The browser offers nothing finer without a location
+    permission prompt or sending the reader's IP to a geolocation service,
+    and a dateline is not worth either."""
+    if not zone or "/" not in zone or zone.startswith("Etc/"):
+        return None
+    return zone.rsplit("/", 1)[-1].replace("_", " ")
+
+
+# Only a zone the browser actually reported names a place. On the fallback the
+# strip names none, rather than claiming the reader is in Tokyo.
+LOCAL_PLACE = tz_place_name(LOCAL_TZ.zone) if _tz_detected else None
 
 if not _tz_name:
     import streamlit.components.v1 as components
@@ -1353,6 +1379,16 @@ a.research-link:hover { background: #F0EDE8; }
 .tr-steps td { white-space: normal; text-align: left; line-height: 1.5; }
 .tr-adj td { color: #B26A00; font-weight: 600; background: #FFFBF3; }
 .tr-steps td:first-child { white-space: nowrap; }
+/* Read-only result tables (_frame): the tr-table look, text columns left and
+   wrapping, numbers right. Scrolls inside a box past ~14 rows, as the canvas
+   grid it replaces did, so a long Q&A read does not run the page on. */
+.ro-wrap { max-height: 26rem; overflow: auto; margin: 0.3rem 0 0.2rem; }
+.ro-wrap .tr-table { margin: 0; }
+.ro-wrap .tr-table th { position: sticky; top: 0; z-index: 1; text-align: left; }
+.ro-wrap .tr-table th.n { text-align: right; }
+.ro-wrap .tr-table td { text-align: left; white-space: normal; vertical-align: top;
+                        line-height: 1.4; min-width: 4rem; }
+.ro-wrap .tr-table td.n { text-align: right; white-space: nowrap; min-width: 0; }
 /* Watchlist comparison grid. Scrolls sideways inside its own box with the
    company column pinned, so a phone shows the names while you swipe through
    the figures. */
@@ -1681,8 +1717,44 @@ def _editor(*args, **kwargs):
     return st.data_editor(*args, **{**_GRID_KW, **kwargs})
 
 
-def _frame(*args, **kwargs):
-    return st.dataframe(*args, **{**_GRID_KW, **kwargs})
+def _frame(df, **_ignored):
+    """A read-only table, drawn as HTML in the page's own table style.
+
+    st.dataframe paints its cells on a <canvas> in the theme's font at a fixed
+    0.875rem, so these tables came out in a different face and about 15% larger
+    than the text around them (measured: 14px against 11-12px), and no CSS can
+    reach inside a canvas. As HTML they match exactly. Every cell is escaped: what these tables show is model output read
+    from company documents, which is reachable by prompt injection.
+
+    Editable grids stay on st.data_editor (see _editor): a canvas grid is the
+    only way to edit cells in place, and Streamlit offers no setting for its
+    font size. The theme font in .streamlit/config.toml makes them Spectral."""
+    import html as _h
+
+    def _is_num(v):
+        return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+    def _fmt(v):
+        if v is None or (isinstance(v, float) and v != v):
+            return ""
+        if isinstance(v, float):
+            if v.is_integer() and abs(v) < 1e15:
+                return f"{int(v):,}" if abs(v) >= 10000 else str(int(v))
+            return f"{v:,.4f}".rstrip("0").rstrip(".")
+        return _h.escape(str(v))
+
+    _cols = list(df.columns)
+    _numcol = {c: all(_is_num(v) or v is None or (isinstance(v, float) and v != v)
+                      for v in df[c].tolist()) for c in _cols}
+    _head = "".join(f'<th class="{"n" if _numcol[c] else ""}">'
+                    f'{_h.escape(str(c).replace("_", " "))}</th>' for c in _cols)
+    _rows = []
+    for _rec in df.itertuples(index=False, name=None):
+        _rows.append("<tr>" + "".join(
+            f'<td class="{"n" if _numcol[c] else ""}">{_fmt(v)}</td>'
+            for c, v in zip(_cols, _rec)) + "</tr>")
+    st.markdown(f'<div class="ro-wrap"><table class="tr-table"><tr>{_head}</tr>'
+                + "".join(_rows) + "</table></div>", unsafe_allow_html=True)
 
 
 def _valuation_inputs(_rcode: str, _rmcap=None) -> dict:
@@ -2336,6 +2408,23 @@ try:
 except Exception:
     _ec_repo = _ec_repo_default
 
+# ── Gloomberg (the portfolio app) ─────────────────────────────────────────────
+# Its address, for the "↗ Gloomberg" link beside a company in Research, which
+# opens that company's holding or watchlist entry there (?ticker=7203.T). Set
+# GLOOMBERG_URL in the Streamlit secrets; with none set the link is not drawn.
+# Only https addresses are used: this goes straight into an href.
+_gloomberg_url = (get_secret("GLOOMBERG_URL") or "").strip().rstrip("/")
+GLOOMBERG_URL = _gloomberg_url if _gloomberg_url.startswith("https://") else ""
+
+
+def gloomberg_link(code: str) -> str:
+    """The Gloomberg address for a TSE code, or '' when no address is set."""
+    from urllib.parse import quote
+    c = str(code or "").strip().upper()
+    if not GLOOMBERG_URL or not (len(c) == 4 and c.isalnum()):
+        return ""
+    return f"{GLOOMBERG_URL}/?ticker={quote(c)}.T"
+
 # ── Watchlist: pull the durable copy down once per session ────────────────────
 # The local watchlist.json is only a cache and is wiped on every Streamlit Cloud
 # restart; data/watchlist.json in the repo is the copy that survives. Done once
@@ -2389,7 +2478,6 @@ if "_cache_loaded" not in st.session_state:
     if _c["market_data"]:
         st.session_state.market_data       = _c["market_data"]
         st.session_state.movers            = _c["movers"]
-        st.session_state.foreign_flow      = _c["foreign_flow"]
         st.session_state.last_market_fetch = _c["last_market_fetch"]
     if _c["breaking_news"]:
         st.session_state.breaking_news       = _c["breaking_news"]
@@ -2996,14 +3084,160 @@ Respond only with the briefing."""
         )
 
 # ── Masthead ──────────────────────────────────────────────────────────────────
+# The strip used to open with a fixed "Petaling Jaya" and claim 42 sources.
+# The place is now the reader's own (from their browser's time zone, see
+# tz_place_name) and the count is read from the collector, which fetches 48
+# today -- a hand-typed number goes stale the first time a feed is added.
+_N_NEWS_SOURCES = len({s[0] for s in RSS_SOURCES} | {s[0] for s in SCRAPE_SOURCES})
+_dateline_place = (_safe_text(LOCAL_PLACE) + " · ") if LOCAL_PLACE else ""
 st.markdown(f"""
 <div class="masthead">
     <div class="masthead-title">Japan Investment Digest</div>
     <div class="masthead-sub">Japan equities · macro · corporate news · TDnet filings · JPY rates</div>
     <div class="masthead-date">{now_local().strftime('%A, %d %B %Y · %H:%M %Z')}</div>
 </div>
-<div class="dateline-strip">Petaling Jaya · Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · 42 News Sources</div>
+<div class="dateline-strip">{_dateline_place}Nikkei 225 · TOPIX · JPY Rates · TSE Timely Disclosures · {_N_NEWS_SOURCES} News Sources</div>
 """, unsafe_allow_html=True)
+
+# ── Market data freshness ─────────────────────────────────────────────────────
+# Prices were fetched only when someone pressed Refresh, or when a session
+# opened with no news at all. Every later session was handed the process-wide
+# copy whatever its age, so a snapshot taken before Tokyo opened could be the
+# front page all day, with only a yellow "may be stale" note after three hours.
+# The rule below decides when that copy is too old to show, and the block
+# after it refetches the prices (not the news, which is the slow part).
+from datetime import timedelta as _timedelta
+JST = pytz.timezone("Asia/Tokyo")
+_TSE_OPEN, _TSE_CLOSE = (9, 0), (15, 30)   # cash session; the close moved to 15:30 on 2024-11-05
+MARKET_INTRADAY_MAX_AGE_MIN = 20   # while Tokyo trades, refetch prices older than this
+_CLOSE_SETTLE_MIN = 20             # a fetch this soon after the close may still miss the final print
+
+
+def _tse_in_session(now_jst) -> bool:
+    """Weekday, 09:00-15:30 JST. Exchange holidays are not modelled; on one the
+    rule only refetches a little more often than it needs to."""
+    return now_jst.weekday() < 5 and _TSE_OPEN <= (now_jst.hour, now_jst.minute) < _TSE_CLOSE
+
+
+def _last_tse_close(now_jst):
+    """The most recent weekday 15:30 JST at or before now_jst."""
+    _close = now_jst.replace(hour=_TSE_CLOSE[0], minute=_TSE_CLOSE[1], second=0, microsecond=0)
+    if now_jst.weekday() < 5 and now_jst >= _close:
+        return _close
+    _close -= _timedelta(days=1)
+    while _close.weekday() >= 5:
+        _close -= _timedelta(days=1)
+    return _close
+
+
+def market_data_is_stale(fetched_at, now=None) -> bool:
+    """True when prices fetched at `fetched_at` should not be the front page.
+
+    - Never fetched: stale.
+    - Tokyo is trading: stale after MARKET_INTRADAY_MAX_AGE_MIN minutes.
+    - Fetched before the latest close had settled: stale, so the closing
+      prints replace the morning's (or yesterday's) prices.
+    - Otherwise (evenings, weekends): stale after CACHE_TTL_HOURS, which keeps
+      the currency pairs, which trade round the clock, reasonably current."""
+    if fetched_at is None:
+        return True
+    now = now or datetime.now(pytz.utc)
+    if fetched_at.tzinfo is None:
+        fetched_at = pytz.utc.localize(fetched_at)
+    _now_jst = now.astimezone(JST)
+    _age_min = (now - fetched_at).total_seconds() / 60
+    if _tse_in_session(_now_jst):
+        return _age_min > MARKET_INTRADAY_MAX_AGE_MIN
+    if fetched_at < _last_tse_close(_now_jst) + _timedelta(minutes=_CLOSE_SETTLE_MIN):
+        return True
+    return _age_min > CACHE_TTL_HOURS * 60
+
+
+def market_asof_label(data, short=False):
+    """What a quote card should say about *when* its price is from.
+
+    Each card used to show the time the app fetched it, which is not the same
+    thing: fetched at 07:30 on a Monday, the Nikkei card said "Mon 07:30" over
+    Friday's close. Tokyo instruments now say "Close · Fri 7 Nov" unless the
+    price is from today's session, still running, when they say "Intraday"
+    with the fetch time. Returns '' when the source gave no date."""
+    _as_of = (data or {}).get("as_of")
+    _fetched = st.session_state.get("last_market_fetch")
+    try:
+        _d = datetime.strptime(_as_of, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return ""
+    _fetched_jst = _fetched.astimezone(JST) if _fetched else None
+    if (_fetched_jst and _d.date() == _fetched_jst.date() and _tse_in_session(_fetched_jst)):
+        return ("live " if short else "Intraday · ") + format_mkt_ts(_fetched)
+    return ("close " if short else "Close · ") + _d.strftime("%a %-d %b")
+
+
+@st.cache_resource
+def _market_refresh_lock():
+    """One price refetch at a time across every session. A cache_resource
+    rather than an entry in _get_app_cache(): the Clear button resets that
+    dict's plain values to None, and would take a lock in it with them."""
+    return threading.Lock()
+
+
+def refresh_market_data(keep_old_on_error=False) -> bool:
+    """Fetch the index and currency cards and the large-cap movers into this
+    session, and into the shared cache for other sessions if it worked.
+
+    The JPX daily-movers, TOPIX-returns and foreign-flow fetches that used to
+    run here are gone: nothing on any tab displayed them any more, and the two
+    JPX requests could each wait out a 12-15s timeout on every refresh."""
+    _md = fetch_market_overview()
+    _ok = bool(_md) and _md.get("_source") not in (None, "error")
+    if not _ok and keep_old_on_error and st.session_state.get("market_data"):
+        return False   # keep the older prices, and their honest timestamp
+    _mv = fetch_tse_movers()
+    _ts = now_local()
+    st.session_state.market_data = _md
+    st.session_state.movers = _mv
+    st.session_state.last_market_fetch = _ts
+    if _ok:
+        _c = _get_app_cache()
+        _c["market_data"] = _md
+        _c["movers"] = _mv
+        _c["last_market_fetch"] = _ts
+    return _ok
+
+
+def _auto_refresh_market_data():
+    """Bring this session's prices up to date before the ticker is drawn."""
+    if not market_data_is_stale(st.session_state.get("last_market_fetch")):
+        return
+    # A cold session with no news is about to run the full refresh in the
+    # toolbar below, prices included; fetching them here as well would double it.
+    if not st.session_state.get("_auto_fetch_done") and not st.session_state.get("articles"):
+        return
+    # Another session may already have fetched newer prices.
+    _c = _get_app_cache()
+    if _c.get("market_data") and not market_data_is_stale(_c.get("last_market_fetch")):
+        st.session_state.market_data = _c["market_data"]
+        st.session_state.movers = _c.get("movers")
+        st.session_state.last_market_fetch = _c["last_market_fetch"]
+        return
+    # A failed fetch must not be retried on every click of every widget.
+    _tried = st.session_state.get("_mkt_auto_tried")
+    if _tried and (now_local() - _tried).total_seconds() < 600:
+        return
+    st.session_state._mkt_auto_tried = now_local()
+    _lock = _market_refresh_lock()
+    if not _lock.acquire(blocking=False):
+        return   # another session is fetching; show what this one has
+    try:
+        with st.spinner("Updating market prices…"):
+            refresh_market_data(keep_old_on_error=True)
+    except Exception as _e:
+        print(f"Auto market refresh error: {_e}")
+    finally:
+        _lock.release()
+
+
+_auto_refresh_market_data()
 
 # ── Market ticker strip ───────────────────────────────────────────────────────
 def render_ticker(label, data):
@@ -3018,9 +3252,14 @@ def render_ticker(label, data):
     pct = data.get("pct_change", 0)
     # Every item used to repeat the same fetch time the strip's own "Updated"
     # column already shows. Only a source-provided state (no fetch time known)
-    # still says something the strip does not.
+    # still says something the strip does not -- and, for the two Tokyo
+    # indices, whether the price is today's session or an earlier close, which
+    # the fetch time alone cannot tell you before 09:00 JST or at a weekend.
     _lmf = st.session_state.get("last_market_fetch")
-    state = "" if _lmf else data.get("state_label", "")
+    if label in ("Nikkei", "TOPIX") and market_asof_label(data):
+        state = market_asof_label(data, short=True)
+    else:
+        state = "" if _lmf else data.get("state_label", "")
     chg_class = "ticker-change-up" if pct >= 0 else "ticker-change-dn"
     arrow = "▲" if pct >= 0 else "▼"
     # Format: JPY pairs get 1dp; other large numbers as integers; small as 2dp
@@ -3132,25 +3371,17 @@ with col_refresh:
                     if st.session_state.articles.get(name):
                         st.session_state.selected_sector = name
                         break
-        # Markets
+        # Markets -- the same fetch the automatic refresh uses, which also
+        # saves the prices to the shared cache when they came back.
         _show_refresh_step("markets")
-        st.session_state.market_data    = fetch_market_overview()
-        st.session_state.movers         = fetch_tse_movers()
-        st.session_state.foreign_flow   = fetch_foreign_flow()
-        st.session_state.jpx_movers     = fetch_jpx_daily_movers()
-        st.session_state.topix_returns  = fetch_topix_returns()
-        st.session_state.last_market_fetch = now_local()
-        # Save to shared cache
+        refresh_market_data()
+        # Save the news to the shared cache
         _c = _get_app_cache()
         _c["articles"]          = st.session_state.articles
         _c["source_map"]        = st.session_state.source_map
         _c["sentiment_scores"]  = st.session_state.sentiment_scores
         _c["watchlist_hits"]    = st.session_state.watchlist_hits
         _c["last_fetch"]        = st.session_state.last_fetch
-        _c["market_data"]       = st.session_state.market_data
-        _c["movers"]            = st.session_state.movers
-        _c["foreign_flow"]      = st.session_state.foreign_flow
-        _c["last_market_fetch"] = st.session_state.last_market_fetch
         st.rerun()
 
 with col_clear:
@@ -3252,12 +3483,17 @@ if _digest_trigger in ("premarket", "close"):
 
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
+# Watchlist sits right after Research: the two are used together (a company
+# is researched, then compared side by side with the rest of the list), so
+# they belong next to each other rather than nine tabs apart. The order here
+# is the only thing that sets tab position; the variables are matched by name.
 (tab_market, tab_bytime, tab_breaking, tab_signals, tab_filings, tab_research,
- tab_earnings, tab_screener, tab_valscreen, tab_bysource, tab_news, tab_watchlist,
+ tab_watchlist, tab_earnings, tab_screener, tab_valscreen, tab_bysource, tab_news,
  tab_sentiment, tab_subscribe, tab_sources) = st.tabs([
     "📊 Markets", "📰 News Feed", "📡 Nikkei Live",
-    "🚦 Signals", "📋 Reg Filings", "🔎 Research", "📅 Earnings", "🔬 Screener", "🧮 Valuation Screen",
-    "📰 By Publication", "🏭 By Sector", "⭐ Watchlist",
+    "🚦 Signals", "📋 Reg Filings", "🔎 Research", "⭐ Watchlist",
+    "📅 Earnings", "🔬 Screener", "🧮 Valuation Screen",
+    "📰 By Publication", "🏭 By Sector",
     "🌡️ Sentiment", "📬 Subscribe", "🔗 Sources",
 ])
 
@@ -3724,6 +3960,18 @@ with tab_market:
             chg     = data.get("change", 0)
             _lmf    = st.session_state.get("last_market_fetch")
             state   = format_mkt_ts(_lmf) if _lmf else data.get("state_label", "Last close")
+            if not is_forex:
+                # Tokyo indices: the session the price is from, not the fetch time.
+                state = market_asof_label(data) or state
+            else:
+                # Currencies trade round the clock, so the fetch time is fair,
+                # unless the source's last quote is days old.
+                try:
+                    _fx_d = datetime.strptime(data.get("as_of") or "", "%Y-%m-%d").date()
+                    if _lmf and (_lmf.date() - _fx_d).days >= 4:
+                        state = "Stale · as of " + _fx_d.strftime("%-d %b")
+                except ValueError:
+                    pass
             label   = data.get("label", "")
             rets    = data.get("returns", {})
 
@@ -3819,9 +4067,18 @@ with tab_market:
 
     # ── TSE Movers ───────────────────────────────────────
     movers    = st.session_state.movers or {}
-    scr_data  = st.session_state.get("screen_data", [])
-    topix_ret = st.session_state.get("topix_returns", {})
-    _under_lookup = {d["code"]: d for d in scr_data}  # code → screen row
+    # The ⚠ badges read st.session_state.screen_data, which nothing ever
+    # filled, so they never appeared and the note telling readers to run the
+    # Screener could not work. The Screener and Watchlist read the relative
+    # performance file the workflows commit (data/jquants_3m_perf.csv); the
+    # badges now read the same file, through the same shared loader.
+    try:
+        _perf_pm = _shared("perf_full_map", lambda: (
+            lambda r: r if (r and r[0]) else None)(load_perf_map_from_github(_ec_repo, _gh_token)))
+        _under_lookup = _perf_pm[0] if _perf_pm else {}
+    except Exception as _pe:
+        print(f"Markets perf map error: {_pe}")
+        _under_lookup = {}
 
     # Threshold for flag — share the screener slider value if set, else 10%
     _mover_threshold = st.session_state.get("scr_threshold", 10)
@@ -3833,7 +4090,7 @@ with tab_market:
         if not d:
             return ""
         flags = []
-        for period, key in [("3M", "under_3m"), ("6M", "under_6m"), ("12M", "under_12m")]:
+        for period, key in [("3M", "vs3m"), ("6M", "vs6m"), ("12M", "vs12m")]:
             val = d.get(key)
             if val is not None and val < -_mover_threshold:
                 flags.append(period)
@@ -3846,24 +4103,33 @@ with tab_market:
         )
 
     # ── Sector Gainers / Losers ──────────────────────────
-    # Computed from the jpx_movers data by grouping stocks by sector
-    _jpx_for_sector = st.session_state.get("jpx_movers", {})
-    _all_stocks = _jpx_for_sector.get("gainers", []) + _jpx_for_sector.get("losers", [])
+    # Averaged over every large cap the movers fetch prices (about 180), by
+    # sector. This used to average only the day's top-10 gainers and top-10
+    # losers from a JPX file, so a sector's figure was the mean of its most
+    # extreme names, and the file was fetched from an address that cannot be
+    # checked from here; when it failed the panel silently disappeared.
+    _all_stocks = movers.get("all", []) or []
+    _sect_n = 0
     if _all_stocks:
-        # Group by sector and average pct_change
         from collections import defaultdict as _dd2
         _sect_totals = _dd2(list)
         for _s in _all_stocks:
-            _sec = _s.get("sector", "") or "Other"
-            if _sec:
+            _sec = SECTOR_LOOKUP.get(str(_s.get("symbol", "")).replace(".T", ""))
+            if isinstance(_sec, str) and _sec:
                 _sect_totals[_sec].append(_s.get("pct_change", 0) or 0)
-        _sect_avgs = {s: sum(v)/len(v) for s, v in _sect_totals.items() if len(v) >= 2}
+        # Three names at least, or one stock's move is the "sector".
+        _sect_avgs = {s: sum(v)/len(v) for s, v in _sect_totals.items() if len(v) >= 3}
+        _sect_n = sum(len(_sect_totals[s]) for s in _sect_avgs)
         if _sect_avgs:
             _sect_sorted = sorted(_sect_avgs.items(), key=lambda x: x[1], reverse=True)
             _sec_g = [x for x in _sect_sorted if x[1] > 0][:5]
             _sec_l = list(reversed([x for x in _sect_sorted if x[1] < 0]))[:5]
             if _sec_g or _sec_l:
                 st.markdown('<div class="section-title">🏭 Sector Movers</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div style="font-size:0.62rem;color:#9B8B7A;margin:0.1rem 0 0.3rem;">'
+                    f'Average day change of the {_sect_n} large caps tracked, by sector</div>',
+                    unsafe_allow_html=True)
                 _sg_col, _sl_col = st.columns(2)
                 with _sg_col:
                     st.markdown('<div style="font-size:0.65rem;font-weight:700;color:#2E7D32;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.3rem;">Top Sectors</div>', unsafe_allow_html=True)
@@ -3922,26 +4188,68 @@ with tab_market:
             st.markdown(html, unsafe_allow_html=True)
         else:
             st.markdown('<div class="info-box">No mover data available.</div>', unsafe_allow_html=True)
-    if scr_data:
+    # Say what the lists are drawn from: a fixed set of large caps, not the
+    # whole market, so a small cap's 20% day never appears here.
+    _n_tracked = len((movers or {}).get("all") or [])
+    _mv_note = (f"Gainers and losers among the {_n_tracked} large caps tracked, not the whole market"
+                if _n_tracked else "")
+    if _under_lookup:
+        _mv_note += ((" · " if _mv_note else "")
+                     + f"⚠ = trails TOPIX by more than {_mover_threshold}% over that period")
+    if _mv_note:
         st.markdown(
-            f'<div style="font-size:0.62rem;color:#9B8B7A;margin-top:0.2rem;">'
-            f'⚠ badge = underperforms TOPIX by >{_mover_threshold}% · '
-            f'Run <strong>🔬 Screener</strong> tab to populate flags</div>',
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            '<div style="font-size:0.62rem;color:#9B8B7A;margin-top:0.2rem;">'
-            'Run the <strong>🔬 Screener</strong> tab to add underperformance flags to movers.</div>',
+            f'<div style="font-size:0.62rem;color:#9B8B7A;margin-top:0.2rem;">{_mv_note}</div>',
             unsafe_allow_html=True
         )
 
-    st.markdown("""
-    <div class="info-box" style="margin-top:0.8rem">
-        <strong>Key BOJ/macro themes:</strong> Rate normalisation · YCC exit · Yen carry trade ·
-        Shunto wage growth · Core CPI · TSE capital efficiency reforms (PBR &lt; 1x pressure)
-    </div>
-    """, unsafe_allow_html=True)
+    # ── Results ahead ────────────────────────────────────
+    # This box used to be a fixed list of "Key BOJ/macro themes" -- still
+    # naming the YCC exit, which happened in March 2024 -- that nothing ever
+    # updated. In its place, dated events from the JPX results calendar the
+    # weekly workflow commits: which watchlist companies report in the next
+    # fortnight, and how busy the market's week is. BOJ meeting dates are a
+    # link to the BOJ's own schedule rather than a list typed in here, which
+    # would go stale exactly the way the old box did.
+    try:
+        _cal = _shared("earnings_cal",
+                       lambda: load_earnings_cal_from_github(_ec_repo, _gh_token)) or []
+    except Exception as _ce:
+        print(f"Markets results calendar error: {_ce}")
+        _cal = []
+    if _cal:
+        _today_jst = datetime.now(JST).date()
+        _wk_end = (_today_jst + _timedelta(days=7)).isoformat()
+        _fn_end = (_today_jst + _timedelta(days=14)).isoformat()
+        _t0 = _today_jst.isoformat()
+        _wl_codes = load_watchlist_entries()
+        _wl_next = {}
+        _mkt_week = set()
+        for _e in _cal:
+            _d = _e.get("announcement_date") or ""
+            _code = _e.get("code") or ""
+            if not (_t0 <= _d <= _fn_end):
+                continue
+            if _d <= _wk_end:
+                _mkt_week.add(_code)
+            if _code in _wl_codes and (_code not in _wl_next or _d < _wl_next[_code]):
+                _wl_next[_code] = _d
+        _items = []
+        for _code, _d in sorted(_wl_next.items(), key=lambda x: x[1]):
+            _nm = ((_wl_codes.get(_code) or {}).get("name") or NAMES_LOOKUP.get(_code) or _code)
+            _items.append(f'{_safe_text(_nm)} ({_code}) '
+                          f'<strong>{datetime.strptime(_d, "%Y-%m-%d").strftime("%a %-d %b")}</strong>')
+        _wl_line = (" · ".join(_items) if _items
+                    else ("No watchlist company reports in the next 14 days" if _wl_codes
+                          else "Add companies to the ⭐ Watchlist to see their dates here"))
+        st.markdown(
+            '<div class="info-box" style="margin-top:0.8rem">'
+            f'<strong>📅 Results ahead (JST):</strong> {_wl_line}<br>'
+            f'<span style="font-size:0.85em;color:#6B6B6B;">{len(_mkt_week):,} companies report in the '
+            'next 7 days (JPX calendar) · full list in 📅 Earnings · '
+            '<a href="https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm" target="_blank">'
+            'BOJ policy meeting dates</a></span></div>',
+            unsafe_allow_html=True
+        )
 
 # ════════════════════════════════════════════════════════════
 # TAB 3 — WATCHLIST
@@ -5011,6 +5319,11 @@ with tab_research:
                 _meta.append(
                     f'<span style="color:{"#1B7F4F" if _p3m >= 0 else "#B3261E"};">'
                     f'{_p3m:+.1f}% vs TOPIX 3M</span>')
+            if gloomberg_link(_rcode):
+                # Opens the holding or watchlist entry in Gloomberg, which
+                # says so if the company is in neither.
+                _meta.append(f'<a href="{_safe_text(gloomberg_link(_rcode))}" target="_blank" '
+                             'style="color:#8B4513;">↗ Gloomberg</a>')
             st.markdown(
                 f'<div style="font-size:1.1rem;font-weight:700;color:#2B2420;">{_safe_text(_rname)} '
                 f'<span style="font-family:monospace;font-weight:400;font-size:0.85rem;color:#9B8B7A;">({_rcode})</span></div>'

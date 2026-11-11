@@ -191,6 +191,10 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
             "price": price, "change": change, "pct_change": pct,
             "state_label": "Last close", "label": label,
             "returns": compute_returns(rows), "source": "stooq",
+            # The trading day the price belongs to (YYYY-MM-DD). The app
+            # showed only when it fetched, so Friday's close read as current
+            # all weekend and on Monday morning before Tokyo opened.
+            "as_of": rows[-1][0],
         }
     except Exception as e:
         return {"price": 0, "label": label, "error": str(e)}
@@ -201,7 +205,10 @@ def stooq_fetch(symbol: str, label: str, years: int = 4) -> dict:
 # Yahoo Finance ticker symbols
 YF_INDEX_INSTRUMENTS = {
     "nikkei":       ("^N225",  "Nikkei 225"),
-    "topix":        ("1308.T", "TOPIX"),  # Daiwa TOPIX ETF — 1306.T had unadjusted unit split 2026-03-30
+    # Not the index itself: this prices the 1308 TOPIX ETF, which trades close
+    # to the index level. Labelled as such so the card does not pass an ETF
+    # price off as the index. (1306.T had an unadjusted unit split on 2026-03-30.)
+    "topix":        ("1308.T", "TOPIX (1308 ETF)"),
     "topix_large":  ("^TPXL",  "TOPIX Large Cap"),
     "topix_mid":    ("^TPXM",  "TOPIX Mid Cap"),
     "topix_small":  ("^TPXS",  "TOPIX Small Cap"),
@@ -258,6 +265,9 @@ def yf_fetch(ticker: str, label: str, years: int = 2) -> dict:
             "state_label": "Last close", "label": label,
             "returns": compute_returns(rows),
             "source": "yahoo",
+            # Date of the last daily bar, in the exchange's own calendar.
+            # During a session Yahoo's last bar is today's, still moving.
+            "as_of": rows[-1][0],
         }
     except Exception as e:
         return {"price": 0, "label": label, "error": str(e)}

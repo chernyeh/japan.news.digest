@@ -3,7 +3,14 @@ base = "light"
 backgroundColor = "#F7F4EF"
 secondaryBackgroundColor = "#EDE8E0"
 textColor = "#1A1A1A"
-font = "serif"
+# Spectral, the face app.py's stylesheet sets on every element. That rule
+# reaches all the HTML, but not the editable grids (st.data_editor), which
+# paint their cells on a <canvas> in the theme font -- so they came out in
+# Streamlit's own "serif" (Source Serif) beside Spectral text. Naming the font
+# here is the only way to reach them. The "<name>:<url>" form needs
+# Streamlit 1.50+, hence the floor in requirements.txt. The URL has no commas
+# on purpose: a comma here starts a fallback font.
+font = "Spectral:https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&display=swap, serif"
 # Accent for selected radios, checkboxes, sliders, multiselect chips, focus
 # rings and the active-tab underline. Unset, Streamlit used its default red,
 # which clashed with the palette and read as "negative" on the Signals chips.

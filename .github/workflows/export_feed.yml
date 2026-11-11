@@ -1,0 +1,74 @@
+# .github/workflows/export_feed.yml
+# Rebuilds data/export/digest_feed.json, the public feed Gloomberg reads
+# (see export_feed.py), whenever one of the jobs that feed it has committed
+# new data, plus once a day in case one of those runs was skipped.
+#
+# The feed holds public market data only. This repository is public: nothing
+# about holdings or a watchlist is ever written here.
+#
+# workflow_run fires only for workflows on the default branch, so the
+# triggers below take effect once this file is on main.
+name: Export Feed for Gloomberg
+
+on:
+  workflow_run:
+    workflows:
+      - "Daily Prices and Market Cap"
+      - "Daily TDnet Filings"
+      - "Weekly Consensus and Fundamentals"
+      - "Weekly Earnings Calendar Update"
+      - "Weekly 3M vs TOPIX Performance"
+    types: [completed]
+  schedule:
+    - cron: '0 22 * * *'   # 22:00 UTC = 07:00 JST, after daily_tdnet (21:30 UTC)
+  workflow_dispatch:
+
+# One export at a time; a second trigger waits rather than racing the push.
+concurrency:
+  group: export-feed
+  cancel-in-progress: false
+
+jobs:
+  export:
+    # An upstream job that failed committed nothing new.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+        with:
+          ref: main   # the tip, including what the upstream job just pushed
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests openpyxl
+
+      - name: Build feed
+        run: python export_feed.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/export/digest_feed.json
+          if git diff --staged --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "chore: update Gloomberg feed [skip ci]"
+          # Other jobs push to main at the same times; rebase onto theirs.
+          for i in 1 2 3 4; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "Push failed after 4 attempts" >&2
+          exit 1
