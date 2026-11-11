@@ -74,6 +74,8 @@ import gh_read
 import fx_extract
 import fx_store
 import qa_extract
+import yuho_extract as YX
+import holders_extract as HX
 
 # Batch ZIP downloads are fetched server-side and held in memory, so cap how
 # many documents one ZIP can contain; the UI tells the user what was skipped.
@@ -9051,6 +9053,500 @@ with tab_research:
             if _toggle_section(f"⚠️ One-offs & anomalies{f' ({_n_oo} logged)' if _n_oo else ''}",
                                "research_oneoffs_open"):
                 _fc_one_offs(_rcode, _fc_map, _valuation_inputs(_rcode))
+
+        # ── Management, board & ownership ───────────────────────────────
+        # Read out of the yuho on a button press (yuho_extract.py), with the
+        # 5%-rule filings and the AGM vote beside it (holders_extract.py).
+        # Nothing here runs by itself: the yuho is annual, so one press per
+        # company per year, and the card says when a newer filing exists.
+        def _yuho_for(_code: str) -> list:
+            if "yuho_map" not in st.session_state:
+                try:
+                    st.session_state.yuho_map = YX.load_from_github(_ec_repo, _gh_token)
+                except Exception as _e:
+                    print(f"yuho extracts load error: {_e}")
+                    st.session_state.yuho_map = {}
+            return st.session_state.yuho_map.get(_code, [])
+
+        def _holders_for(_code: str) -> list:
+            if "holders_map" not in st.session_state:
+                try:
+                    st.session_state.holders_map = HX.load_from_github(_ec_repo, _gh_token)
+                except Exception as _e:
+                    print(f"holders/votes load error: {_e}")
+                    st.session_state.holders_map = {}
+            return st.session_state.holders_map.get(_code, [])
+
+        def _ybn(_v, _dp=1):
+            return "—" if not _v else f"¥{_v / 1e9:,.{_dp}f}bn"
+
+        def _ym(_v):
+            return "—" if not _v else f"¥{_v / 1e6:,.0f}m"
+
+        def _pct_or_dash(_v, _dp=1):
+            return "—" if _v is None else f"{_v * 100:.{_dp}f}%"
+
+        def _pct2(_v):
+            """A percentage already in percent, two places, or a dash."""
+            return "—" if _v is None else f"{_v:.2f}%"
+
+        def _plain_num(_v):
+            return f"{_v:,.0f}" if float(_v).is_integer() else f"{_v:,.1f}"
+
+        def _fc_people(_rcode, _rname, _fc_map, _fundrow):
+            _idx_rows = _edinet_idx.get(_rcode, [])
+            _entries = _yuho_for(_rcode)
+            _latest = _entries[0] if _entries else None
+            _filings = YX.yuho_filings(_idx_rows, _rcode)
+            _newest = _filings[0] if _filings else None
+            _price = (st.session_state.get("research_prices_map") or {}).get(_rcode)
+            _vi = _valuation_inputs(_rcode) if _fc_map else {}
+            _mcap = _vi.get("mcap") if _vi else None
+            _equity = FIN.latest_balance(_fundrow or {}).get("sh_equity")
+            _last_capex = _last_da = None
+            if _fc_map and _vi:
+                try:
+                    _, _, _hist, _ = _fin_for(_rcode, _fc_map, _vi, _fundrow)
+                    _fy_rows = sorted((k, v) for k, v in _hist.items() if k[1] == "FY")
+                    if _fy_rows:
+                        _lr = _fy_rows[-1][1]
+                        _last_capex = abs(_lr.get("capex")) if _lr.get("capex") else None
+                        _last_da = _lr.get("dep_amort")
+                except Exception as _e:
+                    print(f"capex history read error: {_e}")
+
+            st.markdown(
+                '<div class="fc-note">Who runs the company, who owns it, what it holds in other '
+                'companies and where it says next year\'s capex goes — read out of the '
+                '有価証券報告書 on a button press, once a year. Numbers the filing tags come '
+                'straight off it; the narrative sections are read by Claude. <strong>Only the '
+                'extracted figures are stored, never the document.</strong></div>',
+                unsafe_allow_html=True)
+
+            # ── The card ──────────────────────────────────────────────
+            if _latest:
+                _secs = _latest.get("sections") or {}
+                _stale = bool(_newest and _newest.get("DocID") != _latest.get("doc_id")
+                              and (_newest.get("PeriodEnd") or "") > (_latest.get("period_end") or ""))
+                st.markdown(
+                    f'<div class="fc-qhead">From the {_safe_text(_latest["fy"])} yuho '
+                    f'(filed {_safe_text(_latest["date"])}) · read {_safe_text(_latest.get("read_on", ""))}'
+                    + (f' · <span class="fc-neg">a newer yuho ({_safe_text(YX.fy_label(_newest["PeriodEnd"]))}, '
+                       f'filed {_safe_text((_newest.get("SubmitDateTime") or "")[:10])}) is in the index — '
+                       f're-read below</span>' if _stale else '') + '</div>', unsafe_allow_html=True)
+                _read = YX.bias_read(_latest, _price)
+                if _read:
+                    st.markdown(f'<div class="fc-reads"><span class="fc-read">{_safe_text(_read)}</span></div>',
+                                unsafe_allow_html=True)
+                _offs = (_secs.get("officers") or {}).get("officers") or []
+                if _offs:
+                    _fyy = int(_latest["fy"][2:]) if _latest.get("fy", "").startswith("FY") else None
+                    _board = [o for o in _offs if o["role_kind"] in
+                              ("representative_director", "director", "outside_director",
+                               "audit_committee_member") or o["is_cfo"]]
+                    _rest = len(_offs) - len(_board)
+                    _h = ('<table class="tr-table tr-steps"><tr><th>Name</th><th>Title</th><th>Age</th>'
+                          '<th>Joined</th><th>Director since</th><th>Background</th><th>Shares</th></tr>')
+                    for _o in _board:
+                        _tags = ", ".join(YX._TAG_LABEL.get(t, t) for t in _o["background_tags"][:4])
+                        _sh = (f'{_o["shares_held"]:,}'
+                               + (f' (¥{_o["shares_held"] * _price / 1e6:,.0f}m)' if _price and _o["shares_held"] else '')
+                               if _o["shares_held"] else "—")
+                        _flag = " ".join(k for k, v in (("CEO", _o["is_ceo"]), ("Chair", _o["is_chair"]),
+                                                        ("CFO", _o["is_cfo"])) if v)
+                        _h += (f'<tr><td><b>{_safe_text(_o["name"])}</b>'
+                               + (f' <span class="fc-pastest">{_flag}</span>' if _flag else '')
+                               + (' <span class="fc-na">outside</span>' if _o["outside"] else '')
+                               + f'</td><td>{_safe_text(_o["title"])}</td>'
+                               f'<td>{_o["age"] or "—"}</td>'
+                               f'<td>{_o["joined_company_year"] or "—"}'
+                               + (f' ({_fyy - _o["joined_company_year"]}y)' if _fyy and _o["joined_company_year"] else '')
+                               + f'</td><td>{_o["director_since_year"] or "—"}</td>'
+                               f'<td title="{_safe_text(_o["career_summary"])}">{_safe_text(_tags) or "—"}</td>'
+                               f'<td>{_sh}</td></tr>')
+                    st.markdown(_h + '</table>', unsafe_allow_html=True)
+                    if _rest:
+                        st.markdown(f'<div class="fc-note">{_rest} more in the table (auditors, '
+                                    'executive officers) not shown. Hover a background for the '
+                                    'career summary.</div>', unsafe_allow_html=True)
+                    if (_secs.get("officers") or {}).get("notes"):
+                        st.markdown(f'<div class="fc-note">{_safe_text(_secs["officers"]["notes"])}</div>',
+                                    unsafe_allow_html=True)
+
+                # Ownership
+                _ms = _secs.get("major_shareholders") or {}
+                _fp = YX.fact(_latest, "foreign_pct")
+                _nsh = YX.fact(_latest, "shareholders")
+                _own_bits = []
+                if _fp is not None:
+                    _own_bits.append(f"foreign holders {_fp:.1f}%")
+                if _nsh:
+                    _own_bits.append(f"{int(_nsh):,} shareholders")
+                if _ms.get("holders"):
+                    _top = _ms["holders"]
+                    _grp = sum(h["pct"] for h in _top if h["kind"] in ("parent_or_group", "founder_family"))
+                    _own_bits.append(f"top {len(_top)} hold {sum(h['pct'] for h in _top):.1f}%")
+                    if _grp:
+                        _own_bits.append(f"parent / group / founder {_grp:.1f}%")
+                if _own_bits or _ms.get("holders"):
+                    st.markdown('<div class="fc-qhead">Ownership' + (' — ' + " · ".join(_own_bits) if _own_bits else '')
+                                + '</div>', unsafe_allow_html=True)
+                if _ms.get("holders"):
+                    _h = '<table class="tr-table"><tr><th>Holder</th><th>%</th><th>Kind</th></tr>'
+                    for _hd in _ms["holders"]:
+                        _h += (f'<tr><td>{_safe_text(_hd["name"])}</td><td>{_hd["pct"]:.2f}%</td>'
+                               f'<td style="text-align:left">{_safe_text(_hd["kind"].replace("_", " "))}</td></tr>')
+                    st.markdown(_h + '</table>', unsafe_allow_html=True)
+
+                # Cross-shareholdings
+                _ch = YX.cross_holdings_read(_latest, _mcap, _equity)
+                if _ch:
+                    _bits = [f"{_ch['issues']} issues", _ybn(_ch["total_jpy"]),
+                             f"{_pct_or_dash(_ch['pct_mcap'])} of market cap",
+                             f"{_pct_or_dash(_ch['pct_equity'], 0)} of equity"]
+                    if _ch["named"]:
+                        _bits.append(f"{_ch['mutual']} of {_ch['named']} named hold this company's shares")
+                        _bits.append(f"{_ch['vague_purpose']} with only a generic purpose")
+                    _bits.append("reduction stated" if _ch["reduction_stated"] else "no reduction stated")
+                    st.markdown('<div class="fc-qhead">Cross-shareholdings — ' + " · ".join(_bits) + '</div>',
+                                unsafe_allow_html=True)
+                    _chs = _secs.get("cross_holdings") or {}
+                    if _chs.get("policy_summary"):
+                        st.markdown(f'<div class="fc-note">{_safe_text(_chs["policy_summary"])}</div>',
+                                    unsafe_allow_html=True)
+                    if _chs.get("issues"):
+                        _h = ('<table class="tr-table tr-steps"><tr><th>Issue</th><th>Book ¥bn</th>'
+                              '<th>Purpose</th><th>Mutual</th><th>Change</th></tr>')
+                        for _x in _chs["issues"][:12]:
+                            _h += (f'<tr><td>{_safe_text(_x["name"])}</td>'
+                                   f'<td style="text-align:right">{_x["book_value_jpy"] / 1e9:,.1f}</td>'
+                                   f'<td>{_safe_text(_x["purpose"])}</td>'
+                                   f'<td>{"yes" if _x["holds_our_shares"] else "—"}</td>'
+                                   f'<td>{_safe_text(_x["change"])}</td></tr>')
+                        st.markdown(_h + '</table>', unsafe_allow_html=True)
+                        if len(_chs["issues"]) > 12:
+                            st.markdown(f'<div class="fc-note">Largest 12 of {len(_chs["issues"])} named.</div>',
+                                        unsafe_allow_html=True)
+
+                # Capex plan
+                _cx = YX.capex_read(_latest, _last_capex, _last_da)
+                if _cx:
+                    _bits = [f"spent {_ybn(_cx['actual_jpy'])} last year",
+                             f"plan {_ybn(_cx['plan_total_jpy'])} ({_cx['lines']} lines)",
+                             f"paid {_ybn(_cx['plan_paid_jpy'])}", f"remaining {_ybn(_cx['remaining_jpy'])}"]
+                    if _cx["remaining_vs_actual"] is not None:
+                        _bits.append(f"= {_cx['remaining_vs_actual']:.1f}× last year's capex")
+                    if _cx["remaining_vs_da"] is not None:
+                        _bits.append(f"{_cx['remaining_vs_da']:.1f}× D&A")
+                    st.markdown('<div class="fc-qhead">Capex plan — ' + " · ".join(_bits) + '</div>',
+                                unsafe_allow_html=True)
+                    _cxs = _secs.get("capex") or {}
+                    if _cxs.get("actual_by_segment"):
+                        st.markdown('<div class="fc-note">Spent last year: ' + " · ".join(
+                            f'{_safe_text(s["segment"])} {_ybn(s["amount_jpy"])}'
+                            for s in _cxs["actual_by_segment"]) + '</div>', unsafe_allow_html=True)
+                    if _cxs.get("plan"):
+                        _h = ('<table class="tr-table tr-steps"><tr><th>Site</th><th>Segment</th><th>What</th>'
+                              '<th>Planned ¥bn</th><th>Paid</th><th>Finish</th><th>Funding</th></tr>')
+                        for _p in _cxs["plan"]:
+                            _h += (f'<tr><td>{_safe_text(_p["site"])}'
+                                   + (f' <span class="fc-na">{_safe_text(_p["location"])}</span>' if _p["location"] else '')
+                                   + f'</td><td>{_safe_text(_p["segment"])}</td><td>{_safe_text(_p["description"])}'
+                                   + (f' <span class="fc-na">{_safe_text(_p["capacity_note"])}</span>' if _p["capacity_note"] else '')
+                                   + f'</td><td style="text-align:right">{_p["planned_total_jpy"] / 1e9:,.1f}</td>'
+                                   f'<td style="text-align:right">{_p["paid_to_date_jpy"] / 1e9:,.1f}</td>'
+                                   f'<td>{_safe_text(_p["finish"])}</td><td>{_safe_text(_p["funding"])}</td></tr>')
+                        st.markdown(_h + '</table>', unsafe_allow_html=True)
+                    if _cxs.get("notes"):
+                        st.markdown(f'<div class="fc-note">{_safe_text(_cxs["notes"])}</div>',
+                                    unsafe_allow_html=True)
+
+                # Employees and pay
+                _emp_bits = []
+                for _k, _lbl, _fmt in (("employees", "employees", lambda v: f"{int(v):,}"),
+                                       ("avg_salary", "avg salary", lambda v: f"¥{v / 1e6:.2f}m"),
+                                       ("avg_age", "avg age", lambda v: f"{v:.1f}"),
+                                       ("avg_tenure", "avg tenure", lambda v: f"{v:.1f}y")):
+                    _ser = YX.yoy(_entries, _k, None if _k == "employees" else "parent")
+                    if not _ser:
+                        continue
+                    _cur = _ser[-1][1]
+                    _txt = f"{_lbl} {_fmt(_cur)}"
+                    if len(_ser) > 1 and _ser[-2][1]:
+                        _d = _cur / _ser[-2][1] - 1
+                        _txt += f' <span class="{"fc-pos" if _d >= 0 else "fc-neg"}">({_d * 100:+.1f}% YoY)</span>'
+                    _emp_bits.append(_txt)
+                _pe = YX.fact(_latest, "employees", "parent")
+                if _pe and YX.fact(_latest, "employees", "consolidated"):
+                    _emp_bits.append(f"parent-only {int(_pe):,}")
+                _pay = _secs.get("exec_pay") or {}
+                if _pay.get("by_class"):
+                    _tot = sum(c["total_jpy"] for c in _pay["by_class"])
+                    _emp_bits.append(f"director pay {_ym(_tot)} total")
+                for _ind in (_pay.get("individuals") or [])[:4]:
+                    _emp_bits.append(f"{_safe_text(_ind['name'])} {_ym(_ind['total_jpy'])}")
+                if _emp_bits:
+                    st.markdown('<div class="fc-qhead">Employees & pay — ' + " · ".join(_emp_bits)
+                                + '</div>', unsafe_allow_html=True)
+                    if _pay.get("policy_summary"):
+                        st.markdown(f'<div class="fc-note">Pay policy: {_safe_text(_pay["policy_summary"])}'
+                                    '</div>', unsafe_allow_html=True)
+                if _latest.get("errors"):
+                    st.markdown('<div class="fc-note fc-warn">Sections that could not be read: '
+                                + " · ".join(f'{_safe_text(k)} — {_safe_text(v[:120])}'
+                                             for k, v in _latest["errors"].items())
+                                + '. Re-read to try again.</div>', unsafe_allow_html=True)
+
+            # ── Reading a yuho: fetch first (numbers, free), then read ───
+            st.markdown('<div class="fc-qhead">Read a yuho</div>', unsafe_allow_html=True)
+            if not _filings:
+                st.markdown('<div class="fc-note">No 有価証券報告書 for this company in the EDINET '
+                            'index yet.</div>', unsafe_allow_html=True)
+                return
+            _api_key = get_secret("ANTHROPIC_API_KEY")
+            _read_ids = {e.get("doc_id") for e in _entries}
+            _pick = st.selectbox(
+                "Which yuho", options=[f["DocID"] for f in _filings[:4]],
+                format_func=lambda d: next(
+                    (f'{YX.fy_label(f["PeriodEnd"])} — filed {(f.get("SubmitDateTime") or "")[:10]}'
+                     + (' (already read)' if d in _read_ids else '')
+                     for f in _filings if f["DocID"] == d), d),
+                key=f"yx_pick_{_rcode}", label_visibility="collapsed")
+            _filing = next(f for f in _filings if f["DocID"] == _pick)
+            _pkey = f"yx_prep_{_rcode}_{_pick}"
+            _c1, _c2 = st.columns([1, 3])
+            with _c1:
+                if st.button("⬇️ Fetch the filing", key=f"yx_fetch_{_rcode}_{_pick}",
+                             disabled=not _edinet_api_key, use_container_width=True):
+                    with st.spinner("Fetching the tagged data from EDINET…"):
+                        try:
+                            _zip = YX.fetch_csv_zip(_pick, _edinet_api_key)
+                            st.session_state[_pkey] = YX.prepare(_zip)
+                        except Exception as _fe:
+                            st.session_state.pop(_pkey, None)
+                            st.warning(f"Could not fetch that filing: {_fe}")
+            with _c2:
+                if not _edinet_api_key:
+                    st.markdown('<div class="fc-note">EDINET_API_KEY is not set in Streamlit Secrets, '
+                                'so filings cannot be fetched.</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="fc-note">Step 1 fetches the filing\'s tagged values '
+                                '(no AI, no cost) and shows what sections it has; step 2 reads '
+                                'the sections with Claude and saves the card.</div>',
+                                unsafe_allow_html=True)
+            _prep = st.session_state.get(_pkey)
+            if _prep:
+                _f = _prep["facts"]
+                _fbits = []
+                for _k, _lbl in (("employees", "employees"), ("avg_salary", "avg salary ¥"),
+                                 ("avg_age", "avg age"), ("avg_tenure", "avg tenure"),
+                                 ("foreign_pct", "foreign %"), ("shareholders", "shareholders"),
+                                 ("cross_issues", "cross-holdings (issues)"),
+                                 ("cross_book_value", "cross-holdings book value")):
+                    _slot = _f.get(_k) or {}
+                    _v = (_slot.get("consolidated") or _slot.get("parent") or {})
+                    if _v.get("value") is not None:
+                        _fbits.append(f'{_lbl} {_plain_num(_v["value"])}'
+                                      + (f' {_safe_text(_v["unit"])}' if _v.get("unit") and _k == "cross_book_value" else ""))
+                st.markdown('<div class="fc-note">Tagged values: ' + (" · ".join(_fbits) or "none found")
+                            + f'. Sections found: {", ".join(sorted(_prep["blocks"])) or "none"} '
+                            f'({_prep["n_rows"]:,} tagged rows). Reading them is about '
+                            f'${_prep["estimate"]["usd"]:.2f} ({_prep["estimate"]["input_tokens"]:,} '
+                            f'input tokens, estimated) on <code>{YX.MODEL}</code>.</div>',
+                            unsafe_allow_html=True)
+                if not _api_key:
+                    st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
+                                'Secrets, so the sections cannot be read.</div>', unsafe_allow_html=True)
+                if st.button(f"🏛️ Read the sections with Claude (~${_prep['estimate']['usd']:.2f})",
+                             key=f"yx_go_{_rcode}_{_pick}", type="primary",
+                             disabled=not (_api_key and _prep["blocks"])):
+                    _status = st.status("Reading the yuho…", expanded=True)
+                    _secs, _errs, _use = YX.read_blocks(
+                        _prep["blocks"], _api_key, _rcode, _rname,
+                        progress=lambda k: _status.write(f"Reading {k.replace('_', ' ')}…"))
+                    _entry = YX.build_entry(_filing, _prep, _secs, _errs, _use,
+                                            now_local().date().isoformat())
+                    _ok, _m = YX.save_via_github(_ec_repo, _gh_token, _rcode, _entry)
+                    st.session_state.yuho_map = CE.apply(st.session_state.get("yuho_map") or {},
+                                                         _rcode, [_entry], ())
+                    st.session_state.pop(_pkey, None)
+                    _status.update(label="Done", state="complete", expanded=False)
+                    _cost = (_use["input"] / 1e6) * YX.INPUT_USD_PER_MTOK + (_use["output"] / 1e6) * YX.OUTPUT_USD_PER_MTOK
+                    _msg = (f"Read {len(_secs)} section{'s' if len(_secs) != 1 else ''} of the "
+                            f"{_entry['fy']} yuho (${_cost:.2f}). "
+                            + (f"Could not read: {', '.join(_errs)}. " if _errs else "")
+                            + (_m if _ok else f"Kept for this session, not saved: {_m}"))
+                    st.session_state.research_flash = ("success" if _ok else "warning", _msg)
+                    st.rerun()
+
+            # ── 5%-rule filings ───────────────────────────────────────
+            _lh = HX.large_holding_rows(_idx_rows, _rcode)
+            _stored = {e["id"]: e for e in _holders_for(_rcode)}
+            for _r in _lh:
+                _s = _stored.get(_r["id"])
+                if _s:
+                    _r.update({k: _s.get(k) for k in ("pct", "prev_pct", "purpose")})
+            if _lh:
+                _summ = HX.holders_summary(_lh)
+                _gen = [r for r in _lh if not r["special"]]
+                _act = [s for s in _summ if s["activist"]]
+                st.markdown('<div class="fc-qhead">5% holders — '
+                            f'{len(_summ)} filer{"s" if len(_summ) != 1 else ""}, '
+                            f'{len({r["holder"] for r in _gen})} general (non-特例)'
+                            + (f', <span class="fc-neg">{len(_act)} activist</span>' if _act else '')
+                            + '</div>', unsafe_allow_html=True)
+                _h = ('<table class="tr-table tr-steps"><tr><th>Holder</th><th>Latest</th><th>Filings</th>'
+                      '<th>Filer type</th><th>%</th><th>Prev %</th><th>Purpose</th></tr>')
+                for _s in _summ[:15]:
+                    _h += (f'<tr><td>{_safe_text(_s["holder"])}'
+                           + (f' <span class="fc-neg">{_safe_text(_s["activist"])}</span>' if _s["activist"] else '')
+                           + f'</td><td>{_safe_text(_s["latest"])} ({_safe_text(_s["latest_kind"])})</td>'
+                           f'<td style="text-align:right">{_s["filings"]}</td>'
+                           f'<td>{"passive (特例)" if _s["special"] else "general"}</td>'
+                           f'<td style="text-align:right">{_pct2(_s["pct"])}</td>'
+                           f'<td style="text-align:right">{_pct2(_s["prev_pct"])}</td>'
+                           f'<td>{_safe_text(HX.purpose_read(_s["purpose"]) or "")}</td></tr>')
+                st.markdown(_h + '</table>', unsafe_allow_html=True)
+                _todo = [r for r in _gen if r.get("pct") is None][:12]
+                if _todo and _edinet_api_key:
+                    if st.button(f"📥 Read % and purpose for {len(_todo)} general filing"
+                                 f"{'s' if len(_todo) != 1 else ''} (no AI)",
+                                 key=f"hx_lh_{_rcode}"):
+                        _new = []
+                        with st.spinner("Fetching the filings…"):
+                            for _r in _todo:
+                                try:
+                                    _rows = YX.parse_csv_zip(YX.fetch_csv_zip(_r["doc_id"], _edinet_api_key))
+                                    _p = HX.parse_large_holding(_rows)
+                                except Exception as _fe:
+                                    print(f"5% filing {_r['doc_id']}: {_fe}")
+                                    continue
+                                _new.append({"id": _r["id"], "date": _r["date"], "holder": _r["holder"],
+                                             "kind": _r["kind"], "special": _r["special"],
+                                             "pct": _p["pct"], "prev_pct": _p["prev_pct"],
+                                             "purpose": _p["purpose"], "event_date": _p["event_date"]})
+                        if _new:
+                            _ok, _m = HX.save_via_github(_ec_repo, _gh_token, _rcode, _new)
+                            st.session_state.holders_map = CE.apply(
+                                st.session_state.get("holders_map") or {}, _rcode, _new, ())
+                            st.session_state.research_flash = (
+                                "success" if _ok else "warning",
+                                f"Read {len(_new)} of {len(_todo)} filings. "
+                                + (_m if _ok else f"Kept for this session, not saved: {_m}"))
+                        else:
+                            st.session_state.research_flash = ("warning", "None of the filings could be read.")
+                        st.rerun()
+                elif _todo:
+                    st.markdown('<div class="fc-note">Percentages need the filings themselves '
+                                '(EDINET_API_KEY).</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="fc-qhead">5% holders — none in the index (about two years)</div>',
+                            unsafe_allow_html=True)
+
+            # ── The AGM vote ──────────────────────────────────────────
+            _agms = sorted([e for e in _holders_for(_rcode) if e["id"].startswith("agm_")],
+                           key=lambda e: e.get("fy", ""), reverse=True)
+            _offs = ((_latest or {}).get("sections") or {}).get("officers", {}).get("officers") or []
+            if _agms:
+                _a = _agms[0]
+                _prior = _agms[1] if len(_agms) > 1 else None
+                _rd = HX.agm_read(_a, _offs, _prior)
+                _bits = [f'{_a.get("agm_date") or _a.get("date")}', f'{_rd.get("n", 0)} resolutions']
+                if _rd.get("ceo"):
+                    _n, _p = _rd["ceo"]
+                    _cls = "fc-neg" if _p < HX.LOW_APPROVAL else "fc-pos"
+                    _bits.append(f'CEO {_safe_text(_n)} <span class="{_cls}">{_p:.1f}%</span>'
+                                 + (f' (prior {_rd["ceo_prior"]:.1f}%)' if _rd.get("ceo_prior") else ''))
+                if _rd.get("median") is not None:
+                    _bits.append(f'median director {_rd["median"]:.1f}%')
+                if _rd.get("weakest"):
+                    _bits.append(f'weakest {_safe_text(_rd["weakest"][0])} {_rd["weakest"][1]:.1f}%')
+                if _rd.get("shareholder_proposals"):
+                    _bits.append(f'{len(_rd["shareholder_proposals"])} shareholder proposal'
+                                 f'{"s" if len(_rd["shareholder_proposals"]) != 1 else ""}')
+                st.markdown(f'<div class="fc-qhead">AGM vote {_safe_text(_a["fy"])} — ' + " · ".join(_bits)
+                            + '</div>', unsafe_allow_html=True)
+                if _rd.get("low"):
+                    st.markdown('<div class="fc-note fc-warn">Under '
+                                f'{HX.LOW_APPROVAL:.0f}%: ' + " · ".join(
+                                    f'{_safe_text(n)} {p:.1f}%' for n, p in _rd["low"]) + '</div>',
+                                unsafe_allow_html=True)
+                if _rd.get("drops"):
+                    st.markdown('<div class="fc-note fc-warn">Down 5+ points on last year: ' + " · ".join(
+                        f'{_safe_text(n)} {a:.1f}% → {b:.1f}%' for n, a, b in _rd["drops"]) + '</div>',
+                        unsafe_allow_html=True)
+                _prior_by = {HX._surname(r["person_name"]): r["approval_pct"]
+                             for r in ((_prior or {}).get("resolutions") or []) if r.get("person_name")}
+                _h = ('<table class="tr-table tr-steps"><tr><th>Resolution</th><th>Candidate / item</th>'
+                      '<th>For %</th><th>Prior</th><th>Result</th></tr>')
+                for _r in _a.get("resolutions") or []:
+                    _pp = _prior_by.get(HX._surname(_r["person_name"])) if _r["person_name"] else None
+                    _cls = ("fc-neg" if _r["approval_pct"] and _r["approval_pct"] < HX.LOW_APPROVAL else "")
+                    _h += (f'<tr><td>{_safe_text(_r["number"])}'
+                           + (' <span class="fc-neg">shareholder proposal</span>' if _r["proposed_by_shareholder"] else '')
+                           + f'</td><td>{_safe_text(_r["person_name"] or _r["title"])}</td>'
+                           f'<td style="text-align:right" class="{_cls}">'
+                           f'{_r["approval_pct"]:.1f}%</td>'
+                           f'<td style="text-align:right">{"—" if _pp is None else format(_pp, ".1f") + "%"}</td>'
+                           f'<td>{"passed" if _r["passed"] else "rejected"}</td></tr>')
+                st.markdown(_h + '</table>', unsafe_allow_html=True)
+            _pe_for_agm = (_newest or {}).get("PeriodEnd") or (_latest or {}).get("period_end")
+            _agm_fy = YX.fy_label(_pe_for_agm) if _pe_for_agm else ""
+            _cands = HX.agm_candidates(_idx_rows, _rcode, _pe_for_agm) if _pe_for_agm else []
+            _have = {e["fy"] for e in _agms}
+            if _cands and _agm_fy and _agm_fy not in _have:
+                st.markdown(f'<div class="fc-note">{len(_cands)} extraordinary report'
+                            f'{"s" if len(_cands) != 1 else ""} filed in the AGM window after '
+                            f'{_safe_text(_pe_for_agm)}: ' + " · ".join(
+                                f'{(c.get("SubmitDateTime") or "")[:10]}' for c in _cands)
+                            + '.</div>', unsafe_allow_html=True)
+                if st.button(f"🗳️ Read the {_agm_fy} AGM vote", key=f"hx_agm_{_rcode}_{_agm_fy}",
+                             disabled=not (_edinet_api_key and _api_key)):
+                    _found = None
+                    with st.spinner("Looking for the voting results…"):
+                        for _c in _cands:
+                            try:
+                                _rows = YX.parse_csv_zip(YX.fetch_csv_zip(_c["DocID"], _edinet_api_key))
+                            except Exception as _fe:
+                                print(f"extraordinary report {_c['DocID']}: {_fe}")
+                                continue
+                            _txt = HX.vote_text(_rows)
+                            if _txt:
+                                _found = (_c, _txt)
+                                break
+                    if not _found:
+                        st.session_state.research_flash = (
+                            "warning", "None of those reports carries a voting table.")
+                        st.rerun()
+                    with st.spinner("Reading the vote…"):
+                        try:
+                            _agm = HX.extract_agm(_found[1], _api_key, _rcode, _rname)
+                        except Exception as _xe:
+                            st.session_state.research_flash = ("warning", f"Could not read the vote: {_xe}")
+                            st.rerun()
+                    _entry = {"id": f"agm_{_agm_fy}", "fy": _agm_fy,
+                              "date": (_found[0].get("SubmitDateTime") or "")[:10],
+                              "doc_id": _found[0]["DocID"], "agm_date": _agm["agm_date"],
+                              "resolutions": _agm["resolutions"], "notes": _agm["notes"],
+                              "usage": _agm.get("usage", {}),
+                              "read_on": now_local().date().isoformat()}
+                    _ok, _m = HX.save_via_github(_ec_repo, _gh_token, _rcode, [_entry])
+                    st.session_state.holders_map = CE.apply(
+                        st.session_state.get("holders_map") or {}, _rcode, [_entry], ())
+                    st.session_state.research_flash = (
+                        "success" if _ok else "warning",
+                        f"Read {len(_agm['resolutions'])} resolutions. "
+                        + (_m if _ok else f"Kept for this session, not saved: {_m}"))
+                    st.rerun()
+            elif not _cands and not _agms:
+                st.markdown('<div class="fc-qhead">AGM vote — no extraordinary report in the AGM window'
+                            + (f' after {_safe_text(_pe_for_agm)}' if _pe_for_agm else '') + '</div>',
+                            unsafe_allow_html=True)
+
+        _n_yx = len(_yuho_for(_rcode))
+        _yx_tail = f" ({_n_yx} yuho{'s' if _n_yx != 1 else ''} read)" if _n_yx else ""
+        if _toggle_section("🏛️ Management, board & ownership" + _yx_tail, "research_people_open"):
+            _fc_people(_rcode, _rname, _fc_map or {}, _fundrow or {})
 
         # ── Assemble the unified item list ──────────────────────────────
         _items = []
