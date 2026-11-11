@@ -849,6 +849,50 @@
       "value": 45570000000.0
     }
   },
+  "6965": {
+    "eps|FY2026|actual": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 67.94
+    },
+    "net_profit|FY2026|actual": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 19832000000.0
+    },
+    "net_sales|FY2026|actual": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 243360000000.0
+    },
+    "net_sales|FY2026|consensus": {
+      "as_of": "2026-11-10",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 237800000000.0
+    },
+    "operating_profit|FY2026|actual": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 27181000000.0
+    },
+    "operating_profit|FY2026|consensus": {
+      "as_of": "2026-11-10",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 22470000000.0
+    },
+    "ordinary_profit|FY2026|actual": {
+      "as_of": "2026-11-11",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 30612000000.0
+    }
+  },
   "6971": {
     "eps|FY2027|company": {
       "as_of": "2026-11-02",
