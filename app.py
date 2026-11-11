@@ -1711,6 +1711,10 @@ if st.session_state.ui_zoom != ZOOM_DEFAULT:
 import inspect as _inspect
 _GRID_KW = ({"row_height": 27}
             if "row_height" in _inspect.signature(st.data_editor).parameters else {})
+# Blank cells read as blank rather than Streamlit's grey "None", where the
+# installed Streamlit can say so. Passed to the results-day grids.
+_BLANK_KW = ({"placeholder": ""}
+             if "placeholder" in _inspect.signature(st.data_editor).parameters else {})
 
 
 def _editor(*args, **kwargs):
@@ -6696,6 +6700,48 @@ with tab_research:
             return [{k: (None if (isinstance(v, float) and v != v) else v)
                      for k, v in r.items()} for r in _ed]
 
+        def _pending(_base, _key: str) -> list:
+            """A grid as it will come back from its editor this run: the rows it
+            was given with what has been typed so far applied. Read before the
+            grid is drawn, so worked-out columns can sit in the same grid and
+            move as you type (Streamlit keeps a fixed-row keyed editor's edits
+            when only its values change)."""
+            _stt = st.session_state.get(_key) or {}
+            _out = [dict(r) for r in _records(_base)]
+            for _i, _chgs in (_stt.get("edited_rows") or {}).items():
+                _i = int(_i)
+                if 0 <= _i < len(_out):
+                    _out[_i].update(_chgs)
+            _del = {int(i) for i in (_stt.get("deleted_rows") or [])}
+            _out = [r for i, r in enumerate(_out) if i not in _del]
+            return _out + [dict(r) for r in (_stt.get("added_rows") or [])]
+
+        def _pct_txt(_v):
+            """A signed change as text for a grid cell, or a dash."""
+            return "—" if _v is None else f'{"▲" if _v >= 0 else "▼"}{abs(_v) * 100:.1f}%'
+
+        def _styled(_rows: list, _num_cols, _txt_cols):
+            """Rows for a results-day grid as a styled frame: fixed column types
+            (so the grid keeps its identity, and what is typed, as the worked-out
+            columns change), and the worked-out text columns in green or red."""
+            _df = pd.DataFrame(_rows)
+            for _c in _num_cols:
+                if _c in _df:
+                    _df[_c] = pd.to_numeric(_df[_c], errors="coerce").astype("float64")
+            for _c in _txt_cols:
+                if _c in _df:
+                    _df[_c] = _df[_c].fillna("—").astype(str)
+
+            def _tone(_v):
+                _v = str(_v)
+                if _v.startswith(("▲", "Above")):
+                    return "color: #2E7D32"
+                if _v.startswith(("▼", "Below")):
+                    return "color: #C62828"
+                return ""
+            return (_df.style.map(_tone, subset=[c for c in _txt_cols if c in _df])
+                    .format(na_rep=""))
+
         def _chip(_v, _dp=1, _title=""):
             """A signed change as a coloured chip, or a dash."""
             if _v is None:
@@ -6812,89 +6858,50 @@ with tab_research:
 
             _nonce = st.session_state.get(f"rd_nonce_{_rcode}", 0)
             _vkey = f"{_fy}_{_period}_{_single}_{_date}_{_nonce}"
-            st.markdown(f'<div class="fc-qhead">1 · Reported — {_safe_text(_period)} '
-                        f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
-            _what = ("the full year" if _n == 4 else
-                     f"the single quarter ({_period})" if _single else
-                     f"the year to date through {_period}")
-            _cfg = {
-                "metric": st.column_config.TextColumn("Line", disabled=True),
-                "street": st.column_config.NumberColumn(
-                    "Street est." + (" FY" if _n == 4 else f" {_period} (quarter)"),
-                    format="%.2f",
-                    help="What the street expected for this period going in. Type or correct "
-                         "it here; it is saved dated the day before the result."),
-                "guide": st.column_config.NumberColumn(
-                    f"Co. guidance {_fy}", format="%.2f",
-                    help="Full-year company guidance going in. A correction is saved dated the "
-                         "day before the result; new guidance given with the result goes in "
-                         "section 2."),
-                "h1": st.column_config.NumberColumn(
-                    "Co. 1H guidance", format="%.2f",
-                    help="First-half company guidance going in, saved dated the day before."),
-                "reported": st.column_config.NumberColumn(
-                    f"Reported — {_what}", format="%.2f",
-                    help="¥bn, or ¥ per share for EPS. Leave blank to skip a line."),
-            }
-            _ed = _editor(_grid, key=f"rd_rep_{_rcode}_{_vkey}", hide_index=True,
-                                 use_container_width=True, num_rows="fixed", column_config=_cfg)
+            _rep_key = f"rd_rep_{_rcode}_{_vkey}"
+            _oo_key = f"rd_oo_{_rcode}_{_vkey}"
 
-            # One-offs in this result — typed alongside the figures, because the
-            # extraordinaries are only known once the tanshin is out. Seeded
-            # with anything already logged for this period, so this is also
-            # where those are corrected.
+            # One-offs in this result. Their grid sits below the figures, but
+            # what is typed there is read first, so the figures grid can carry
+            # the adjusted lines alongside the reported ones.
             _oo_period = "4Q" if _n == 4 else _period
             _oo_all = _one_offs_for(_rcode)
             _oo_here = [e for e in _oo_all if e.get("fy") == _fy and e.get("period") == _oo_period]
-            st.markdown(f'<div class="fc-qhead">One-offs in this result — {_safe_text(_oo_period)} '
-                        f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
             _oo_grid = [{"id": e.get("id"), "item": e.get("item", ""), "note": e.get("note", ""),
                          "line": OO.LINE_LABEL.get(e.get("line"), OO.LINE_LABEL["extraordinary"]),
                          "amount_bn": float(e.get("amount_jpy") or 0) / 1e9,
                          "np_bn": (None if e.get("np_amount_jpy") in (None, "")
                                    else float(e["np_amount_jpy"]) / 1e9)} for e in _oo_here]
-            _oo_ed = _editor(
-                _editor_rows(_oo_grid, ["id", "item", "note", "line", "amount_bn", "np_bn"]),
-                key=f"rd_oo_{_rcode}_{_vkey}", hide_index=True, num_rows="dynamic",
-                use_container_width=True, column_order=["line", "amount_bn", "note"],
-                column_config={
-                    "line": st.column_config.SelectboxColumn(
-                        "Where it lands", options=list(OO.LINE_LABEL.values()), required=True,
-                        default=OO.LINE_LABEL["operating"],
-                        help="In OP: taken out of OP and every line below. Below OP: OP is "
-                             "left alone and only the lines below are adjusted."),
-                    "amount_bn": st.column_config.NumberColumn(
-                        "Impact ¥bn (− = loss)", format="%.2f",
-                        help="The pre-tax effect on profit: a loss negative, a gain positive."),
-                    "note": st.column_config.TextColumn(
-                        "Note (shown on hover)", width="large",
-                        help="What it is — e.g. 'GaN writedown'. Shown in the bubble on the "
-                             "One-off adj. line."),
-                })
+            _oo_base = _editor_rows(_oo_grid, ["id", "item", "note", "line", "amount_bn", "np_bn"])
             _line_of = {v: k for k, v in OO.LINE_LABEL.items()}
             # Item and after-tax are no longer asked for; an entry that had
             # them keeps them, read back from the store by id.
             _was = {e.get("id"): e for e in _oo_here}
-            _oo_new = [{"id": r.get("id"), "fy": _fy, "period": _oo_period,
-                        "line": _line_of.get(r.get("line"), "operating"),
-                        "item": (_was.get(r.get("id")) or {}).get("item", ""),
-                        "note": r.get("note") or "",
-                        "amount_jpy": float(r["amount_bn"]) * 1e9,
-                        "np_amount_jpy": (_was.get(r.get("id")) or {}).get("np_amount_jpy")}
-                       for r in _records(_oo_ed) if r.get("amount_bn") is not None]
-            # What the readout adjusts by: this period's items as typed here,
+
+            def _oo_entries(_rows) -> list:
+                return [{"id": r.get("id"), "fy": _fy, "period": _oo_period,
+                         "line": _line_of.get(r.get("line"), "operating"),
+                         "item": (_was.get(r.get("id")) or {}).get("item", ""),
+                         "note": r.get("note") or "",
+                         "amount_jpy": float(r["amount_bn"]) * 1e9,
+                         "np_amount_jpy": (_was.get(r.get("id")) or {}).get("np_amount_jpy")}
+                        for r in _records(_rows) if r.get("amount_bn") is not None]
+
+            # What the adjusted lines take out: this period's items as typed,
             # plus earlier periods' logged items for the year to date.
             _oo_before = [e for e in _oo_all if e.get("fy") == _fy and e.get("period") in
                           ("1Q", "2Q", "3Q", "4Q")[:_n - 1]]
-
-            # Readout, recomputed from what is typed on every rerun.
             _prior = fund.prior_fy(_fy)
-            _rd_rows, _summary_bits = [], []
-            for _r in _ed:
+
+            def _readout(_r: dict, _oo_new: list):
+                """The worked-out figures for one line of the figures grid as it
+                is typed: the quarter and year to date, against the street,
+                last year and guidance — and the same with this result's
+                one-offs taken out. Yen; changes as fractions."""
                 _m = _lbl_to_m.get(_r.get("metric"))
                 _v = _r.get("reported")
                 if not _m or _v is None:
-                    continue
+                    return None
                 # The going-in figures as they stand in the grid, typed-over
                 # values included, so the readout moves as they are corrected.
                 _md = dict(_meta[_m])
@@ -6913,59 +6920,170 @@ with tab_research:
                     _ytd = _v
                     _q = _v if _n == 1 else (None if _md["prev_ytd"] is None
                                              else _v - _md["prev_ytd"])
-                _vs_st = _chg(_ytd if _n == 4 else _q, _md["street"])
                 _ly = (fund.quarter_breakdown(_get, _m, _prior).get(f"q{_n}") or (None,))[0]
-                _yoy = _chg(_q, _ly)
-                _prog = (_ytd / _md["guide"]) if (_n < 4 and _ytd is not None and _md["guide"]) else None
-                _vs_g = _chg(_ytd, _md["guide"]) if _n == 4 else None
-                _vs_h1 = _chg(_ytd, _md["h1"]) if _n == 2 else None
-                _rd_rows.append((_r["metric"], _m, _q, _ytd, _vs_st, _yoy, _prog, _vs_g, _vs_h1))
+                _o = {"m": _m, "q": _q, "ytd": _ytd,
+                      "vs": RD.vs_consensus(_ytd if _n == 4 else _q, _md["street"]),
+                      "yoy": _chg(_q, _ly),
+                      "prog": ((_ytd / _md["guide"])
+                               if (_n < 4 and _ytd is not None and _md["guide"]) else None),
+                      "vg": _chg(_ytd, _md["guide"]) if _n == 4 else None,
+                      "vh": _chg(_ytd, _md["h1"]) if _n == 2 else None,
+                      "oo": None, "adj_q": None, "adj_ytd": None, "adj_vs": None}
                 # The same line with this result's one-offs taken out — what
                 # decides whether the quarter actually beat.
                 _iq = OO.impact(_oo_new, _m, _fy, (_oo_period,))
                 if _iq:
                     _iy = _iq + OO.impact(_oo_before, _m, _fy, ("1Q", "2Q", "3Q"))
-                    _aq = None if _q is None else _q - _iq
-                    _ay = None if _ytd is None else _ytd - _iy
-                    _avs = _chg(_ay if _n == 4 else _aq, _md["street"])
-                    _rd_rows.append((f'Adj. {_r["metric"]}', _m, _aq, _ay, _avs, None,
-                                     (_ay / _md["guide"]) if (_n < 4 and _ay is not None
-                                                              and _md["guide"]) else None,
-                                     _chg(_ay, _md["guide"]) if _n == 4 else None,
-                                     _chg(_ay, _md["h1"]) if _n == 2 else None))
-                    if _m == "operating_profit" and _avs is not None:
-                        _summary_bits.append(f"adjusted for one-offs, OP "
-                                             f"{'beat' if _avs >= 0 else 'missed'} by "
-                                             f"{abs(_avs) * 100:.1f}%")
-                if _m == "operating_profit":
-                    if _vs_st is not None:
-                        _summary_bits.append(f"OP {'beat' if _vs_st >= 0 else 'missed'} the street by "
-                                             f"{abs(_vs_st) * 100:.1f}%")
-                    if _prog is not None:
-                        _summary_bits.append(f"OP progress {_prog * 100:.0f}%")
-            if _rd_rows:
-                _h = ('<table class="tr-table"><tr><th>Line</th><th>Quarter</th><th>YTD</th>'
-                      f'<th>vs street{" (FY)" if _n == 4 else ""}</th><th>YoY (qtr)</th>'
-                      + ('<th>vs co. guidance</th>' if _n == 4 else '<th>Progress vs FY guide</th>')
-                      + ('<th>vs 1H guide</th>' if _n == 2 else '') + '</tr>')
-                for _lbl, _m, _q, _ytd, _vs, _yo, _pg, _vg, _vh in _rd_rows:
-                    _h += (f'<tr{" class=tr-adj" if _lbl.startswith("Adj. ") else ""}>'
-                           f'<td>{_safe_text(_lbl)}</td><td>{_bn(_q, _m)}</td>'
-                           f'<td>{_bn(_ytd, _m)}</td><td>{_chip(_vs)}</td><td>{_chip(_yo)}</td>'
-                           + (f'<td>{_chip(_vg)}</td>' if _n == 4 else
-                              f'<td>{"—" if _pg is None else f"{_pg * 100:.0f}%"}</td>')
-                           + (f'<td>{_chip(_vh)}</td>' if _n == 2 else '') + '</tr>')
-                st.markdown(_h + '</table>', unsafe_allow_html=True)
+                    _o["oo"] = _iq
+                    _o["adj_q"] = None if _q is None else _q - _iq
+                    _o["adj_ytd"] = None if _ytd is None else _ytd - _iy
+                    _o["adj_vs"] = RD.vs_consensus(_o["adj_ytd"] if _n == 4 else _o["adj_q"],
+                                                   _md["street"])
+                return _o
+
+            def _per(_v, _m):
+                return None if _v is None else _v / _unit(_m)
+
+            def _read_txt(_vc):
+                return "—" if not _vc else _vc[0].capitalize()
+
+            def _vs_txt(_vc):
+                return _pct_txt(_vc[1] if _vc else None)
+
+            # The grid as typed so far (this run's edits applied), worked out
+            # and written back into the same grid as read-only columns.
+            _oo_typed = _oo_entries(_pending(_oo_base, _oo_key))
+            _reads = [_readout(_r, _oo_typed) for _r in _pending(_grid, _rep_key)]
+            _NUM_OUT = ("q", "ytd", "oo", "adj_q", "adj_ytd")
+            _TXT_OUT = ("vs_st", "read", "adj_vs", "adj_read", "yoy", "vs_guide", "vs_h1")
+            _show = []
+            for _b, _o in zip(_grid, _reads):
+                _o = _o or {}
+                _m = _lbl_to_m.get(_b["metric"])
+                _show.append({**_b,
+                              **{k: _per(_o.get(k), _m) for k in _NUM_OUT},
+                              "vs_st": _vs_txt(_o.get("vs")), "read": _read_txt(_o.get("vs")),
+                              "adj_vs": _vs_txt(_o.get("adj_vs")) if _o.get("oo") else "—",
+                              "adj_read": _read_txt(_o.get("adj_vs")) if _o.get("oo") else "—",
+                              "yoy": _pct_txt(_o.get("yoy")),
+                              "vs_guide": (_pct_txt(_o.get("vg")) if _n == 4 else
+                                           "—" if _o.get("prog") is None
+                                           else f'{_o["prog"] * 100:.0f}%'),
+                              "vs_h1": _pct_txt(_o.get("vh"))})
+            _has_oo = any(_o and _o.get("oo") for _o in _reads)
+
+            st.markdown(f'<div class="fc-qhead">1 · Reported — {_safe_text(_period)} '
+                        f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
+            _what = ("the full year" if _n == 4 else
+                     f"the single quarter ({_period})" if _single else
+                     f"the year to date through {_period}")
+            _vs_what = "FY" if _n == 4 else "quarter"
+            _cfg = {
+                "metric": st.column_config.TextColumn("Line", disabled=True),
+                "street": st.column_config.NumberColumn(
+                    "Street est." + (" FY" if _n == 4 else f" {_period} (quarter)"),
+                    format="%.2f",
+                    help="What the street expected for this period going in. Type or correct "
+                         "it here; it is saved dated the day before the result."),
+                "guide": st.column_config.NumberColumn(
+                    f"Co. guidance {_fy}", format="%.2f",
+                    help="Full-year company guidance going in. A correction is saved dated the "
+                         "day before the result; new guidance given with the result goes in "
+                         "section 2."),
+                "h1": st.column_config.NumberColumn(
+                    "Co. 1H guidance", format="%.2f",
+                    help="First-half company guidance going in, saved dated the day before."),
+                "reported": st.column_config.NumberColumn(
+                    f"Reported — {_what}", format="%.2f",
+                    help="¥bn, or ¥ per share for EPS. Leave blank to skip a line."),
+                "q": st.column_config.NumberColumn("Quarter", format="%.2f", disabled=True),
+                "ytd": st.column_config.NumberColumn("YTD", format="%.2f", disabled=True),
+                "vs_st": st.column_config.TextColumn(
+                    f"vs street ({_vs_what})", disabled=True,
+                    help=f"Reported {'full year' if _n == 4 else 'quarter'} against the "
+                         "street's estimate going in."),
+                "read": st.column_config.TextColumn(
+                    "Read", disabled=True,
+                    help=f"Above / in line / below the street — in line is within "
+                         f"±{RD.INLINE_BAND * 100:.0f}%."),
+                "oo": st.column_config.NumberColumn(
+                    "One-offs", format="%.2f", disabled=True,
+                    help="This result's one-offs on the line (typed in the grid below; "
+                         "− = loss)."),
+                "adj_q": st.column_config.NumberColumn("Adj. quarter", format="%.2f",
+                                                       disabled=True),
+                "adj_ytd": st.column_config.NumberColumn("Adj. YTD", format="%.2f",
+                                                         disabled=True),
+                "adj_vs": st.column_config.TextColumn(f"Adj. vs street ({_vs_what})",
+                                                      disabled=True),
+                "adj_read": st.column_config.TextColumn(
+                    "Adj. read", disabled=True,
+                    help="The read with this result's one-offs taken out — what decides "
+                         "whether it actually beat."),
+                "yoy": st.column_config.TextColumn("YoY (qtr)", disabled=True),
+                "vs_guide": st.column_config.TextColumn(
+                    "vs co. guidance" if _n == 4 else "Progress vs FY guide", disabled=True),
+                "vs_h1": st.column_config.TextColumn("vs 1H guide", disabled=True),
+            }
+            _order = (["metric", "street", "guide"] + (["h1"] if _n == 2 else [])
+                      + ["reported", "q"] + (["ytd"] if _n > 1 else []) + ["vs_st", "read"]
+                      + (["oo", "adj_q"] + (["adj_ytd"] if _n > 1 else [])
+                         + ["adj_vs", "adj_read"] if _has_oo else [])
+                      + ["yoy", "vs_guide"] + (["vs_h1"] if _n == 2 else []))
+            _ed = _records(_editor(
+                _styled(_show, _NUM_OUT + ("street", "guide", "h1", "reported"), _TXT_OUT),
+                key=_rep_key, hide_index=True, **_BLANK_KW, use_container_width=True, num_rows="fixed",
+                column_config=_cfg, column_order=_order))
             if _flag_now:
                 st.markdown('<div class="fc-note">Some "going in" figures come from the panel '
                             'as it is now, not the log — the log has no earlier value for them '
                             'yet.</div>', unsafe_allow_html=True)
+
+            # One-offs in this result — typed alongside the figures, because the
+            # extraordinaries are only known once the tanshin is out. Seeded
+            # with anything already logged for this period, so this is also
+            # where those are corrected. They show up in the grid above.
+            st.markdown(f'<div class="fc-qhead">One-offs in this result — {_safe_text(_oo_period)} '
+                        f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
+            _oo_ed = _editor(
+                _oo_base, key=_oo_key, hide_index=True, **_BLANK_KW, num_rows="dynamic",
+                use_container_width=True, column_order=["line", "amount_bn", "note"],
+                column_config={
+                    "line": st.column_config.SelectboxColumn(
+                        "Where it lands", options=list(OO.LINE_LABEL.values()), required=True,
+                        default=OO.LINE_LABEL["operating"],
+                        help="In OP: taken out of OP and every line below. Below OP: OP is "
+                             "left alone and only the lines below are adjusted."),
+                    "amount_bn": st.column_config.NumberColumn(
+                        "Impact ¥bn (− = loss)", format="%.2f",
+                        help="The pre-tax effect on profit: a loss negative, a gain positive."),
+                    "note": st.column_config.TextColumn(
+                        "Note (shown on hover)", width="large",
+                        help="What it is — e.g. 'GaN writedown'. Shown in the bubble on the "
+                             "One-off adj. line."),
+                })
+            _oo_new = _oo_entries(_oo_ed)
+
+            # The headline for the save message, from the grid as it came back.
+            _summary_bits = []
+            for _r in _ed:
+                _o = _readout(_r, _oo_new)
+                if not _o or _o["m"] != "operating_profit":
+                    continue
+                if _o["vs"]:
+                    _summary_bits.append(f"OP {_o['vs'][0]} the street ({_o['vs'][1] * 100:+.1f}%)")
+                if _o["adj_vs"]:
+                    _summary_bits.append(f"adjusted for one-offs, OP {_o['adj_vs'][0]} "
+                                         f"({_o['adj_vs'][1] * 100:+.1f}%)")
+                if _o["prog"] is not None:
+                    _summary_bits.append(f"OP progress {_o['prog'] * 100:.0f}%")
 
             # 2 · Guidance
             st.markdown(f'<div class="fc-qhead">2 · Full-year guidance — {_safe_text(_gfy)}'
                         + (' (next year, first given with this result)' if _n == 4 else '')
                         + '</div>', unsafe_allow_html=True)
             _g_rows_def = [r for r in _fc_rows(_profile, with_ratios=False) if r[0] in RD.GUIDE_LINES]
+            _g_lbl_to_m = {lbl: m for m, lbl, *_ in _g_rows_def}
             # The street's full-year number for the same year, as it stood the
             # day before — what a raise or cut is judged against.
             _g_cons, _flag_cons = {}, False
@@ -6979,9 +7097,31 @@ with tab_research:
                         "consensus": (None if _g_cons[_m] is None
                                       else _g_cons[_m] / _unit(_m)),
                         "new": None} for _m, _lbl, *_ in _g_rows_def]
-            _g_ed = _editor(
-                _g_grid, key=f"rd_guide_{_rcode}_{_vkey}", hide_index=True,
-                use_container_width=True, num_rows="fixed",
+            _g_key = f"rd_guide_{_rcode}_{_vkey}"
+
+            def _g_read(_r: dict):
+                """(change vs current guidance, vs consensus, compared on new?) for
+                one guidance line as typed. Against consensus it is the new
+                number where one is typed, else the current one — so the gap
+                going in shows too."""
+                _new, _prev = _r.get("new"), _r.get("previous")
+                _c = (_chg(float(_new), float(_prev))
+                      if _new is not None and _prev is not None else None)
+                _is_new = _new is not None
+                _vc = RD.vs_consensus(_new if _is_new else _prev, _r.get("consensus"))
+                return _c, _vc, _is_new
+
+            _g_show = []
+            for _b, _r in zip(_g_grid, _pending(_g_grid, _g_key)):
+                _c, _vc, _is_new = _g_read(_r)
+                _g_show.append({**_b, "chg": _pct_txt(_c) if _c else "—",
+                                "vs_cons": _vs_txt(_vc),
+                                "g_read": ("—" if not _vc else
+                                           f"{_vc[0].capitalize()} — {'new' if _is_new else 'current'}")})
+            _g_ed = _records(_editor(
+                _styled(_g_show, ("previous", "consensus", "new"), ("chg", "vs_cons", "g_read")),
+                key=_g_key, hide_index=True, **_BLANK_KW, use_container_width=True, num_rows="fixed",
+                column_order=["metric", "previous", "consensus", "new", "chg", "vs_cons", "g_read"],
                 column_config={
                     "metric": st.column_config.TextColumn("Line", disabled=True),
                     "previous": st.column_config.NumberColumn("Current guidance", disabled=True,
@@ -6995,53 +7135,31 @@ with tab_research:
                         "New guidance", format="%.2f",
                         help="Only if it changed. DPS is the annual dividend per share; a "
                              "change here is also logged as a dividend event."),
-                })
-            _g_lbl_to_m = {lbl: m for m, lbl, *_ in _g_rows_def}
-            _g_moves = []
+                    "chg": st.column_config.TextColumn(
+                        "Change", disabled=True, help="New guidance against current guidance."),
+                    "vs_cons": st.column_config.TextColumn(
+                        "vs consensus", disabled=True,
+                        help="New guidance where typed, else current guidance, against the "
+                             "street's full-year number going in."),
+                    "g_read": st.column_config.TextColumn(
+                        "Read", disabled=True,
+                        help=f"Above / in line / below consensus — in line is within "
+                             f"±{RD.INLINE_BAND * 100:.0f}%. 'new' or 'current' says which "
+                             "guidance was compared."),
+                }))
+            _g_moves, _g_vs = [], {}
             for _r in _g_ed:
-                _m = _g_lbl_to_m.get(_r.get("metric"))
-                if _m and _r.get("new") is not None and _r.get("previous") is not None:
-                    _c = _chg(float(_r["new"]), float(_r["previous"]))
-                    if _c:
-                        _g_moves.append((_r["metric"], _c))
-            # Guidance against the street: the new number where one is typed,
-            # else the current one — so the gap going in is visible too.
-            _g_vs = {}
-            _gv_rows = []
-            for _r in _g_ed:
-                _m = _g_lbl_to_m.get(_r.get("metric"))
-                if not _m:
+                if not _g_lbl_to_m.get(_r.get("metric")):
                     continue
-                _is_new = _r.get("new") is not None
-                _gv = _r.get("new") if _is_new else _r.get("previous")
-                _vc = RD.vs_consensus(_gv, _r.get("consensus"))
-                if _vc:
-                    _gv_rows.append((_r["metric"], _m, _is_new, _gv, _r.get("consensus"), _vc))
-                    if _is_new:
-                        _g_vs[_r["metric"]] = _vc
-            if _g_moves:
-                st.markdown('<div class="fc-reads">' + "".join(
-                    f'<span class="fc-read"><b>{_safe_text(_l)}</b> '
-                    f'{"raised" if _c > 0 else "cut"} {_chip(_c)}'
-                    + (f' — {_g_vs[_l][0]} consensus {_chip(_g_vs[_l][1])}' if _l in _g_vs else '')
-                    + '</span>' for _l, _c in _g_moves)
-                    + '</div>', unsafe_allow_html=True)
-            if _gv_rows:
-                _h = ('<table class="tr-table"><tr><th>Line</th><th>Guidance</th>'
-                      f'<th>Consensus {_safe_text(_gfy)}</th><th>vs consensus</th>'
-                      '<th>Read</th></tr>')
-                for _lbl, _m, _is_new, _gv, _cv, (_verdict, _vchg) in _gv_rows:
-                    _h += (f'<tr><td>{_safe_text(_lbl)}</td>'
-                           f'<td>{float(_gv):,.1f}{" (new)" if _is_new else " (current)"}</td>'
-                           f'<td>{float(_cv):,.1f}</td><td>{_chip(_vchg)}</td>'
-                           f'<td>{_verdict.capitalize()}</td></tr>')
-                st.markdown(_h + '</table>', unsafe_allow_html=True)
-                st.markdown(f'<div class="fc-note">"In line" = within ±{RD.INLINE_BAND * 100:.0f}% '
-                            'of the street\'s full-year number going in. Lines with no new '
-                            'guidance are shown against current guidance.'
-                            + (' Some consensus figures come from the panel as it is now — '
-                               'the log has no earlier value for them yet.' if _flag_cons else '')
-                            + '</div>', unsafe_allow_html=True)
+                _c, _vc, _is_new = _g_read(_r)
+                if _c:
+                    _g_moves.append((_r["metric"], _c))
+                if _vc and _is_new:
+                    _g_vs[_r["metric"]] = _vc
+            if _flag_cons:
+                st.markdown('<div class="fc-note">Some consensus figures come from the panel as '
+                            'it is now — the log has no earlier value for them yet.</div>',
+                            unsafe_allow_html=True)
 
             # 3 · Buyback
             st.markdown('<div class="fc-qhead">3 · Buyback</div>', unsafe_allow_html=True)
