@@ -181,10 +181,15 @@ def _current(row: dict) -> bool:
 
 
 def _consolidated(row: dict) -> bool:
+    """The context ID is the reliable signal (…_NonConsolidatedMember is the
+    parent); the 連結・個別 column is the fallback where the ID is bare."""
+    ctx = row.get("context") or ""
+    if "NonConsolidated" in ctx:
+        return False
     cons = row.get("cons") or ""
-    if cons:
-        return "連結" in cons
-    return "NonConsolidated" not in (row.get("context") or "")
+    if cons and "個別" in cons and "連結" not in cons:
+        return False
+    return True
 
 
 def _plain_context(row: dict) -> bool:
@@ -268,11 +273,13 @@ def numeric_facts(rows: list) -> dict:
     return out
 
 
-# (kind, element-ID fragments, label fragments)
+# (kind, element-ID fragments, label fragments) — a hint, worth a few points.
 _BLOCKS = (
     ("officers", ("InformationAboutOfficers", "InformationAboutDirectorsAndCorporateAuditors"),
      ("役員の状況",)),
     ("major_shareholders", ("MajorShareholders",), ("大株主の状況",)),
+    ("share_status", ("ShareholdingByShareholderCategory", "StatusOfSharesByOwner"),
+     ("所有者別状況",)),
     ("cross_holdings", ("InvestmentSharesHeld", "StatusOfSharesHeld", "ShareholdingStatus"),
      ("株式の保有状況",)),
     ("capex_plan", ("PlannedAdditions", "PlanForNewAdditions", "NewAdditionsRetirements"),
@@ -282,24 +289,93 @@ _BLOCKS = (
      ("役員の報酬等",)),
 )
 
+# What each section's own text contains, whatever its tag is called. The
+# first real filing read showed the tag names and labels are not what the
+# taxonomy documentation suggests, so the text decides: an officers table
+# always has 略歴 and 所有株式数, a cross-holdings table 特定投資株式, a capex
+# plan 投資予定 and 着手 / 完了. Weighted keywords; a block is a candidate for
+# a kind at MIN_SCORE, and the winner is the block most specific to that
+# kind (its score less the best other kind's), longest on a tie — so the
+# section's own sub-block beats a parent block that contains everything.
+_SIGNATURES = {
+    "officers": (("略歴", 3), ("所有株式数", 1), ("任期", 1), ("役職名", 1), ("生年月日", 1),
+                 ("社外取締役", 1)),
+    "major_shareholders": (("大株主", 3), ("氏名又は名称", 1), ("住所", 1), ("発行済株式", 1),
+                           ("自己株式を除く", 1), ("信託口", 1)),
+    "share_status": (("所有者別状況", 3), ("外国法人等", 2), ("政府及び地方公共団体", 2),
+                     ("金融商品取引業者", 1), ("単元未満", 1)),
+    "cross_holdings": (("特定投資株式", 3), ("政策保有", 2), ("保有目的", 1), ("貸借対照表計上額", 1),
+                       ("純投資目的", 1), ("当社の株式の保有の有無", 2)),
+    "capex_plan": (("投資予定", 3), ("既支払額", 2), ("資金調達方法", 2), ("設備の新設", 2),
+                   ("着手", 1), ("完了", 1), ("完成後の増加能力", 2)),
+    "capex_overview": (("設備投資等の概要", 3), ("設備投資", 1), ("当連結会計年度", 1), ("実施", 1),
+                       ("主な設備投資", 2)),
+    "exec_pay": (("役員区分", 3), ("報酬等の総額", 3), ("報酬等の種類別", 2), ("業績連動", 1),
+                 ("対象となる役員の員数", 2), ("連結報酬等", 2)),
+}
+MIN_SCORE = 3
+HINT_SCORE = 3
 
-def text_blocks(rows: list) -> dict:
-    """{kind: html} for the narrative sections, the current year's, longest
-    match per kind (a short duplicate is a heading-only tag)."""
+
+def _hint_kind(element: str, label: str) -> str:
+    for kind, el_parts, lbl_parts in _BLOCKS:
+        if any(p in element for p in el_parts) or all(p in label for p in lbl_parts):
+            return kind
+    return ""
+
+
+def _scores(text: str, element: str = "", label: str = "") -> dict:
     out = {}
+    hint = _hint_kind(element, label)
+    for kind, words in _SIGNATURES.items():
+        sc = sum(w for word, w in words if word in text)
+        if kind == hint:
+            sc += HINT_SCORE
+        if sc:
+            out[kind] = sc
+    return out
+
+
+def catalog(rows: list) -> list:
+    """Every text block in the filing's current-year context: element, label,
+    size, and the kind it was taken for (or ''). Stored with the entry so a
+    filing whose sections went unread can be diagnosed from the store
+    without the document."""
+    out = []
     for row in rows:
         el = row.get("element") or ""
         if not el.endswith("TextBlock"):
             continue
-        lbl = row.get("label") or ""
-        val = row.get("value") or ""
-        if not val.strip() or not _current(row):
+        ctx = row.get("context") or ""
+        if ctx.startswith("Prior"):
             continue
-        for kind, el_parts, lbl_parts in _BLOCKS:
-            if any(p in el for p in el_parts) or all(p in lbl for p in lbl_parts):
-                if len(val) > len(out.get(kind, "")):
-                    out[kind] = val
-                break
+        val = row.get("value") or ""
+        if not val.strip():
+            continue
+        text = html_to_text(val)
+        sc = _scores(text, el, row.get("label") or "")
+        best = max(sc, key=sc.get) if sc else ""
+        out.append({"element": el.split(":")[-1][:80], "label": (row.get("label") or "")[:60],
+                    "chars": len(text), "scores": sc,
+                    "kind": best if sc.get(best, 0) >= MIN_SCORE else "",
+                    "_text": text, "_html": val})
+    out.sort(key=lambda c: -c["chars"])
+    return out
+
+
+def text_blocks(rows: list) -> dict:
+    """{kind: html} — for each section kind, the block most specific to it."""
+    cands = catalog(rows)
+    out, best = {}, {}
+    for c in cands:
+        for kind, sc in c["scores"].items():
+            if sc < MIN_SCORE:
+                continue
+            other = max((v for k, v in c["scores"].items() if k != kind), default=0)
+            key = (sc - other, c["chars"])
+            if kind not in best or key > best[kind]:
+                best[kind] = key
+                out[kind] = c["_html"]
     return out
 
 
@@ -571,8 +647,29 @@ def _schema_pay():
     }
 
 
+def _schema_share_status():
+    return {
+        "type": "object", "additionalProperties": False,
+        "required": ["as_of", "foreign_pct", "financial_institutions_pct", "individuals_pct",
+                     "treasury_shares", "shares_issued", "shareholders_count", "notes"],
+        "properties": {
+            "as_of": {"type": "string"},
+            "foreign_pct": {"type": "number",
+                            "description": "外国法人等 (corporations and individuals together) "
+                            "share of shares held, in percent; 0 if not stated."},
+            "financial_institutions_pct": {"type": "number", "description": "金融機関, percent."},
+            "individuals_pct": {"type": "number", "description": "個人その他, percent."},
+            "treasury_shares": {"type": "integer", "description": "自己株式 in shares; 0 if absent."},
+            "shares_issued": {"type": "integer", "description": "発行済株式総数 in shares."},
+            "shareholders_count": {"type": "integer", "description": "株主数 total; 0 if absent."},
+            "notes": {"type": "string"},
+        },
+    }
+
+
 SCHEMAS = {"officers": _schema_officers, "major_shareholders": _schema_shareholders,
-           "cross_holdings": _schema_cross, "capex": _schema_capex, "exec_pay": _schema_pay}
+           "share_status": _schema_share_status, "cross_holdings": _schema_cross,
+           "capex": _schema_capex, "exec_pay": _schema_pay}
 
 _PROMPTS = {
     "officers": (
@@ -593,6 +690,15 @@ _PROMPTS = {
         "STREET, JP MORGAN CHASE BANK), a bank or insurer, the founder's family, an "
         "employee shareholding association (従業員持株会), treasury stock, a business "
         "partner, or other."),
+    "share_status": (
+        "Below is the 所有者別状況 table of a Japanese annual securities report "
+        "(有価証券報告書){who}, flattened from HTML: shares held by category of holder "
+        "(government, financial institutions, securities firms, other corporations, "
+        "foreign corporations and individuals, individuals and other, treasury). "
+        "Return each category's share of shares held in percent as printed (the 割合 "
+        "row), the shares issued, treasury shares and the shareholder count if stated. "
+        "Shares may be in 単元 (units) — convert to shares using the 単元株式数 if given, "
+        "else return the percentages only and say so in notes."),
     "cross_holdings": (
         "Below is the 株式の保有状況 section of a Japanese annual securities report "
         "(有価証券報告書){who}, flattened from HTML. It states the company's policy on "
@@ -725,6 +831,14 @@ def normalise(kind: str, raw: dict) -> dict:
         return {"as_of": _s(raw.get("as_of"), 40), "holders": hs,
                 "treasury_shares": _i(raw.get("treasury_shares")),
                 "notes": _s(raw.get("notes"), 600)}
+    if kind == "share_status":
+        return {"as_of": _s(raw.get("as_of"), 40), "foreign_pct": _f(raw.get("foreign_pct")),
+                "financial_institutions_pct": _f(raw.get("financial_institutions_pct")),
+                "individuals_pct": _f(raw.get("individuals_pct")),
+                "treasury_shares": _i(raw.get("treasury_shares")),
+                "shares_issued": _i(raw.get("shares_issued")),
+                "shareholders_count": _i(raw.get("shareholders_count")),
+                "notes": _s(raw.get("notes"), 400)}
     if kind == "cross_holdings":
         iss = []
         for x in raw.get("issues") or []:
@@ -786,8 +900,9 @@ def prepare(csv_zip: bytes) -> dict:
     numbers are on screen before any money is spent."""
     rows = parse_csv_zip(csv_zip)
     blocks = text_blocks(rows)
+    cat = [{k: v for k, v in c.items() if not k.startswith("_")} for c in catalog(rows)]
     return {"facts": numeric_facts(rows), "blocks": blocks, "n_rows": len(rows),
-            "estimate": estimate_cost(blocks)}
+            "estimate": estimate_cost(blocks), "catalog": cat[:80]}
 
 
 def read_blocks(blocks: dict, api_key: str, code: str = "", name: str = "",
@@ -798,7 +913,7 @@ def read_blocks(blocks: dict, api_key: str, code: str = "", name: str = "",
     sections, errors = {}, {}
     usage = {"input": 0, "output": 0}
     jobs = []
-    for kind in ("officers", "major_shareholders", "cross_holdings", "exec_pay"):
+    for kind in ("officers", "major_shareholders", "share_status", "cross_holdings", "exec_pay"):
         if blocks.get(kind):
             jobs.append((kind, html_to_text(blocks[kind])))
     if blocks.get("capex_plan") or blocks.get("capex_overview"):
@@ -833,6 +948,8 @@ def build_entry(filing: dict, prepared: dict, sections: dict, errors: dict,
         "read_on": read_on, "facts": prepared.get("facts", {}),
         "sections": sections, "errors": errors, "usage": usage,
         "blocks_found": sorted(prepared.get("blocks", {}).keys()),
+        "blocks_catalog": [{"element": c["element"], "label": c["label"], "chars": c["chars"],
+                            "kind": c["kind"]} for c in prepared.get("catalog", [])],
     }
 
 
@@ -847,6 +964,22 @@ def fact(entry: dict, key: str, basis: str = None):
         if b in slot:
             return slot[b]["value"]
     return None
+
+
+def foreign_pct(entry: dict):
+    """Foreign ownership in percent: the tagged value, else the read of the
+    所有者別状況 table, else None."""
+    v = fact(entry, "foreign_pct")
+    if v is None:
+        v = ((entry.get("sections") or {}).get("share_status") or {}).get("foreign_pct") or None
+    return v
+
+
+def shareholders_count(entry: dict):
+    v = fact(entry, "shareholders")
+    if v is None:
+        v = ((entry.get("sections") or {}).get("share_status") or {}).get("shareholders_count") or None
+    return v
 
 
 _TAG_LABEL = {
