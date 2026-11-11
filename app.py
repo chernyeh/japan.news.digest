@@ -1711,6 +1711,10 @@ if st.session_state.ui_zoom != ZOOM_DEFAULT:
 import inspect as _inspect
 _GRID_KW = ({"row_height": 27}
             if "row_height" in _inspect.signature(st.data_editor).parameters else {})
+# Blank cells read as blank rather than Streamlit's grey "None", where the
+# installed Streamlit can say so. Passed to the results-day grids.
+_BLANK_KW = ({"placeholder": ""}
+             if "placeholder" in _inspect.signature(st.data_editor).parameters else {})
 
 
 def _editor(*args, **kwargs):
@@ -7028,7 +7032,7 @@ with tab_research:
                       + ["yoy", "vs_guide"] + (["vs_h1"] if _n == 2 else []))
             _ed = _records(_editor(
                 _styled(_show, _NUM_OUT + ("street", "guide", "h1", "reported"), _TXT_OUT),
-                key=_rep_key, hide_index=True, use_container_width=True, num_rows="fixed",
+                key=_rep_key, hide_index=True, **_BLANK_KW, use_container_width=True, num_rows="fixed",
                 column_config=_cfg, column_order=_order))
             if _flag_now:
                 st.markdown('<div class="fc-note">Some "going in" figures come from the panel '
@@ -7042,7 +7046,7 @@ with tab_research:
             st.markdown(f'<div class="fc-qhead">One-offs in this result — {_safe_text(_oo_period)} '
                         f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
             _oo_ed = _editor(
-                _oo_base, key=_oo_key, hide_index=True, num_rows="dynamic",
+                _oo_base, key=_oo_key, hide_index=True, **_BLANK_KW, num_rows="dynamic",
                 use_container_width=True, column_order=["line", "amount_bn", "note"],
                 column_config={
                     "line": st.column_config.SelectboxColumn(
@@ -7116,7 +7120,7 @@ with tab_research:
                                            f"{_vc[0].capitalize()} — {'new' if _is_new else 'current'}")})
             _g_ed = _records(_editor(
                 _styled(_g_show, ("previous", "consensus", "new"), ("chg", "vs_cons", "g_read")),
-                key=_g_key, hide_index=True, use_container_width=True, num_rows="fixed",
+                key=_g_key, hide_index=True, **_BLANK_KW, use_container_width=True, num_rows="fixed",
                 column_order=["metric", "previous", "consensus", "new", "chg", "vs_cons", "g_read"],
                 column_config={
                     "metric": st.column_config.TextColumn("Line", disabled=True),
