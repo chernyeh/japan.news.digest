@@ -498,3 +498,21 @@ if __name__ == "__main__":
             print(f"  FAIL {name}: {exc or '(assertion)'}")
     print(f"\n{len(tests) - failed}/{len(tests)} passed")
     sys.exit(1 if failed else 0)
+
+
+def test_new_guidance_is_read_against_full_year_consensus():
+    assert RD.vs_consensus(47.0, 45.0)[0] == "above"
+    assert RD.vs_consensus(45.5, 45.0)[0] == "in line"
+    assert RD.vs_consensus(43.0, 45.0)[0] == "below"
+    assert abs(RD.vs_consensus(47.0, 45.0)[1] - 2 / 45) < 1e-12
+    assert RD.vs_consensus(47.0, None) is None and RD.vs_consensus(None, 45.0) is None
+
+
+def test_fy_consensus_typed_in_guidance_grid_is_dated_the_day_before():
+    entries = RD.plan_fy_consensus(
+        "FY2027", typed={"operating_profit": 45.0, "net_sales": 380.0, "eps": None},
+        shown={"operating_profit": 44.0, "net_sales": 380.0}, date="2026-11-02",
+        source="Koyfin")
+    assert set(entries) == {"operating_profit|FY2027|consensus"}
+    e = entries["operating_profit|FY2027|consensus"]
+    assert e["value"] == 45e9 and e["as_of"] == "2026-11-01"

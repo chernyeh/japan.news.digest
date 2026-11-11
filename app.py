@@ -6966,9 +6966,18 @@ with tab_research:
                         + (' (next year, first given with this result)' if _n == 4 else '')
                         + '</div>', unsafe_allow_html=True)
             _g_rows_def = [r for r in _fc_rows(_profile, with_ratios=False) if r[0] in RD.GUIDE_LINES]
+            # The street's full-year number for the same year, as it stood the
+            # day before — what a raise or cut is judged against.
+            _g_cons, _flag_cons = {}, False
+            for _m, _lbl, *_ in _g_rows_def:
+                _cv, _f4 = _going_in(_m, _gfy, "consensus")
+                _g_cons[_m] = _cv
+                _flag_cons = _flag_cons or _f4
             _g_grid = [{"metric": _lbl,
                         "previous": (None if _get(_m, _gfy, "company") is None
                                      else _get(_m, _gfy, "company") / _unit(_m)),
+                        "consensus": (None if _g_cons[_m] is None
+                                      else _g_cons[_m] / _unit(_m)),
                         "new": None} for _m, _lbl, *_ in _g_rows_def]
             _g_ed = _editor(
                 _g_grid, key=f"rd_guide_{_rcode}_{_vkey}", hide_index=True,
@@ -6977,6 +6986,11 @@ with tab_research:
                     "metric": st.column_config.TextColumn("Line", disabled=True),
                     "previous": st.column_config.NumberColumn("Current guidance", disabled=True,
                                                               format="%.2f"),
+                    "consensus": st.column_config.NumberColumn(
+                        f"Street consensus {_gfy}", format="%.2f",
+                        help="The street's full-year estimate going in (as it stood the day "
+                             "before). Type or correct it here; it is saved dated the day "
+                             "before the result."),
                     "new": st.column_config.NumberColumn(
                         "New guidance", format="%.2f",
                         help="Only if it changed. DPS is the annual dividend per share; a "
@@ -6990,11 +7004,44 @@ with tab_research:
                     _c = _chg(float(_r["new"]), float(_r["previous"]))
                     if _c:
                         _g_moves.append((_r["metric"], _c))
+            # Guidance against the street: the new number where one is typed,
+            # else the current one — so the gap going in is visible too.
+            _g_vs = {}
+            _gv_rows = []
+            for _r in _g_ed:
+                _m = _g_lbl_to_m.get(_r.get("metric"))
+                if not _m:
+                    continue
+                _is_new = _r.get("new") is not None
+                _gv = _r.get("new") if _is_new else _r.get("previous")
+                _vc = RD.vs_consensus(_gv, _r.get("consensus"))
+                if _vc:
+                    _gv_rows.append((_r["metric"], _m, _is_new, _gv, _r.get("consensus"), _vc))
+                    if _is_new:
+                        _g_vs[_r["metric"]] = _vc
             if _g_moves:
                 st.markdown('<div class="fc-reads">' + "".join(
                     f'<span class="fc-read"><b>{_safe_text(_l)}</b> '
-                    f'{"raised" if _c > 0 else "cut"} {_chip(_c)}</span>' for _l, _c in _g_moves)
+                    f'{"raised" if _c > 0 else "cut"} {_chip(_c)}'
+                    + (f' — {_g_vs[_l][0]} consensus {_chip(_g_vs[_l][1])}' if _l in _g_vs else '')
+                    + '</span>' for _l, _c in _g_moves)
                     + '</div>', unsafe_allow_html=True)
+            if _gv_rows:
+                _h = ('<table class="tr-table"><tr><th>Line</th><th>Guidance</th>'
+                      f'<th>Consensus {_safe_text(_gfy)}</th><th>vs consensus</th>'
+                      '<th>Read</th></tr>')
+                for _lbl, _m, _is_new, _gv, _cv, (_verdict, _vchg) in _gv_rows:
+                    _h += (f'<tr><td>{_safe_text(_lbl)}</td>'
+                           f'<td>{float(_gv):,.1f}{" (new)" if _is_new else " (current)"}</td>'
+                           f'<td>{float(_cv):,.1f}</td><td>{_chip(_vchg)}</td>'
+                           f'<td>{_verdict.capitalize()}</td></tr>')
+                st.markdown(_h + '</table>', unsafe_allow_html=True)
+                st.markdown(f'<div class="fc-note">"In line" = within ±{RD.INLINE_BAND * 100:.0f}% '
+                            'of the street\'s full-year number going in. Lines with no new '
+                            'guidance are shown against current guidance.'
+                            + (' Some consensus figures come from the panel as it is now — '
+                               'the log has no earlier value for them yet.' if _flag_cons else '')
+                            + '</div>', unsafe_allow_html=True)
 
             # 3 · Buyback
             st.markdown('<div class="fc-qhead">3 · Buyback</div>', unsafe_allow_html=True)
@@ -7051,6 +7098,14 @@ with tab_research:
                 _date, _source)
             for _k, _v in _gi_entries.items():
                 _entries.setdefault(_k, _v)
+            _gc_entries = RD.plan_fy_consensus(
+                _gfy, {_g_lbl_to_m[r["metric"]]: r.get("consensus") for r in _g_ed
+                       if r["metric"] in _g_lbl_to_m},
+                {_g_lbl_to_m[r["metric"]]: r.get("consensus") for r in _g_grid
+                 if r["metric"] in _g_lbl_to_m},
+                _date, _source)
+            for _k, _v in _gc_entries.items():
+                _entries.setdefault(_k, _v)
             # One-offs typed for this period replace what was logged for it.
             _oo_save, _pool = [], list(_oo_all)
             for _e in _oo_new:
@@ -7090,7 +7145,9 @@ with tab_research:
                              else f"One-offs kept for this session, not saved: {_m3}")
             _lead = ("; ".join(_summary_bits) + ". ") if _summary_bits else ""
             _lead += "".join(f"{_l} guidance {'raised' if _c > 0 else 'cut'} "
-                             f"{abs(_c) * 100:.1f}%. " for _l, _c in _g_moves)
+                             f"{abs(_c) * 100:.1f}%"
+                             + (f" ({_g_vs[_l][0]} consensus, {_g_vs[_l][1] * 100:+.1f}%)"
+                                if _l in _g_vs else "") + ". " for _l, _c in _g_moves)
             st.session_state.research_flash = ("success", _lead + " ".join(_msgs))
             st.session_state[f"rd_nonce_{_rcode}"] = _nonce + 1
             st.rerun()

@@ -170,3 +170,42 @@ def plan_going_in(fy: str, period: str, typed: dict, shown: dict, guidance: dict
             else:
                 entries[F.manual_key(m, fy, basis)] = row
     return entries, log_rows
+
+
+# How close new guidance has to be to the street's full-year number to count
+# as "in line". A judgement call, kept in one place: within ±2% either way.
+INLINE_BAND = 0.02
+
+
+def vs_consensus(guidance, consensus, band: float = INLINE_BAND):
+    """("above" | "in line" | "below", signed change) of a guidance figure
+    against the street's full-year consensus, or None when either is missing.
+    The change is measured off the consensus, so +4% means guidance sits 4%
+    above what the street had."""
+    g, c = _num(guidance), _num(consensus)
+    if g is None or c is None or c == 0:
+        return None
+    chg = (g - c) / abs(c)
+    if abs(chg) <= band:
+        return "in line", chg
+    return ("above" if chg > 0 else "below"), chg
+
+
+def plan_fy_consensus(gfy: str, typed: dict, shown: dict, date: str,
+                      source: str = "") -> dict:
+    """Entries for the street's full-year consensus typed over in the guidance
+    grid — the year the guidance is for, stored under "consensus" and dated the
+    day before the result, like every other going-in figure.
+
+    typed / shown: {metric: value in panel units}."""
+    src = F.typed_source(source)
+    before = _day_before(date)
+    entries = {}
+    for m, v in (typed or {}).items():
+        v, was = _num(v), _num((shown or {}).get(m))
+        if v is None or _same(v, was):
+            continue
+        entries[F.manual_key(m, gfy, "consensus")] = {
+            "value": _yen(m, v), "unit": "jpy" if m in ("eps", "dps") else "jpy_abs",
+            "source": src, "as_of": before}
+    return entries
