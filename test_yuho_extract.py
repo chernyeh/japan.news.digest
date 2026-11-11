@@ -238,3 +238,18 @@ def test_agm_normalise_and_read():
     assert r["low"] == [("服部 真二", 70.0)] and r["weakest"][0] == "服部 真二"
     assert r["shareholder_proposals"] == [("Buyback", 30.0, False)]
     assert r["drops"] == [("服部 真二", 82.0, 70.0)] and r["median"] == 95.0
+
+
+def test_prior_year_lookup_matches_full_name_then_unique_surname():
+    prior = {"resolutions": [
+        {"person_name": "服部 真二", "approval_pct": 84.2},
+        {"person_name": "佐藤 一郎", "approval_pct": 90.0},
+        {"person_name": "佐藤 花子", "approval_pct": 70.0},
+        {"person_name": "Director A", "approval_pct": 60.0},
+        {"person_name": "Director B", "approval_pct": 61.0}]}
+    lk = HX.prior_lookup(prior)
+    assert HX.prior_pct(lk, "服部真二") == 84.2          # spacing differs, full match
+    assert HX.prior_pct(lk, "服部 真一") == 84.2          # unique surname
+    assert HX.prior_pct(lk, "佐藤 次郎") is None          # ambiguous surname
+    assert HX.prior_pct(lk, "佐藤 花子") == 70.0          # exact wins over ambiguity
+    assert HX.prior_pct(lk, "Director B") == 61.0 and HX.prior_pct(lk, "Director C") is None
