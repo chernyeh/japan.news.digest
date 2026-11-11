@@ -344,6 +344,18 @@ def test_watchlist_companies_join_the_collection_universe():
         assert CC.with_watchlist(uni, [], meta) == uni
 
 
+def test_named_companies_are_collected_even_outside_the_universe(capsys):
+    """weekly_consensus.yml's 'only' box: a company asked for by code is
+    collected now, whether or not it is in the universe or on the watchlist
+    (Seiko Corporation, 6286, is in neither list's TOPIX 1000)."""
+    uni = [{"Code": "7203", "Name": "Toyota"}, {"Code": "6501", "Name": "Hitachi"}]
+    out = CC.select_companies(uni, " 6286, 7203 ,,72031,x")
+    assert [u["Code"] for u in out] == ["7203", "6286"]
+    assert out[1]["Name"] == "Seiko Corporation"        # from data/metadata.csv
+    assert "skipping 72031, X" in capsys.readouterr().out
+    assert CC.select_companies(uni, "") == uni
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

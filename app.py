@@ -4955,27 +4955,21 @@ with tab_filings:
                 filings = _dedupe_filings(filings)
 
                 # ── Step 3: translate only filings with no English match ──
-                from collector import translate_single_google
-                from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _asc
+                # One batched call for every missing title and company name
+                # (translate.py: Claude first, Google's free endpoint last —
+                # Google now sends cloud servers to a CAPTCHA, which is why
+                # these had started coming back in Japanese). Ten parallel
+                # Google requests per refresh is what tripped that wall.
+                import translate as _tr
                 _to_translate = [f for f in filings if f["title"] and not f["title_en"]]
-
-                def _translate_filing(_f):
-                    try:
-                        _en = translate_single_google(_f["title"])
-                        _f["title_en"] = _en if _en and _en != _f["title"] else _f["title"]
-                    except Exception:
-                        _f["title_en"] = _f["title"]
-                    if _f.get("name_en"):
-                        return   # the company's own English name, from the English list
-                    try:
-                        _nm = translate_single_google(_f["name"])
-                        _f["name_en"] = _nm if _nm and _nm != _f["name"] else _f["name"]
-                    except Exception:
-                        _f["name_en"] = _f["name"]
-
-                if _to_translate:
-                    with _TPE(max_workers=10) as _ex:
-                        list(_asc({_ex.submit(_translate_filing, _f): _f for _f in _to_translate}))
+                _need_names = [f for f in _to_translate if not f.get("name_en") and f.get("name")]
+                _texts = ([f["title"] for f in _to_translate]
+                          + [f["name"] for f in _need_names])
+                _en = _tr.translate_many(_texts) if _texts else []
+                for _f, _t in zip(_to_translate, _en[:len(_to_translate)]):
+                    _f["title_en"] = _t or _f["title"]   # display only; nothing stores this
+                for _f, _t in zip(_need_names, _en[len(_to_translate):]):
+                    _f["name_en"] = _t or _f["name"]
 
                 filings.sort(key=lambda x: x["pub_dt"] or _dt.min, reverse=True)
                 st.session_state.filings = filings
@@ -8924,6 +8918,16 @@ with tab_research:
                 "url_en":     _f.get("eng_url", ""),
                 "url_jp":     _f.get("doc_url", ""),
             })
+        # Filing titles still in Japanese — saved while Google's free endpoint
+        # was refusing the collectors, or by a run without the API key — are
+        # translated here in one call. translate.py caches by text for the
+        # life of the process, so a rerun of this tab does not ask again.
+        import translate as _tr
+        _ja_items = [_it for _it in _items if _tr.needs_translation(_it.get("title"))]
+        if _ja_items:
+            for _it, _en in zip(_ja_items, _tr.translate_many([_it["title"] for _it in _ja_items])):
+                if _en:
+                    _it["title"] = _en
         for _li, _lk in enumerate(_links_map.get(_rcode, [])):
             _lk_title = _lk.get("title") or _lk.get("url", "")
             _lk_period = _lk.get("period_label") or ""

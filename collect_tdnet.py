@@ -14,7 +14,6 @@ import argparse
 import os
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 import requests
@@ -23,7 +22,7 @@ from tdnet import (fetch_tdnet_range, fetch_english_lookup, prune_and_dedupe,
                     fetch_tdnet_official_day, _normalize_code, _title_key,
                     attach_english, CSV_EN_FIELDS,
                     write_filings_csv, read_filings_csv, row_key)
-from translate import translate_ja_to_en
+from translate import fill_translations
 
 DEFAULT_OUT = os.path.join("data", "tdnet_filings.csv")
 OFFICIAL_LIST_DAYS = 30  # how far back TDnet's own daily list pages go
@@ -113,19 +112,19 @@ def main():
 
     merged = prune_and_dedupe(list(by_key.values()))
 
-    # Translate only rows with no English title match — covers both new rows
-    # and any pre-existing rows from before this field existed. Self-limiting
-    # after the first run.
-    to_translate = [row for row in merged if row.get("Title") and not row.get("TitleEN")]
-    if to_translate:
-        print(f"Translating {len(to_translate)} filing title(s)...")
-        with ThreadPoolExecutor(max_workers=10) as ex:
-            list(ex.map(lambda row: row.__setitem__(
-                "TitleEN", translate_ja_to_en(row["Title"])), to_translate))
+    # Translate rows with no English title — and rows whose "English" is just
+    # the Japanese again, which is what the old Google-only helper stored
+    # whenever Google refused (more than half of each day from 9 Nov 2026).
+    # Newest first, so a long backlog never delays today's filings. A title
+    # nothing could translate stays blank and is retried on the next run.
+    asked, translated = fill_translations(
+        merged, "Title", "TitleEN", newest_first=lambda r: r.get("PubDateTime") or "")
+    if asked:
+        print(f"Translated {translated} of {asked} filing title(s)")
 
     write_filings_csv(args.out, merged)
     print(f"Done: {fetched_chunks} chunks fetched, {failed_chunks} failed, "
-          f"{new_rows} new filings, {len(to_translate)} translated, "
+          f"{new_rows} new filings, {translated} translated, "
           f"{len(merged)} total in index -> {args.out}")
 
 
