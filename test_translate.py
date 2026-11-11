@@ -41,9 +41,8 @@ class FakeClaude:
 
 def use_claude(monkeypatch, reply, **kw):
     """A whole stand-in `anthropic` module, put in place for this test only.
-    Not a patch on the real one: test_models.py replaces sys.modules
-    ["anthropic"] with its own stub for the rest of the session, so the real
-    SDK may not be what `import anthropic` finds here."""
+    Not a patch on the real one, so the test does not depend on which SDK
+    version is installed, or on one being installed at all."""
     import sys
 
     class APIError(Exception):

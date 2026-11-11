@@ -11,10 +11,48 @@ value-less key behind — so they are checked here rather than by clicking.
 import base64
 import json
 import os
+import shutil
 import sys
 import types
 
+try:
+    import pytest
+except ImportError:          # `python test_typed_overrides.py` runs without pytest
+    pytest = None
+
 import fundamentals as F
+
+_ABSENT = object()
+_SCRATCH_DIRS = []           # made by _fresh_watchlist, removed after each test
+
+if pytest is not None:
+    @pytest.fixture(autouse=True)
+    def _leave_global_state_as_found():
+        """Tests here swap module-level state and never put it back, and under
+        pytest that state leaks into whichever file runs next:
+          - _fresh_watchlist re-points watchlist.WATCHLIST_FILE at an absolute
+            scratch path, so test_watchlist.py's chdir into a temp dir no
+            longer isolated its cache and it started from this file's entries;
+          - the GitHub stubs replace sys.modules["requests"];
+          - the bad-token tests leave gh_read.TOKEN_STATE flagged "bad".
+        All three are put back after every test and the scratch directories
+        removed. The plain runner at the bottom needs none of this: it runs in
+        its own process."""
+        import gh_read
+        import watchlist
+        cache_file = watchlist.WATCHLIST_FILE
+        requests_module = sys.modules.get("requests", _ABSENT)
+        token_state = dict(gh_read.TOKEN_STATE)
+        yield
+        watchlist.WATCHLIST_FILE = cache_file
+        if requests_module is _ABSENT:
+            sys.modules.pop("requests", None)
+        else:
+            sys.modules["requests"] = requests_module
+        gh_read.TOKEN_STATE.clear()
+        gh_read.TOKEN_STATE.update(token_state)
+        while _SCRATCH_DIRS:
+            shutil.rmtree(_SCRATCH_DIRS.pop(), ignore_errors=True)
 
 TODAY = "2026-08-27"
 
@@ -466,9 +504,11 @@ _NAMES = {"7203": "TOYOTA MOTOR CORPORATION", "8766": "Tokio Marine Holdings, In
 
 
 def _fresh_watchlist(tmp_state=None):
-    """Point the module at a scratch cache file and seed it."""
+    """Point the module at a scratch cache file and seed it. The fixture at the
+    top of the file points it back, and removes the scratch dir, afterwards."""
     import tempfile
-    W.WATCHLIST_FILE = os.path.join(tempfile.mkdtemp(), "watchlist.json")
+    _SCRATCH_DIRS.append(tempfile.mkdtemp())
+    W.WATCHLIST_FILE = os.path.join(_SCRATCH_DIRS[-1], "watchlist.json")
     if tmp_state is not None:
         with open(W.WATCHLIST_FILE, "w", encoding="utf-8") as fh:
             json.dump(tmp_state, fh)

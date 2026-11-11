@@ -9,7 +9,26 @@ then falls back to Yanoshin instead of losing the feed.
 import sys
 import types
 
+try:
+    import pytest
+except ImportError:          # `python test_tdnet_official.py` runs without pytest
+    pytest = None
+
 import tdnet
+
+_ABSENT = object()
+
+if pytest is not None:
+    @pytest.fixture(autouse=True)
+    def _requests_put_back():
+        """The tests swap sys.modules["requests"] for a stub; put back what was
+        there before each test, so the stub does not outlive this file."""
+        real = sys.modules.get("requests", _ABSENT)
+        yield
+        if real is _ABSENT:
+            sys.modules.pop("requests", None)
+        else:
+            sys.modules["requests"] = real
 
 
 def _row(time, code, name, title, pdf):

@@ -11,6 +11,11 @@ summary down with it. Both are checked here rather than by clicking Summarise.
 import sys
 import types
 
+try:
+    import pytest
+except ImportError:          # `python test_models.py` runs without pytest
+    pytest = None
+
 import models
 
 
@@ -24,13 +29,20 @@ class _APIStatusError(Exception):
 
 
 def _stub_anthropic():
-    """Install a fake `anthropic` for models.call's lazy import."""
+    """A fake `anthropic` for models.call's lazy import."""
     mod = types.ModuleType("anthropic")
     mod.APIStatusError = _APIStatusError
-    sys.modules["anthropic"] = mod
+    return mod
 
 
-_stub_anthropic()
+if pytest is not None:
+    @pytest.fixture(autouse=True)
+    def _anthropic_stubbed(monkeypatch):
+        """Every test here sees the stub, and whatever sys.modules held before
+        (the real SDK, or nothing) is put back afterwards. Installed once at
+        import time instead, the stub outlived this file: any later test that
+        imported the real SDK got this one."""
+        monkeypatch.setitem(sys.modules, "anthropic", _stub_anthropic())
 
 
 class _Block:
@@ -282,6 +294,7 @@ def test_fast_budget_leaves_room_for_thinking():
 
 
 if __name__ == "__main__":
+    sys.modules["anthropic"] = _stub_anthropic()   # this process only: nothing to restore
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]
     failed = 0
