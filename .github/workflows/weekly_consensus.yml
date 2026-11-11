@@ -38,6 +38,10 @@ on:
         default: 'topix1000'
         type: choice
         options: ['topix1000', 'topix500', 'topix100', 'topix']
+      only:
+        description: 'Only these companies, comma-separated (e.g. 6286). A minute or two instead of 40; leaves every other company as it is'
+        required: false
+        default: ''
 
 jobs:
   fetch-consensus:
@@ -78,7 +82,7 @@ jobs:
       # must not stop the collection, which falls back to the file already in
       # the repo.
       - name: Refresh the universe
-        if: ${{ github.event.inputs.probe == '' }}
+        if: ${{ github.event.inputs.probe == '' && github.event.inputs.only == '' }}
         continue-on-error: true
         env:
           JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
@@ -88,8 +92,21 @@ jobs:
         if: ${{ github.event.inputs.probe == '' }}
         env:
           JQUANTS_API_KEY: ${{ secrets.JQUANTS_API_KEY }}
+          # Through the environment, not pasted into the script, so a stray
+          # quote in the box cannot become shell.
+          ONLY: ${{ github.event.inputs.only }}
+          LIMIT: ${{ github.event.inputs.limit || 0 }}
         run: |
-          python collect_consensus.py --limit "${{ github.event.inputs.limit || 0 }}"
+          if [ -n "$ONLY" ]; then
+            # A run for a few named companies -- e.g. one just added to the
+            # watchlist, rather than waiting for Saturday. The CSVs merge by
+            # company, so the rest are untouched. --out-manifest /dev/null for
+            # the reason given in daily_tdnet.yml: the manifest describes a
+            # full run, and a partial one would make it claim a universe of one.
+            python collect_consensus.py --only "$ONLY" --out-manifest /dev/null
+          else
+            python collect_consensus.py --limit "$LIMIT"
+          fi
 
       - name: Commit and push
         if: ${{ github.event.inputs.probe == '' }}

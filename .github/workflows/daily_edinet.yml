@@ -29,11 +29,13 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        # anthropic is for translate.py (see daily_tdnet.yml).
+        run: pip install requests anthropic
 
       - name: Run collector (3-day trailing window)
         env:
           EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python collect_edinet.py --days 3
 
       - name: Commit and push

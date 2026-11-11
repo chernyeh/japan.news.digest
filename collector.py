@@ -217,91 +217,28 @@ SECTOR_KEYWORDS = {
 
 # ── Translation ───────────────────────────────────────────────────────────────
 
-def batch_translate_deepl(texts: list, api_key: str) -> list:
-    """Translate a list of texts via DeepL free API in one request."""
-    try:
-        resp = requests.post(
-            "https://api-free.deepl.com/v2/translate",
-            data={
-                "auth_key": api_key,
-                "text": texts,
-                "source_lang": "JA",
-                "target_lang": "EN-US",
-            },
-            timeout=20,
-        )
-        if resp.status_code == 200:
-            return [t["text"] for t in resp.json().get("translations", [])]
-    except Exception as e:
-        print(f"DeepL batch error: {e}")
-    return texts
-
-
-def translate_single_google(text: str) -> str:
-    """
-    Translate using Google Translate free unofficial endpoint.
-    No API key, no daily cap. Falls back to original on error.
-    """
-    if not text:
-        return text
-    try:
-        params = {
-            "client": "gtx",
-            "sl": "ja",
-            "tl": "en",
-            "dt": "t",
-            "q": text[:500],
-        }
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        resp = requests.get(
-            "https://translate.googleapis.com/translate_a/single",
-            params=params,
-            headers=headers,
-            timeout=8,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            translated = "".join(seg[0] for seg in data[0] if seg[0])
-            if translated and translated != text:
-                return translated.strip()
-    except Exception as e:
-        print(f"Google Translate error: {e}")
-    return text
-
-
 def translate_articles(articles: list) -> list:
-    """
-    Translate all Japanese headlines.
-    - DEEPL_API_KEY set: DeepL batch (fastest, best quality)
-    - Otherwise: Google Translate free endpoint, concurrent (no cap, no key needed)
-    """
-    ja_articles = [a for a in articles if a.get("language") == "ja" and not a.get("translated_title")]
-    if not ja_articles:
+    """Translate every Japanese headline into English, in place.
+
+    Goes through translate.translate_many — Claude first, Google's free
+    endpoint only as a last resort, since Google now sends cloud servers to a
+    CAPTCHA. A headline nothing could translate keeps its Japanese as `title`
+    but gets no `translated_title`, so the next refresh tries it again; it
+    used to be given the Japanese *as* its translation and never retried."""
+    import translate as _tr
+    ja = [a for a in articles if a.get("language") == "ja" and not a.get("translated_title")]
+    if not ja:
         return articles
-
-    deepl_key = os.environ.get("DEEPL_API_KEY", "")
-
-    if deepl_key:
-        texts = [a["original_title"] for a in ja_articles]
-        translated = batch_translate_deepl(texts, deepl_key)
-        for article, trans in zip(ja_articles, translated):
-            article["translated_title"] = trans
-            article["title"] = trans
-        print(f"✓ DeepL batch translated {len(ja_articles)} headlines")
-    else:
-        def translate_one(article):
-            t = translate_single_google(article["original_title"])
-            article["translated_title"] = t
-            article["title"] = t
-            return article
-
-        with ThreadPoolExecutor(max_workers=10) as ex:
-            list(as_completed({ex.submit(translate_one, a): a for a in ja_articles}))
-        print(f"✓ Google Translate: translated {len(ja_articles)} headlines")
-
+    results = _tr.translate_many([a.get("original_title") or a.get("title") or "" for a in ja])
+    done = 0
+    for article, en in zip(ja, results):
+        if en and en != article.get("original_title"):
+            article["translated_title"] = en
+            article["title"] = en
+            done += 1
+        else:
+            article["title"] = article.get("original_title") or article.get("title") or ""
+    print(f"✓ Translated {done} of {len(ja)} Japanese headlines")
     return articles
 
 

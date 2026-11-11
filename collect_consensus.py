@@ -859,6 +859,25 @@ def with_watchlist(universe: list, codes: list = None,
     return list(universe) + [{"Code": c, "Name": names.get(c, "")} for c in extra]
 
 
+def select_companies(universe: list, only: str = "") -> list:
+    """The companies a run collects: all of `universe`, or with `only`
+    ("6286,7203") just those codes. A code asked for by name is collected even
+    when it is in neither the universe nor the watchlist — that is the point of
+    asking — and one that is not a TSE code is skipped with a warning rather
+    than silently matching nothing."""
+    if not only:
+        return universe
+    wanted, bad = [], []
+    for c in (x.strip().upper() for x in only.split(",")):
+        if not c:
+            continue
+        (wanted if len(c) == 4 and c.isalnum() else bad).append(c)
+    if bad:
+        print(f"WARNING: skipping {', '.join(bad)}: not TSE codes (four characters, e.g. 6286)")
+    keep = set(wanted)
+    return [u for u in with_watchlist(universe, codes=wanted) if u.get("Code") in keep]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -964,10 +983,7 @@ def main() -> int:
         print(f"ERROR: {args.universe} is missing or empty. "
               f"Run build_jpx400.py first.", file=sys.stderr)
         return 1
-    universe = with_watchlist(universe)
-    if args.only:
-        wanted = {c.strip() for c in args.only.split(",") if c.strip()}
-        universe = [u for u in universe if u["Code"] in wanted]
+    universe = select_companies(with_watchlist(universe), args.only)
     if args.limit:
         universe = universe[:args.limit]
 

@@ -29,9 +29,16 @@ jobs:
       - name: Install dependencies
         # yfinance/pandas/openpyxl are for the consensus refresh below, which
         # shares collect_consensus.py with the weekly job.
-        run: pip install requests beautifulsoup4 lxml yfinance pandas openpyxl
+        # anthropic is for translate.py: filing titles go to Claude first,
+        # because Google's free endpoint now sends GitHub's servers to a CAPTCHA.
+        run: pip install requests beautifulsoup4 lxml yfinance pandas openpyxl anthropic
 
       - name: Run collector (3-day trailing window)
+        env:
+          # Without this secret, titles fall back to Google's free endpoint,
+          # which refuses most requests from GitHub's servers; whatever is
+          # left untranslated is retried on the next run.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python collect_tdnet.py --days 3
 
       # data/consensus.csv is rebuilt weekly, on Saturdays. In results season

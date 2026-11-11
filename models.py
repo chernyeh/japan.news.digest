@@ -42,6 +42,17 @@ SUMMARY_MODEL_FAST = "claude-haiku-5-5"
 # to Opus would be genuinely wasteful rather than merely more expensive.
 CLASSIFY_MODEL = "claude-haiku-5-5"
 
+# Translation of headlines, filing titles and company names (translate.py).
+# Until Nov 2026 this was Google Translate's free endpoint, which now sends
+# cloud servers to a CAPTCHA instead. Same shape of job as classification —
+# short Japanese text into a fixed JSON shape, at the app's highest volume
+# (a few thousand titles a day) — so the same model: at Haiku 5.5's rates the
+# whole day's translation is a few cents.
+TRANSLATE_MODEL = "claude-haiku-5-5"
+# 60 titles a request is ~2,500 output tokens of JSON, plus Haiku 5.5's
+# thinking at low effort; the ceiling is headroom, not a charge.
+TRANSLATE_MAX_TOKENS = 16000
+
 # Document reading — results decks, Q&A transcripts, consensus screenshots.
 # The reasoning for these lives next to each MODEL alias in fx_extract.py,
 # qa_extract.py and consensus_vision.py; the IDs live here.
