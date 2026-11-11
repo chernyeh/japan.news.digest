@@ -6735,7 +6735,8 @@ with tab_research:
                 if _v.startswith(("▼", "Below")):
                     return "color: #C62828"
                 return ""
-            return _df.style.map(_tone, subset=[c for c in _txt_cols if c in _df])
+            return (_df.style.map(_tone, subset=[c for c in _txt_cols if c in _df])
+                    .format(na_rep=""))
 
         def _chip(_v, _dp=1, _title=""):
             """A signed change as a coloured chip, or a dash."""
