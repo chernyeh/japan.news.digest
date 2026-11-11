@@ -9475,12 +9475,11 @@ with tab_research:
                     st.markdown('<div class="fc-note fc-warn">Down 5+ points on last year: ' + " · ".join(
                         f'{_safe_text(n)} {a:.1f}% → {b:.1f}%' for n, a, b in _rd["drops"]) + '</div>',
                         unsafe_allow_html=True)
-                _prior_by = {HX._surname(r["person_name"]): r["approval_pct"]
-                             for r in ((_prior or {}).get("resolutions") or []) if r.get("person_name")}
+                _prior_by = HX.prior_lookup(_prior)
                 _h = ('<table class="tr-table tr-steps"><tr><th>Resolution</th><th>Candidate / item</th>'
                       '<th>For %</th><th>Prior</th><th>Result</th></tr>')
                 for _r in _a.get("resolutions") or []:
-                    _pp = _prior_by.get(HX._surname(_r["person_name"])) if _r["person_name"] else None
+                    _pp = HX.prior_pct(_prior_by, _r["person_name"]) if _r["person_name"] else None
                     _cls = ("fc-neg" if _r["approval_pct"] and _r["approval_pct"] < HX.LOW_APPROVAL else "")
                     _h += (f'<tr><td>{_safe_text(_r["number"])}'
                            + (' <span class="fc-neg">shareholder proposal</span>' if _r["proposed_by_shareholder"] else '')

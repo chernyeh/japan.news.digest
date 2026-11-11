@@ -306,23 +306,22 @@ def agm_read(agm: dict, officers: list = (), prior: dict = None) -> dict:
                  and r["person_name"] and r["approval_pct"]]
     if not res:
         return {}
-    prior_by = {}
-    for r in ((prior or {}).get("resolutions") or []):
-        if r.get("person_name") and r.get("approval_pct"):
-            prior_by[_surname(r["person_name"])] = r["approval_pct"]
-    ceo_names = [_surname(o["name"]) for o in officers if o.get("is_ceo")]
-    ceo = next((r for r in elections if _surname(r["person_name"]) in ceo_names), None)
+    prior_by = prior_lookup(prior)
+    ceo_keys = {_full(o["name"]) for o in officers if o.get("is_ceo")}
+    ceo_surnames = {_surname(o["name"]) for o in officers if o.get("is_ceo")}
+    ceo = (next((r for r in elections if _full(r["person_name"]) in ceo_keys), None)
+           or next((r for r in elections if _surname(r["person_name"]) in ceo_surnames), None))
     weakest = min(elections, key=lambda r: r["approval_pct"]) if elections else None
     low = [r for r in elections if r["approval_pct"] < LOW_APPROVAL]
     props = [r for r in res if r["proposed_by_shareholder"]]
     drops = []
     for r in elections:
-        p = prior_by.get(_surname(r["person_name"]))
+        p = prior_pct(prior_by, r["person_name"])
         if p and r["approval_pct"] - p <= -5:
             drops.append((r["person_name"], p, r["approval_pct"]))
     return {"n": len(res), "elections": len(elections),
             "ceo": (ceo["person_name"], ceo["approval_pct"]) if ceo else None,
-            "ceo_prior": prior_by.get(_surname(ceo["person_name"])) if ceo else None,
+            "ceo_prior": prior_pct(prior_by, ceo["person_name"]) if ceo else None,
             "weakest": (weakest["person_name"], weakest["approval_pct"]) if weakest else None,
             "low": [(r["person_name"], r["approval_pct"]) for r in low],
             "shareholder_proposals": [(r["title"], r["approval_pct"], r["passed"]) for r in props],
@@ -331,10 +330,38 @@ def agm_read(agm: dict, officers: list = (), prior: dict = None) -> dict:
                        if elections else None)}
 
 
+def _full(name: str) -> str:
+    """The name with every kind of space removed: '服部 真二' and '服部真二' match."""
+    return re.sub(r"[\s\u3000]+", "", (name or "")).strip()
+
+
 def _surname(name: str) -> str:
     """The family name, whatever the spacing: '服部 真二' → '服部'."""
-    n = re.sub(r"[\s　]+", " ", (name or "").strip())
+    n = re.sub(r"[\s\u3000]+", " ", (name or "").strip())
     return n.split(" ")[0] if " " in n else n[:2]
+
+
+def prior_lookup(prior: dict) -> dict:
+    """{full name: approval %} plus {surname: %} for last year's elections —
+    the surname entry only where it is unique, so 'Director A' and
+    'Director B' (or two 佐藤s) never borrow each other's figure."""
+    by_full, by_sur, dup = {}, {}, set()
+    for r in ((prior or {}).get("resolutions") or []):
+        if r.get("person_name") and r.get("approval_pct"):
+            by_full[_full(r["person_name"])] = r["approval_pct"]
+            s = _surname(r["person_name"])
+            if s in by_sur:
+                dup.add(s)
+            by_sur[s] = r["approval_pct"]
+    return {"full": by_full, "sur": {k: v for k, v in by_sur.items() if k not in dup}}
+
+
+def prior_pct(lookup: dict, name: str):
+    """Last year's approval for `name`: an exact match first, else a unique
+    surname, else None."""
+    if not lookup or not name:
+        return None
+    return lookup.get("full", {}).get(_full(name)) or lookup.get("sur", {}).get(_surname(name))
 
 
 # ── The store ────────────────────────────────────────────────────────────
