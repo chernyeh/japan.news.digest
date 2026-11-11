@@ -305,3 +305,89 @@ def test_prior_year_lookup_matches_full_name_then_unique_surname():
     assert HX.prior_pct(lk, "佐藤 次郎") is None          # ambiguous surname
     assert HX.prior_pct(lk, "佐藤 花子") == 70.0          # exact wins over ambiguity
     assert HX.prior_pct(lk, "Director B") == 61.0 and HX.prior_pct(lk, "Director C") is None
+
+
+# ── the board, parsed without a model ───────────────────────────────────
+
+BOARD_ONE_ROW = """
+<p>2026年6月24日現在</p>
+<table>
+<tr><th>役職名</th><th>氏名</th><th>生年月日</th><th>略歴</th><th>任期</th><th>所有株式数（千株）</th></tr>
+<tr><td>代表取締役会長 CEO</td><td>服部　真二</td><td>昭和28年5月1日</td>
+<td>1984年4月 当社入社<br/>1995年6月 当社海外営業部長<br/>2003年6月 当社取締役<br/>2012年6月 当社代表取締役社長（現任）</td>
+<td>(注)3</td><td>1,240</td></tr>
+<tr><td>取締役 専務執行役員 CFO</td><td>鈴木 一郎</td><td>1965年2月3日</td>
+<td><table><tr><td>1988年4月</td><td>株式会社三菱銀行入行</td></tr><tr><td>2005年4月</td><td>当社入社 経理部長</td></tr>
+<tr><td>2018年6月</td><td>当社取締役（現任）</td></tr></table></td><td>(注)3</td><td>12</td></tr>
+<tr><td>取締役</td><td>山田 花子</td><td>平成元年1月2日</td>
+<td>1990年4月 三菱商事株式会社入社<br/>2015年6月 同社執行役員<br/>2020年6月 当社取締役（現任）</td><td>(注)3</td><td>－</td></tr>
+<tr><td>常勤監査役</td><td>田中 太郎</td><td>1962年7月8日</td><td>1986年4月 当社入社<br/>2019年6月 当社監査役（現任）</td><td>(注)4</td><td>3</td></tr>
+</table>
+<p>（注）1. 取締役山田花子は、社外取締役であります。</p>
+"""
+
+BOARD_ROWSPAN = """
+<table>
+<tr><th>役名</th><th>職名</th><th>氏名</th><th>生年月日</th><th>略歴</th><th>任期</th><th>所有株式数（株）</th></tr>
+<tr><td rowspan="3">取締役社長</td><td rowspan="3">－</td><td rowspan="3">佐藤 二郎</td><td rowspan="3">1970年3月4日</td>
+<td>1993年4月 当社入社</td><td rowspan="3">(注)2</td><td rowspan="3">52,000</td></tr>
+<tr><td>2016年6月 当社取締役</td></tr>
+<tr><td>2022年6月 当社取締役社長（現任）</td></tr>
+<tr><td rowspan="2">社外取締役</td><td rowspan="2">－</td><td rowspan="2">高橋 三郎</td><td rowspan="2">1958年9月10日</td>
+<td>1981年4月 経済産業省入省</td><td rowspan="2">(注)2</td><td rowspan="2">0</td></tr>
+<tr><td>2021年6月 当社取締役（現任）</td></tr>
+</table>
+"""
+
+
+def test_board_parsed_from_a_one_row_per_officer_table():
+    b = YX.parse_officers(BOARD_ONE_ROW, filed="2026-06-24")
+    assert b["as_of"] == "2026年6月24日現在"
+    offs = {o["name"]: o for o in b["officers"]}
+    assert set(offs) == {"服部 真二", "鈴木 一郎", "山田 花子", "田中 太郎"}
+    h = offs["服部 真二"]
+    assert h["birth_year"] == 1953 and h["age"] == 73          # 昭和28 → 1953; birthday passed
+    assert h["joined_company_year"] == 1984 and h["director_since_year"] == 2003
+    assert h["is_ceo"] and h["is_chair"] and h["role_kind"] == "representative_director"
+    assert h["shares_held"] == 1_240_000 and "overseas" in h["background_tags"]
+    s = offs["鈴木 一郎"]                                        # nested career table, ex-bank
+    assert s["joined_company_year"] == 2005 and s["director_since_year"] == 2018
+    assert s["is_cfo"] and "ex_bank" in s["background_tags"] and "finance_accounting" in s["background_tags"]
+    assert s["shares_held"] == 12_000
+    y = offs["山田 花子"]                                        # outside by the note; 平成元 → 1989
+    assert y["outside"] and y["role_kind"] == "outside_director" and y["birth_year"] == 1989
+    assert y["joined_company_year"] == 0 and y["director_since_year"] == 2020
+    assert "ex_trading_house" in y["background_tags"] and "other_company_executive" in y["background_tags"]
+    assert y["shares_held"] == 0
+    t = offs["田中 太郎"]
+    assert t["role_kind"] == "corporate_auditor" and not t["is_ceo"]
+    assert YX.board_stats(b["officers"], 2026)["size"] == 3   # the auditor is not the board
+
+
+def test_board_parsed_from_a_rowspan_table():
+    b = YX.parse_officers(BOARD_ROWSPAN, filed="2026-06-24")
+    offs = {o["name"]: o for o in b["officers"]}
+    assert set(offs) == {"佐藤 二郎", "高橋 三郎"}
+    s = offs["佐藤 二郎"]
+    assert s["joined_company_year"] == 1993 and s["director_since_year"] == 2016
+    assert s["is_ceo"] and s["shares_held"] == 52_000 and s["age"] == 56
+    t = offs["高橋 三郎"]
+    assert t["outside"] and "ex_government" in t["background_tags"] and t["director_since_year"] == 2021
+    e = {"fy": "FY2026", "sections": {"officers": YX.strip_private(b)}}
+    assert "_career" not in e["sections"]["officers"]["officers"][0]
+    assert "CEO 佐藤 二郎" in YX.bias_read(e)
+
+
+def test_no_table_gives_an_empty_board_not_an_error():
+    assert YX.parse_officers("<p>nothing</p>")["officers"] == []
+    assert YX.parse_officers("")["notes"]
+
+
+def test_estimate_and_read_jobs_follow_the_model_and_skip_unwanted_sections():
+    blocks = {"officers": "x" * 5000, "major_shareholders": "y" * 5000, "share_status": "z" * 3000,
+              "cross_holdings": "<p>" + "c" * 4000 + "</p>", "capex_plan": "<p>p</p>", "exec_pay": "<p>e</p>"}
+    est = YX.estimate_cost(blocks, "claude-haiku-5-5")
+    assert est["jobs"] == ["cross_holdings", "exec_pay", "capex"]
+    assert est["input_tokens"] < 6000 and est["usd"] < 0.01
+    assert YX.estimate_cost(blocks, "claude-opus-5-5")["usd"] > 10 * est["usd"]
+    assert abs(YX.cost_usd({"input": 1_000_000, "output": 0}, "claude-haiku-5-5") - 0.10) < 1e-9
