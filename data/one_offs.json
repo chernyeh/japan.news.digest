@@ -37,6 +37,20 @@
       "source": "typed:Company data"
     }
   ],
+  "6952": [
+    {
+      "amount_jpy": 700000000.0,
+      "date": "2026-11-12",
+      "fy": "FY2027",
+      "id": "6952-2026-11-12-one-off",
+      "item": "",
+      "line": "operating",
+      "note": "Tariff refunds",
+      "np_amount_jpy": null,
+      "period": "2Q",
+      "source": "typed:Company data"
+    }
+  ],
   "6971": [
     {
       "amount_jpy": 15000000000.0,
