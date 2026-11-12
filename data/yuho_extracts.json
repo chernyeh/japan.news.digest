@@ -1,8 +1,496 @@
 {
   "8136": [
     {
+      "blocks_catalog": [
+        {
+          "chars": 10197,
+          "element": "DisclosureOfSustainabilityRelatedFinancialInformationTextBlock",
+          "kind": "",
+          "label": "サステナビリティに関する考え方及び取組 [テキストブロック]"
+        },
+        {
+          "chars": 9051,
+          "element": "BusinessRisksTextBlock",
+          "kind": "",
+          "label": "事業等のリスク [テキストブロック]"
+        },
+        {
+          "chars": 7592,
+          "element": "ManagementAnalysisOfFinancialPositionOperatingResultsAndCashFlowsTextBlock",
+          "kind": "exec_pay",
+          "label": "経営者による財政状態、経営成績及びキャッシュ・フローの状況の分析 [テキストブロック]"
+        },
+        {
+          "chars": 5571,
+          "element": "OverviewOfCorporateGovernanceTextBlock",
+          "kind": "",
+          "label": "コーポレート・ガバナンスの概要 [テキストブロック]"
+        },
+        {
+          "chars": 5321,
+          "element": "NotesFinancialInstrumentsConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "金融商品関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 5123,
+          "element": "InformationAboutOfficersTextBlock",
+          "kind": "officers",
+          "label": "役員の状況 [テキストブロック]"
+        },
+        {
+          "chars": 4591,
+          "element": "NotesSignificantEventsAfterReportingPeriodConsolidatedFinancialStatementsTextBlo",
+          "kind": "",
+          "label": "重要な後発事象、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 4528,
+          "element": "AuditsTextBlock",
+          "kind": "",
+          "label": "監査の状況 [テキストブロック]"
+        },
+        {
+          "chars": 4435,
+          "element": "OtherInformationOnShareAcquisitionRightsTextBlock",
+          "kind": "",
+          "label": "その他の新株予約権等の状況 [テキストブロック]"
+        },
+        {
+          "chars": 4337,
+          "element": "NotesSignificantAccountingPoliciesForPreparationOfConsolidatedFinancialStatement",
+          "kind": "",
+          "label": "連結財務諸表作成のための基本となる重要な事項 [テキストブロック]"
+        },
+        {
+          "chars": 4025,
+          "element": "StrategyTextBlock",
+          "kind": "",
+          "label": "戦略 [テキストブロック]"
+        },
+        {
+          "chars": 3579,
+          "element": "CorporateGovernanceCompanyWithAuditAndSupervisoryCommitteeTextBlock",
+          "kind": "",
+          "label": "企業統治の体制の概要（監査等委員会設置会社） [テキストブロック]"
+        },
+        {
+          "chars": 3569,
+          "element": "NotesSegmentInformationEtcConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "セグメント情報等、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 3269,
+          "element": "RemunerationForDirectorsAndOtherOfficersTextBlock",
+          "kind": "exec_pay",
+          "label": "役員の報酬等 [テキストブロック]"
+        },
+        {
+          "chars": 3012,
+          "element": "DisclosureOfAccountingPoliciesTextBlock",
+          "kind": "",
+          "label": "会計方針に関する事項 [テキストブロック]"
+        },
+        {
+          "chars": 2850,
+          "element": "NotesRetirementBenefitsConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "退職給付関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 2662,
+          "element": "BusinessPolicyBusinessEnvironmentIssuesToAddressEtcTextBlock",
+          "kind": "",
+          "label": "経営方針、経営環境及び対処すべき課題等 [テキストブロック]"
+        },
+        {
+          "chars": 2638,
+          "element": "NotesSignificantAccountingPoliciesFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "重要な会計方針、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 2511,
+          "element": "CompanyHistoryTextBlock",
+          "kind": "",
+          "label": "沿革 [テキストブロック]"
+        },
+        {
+          "chars": 2286,
+          "element": "InformationAboutEmployeesTextBlock",
+          "kind": "",
+          "label": "従業員の状況 [テキストブロック]"
+        },
+        {
+          "chars": 1983,
+          "element": "CriticalContractsTextBlock",
+          "kind": "",
+          "label": "重要な契約等 [テキストブロック]"
+        },
+        {
+          "chars": 1945,
+          "element": "ShareholdingsTextBlock",
+          "kind": "cross_holdings",
+          "label": "株式の保有状況 [テキストブロック]"
+        },
+        {
+          "chars": 1887,
+          "element": "NotesTaxEffectAccountingConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "税効果会計関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1649,
+          "element": "OverviewOfAffiliatedEntitiesTextBlock",
+          "kind": "",
+          "label": "関係会社の状況 [テキストブロック]"
+        },
+        {
+          "chars": 1623,
+          "element": "BusinessResultsOfReportingCompanyTextBlock",
+          "kind": "",
+          "label": "提出会社の経営指標等 [テキストブロック]"
+        },
+        {
+          "chars": 1600,
+          "element": "NotesRevenueRecognitionConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "収益認識関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1506,
+          "element": "RiskManagementTextBlock",
+          "kind": "",
+          "label": "リスク管理 [テキストブロック]"
+        },
+        {
+          "chars": 1495,
+          "element": "ConsolidatedStatementOfCashFlowsTextBlock",
+          "kind": "",
+          "label": "連結キャッシュ・フロー計算書 [テキストブロック]"
+        },
+        {
+          "chars": 1477,
+          "element": "MajorFacilitiesTextBlock",
+          "kind": "",
+          "label": "主要な設備の状況 [テキストブロック]"
+        },
+        {
+          "chars": 1461,
+          "element": "ConsolidatedBalanceSheetTextBlock",
+          "kind": "",
+          "label": "連結貸借対照表 [テキストブロック]"
+        },
+        {
+          "chars": 1412,
+          "element": "NotesPerShareInformationConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "１株当たり情報、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1270,
+          "element": "BalanceSheetTextBlock",
+          "kind": "",
+          "label": "貸借対照表 [テキストブロック]"
+        },
+        {
+          "chars": 1247,
+          "element": "OverviewOfOperationalProceduresForSharesTextBlock",
+          "kind": "",
+          "label": "提出会社の株式事務の概要 [テキストブロック]"
+        },
+        {
+          "chars": 1228,
+          "element": "ConsolidatedStatementOfChangesInEquityTextBlock",
+          "kind": "",
+          "label": "連結株主資本等変動計算書 [テキストブロック]"
+        },
+        {
+          "chars": 1164,
+          "element": "BusinessResultsOfGroupTextBlock",
+          "kind": "",
+          "label": "連結経営指標等 [テキストブロック]"
+        },
+        {
+          "chars": 1123,
+          "element": "NotesTaxEffectAccountingFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "税効果会計関係、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1107,
+          "element": "OutsideDirectorsAndOutsideCorporateAuditorsTextBlock",
+          "kind": "",
+          "label": "社外取締役（及び社外監査役） [テキストブロック]"
+        },
+        {
+          "chars": 1005,
+          "element": "StatementOfChangesInEquityTextBlock",
+          "kind": "",
+          "label": "株主資本等変動計算書 [テキストブロック]"
+        },
+        {
+          "chars": 960,
+          "element": "BasicPolicyOnHumanResourcesStrategyEmployeesEtcTextBlock",
+          "kind": "",
+          "label": ""
+        },
+        {
+          "chars": 952,
+          "element": "DescriptionOfBusinessTextBlock",
+          "kind": "",
+          "label": "事業の内容 [テキストブロック]"
+        },
+        {
+          "chars": 938,
+          "element": "ConsolidatedStatementOfIncomeTextBlock",
+          "kind": "",
+          "label": "連結損益計算書 [テキストブロック]"
+        },
+        {
+          "chars": 742,
+          "element": "MetricsAndTargetsTextBlock",
+          "kind": "",
+          "label": "指標及び目標 [テキストブロック]"
+        },
+        {
+          "chars": 729,
+          "element": "StatementOfIncomeTextBlock",
+          "kind": "",
+          "label": "損益計算書 [テキストブロック]"
+        },
+        {
+          "chars": 716,
+          "element": "NotesRegardingImpairmentLossTextBlock",
+          "kind": "",
+          "label": "減損損失に関する注記 [テキストブロック]"
+        },
+        {
+          "chars": 705,
+          "element": "NotesSecuritiesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "有価証券関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 645,
+          "element": "SignificantAccountingEstimatesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "重要な会計上の見積り、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 624,
+          "element": "NotesRelatedPartiesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "関連当事者情報、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 605,
+          "element": "NotesLeasesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "リース取引関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 600,
+          "element": "ChangesInNumberOfIssuedSharesStatedCapitalEtcTextBlock",
+          "kind": "",
+          "label": "発行済株式総数、資本金等の推移 [テキストブロック]"
+        },
+        {
+          "chars": 576,
+          "element": "AnnexedConsolidatedDetailedScheduleOfCorporateBondsTextBlock",
+          "kind": "",
+          "label": "社債明細表、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 561,
+          "element": "OtherReferenceInformationTextBlock",
+          "kind": "",
+          "label": "その他の参考情報 [テキストブロック]"
+        },
+        {
+          "chars": 551,
+          "element": "MajorShareholdersTextBlock",
+          "kind": "major_shareholders",
+          "label": "大株主の状況 [テキストブロック]"
+        },
+        {
+          "chars": 546,
+          "element": "AnnexedDetailedScheduleOfPropertyPlantAndEquipmentEtcTextBlock",
+          "kind": "",
+          "label": "有形固定資産等明細表 [テキストブロック]"
+        },
+        {
+          "chars": 536,
+          "element": "RemunerationEtcPaidByGroupToEachDirectorOrOtherOfficerTextBlock",
+          "kind": "exec_pay",
+          "label": "役員ごとの連結報酬等 [テキストブロック]"
+        },
+        {
+          "chars": 526,
+          "element": "NotesDerivativesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "デリバティブ取引関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 522,
+          "element": "DividendPolicyTextBlock",
+          "kind": "",
+          "label": "配当政策 [テキストブロック]"
+        },
+        {
+          "chars": 513,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 505,
+          "element": "GovernanceTextBlock",
+          "kind": "",
+          "label": "ガバナンス [テキストブロック]"
+        },
+        {
+          "chars": 483,
+          "element": "PolicyOnDevelopmentOfHumanResourcesAndInternalEnvironmentStrategyTextBlock",
+          "kind": "",
+          "label": "人材の育成及び社内環境整備に関する方針、戦略 [テキストブロック]"
+        },
+        {
+          "chars": 480,
+          "element": "AnnexedConsolidatedDetailedScheduleOfBorrowingsTextBlock",
+          "kind": "",
+          "label": "借入金等明細表、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 466,
+          "element": "OtherInformationConsolidatedFinancialStatementsEtcTextBlock",
+          "kind": "",
+          "label": "その他、連結財務諸表等 [テキストブロック]"
+        },
+        {
+          "chars": 455,
+          "element": "DescriptionOfReportableSegmentsTextBlock",
+          "kind": "",
+          "label": "報告セグメントの概要 [テキストブロック]"
+        },
+        {
+          "chars": 443,
+          "element": "NumberOfConsolidatedSubsidiariesAndNamesOfMajorConsolidatedSubsidiariesTextBlock",
+          "kind": "",
+          "label": "連結子会社の数及び主要な連結子会社の名称 [テキストブロック]"
+        },
+        {
+          "chars": 432,
+          "element": "DisposalsOrHoldingOfAcquiredTreasurySharesTextBlock",
+          "kind": "",
+          "label": "取得自己株式の処理状況及び保有状況 [テキストブロック]"
+        },
+        {
+          "chars": 426,
+          "element": "NotesRegardingIssuedSharesAndTreasurySharesTextBlock",
+          "kind": "",
+          "label": "発行済株式及び自己株式に関する注記 [テキストブロック]"
+        },
+        {
+          "chars": 420,
+          "element": "NotesRegardingNewShareSubscriptionRightsEtcTextBlock",
+          "kind": "",
+          "label": "新株予約権等に関する注記 [テキストブロック]"
+        },
+        {
+          "chars": 412,
+          "element": "DisclosureAboutFiscalYearsEtcOfConsolidatedSubsidiariesTextBlock",
+          "kind": "",
+          "label": "連結子会社の事業年度等に関する事項 [テキストブロック]"
+        },
+        {
+          "chars": 407,
+          "element": "NotesRegardingReclassificationAdjustmentsIncomeTaxesAndTaxEffectsRelatingToOther",
+          "kind": "",
+          "label": "その他の包括利益に関する組替調整額、法人税等及び税効果額 [テキストブロック]"
+        },
+        {
+          "chars": 406,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 381,
+          "element": "DescriptionOfMetricsRelatedToPolicyOnDevelopmentOfHumanResourcesAndInternalEnvir",
+          "kind": "",
+          "label": "人材の育成及び社内環境整備に関する方針に関する指標の内容並びに当該指標を用いた目標及び実績、指標及び目標 [テキストブロ"
+        },
+        {
+          "chars": 364,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 359,
+          "element": "ShareholdingByShareholderCategoryTextBlock",
+          "kind": "share_status",
+          "label": "所有者別状況 [テキストブロック]"
+        },
+        {
+          "chars": 351,
+          "element": "FootnotesRegardingSegmentInformationTableTextBlock",
+          "kind": "",
+          "label": "セグメント表の脚注 [テキストブロック]"
+        },
+        {
+          "chars": 324,
+          "element": "IssuedSharesVotingRightsTextBlock",
+          "kind": "",
+          "label": "発行済株式、議決権の状況 [テキストブロック]"
+        },
+        {
+          "chars": 313,
+          "element": "IssuedSharesTotalNumberOfSharesEtcTextBlock",
+          "kind": "",
+          "label": "発行済株式、株式の総数等 [テキストブロック]"
+        },
+        {
+          "chars": 307,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 304,
+          "element": "ReconciliationOfEndingBalanceOfCashAndCashEquivalentsWithAccountBalancesPerBalan",
+          "kind": "",
+          "label": "現金及び現金同等物の期末残高と貸借対照表に掲記されている科目の金額との関係 [テキストブロック]"
+        },
+        {
+          "chars": 302,
+          "element": "FootnotesDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "",
+          "label": "脚注（取締役（及び監査役） [テキストブロック]"
+        },
+        {
+          "chars": 301,
+          "element": "NotesRegardingDividendTextBlock",
+          "kind": "",
+          "label": "配当に関する注記 [テキストブロック]"
+        },
+        {
+          "chars": 299,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        }
+      ],
       "blocks_found": [
-        "cross_holdings"
+        "capex_overview",
+        "capex_plan",
+        "cross_holdings",
+        "exec_pay",
+        "major_shareholders",
+        "officers",
+        "share_status"
       ],
       "date": "2026-06-30",
       "doc_id": "S100YNR0",
@@ -30,30 +518,173 @@
           }
         },
         "employees": {
-          "parent": {
+          "consolidated": {
             "label": "従業員数",
             "unit": "",
             "value": 2157.0
+          },
+          "parent": {
+            "label": "従業員数",
+            "unit": "",
+            "value": 1423.0
           }
         }
       },
       "fy": "FY2026",
       "id": "yuho_FY2026",
+      "model": "claude-haiku-5-5",
       "period_end": "2026-03-31",
-      "read_on": "2026-11-11",
+      "read_on": "2026-11-12",
       "sections": {
+        "capex": {
+          "actual_by_segment": [
+            {
+              "amount_jpy": 6103000000.0,
+              "segment": "Japan",
+              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+            },
+            {
+              "amount_jpy": 56000000.0,
+              "segment": "Europe",
+              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+            },
+            {
+              "amount_jpy": 3000000.0,
+              "segment": "North America",
+              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+            },
+            {
+              "amount_jpy": 130000000.0,
+              "segment": "South America",
+              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+            },
+            {
+              "amount_jpy": 561000000.0,
+              "segment": "Asia",
+              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+            },
+            {
+              "amount_jpy": 18000000.0,
+              "segment": "Corporate",
+              "what": "Corporate assets, main contents as described for the group's stores and theme parks"
+            }
+          ],
+          "actual_total_jpy": 6875000000.0,
+          "funding_summary": "No significant plan. Actual spending was funded from own funds, with no borrowings stated.",
+          "notes": "No significant new facility plan (新設: none). Only routine replacement retirements are planned, with no significant retirement plan. Segment amounts sum to 6,871 million yen versus the stated total of 6,875 million yen, a 4 million yen difference, likely from rounding in the source. Amounts converted from 百万円 to yen.",
+          "plan": [],
+          "plan_paid_jpy": 0,
+          "plan_total_jpy": 0
+        },
         "cross_holdings": {
-          "issues": [],
-          "notes": "The supplied excerpt contains only footnote 1 to the 特定投資株式 table, so the table itself, the issue count and the total balance-sheet value are absent and are reported as 0 / empty rather than as actual zero holdings. The note says quantitative holding effects are hard to state, which is why no issue could be classed as quantified_effect_stated. No みなし保有株式 (deemed holdings) appear in the excerpt.",
-          "policy_summary": "Sanrio says quantifying the benefit of each holding is difficult. Instead it reviews each issue every year against its cost of capital and profitability. Its review as of 31 March 2026 confirmed all current cross-shareholdings are held for purposes consistent with policy. No commitment to reduce them is stated.",
+          "issues": [
+            {
+              "book_value_jpy": 1685000000.0,
+              "change": "unchanged",
+              "holds_our_shares": true,
+              "name": "㈱バンダイナムコホールディングス",
+              "purpose": "IP-based business collaboration transactions; ensure stable continued transactions and strengthened cooperation.",
+              "purpose_kind": "business_relationship",
+              "shares": 435900
+            },
+            {
+              "book_value_jpy": 1224000000.0,
+              "change": "new",
+              "holds_our_shares": false,
+              "name": "㈱IGポート",
+              "purpose": "Transactions on video adaptation of company IP; ensure stable continued transactions and strengthened cooperation.",
+              "purpose_kind": "business_relationship",
+              "shares": 1008000
+            },
+            {
+              "book_value_jpy": 380000000.0,
+              "change": "unchanged",
+              "holds_our_shares": true,
+              "name": "京王電鉄㈱",
+              "purpose": "Collaboration transactions with theme parks operated by the group; contribution to corporate value through stable cooperation.",
+              "purpose_kind": "business_relationship",
+              "shares": 493000
+            },
+            {
+              "book_value_jpy": 293000000.0,
+              "change": "increased",
+              "holds_our_shares": true,
+              "name": "三菱鉛筆㈱",
+              "purpose": "Licensing transactions in stationery categories; ensure stable continued transactions and strengthened cooperation.",
+              "purpose_kind": "business_relationship",
+              "shares": 127178
+            },
+            {
+              "book_value_jpy": 162000000.0,
+              "change": "unchanged",
+              "holds_our_shares": true,
+              "name": "松竹㈱",
+              "purpose": "Shared business areas such as musicals; ensure stable continued transactions and strengthened cooperation.",
+              "purpose_kind": "business_relationship",
+              "shares": 13800
+            }
+          ],
+          "notes": "Deemed holdings (みなし保有株式): none reported. Keio Electric Railway prior-year count of 98,600 was before a 5-for-1 split on 2026-03-31; split-adjusted it equals 493,000, so marked unchanged. Total of listed non-unlisted holdings is stated as 3,767 million yen, while the five named issues sum to 3,744 million yen; the difference is unexplained. Unlisted holdings (total line reads 63,612, apparently 6 issues and 3,612 million yen) are excluded from the issues list. Quantitative holding effects are not given; the report refers to a verification method instead.",
+          "policy_summary": "Holds listed shares of business partners for long-term stable relationships and sales promotion; reviewed annually per issue against cost of capital, with continued holding approved by the board. No commitment to reduce holdings stated.",
           "reduction_stated": false,
-          "total_book_value_jpy": 0.0,
-          "total_issues": 0
+          "total_book_value_jpy": 3767000000.0,
+          "total_issues": 5
+        },
+        "exec_pay": {
+          "by_class": [
+            {
+              "class_name": "取締役（監査等委員及び社外取締役を除く）",
+              "fixed_jpy": 299000000.0,
+              "headcount": 6,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 411000000.0
+            },
+            {
+              "class_name": "監査等委員（社外取締役を除く）",
+              "fixed_jpy": 12000000.0,
+              "headcount": 1,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 13000000.0
+            },
+            {
+              "class_name": "監査役（社外監査役を除く）",
+              "fixed_jpy": 33000000.0,
+              "headcount": 1,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 33000000.0
+            },
+            {
+              "class_name": "社外役員",
+              "fixed_jpy": 51000000.0,
+              "headcount": 6,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 51000000.0
+            }
+          ],
+          "individuals": [
+            {
+              "name": "辻 朋邦",
+              "title": "取締役",
+              "total_jpy": 188000000.0
+            },
+            {
+              "name": "齋藤 陽史",
+              "title": "取締役 (CEO, Sanrio, Inc.)",
+              "total_jpy": 169000000.0
+            }
+          ],
+          "notes": "Flattened table digits for the 取締役 row (total 411, fixed 299) do not cleanly split into bonus, non-cash and headcount; the 112 million remainder is unsplit, and headcount 6 is a low-confidence reading. Audit committee row: 13 total with 12 fixed; the 1 million remainder is unexplained. Performance and stock columns are set to 0 because the split is not reliably recoverable. Individual breakdowns for 齋藤 are also ambiguous in the flattened text; only totals are used. Sanrio, Inc. amounts include a COLA bonus and perquisites whose legal validity is under review.",
+          "policy_summary": "Executive director pay: fixed base salary, performance bonus tied to consolidated operating profit and ROE (50–150% factor), and performance share units over three years (TSR, non-financial metrics). Target mix 50:25:25; outside and audit directors get base pay only."
         }
       },
       "usage": {
-        "input": 1514,
-        "output": 373
+        "input": 9157,
+        "output": 13115,
+        "usd": 0.0074732
       }
     }
   ]
