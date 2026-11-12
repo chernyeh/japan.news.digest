@@ -1381,8 +1381,9 @@ a.research-link:hover { background: #F0EDE8; }
 .tr-steps td { white-space: normal; text-align: left; line-height: 1.5; }
 .tr-adj td { color: #B26A00; font-weight: 600; background: #FFFBF3; }
 /* Yuho card: bullet lists in the table face, and a quiet romanisation beside a name. */
-.yx-list { font-size: 0.74rem; margin: 0.15rem 0 0.4rem 1.1rem; padding: 0; line-height: 1.45; }
-.yx-list li { margin: 0.05rem 0; }
+ul.yx-list { font-size: 0.74rem !important; margin: 0.15rem 0 0.4rem 1.1rem !important;
+             padding: 0 !important; line-height: 1.45 !important; }
+ul.yx-list li { font-size: 0.74rem !important; margin: 0.05rem 0 !important; line-height: 1.45 !important; }
 .yx-sub { color: #9B8B7A; font-size: 0.66rem; font-weight: 400; }
 .tr-steps td:first-child { white-space: nowrap; }
 /* Read-only result tables (_frame): the tr-table look, text columns left and
