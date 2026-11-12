@@ -139,6 +139,38 @@
       "value": 292520000000.0
     }
   },
+  "4004": {
+    "eps|FY2026|consensus": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 517.68
+    },
+    "net_sales|FY2026|consensus": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 1184040000000.0
+    },
+    "net_sales|FY2026|consensus_q3": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 305000000000.0
+    },
+    "operating_profit|FY2026|consensus": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 161600000000.0
+    },
+    "operating_profit|FY2026|consensus_q3": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 51300000000.0
+    }
+  },
   "4203": {
     "capex|FY2027|fin_h1": {
       "as_of": "2026-11-07",
