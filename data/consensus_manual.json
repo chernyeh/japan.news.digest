@@ -140,11 +140,23 @@
     }
   },
   "4004": {
+    "eps|FY2026|company": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 403.86
+    },
     "eps|FY2026|consensus": {
       "as_of": "2026-11-12",
       "source": "typed:Company data",
       "unit": "jpy",
       "value": 517.68
+    },
+    "eps|FY2026|ytd_3q": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 468.08
     },
     "eps|FY2027|consensus": {
       "as_of": "2026-11-13",
@@ -158,6 +170,24 @@
       "unit": "jpy",
       "value": 1196.37
     },
+    "net_profit|FY2026|company": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 75000000000.0
+    },
+    "net_profit|FY2026|ytd_3q": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 94600000000.0
+    },
+    "net_sales|FY2026|company": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 1235000000000.0
+    },
     "net_sales|FY2026|consensus": {
       "as_of": "2026-11-12",
       "source": "typed:Company data",
@@ -170,6 +200,12 @@
       "unit": "jpy_abs",
       "value": 305000000000.0
     },
+    "net_sales|FY2026|ytd_3q": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 871900000000.0
+    },
     "net_sales|FY2027|consensus": {
       "as_of": "2026-11-13",
       "source": "typed:Koyfin",
@@ -181,6 +217,12 @@
       "source": "typed:Koyfin",
       "unit": "jpy_abs",
       "value": 1475510000000.0
+    },
+    "operating_profit|FY2026|company": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 250000000000.0
     },
     "operating_profit|FY2026|consensus": {
       "as_of": "2026-11-12",
@@ -199,6 +241,12 @@
       "source": "typed:Koyfin",
       "unit": "jpy_abs",
       "value": 43420000000.0
+    },
+    "operating_profit|FY2026|ytd_3q": {
+      "as_of": "2026-11-13",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 164100000000.0
     },
     "operating_profit|FY2027|consensus": {
       "as_of": "2026-11-13",
