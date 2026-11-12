@@ -169,6 +169,12 @@
       "source": "typed:Company data",
       "unit": "jpy_abs",
       "value": 51300000000.0
+    },
+    "operating_profit|FY2026|consensus_q4": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 43420000000.0
     }
   },
   "4203": {
