@@ -782,6 +782,18 @@
     }
   },
   "6952": {
+    "cash|FY2027|fin_h1": {
+      "as_of": "2026-11-12",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 123645000000.0
+    },
+    "debt|FY2027|fin_h1": {
+      "as_of": "2026-11-12",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 42345000000.0
+    },
     "dps|FY2027|company": {
       "as_of": "2026-11-12",
       "source": "typed:Company data",
@@ -925,6 +937,12 @@
       "source": "typed:Company data",
       "unit": "jpy_abs",
       "value": 24461000000.0
+    },
+    "sh_equity|FY2027|fin_h1": {
+      "as_of": "2026-11-12",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 201239000000.0
     }
   },
   "6965": {
