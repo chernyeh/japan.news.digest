@@ -1,4 +1,767 @@
 {
+  "4004": [
+    {
+      "blocks_catalog": [
+        {
+          "chars": 17568,
+          "element": "DisclosureOfSustainabilityRelatedFinancialInformationTextBlock",
+          "kind": "",
+          "label": "サステナビリティに関する考え方及び取組 [テキストブロック]"
+        },
+        {
+          "chars": 14978,
+          "element": "InformationAboutOfficersTextBlock",
+          "kind": "officers",
+          "label": "役員の状況 [テキストブロック]"
+        },
+        {
+          "chars": 11899,
+          "element": "NotesSignificantAccountingPoliciesConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－重要性がある会計方針、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 11194,
+          "element": "RemunerationForDirectorsAndOtherOfficersTextBlock",
+          "kind": "exec_pay",
+          "label": "役員の報酬等 [テキストブロック]"
+        },
+        {
+          "chars": 10630,
+          "element": "BusinessRisksTextBlock",
+          "kind": "capex_plan",
+          "label": "事業等のリスク [テキストブロック]"
+        },
+        {
+          "chars": 7753,
+          "element": "OverviewOfCorporateGovernanceTextBlock",
+          "kind": "",
+          "label": "コーポレート・ガバナンスの概要 [テキストブロック]"
+        },
+        {
+          "chars": 7417,
+          "element": "NotesFinancialInstrumentsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－金融商品、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 6329,
+          "element": "CorporateGovernanceCompanyWithCorporateAuditorsTextBlock",
+          "kind": "",
+          "label": "企業統治の体制の概要（監査役設置会社） [テキストブロック]"
+        },
+        {
+          "chars": 6147,
+          "element": "StrategyClimateChangeTextBlock",
+          "kind": "",
+          "label": ""
+        },
+        {
+          "chars": 6042,
+          "element": "OtherInformationOnShareAcquisitionRightsTextBlock",
+          "kind": "",
+          "label": "その他の新株予約権等の状況 [テキストブロック]"
+        },
+        {
+          "chars": 5687,
+          "element": "ResearchAndDevelopmentActivitiesTextBlock",
+          "kind": "",
+          "label": "研究開発活動 [テキストブロック]"
+        },
+        {
+          "chars": 5031,
+          "element": "ManagementAnalysisOfFinancialPositionOperatingResultsAndCashFlowsTextBlock",
+          "kind": "capex_overview",
+          "label": "経営者による財政状態、経営成績及びキャッシュ・フローの状況の分析 [テキストブロック]"
+        },
+        {
+          "chars": 4587,
+          "element": "AuditsTextBlock",
+          "kind": "",
+          "label": "監査の状況 [テキストブロック]"
+        },
+        {
+          "chars": 4340,
+          "element": "MajorShareholdersTextBlock",
+          "kind": "major_shareholders",
+          "label": "大株主の状況 [テキストブロック]"
+        },
+        {
+          "chars": 3953,
+          "element": "MetricsAndTargetsTextBlock",
+          "kind": "",
+          "label": "指標及び目標 [テキストブロック]"
+        },
+        {
+          "chars": 3768,
+          "element": "NotesSegmentInformationConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－セグメント情報、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 3491,
+          "element": "OverviewOfAffiliatedEntitiesTextBlock",
+          "kind": "",
+          "label": "関係会社の状況 [テキストブロック]"
+        },
+        {
+          "chars": 3391,
+          "element": "OutsideDirectorsAndOutsideCorporateAuditorsTextBlock",
+          "kind": "",
+          "label": "社外取締役（及び社外監査役） [テキストブロック]"
+        },
+        {
+          "chars": 3319,
+          "element": "NotesDeferredTaxesAndIncomeTaxesConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－繰延税金及び法人所得税、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 3241,
+          "element": "NotesIntangibleAssetsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－無形資産、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 3154,
+          "element": "NotesEmployeeBenefitsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－従業員給付、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 2779,
+          "element": "MajorFacilitiesTextBlock",
+          "kind": "",
+          "label": "主要な設備の状況 [テキストブロック]"
+        },
+        {
+          "chars": 2668,
+          "element": "CriticalContractsTextBlock",
+          "kind": "",
+          "label": "重要な契約等 [テキストブロック]"
+        },
+        {
+          "chars": 2479,
+          "element": "NotesShareBasedPaymentsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－株式に基づく報酬、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 2430,
+          "element": "BusinessResultsOfGroupTextBlock",
+          "kind": "",
+          "label": "連結経営指標等 [テキストブロック]"
+        },
+        {
+          "chars": 2158,
+          "element": "NotesRevenueConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－売上収益、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1866,
+          "element": "PolicyOnDevelopmentOfHumanResourcesAndInternalEnvironmentStrategyTextBlock",
+          "kind": "",
+          "label": "人材の育成及び社内環境整備に関する方針、戦略 [テキストブロック]"
+        },
+        {
+          "chars": 1838,
+          "element": "ConsolidatedStatementOfChangesInEquityIFRSTextBlock",
+          "kind": "",
+          "label": "連結持分変動計算書（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1836,
+          "element": "NotesBondsAndBorrowingsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－社債及び借入金、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1710,
+          "element": "NotesBasisOfPreparationConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－作成の基礎、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1675,
+          "element": "InformationAboutEmployeesTextBlock",
+          "kind": "",
+          "label": "従業員の状況 [テキストブロック]"
+        },
+        {
+          "chars": 1652,
+          "element": "ShareOwnershipPlansForDirectorsAndOtherOfficersAndEmployeesTextBlock",
+          "kind": "",
+          "label": "役員・従業員株式所有制度の内容 [テキストブロック]"
+        },
+        {
+          "chars": 1597,
+          "element": "NotesImpairmentLossesConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－減損損失、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1520,
+          "element": "StatementOfChangesInEquityTextBlock",
+          "kind": "",
+          "label": "株主資本等変動計算書 [テキストブロック]"
+        },
+        {
+          "chars": 1517,
+          "element": "BusinessPolicyBusinessEnvironmentIssuesToAddressEtcTextBlock",
+          "kind": "",
+          "label": "経営方針、経営環境及び対処すべき課題等 [テキストブロック]"
+        },
+        {
+          "chars": 1485,
+          "element": "NotesCashFlowInformationConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－キャッシュ・フロー情報、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1484,
+          "element": "BusinessResultsOfReportingCompanyTextBlock",
+          "kind": "",
+          "label": "提出会社の経営指標等 [テキストブロック]"
+        },
+        {
+          "chars": 1410,
+          "element": "NotesPropertyPlantAndEquipmentConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－有形固定資産、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1369,
+          "element": "CompanyHistoryTextBlock",
+          "kind": "",
+          "label": "沿革 [テキストブロック]"
+        },
+        {
+          "chars": 1356,
+          "element": "ShareholdingsTextBlock",
+          "kind": "cross_holdings",
+          "label": "株式の保有状況 [テキストブロック]"
+        },
+        {
+          "chars": 1285,
+          "element": "ConsolidatedStatementOfCashFlowsIFRSTextBlock",
+          "kind": "",
+          "label": "連結キャッシュ・フロー計算書（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1283,
+          "element": "NotesInvestmentsAccountedForUsingEquityMethodConsolidatedFinancialStatementsIFRS",
+          "kind": "",
+          "label": "注記事項－持分法で会計処理されている投資、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1265,
+          "element": "MetricsAndTargetsClimateChangeTextBlock",
+          "kind": "",
+          "label": ""
+        },
+        {
+          "chars": 1190,
+          "element": "ConsolidatedStatementOfFinancialPositionIFRSTextBlock",
+          "kind": "",
+          "label": "連結財政状態計算書（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1173,
+          "element": "NotesShareCapitalAndOtherEquityItemsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－資本金及びその他の資本項目、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1165,
+          "element": "NotesTaxEffectAccountingFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "税効果会計関係、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1156,
+          "element": "BalanceSheetTextBlock",
+          "kind": "",
+          "label": "貸借対照表 [テキストブロック]"
+        },
+        {
+          "chars": 1127,
+          "element": "NotesOtherFinancialAssetsAndOtherFinancialLiabilitiesConsolidatedFinancialStatem",
+          "kind": "",
+          "label": "注記事項－その他の金融資産及びその他の金融負債、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 1064,
+          "element": "SignificantAccountingEstimatesFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "重要な会計上の見積り、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 984,
+          "element": "DescriptionOfMetricsRelatedToPolicyOnDevelopmentOfHumanResourcesAndInternalEnvir",
+          "kind": "",
+          "label": "人材の育成及び社内環境整備に関する方針に関する指標の内容並びに当該指標を用いた目標及び実績、指標及び目標 [テキストブロ"
+        },
+        {
+          "chars": 924,
+          "element": "GovernanceTextBlock",
+          "kind": "",
+          "label": "ガバナンス [テキストブロック]"
+        },
+        {
+          "chars": 915,
+          "element": "NotesSignificantAccountingPoliciesFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "重要な会計方針、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 900,
+          "element": "NotesAssetsHeldForSaleConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－売却目的で保有する資産、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 840,
+          "element": "NotesRelatedPartiesConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－関連当事者、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 748,
+          "element": "NotesDividendsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－配当金、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 701,
+          "element": "OtherReferenceInformationTextBlock",
+          "kind": "",
+          "label": "その他の参考情報 [テキストブロック]"
+        },
+        {
+          "chars": 657,
+          "element": "NotesEarningsPerShareConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－１株当たり利益、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 653,
+          "element": "NotesLeasesConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－リース、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 647,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 647,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsProposalTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役））（議案） [テキストブロック]"
+        },
+        {
+          "chars": 647,
+          "element": "NotesChangesInPresentationFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "表示方法の変更、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 616,
+          "element": "NotesOtherIncomeAndOtherExpensesConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－その他の収益及びその他の費用、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 606,
+          "element": "PlannedAdditionsRetirementsEtcOfFacilitiesTextBlock",
+          "kind": "capex_plan",
+          "label": "設備の新設、除却等の計画 [テキストブロック]"
+        },
+        {
+          "chars": 562,
+          "element": "NotesOtherComprehensiveIncomeConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－その他の包括利益、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 554,
+          "element": "RiskManagementClimateChangeTextBlock",
+          "kind": "",
+          "label": ""
+        },
+        {
+          "chars": 548,
+          "element": "OverviewOfOperationalProceduresForSharesTextBlock",
+          "kind": "",
+          "label": "提出会社の株式事務の概要 [テキストブロック]"
+        },
+        {
+          "chars": 538,
+          "element": "StatementOfIncomeTextBlock",
+          "kind": "",
+          "label": "損益計算書 [テキストブロック]"
+        },
+        {
+          "chars": 518,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 518,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsProposalTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役））（議案） [テキストブロック]"
+        },
+        {
+          "chars": 506,
+          "element": "DividendPolicyTextBlock",
+          "kind": "",
+          "label": "配当政策 [テキストブロック]"
+        },
+        {
+          "chars": 504,
+          "element": "GovernanceClimateChangeTextBlock",
+          "kind": "",
+          "label": ""
+        },
+        {
+          "chars": 495,
+          "element": "IssuedSharesVotingRightsTextBlock",
+          "kind": "",
+          "label": "発行済株式、議決権の状況 [テキストブロック]"
+        },
+        {
+          "chars": 495,
+          "element": "NotesProvisionsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－引当金、連結財務諸表（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 493,
+          "element": "DescriptionOfBusinessTextBlock",
+          "kind": "",
+          "label": "事業の内容 [テキストブロック]"
+        },
+        {
+          "chars": 493,
+          "element": "ConsolidatedStatementOfProfitOrLossIFRSTextBlock",
+          "kind": "",
+          "label": "連結損益計算書（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 481,
+          "element": "OverviewOfCapitalExpendituresEtcTextBlock",
+          "kind": "capex_overview",
+          "label": "設備投資等の概要 [テキストブロック]"
+        },
+        {
+          "chars": 473,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 473,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsProposalTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役））（議案） [テキストブロック]"
+        },
+        {
+          "chars": 467,
+          "element": "InformationAboutGeographicalAreasIFRSTextBlock",
+          "kind": "",
+          "label": "地域に関する情報（IFRS） [テキストブロック]"
+        },
+        {
+          "chars": 447,
+          "element": "NotesFinanceIncomeAndFinanceCostsConsolidatedFinancialStatementsIFRSTextBlock",
+          "kind": "",
+          "label": "注記事項－金融収益及び金融費用、連結財務諸表（IFRS） [テキストブロック]"
+        }
+      ],
+      "blocks_found": [
+        "capex_overview",
+        "capex_plan",
+        "cross_holdings",
+        "exec_pay",
+        "major_shareholders",
+        "officers",
+        "share_status"
+      ],
+      "date": "2026-03-25",
+      "doc_id": "S100XTT8",
+      "errors": {
+        "officers": "Expecting ',' delimiter: line 1 column 5453 (char 5452)"
+      },
+      "facts": {
+        "avg_age": {
+          "parent": {
+            "label": "平均年齢（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 46.3
+          }
+        },
+        "avg_salary": {
+          "parent": {
+            "label": "平均年間給与、提出会社の状況、従業員の状況",
+            "unit": "円",
+            "value": 11319076.0
+          }
+        },
+        "avg_tenure": {
+          "parent": {
+            "label": "平均勤続年数（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 16.2
+          }
+        },
+        "employees": {
+          "consolidated": {
+            "label": "従業員数",
+            "unit": "",
+            "value": 21525.0
+          },
+          "parent": {
+            "label": "従業員数",
+            "unit": "",
+            "value": 346.0
+          }
+        }
+      },
+      "fy": "FY2025",
+      "id": "yuho_FY2025",
+      "model": "claude-haiku-5-5",
+      "period_end": "2025-12-31",
+      "read_on": "2026-11-13",
+      "sections": {
+        "capex": {
+          "actual_by_segment": [
+            {
+              "amount_jpy": 64064000000.0,
+              "segment": "半導体・電子材料",
+              "what": "Capacity expansion for CMP slurry, die-bonding film and semiconductor package substrate copper-clad laminates"
+            },
+            {
+              "amount_jpy": 9371000000.0,
+              "segment": "モビリティ",
+              "what": "Segment capital expenditure; specific projects not described"
+            },
+            {
+              "amount_jpy": 4899000000.0,
+              "segment": "イノベーション材料",
+              "what": "Segment capital expenditure; specific projects not described"
+            },
+            {
+              "amount_jpy": 16689000000.0,
+              "segment": "ケミカル",
+              "what": "Segment capital expenditure; specific projects not described"
+            },
+            {
+              "amount_jpy": 6170000000.0,
+              "segment": "クラサスケミカル",
+              "what": "Segment capital expenditure; specific projects not described"
+            },
+            {
+              "amount_jpy": 11661000000.0,
+              "segment": "その他",
+              "what": "Capital expenditure outside reportable segments; specific projects not described"
+            }
+          ],
+          "actual_total_jpy": 112853000000.0,
+          "funding_summary": "Own funds and borrowings, applied to the whole plan per company note.",
+          "notes": "Plan is given only by segment, not by site, so site, location, start, finish and paid-to-date are not stated. Segment subtotal (134,249 million yen) and total (146,234 million yen) excluded as lines. Separately, the Japan and Thailand automotive molding materials business is to be disposed of in the next fiscal year.",
+          "plan": [
+            {
+              "capacity_note": "",
+              "description": "Capacity expansion of semiconductor package substrate copper-clad laminates",
+              "finish": "Not stated (plan covers the year after period end)",
+              "funding": "Own funds and borrowings (company-wide note)",
+              "location": "Not stated",
+              "paid_to_date_jpy": 0.0,
+              "planned_total_jpy": 83696000000.0,
+              "segment": "半導体・電子材料",
+              "site": "Not stated (segment-level line only)",
+              "start": "Not stated"
+            },
+            {
+              "capacity_note": "",
+              "description": "Expansion, rationalization and sustaining/renewal investment",
+              "finish": "Not stated (plan covers the year after period end)",
+              "funding": "Own funds and borrowings (company-wide note)",
+              "location": "Not stated",
+              "paid_to_date_jpy": 0.0,
+              "planned_total_jpy": 13243000000.0,
+              "segment": "モビリティ",
+              "site": "Not stated (segment-level line only)",
+              "start": "Not stated"
+            },
+            {
+              "capacity_note": "",
+              "description": "Expansion, rationalization and sustaining/renewal investment",
+              "finish": "Not stated (plan covers the year after period end)",
+              "funding": "Own funds and borrowings (company-wide note)",
+              "location": "Not stated",
+              "paid_to_date_jpy": 0.0,
+              "planned_total_jpy": 8737000000.0,
+              "segment": "イノベーション材料",
+              "site": "Not stated (segment-level line only)",
+              "start": "Not stated"
+            },
+            {
+              "capacity_note": "",
+              "description": "Expansion, rationalization and sustaining/renewal investment",
+              "finish": "Not stated (plan covers the year after period end)",
+              "funding": "Own funds and borrowings (company-wide note)",
+              "location": "Not stated",
+              "paid_to_date_jpy": 0.0,
+              "planned_total_jpy": 13277000000.0,
+              "segment": "ケミカル",
+              "site": "Not stated (segment-level line only)",
+              "start": "Not stated"
+            },
+            {
+              "capacity_note": "",
+              "description": "Expansion, rationalization and sustaining/renewal investment",
+              "finish": "Not stated (plan covers the year after period end)",
+              "funding": "Own funds and borrowings (company-wide note)",
+              "location": "Not stated",
+              "paid_to_date_jpy": 0.0,
+              "planned_total_jpy": 15296000000.0,
+              "segment": "クラサスケミカル",
+              "site": "Not stated (segment-level line only)",
+              "start": "Not stated"
+            },
+            {
+              "capacity_note": "",
+              "description": "Expansion, rationalization and sustaining/renewal investment, incl. company-wide research facilities",
+              "finish": "Not stated (plan covers the year after period end)",
+              "funding": "Own funds and borrowings (company-wide note)",
+              "location": "Not stated",
+              "paid_to_date_jpy": 0.0,
+              "planned_total_jpy": 11985000000.0,
+              "segment": "その他・調整額",
+              "site": "Not stated (segment-level line only)",
+              "start": "Not stated"
+            }
+          ],
+          "plan_paid_jpy": 0.0,
+          "plan_total_jpy": 146234000000.0
+        },
+        "cross_holdings": {
+          "issues": [
+            {
+              "book_value_jpy": 0.0,
+              "change": "sold",
+              "holds_our_shares": false,
+              "name": "㈱ヤクルト本社",
+              "name_en": "Yakult Honsha",
+              "purpose": "Business transactions relationship; held continuously but reduced and fully sold in the current fiscal year.",
+              "purpose_kind": "business_relationship",
+              "shares": 0
+            }
+          ],
+          "notes": "The Yakult entry is from the table for 最大保有会社 ㈱レゾナック, a subsidiary, not the registrant. Current-year holding is nil; prior year was 60,000 shares with book value 179百万円. The registrant itself reports no 特定投資株式 (該当事項はありません). No みなし保有株式 (deemed holdings) at either level. Unlisted-share figures are excluded because they are not 特定投資株式.",
+          "policy_points": [
+            "Policy: in principle, do not hold strategic (policy) cross-shareholdings; reduce those currently held.",
+            "Holdings are classed as non-pure-investment when they support economic rationale or business relationships.",
+            "Board reviews each listed holding annually on profitability and business assessment, checking against cost of capital.",
+            "Board reported in November 2025 that sales of all group listed shares were completed at end-June 2025."
+          ],
+          "policy_summary": "Resonac's group policy is in principle not to hold policy-shareholdings (政策保有株式) and to reduce existing ones. The board verifies annually, against cost of capital, whether each listed holding is justified. All group listed holdings were reported sold as of end-June 2025.",
+          "reduction_stated": true,
+          "total_book_value_jpy": 0.0,
+          "total_issues": 0
+        },
+        "exec_pay": {
+          "by_class": [
+            {
+              "class_name": "取締役",
+              "fixed_jpy": 381000000.0,
+              "headcount": 11,
+              "performance_jpy": 164000000.0,
+              "stock_jpy": 676000000.0,
+              "total_jpy": 1222000000.0
+            },
+            {
+              "class_name": "うち社外取締役",
+              "fixed_jpy": 77000000.0,
+              "headcount": 6,
+              "performance_jpy": 0.0,
+              "stock_jpy": 5000000.0,
+              "total_jpy": 82000000.0
+            },
+            {
+              "class_name": "監査役",
+              "fixed_jpy": 127000000.0,
+              "headcount": 5,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 127000000.0
+            },
+            {
+              "class_name": "うち社外監査役",
+              "fixed_jpy": 50000000.0,
+              "headcount": 3,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 50000000.0
+            }
+          ],
+          "individuals": [
+            {
+              "name": "髙橋 秀仁",
+              "name_en": "Hidehito Takahashi",
+              "title": "President and CEO (Representative Director)",
+              "total_jpy": 517000000.0
+            },
+            {
+              "name": "森川 宏平",
+              "name_en": "Kohei Morikawa",
+              "title": "Chairman of the Board, Director",
+              "total_jpy": 183000000.0
+            },
+            {
+              "name": "染宮 秀樹",
+              "name_en": "Hideki Somiya",
+              "title": "Director, CFO",
+              "total_jpy": 157000000.0
+            },
+            {
+              "name": "眞岡 朋光",
+              "name_en": "Tomomitsu Maoka",
+              "title": "Director, CSO/CRO",
+              "total_jpy": 157000000.0
+            },
+            {
+              "name": "今井 のり",
+              "name_en": "Nori Imai",
+              "title": "Director, CHRO",
+              "total_jpy": 151000000.0
+            }
+          ],
+          "notes": "Amounts converted from millions of yen; the 'うち' rows are subsets of their parent rows. Fixed pay is basic pay. Performance pay is STI only, because PSU and performance RS are reported in stock_jpy (stock includes PSU 512m, performance RS 144m and non-performance RS 20m) to avoid double counting; total performance-linked pay is about 820m for the 取締役 class. The 取締役 components sum to 1,221m against a reported total of 1,222m due to rounding. Individuals listed are those with total pay of at least 100m yen. Their names are romanised by the reviewer; the readings of 染宮 and 眞岡 are not confirmed in",
+          "policy_points": [
+            "Base salary is set by role, and the share of variable pay rises with seniority.",
+            "STI is 70% company metrics (EBITDA amount 20%, EBITDA margin 30%, ROIC 20%) and 30% individual goals, with payouts ranging from 0% to 200%.",
+            "PSU vests on 3-year relative TSR against chemical and textile peers, with a coefficient of 0% to 240%; 50% is paid in cash.",
+            "Performance-linked RS is set by a sustainability score of 85% to 115%; 30% is held as points until retirement and paid in cash then.",
+            "The Remuneration Advisory Committee, chaired by an independent outside director with a majority of independent outside directors, decides individual pay.",
+            "Outside directors and the board chair receive base pay and non-performance RS only (outside directors' RS about 10% of base pay)."
+          ],
+          "policy_summary": "Base salary by role plus variable pay: short-term cash bonus (STI) tied to company EBITDA, EBITDA margin and ROIC (70%) and individual goals (30%), and stock pay tied to 3-year TSR (PSU) and sustainability scores (RS)."
+        }
+      },
+      "usage": {
+        "input": 17047,
+        "output": 11955,
+        "usd": 0.0076822
+      }
+    }
+  ],
   "4203": [
     {
       "blocks_catalog": [
