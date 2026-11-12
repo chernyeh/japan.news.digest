@@ -88,7 +88,7 @@ from jquants import (get_jquants_secret, fetch_earnings_calendar,
                      fetch_financial_summary, format_summary_for_display,
                      safe_num, guidance_direction,
                      get_performance_band, fetch_3m_performance_batch,
-                     fetch_market_data_batch, load_mktcap_from_github,
+                     fetch_market_data_batch, load_mktcap_from_github, load_price_dates_from_github,
                      load_3m_perf_from_github, load_earnings_cal_from_github,
                      fetch_jpx_excel_from_github, filter_upcoming,
                      load_perf_map_from_github, load_prices_from_github,
@@ -1768,7 +1768,17 @@ def _frame(df, **_ignored):
                 + "".join(_rows) + "</table></div>", unsafe_allow_html=True)
 
 
-def _valuation_inputs(_rcode: str, _rmcap=None) -> dict:
+def _price_date(_rcode: str) -> str:
+    """The trading day the latest close is for, or ''."""
+    try:
+        return (_shared("price_dates", lambda: load_price_dates_from_github(_ec_repo, _gh_token))
+                or {}).get(_rcode, "")
+    except Exception as _e:
+        print(f"price dates load error: {_e}")
+        return ""
+
+
+def _valuation_inputs(_rcode: str, _rmcap=None, _price_override=None) -> dict:
     """Everything the Research forecast panel computes its multiples from, for
     one company: the forecast map (manual overrides applied), the years shown,
     the fy1-fy3 forecast slots, the income-statement profile, any detected
@@ -1784,11 +1794,14 @@ def _valuation_inputs(_rcode: str, _rmcap=None) -> dict:
     if not _fc_map:
         return {}
     _fundrow = (st.session_state.get("fundamentals_map") or {}).get(_rcode, {})
-    _price = (st.session_state.research_prices_map or {}).get(_rcode)
+    _close = (st.session_state.research_prices_map or {}).get(_rcode)
+    _price = _price_override or _close
     _shares = SHARES_LOOKUP.get(_rcode) or _fundrow.get("shares")
-    # mktcap_map is ¥bn; fundamentals.py works in yen throughout.
-    _mcap = (_rmcap * 1e9) if _rmcap else (
-        _price * _shares if (_price and _shares) else None)
+    # Market cap at the price being used (the latest close, or the reader's
+    # own): price x shares. The stored ¥bn figure (`_rmcap`) is only a
+    # fallback for a company with no price or share count.
+    _mcap = (_price * _shares if (_price and _shares) else
+             (_rmcap * 1e9) if _rmcap else None)
 
     # Two fiscal years, earliest first, taken from the data
     # rather than today's date — a company mid-year and one that
@@ -1871,6 +1884,7 @@ def _valuation_inputs(_rcode: str, _rmcap=None) -> dict:
 
     return {
         "fc_map": _fc_map, "fundrow": _fundrow, "price": _price, "shares": _shares,
+        "close": _close, "price_override": bool(_price_override),
         "mcap": _mcap, "years": _years, "get": _get, "src": _src,
         "fc_years": _fc_years, "slots": _slots, "profile": _profile,
         "split_factor": _split_factor,
@@ -8959,7 +8973,38 @@ with tab_research:
                         'action (it needs a JQUANTS_API_KEY repo secret).</div>',
                         unsafe_allow_html=True)
                 else:
-                    _vi = _valuation_inputs(_rcode, _rmcap)
+                    # The price the panel values at: the latest close, or one typed
+                    # here for a what-if. Not saved; the Watchlist and the
+                    # Valuation Screen keep using the close.
+                    _pxk = f"research_px_{_rcode}"
+                    _close = (st.session_state.research_prices_map or {}).get(_rcode)
+                    _pd = _price_date(_rcode)
+                    _c1, _c2 = st.columns([1, 2.6])
+                    with _c1:
+                        _px_in = st.number_input(
+                            "Value at price ¥", min_value=0.0, value=None, step=10.0,
+                            format="%.0f", key=_pxk,
+                            placeholder=(f"{_close:,.0f}" if _close else "price"),
+                            help="Leave blank to value at the latest close. Type a price to see "
+                                 "every multiple in this panel at that price. Not saved.")
+                    with _c2:
+                        _close_txt = (f"Close <b>¥{_close:,.0f}</b>"
+                                      + (f" on {_safe_text(_pd)}" if _pd else "")) if _close else "No close on file"
+                        if _px_in:
+                            _dv = (_px_in / _close - 1) if _close else None
+                            st.markdown(
+                                f'<div class="fc-note fc-warn">Valued at <b>¥{_px_in:,.0f}</b> — your price, '
+                                f'not the close'
+                                + (f' ({_dv * 100:+.1f}% vs close)' if _dv is not None else '')
+                                + f'. {_close_txt}.</div>', unsafe_allow_html=True)
+                            st.button("↺ Reset to close", key=f"{_pxk}_reset",
+                                      on_click=lambda k=_pxk: st.session_state.update({k: None}))
+                        else:
+                            st.markdown(f'<div class="fc-note" style="margin-top:1.9rem !important">'
+                                        f'Valued at the latest {_close_txt.replace("Close", "close", 1)}; '
+                                        'market cap = that price × shares outstanding.</div>',
+                                        unsafe_allow_html=True)
+                    _vi = _valuation_inputs(_rcode, _rmcap, _px_in or None)
                     _price, _shares, _mcap = _vi["price"], _vi["shares"], _vi["mcap"]
                     _years, _get, _src = _vi["years"], _vi["get"], _vi["src"]
                     _profile, _split_factor = _vi["profile"], _vi["split_factor"]
