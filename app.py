@@ -1385,7 +1385,14 @@ a.research-link:hover { background: #F0EDE8; }
 .st-key-research_px_row button { font-size: 0.68rem !important; min-height: 0 !important;
     padding: 2px 10px !important; color: #9B8B7A !important; border-color: #E3DDD3 !important; }
 .st-key-research_px_row button p { font-size: 0.68rem !important; }
-.st-key-research_px_pop .px-label { font-size: 0.78rem; color: #3A3A3A; white-space: nowrap; }
+[data-testid="stPopoverBody"]:has(.st-key-research_px_pop) { width: 300px !important;
+    min-width: 0 !important; max-width: 92vw !important; padding: 10px 12px !important; }
+.st-key-research_px_pop .px-label { font-size: 0.78rem; color: #3A3A3A; white-space: nowrap;
+    line-height: 2rem; margin: 0 !important; }
+.st-key-research_px_pop [data-testid="stMarkdownContainer"] { margin: 0 !important; }
+.st-key-research_px_pop [data-testid="stHorizontalBlock"] { gap: 0.5rem !important;
+    align-items: center !important; }
+.st-key-research_px_pop .fc-note { margin-top: 2px !important; }
 .st-key-research_px_pop input { font-size: 0.8rem !important; height: 1.9rem !important;
     padding: 2px 8px !important; }
 .st-key-research_px_pop [data-testid="stNumberInputContainer"] { height: 2rem !important; min-height: 0 !important; }
@@ -9026,7 +9033,7 @@ with tab_research:
                         with _pc:
                             with st.popover("¥ Value at another price"):
                                 with st.container(key="research_px_pop"):
-                                    _l, _r = st.columns([1.15, 1], vertical_alignment="center")
+                                    _l, _r = st.columns([1, 1.15], vertical_alignment="center")
                                     with _l:
                                         st.markdown('<div class="px-label">Value at price ¥</div>',
                                                     unsafe_allow_html=True)
