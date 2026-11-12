@@ -202,7 +202,8 @@ def _schema_agm():
                          "empty if not stated."},
             "resolutions": {"type": "array", "items": {
                 "type": "object", "additionalProperties": False,
-                "required": ["number", "title", "kind", "person_name", "proposed_by_shareholder",
+                "required": ["number", "title", "kind", "person_name", "person_name_en",
+                             "proposed_by_shareholder",
                              "votes_for", "votes_against", "votes_abstain", "approval_pct",
                              "passed"],
                 "properties": {
@@ -212,6 +213,9 @@ def _schema_agm():
                     "person_name": {"type": "string",
                                     "description": "For an election: the candidate's name as "
                                     "printed. Empty otherwise."},
+                    "person_name_en": {"type": "string",
+                                       "description": "The same name romanised, given name "
+                                       "first. Empty otherwise."},
                     "proposed_by_shareholder": {"type": "boolean"},
                     "votes_for": {"type": "integer", "description": "賛成 (in voting units "
                                   "as printed); 0 if not stated."},
@@ -235,7 +239,8 @@ _PROMPT = (
     "shareholders' meeting{who}, flattened from HTML. Return every resolution with "
     "its for / against / abstain counts and approval percentage as printed. Where "
     "one resolution elects several directors with a separate line each, return one "
-    "entry per candidate, with the candidate's name. Mark shareholder proposals. "
+    "entry per candidate, with the candidate's name and its romanisation. Mark "
+    "shareholder proposals. "
     "Do not compute what the document does not state; leave it 0."
 )
 
@@ -287,6 +292,7 @@ def normalise_agm(raw: dict) -> dict:
         res.append({"number": YX._s(r.get("number"), 40), "title": YX._s(r.get("title"), 120),
                     "kind": r.get("kind") if r.get("kind") in RES_KINDS else "other",
                     "person_name": YX._s(r.get("person_name"), 80),
+                    "person_name_en": YX._s(r.get("person_name_en"), 80),
                     "proposed_by_shareholder": bool(r.get("proposed_by_shareholder")),
                     "votes_for": f, "votes_against": a, "votes_abstain": ab,
                     "approval_pct": round(pct, 2), "passed": bool(r.get("passed"))})

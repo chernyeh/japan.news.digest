@@ -391,3 +391,29 @@ def test_estimate_and_read_jobs_follow_the_model_and_skip_unwanted_sections():
     assert est["input_tokens"] < 6000 and est["usd"] < 0.01
     assert YX.estimate_cost(blocks, "claude-opus-5-5")["usd"] > 10 * est["usd"]
     assert abs(YX.cost_usd({"input": 1_000_000, "output": 0}, "claude-haiku-5-5") - 0.10) < 1e-9
+
+
+def test_policy_bullets_use_the_list_or_split_the_summary():
+    assert YX.policy_bullets({"policy_points": ["a", "", "b"], "policy_summary": "x. y"}) == ["a", "b"]
+    assert YX.policy_bullets({"policy_summary": "Holds partners' shares. Reviewed yearly; board approves."}) == [
+        "Holds partners' shares.", "Reviewed yearly;", "board approves."]
+    assert YX.policy_bullets({}) == []
+
+
+def test_officers_go_to_the_model_only_when_the_table_did_not_parse():
+    blocks = {"officers": "<p>" + "o" * 3000 + "</p>", "exec_pay": "<p>e</p>"}
+    assert YX.estimate_cost(blocks, "claude-haiku-5-5")["jobs"] == ["exec_pay"]
+    est = YX.estimate_cost(blocks, "claude-haiku-5-5", include_officers=True)
+    assert est["jobs"] == ["officers", "exec_pay"] and est["usd"] < 0.01
+    sec = YX.normalise("officers", {"officers": [{"name": "辻 朋邦", "name_en": "Tomokuni Tsuji",
+                                                   "title": "代表取締役社長", "role_kind": "representative_director",
+                                                   "outside": False, "age": 37, "is_ceo": True}]})
+    assert sec["officers"][0]["name_en"] == "Tomokuni Tsuji"
+    cross = YX.normalise("cross_holdings", {"issues": [{"name": "㈱バンダイナムコホールディングス",
+                                                        "name_en": "Bandai Namco Holdings", "book_value_jpy": 1.7e9}],
+                                            "policy_points": ["p1", "p2"]})
+    assert cross["issues"][0]["name_en"] == "Bandai Namco Holdings" and cross["policy_points"] == ["p1", "p2"]
+    agm = HX.normalise_agm({"resolutions": [{"number": "1", "title": "t", "kind": "director_election",
+                                             "person_name": "辻 朋邦", "person_name_en": "Tomokuni Tsuji",
+                                             "approval_pct": 89.4, "passed": True}]})
+    assert agm["resolutions"][0]["person_name_en"] == "Tomokuni Tsuji"
