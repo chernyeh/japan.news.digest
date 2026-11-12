@@ -540,38 +540,38 @@
           "actual_by_segment": [
             {
               "amount_jpy": 6103000000.0,
-              "segment": "Japan",
+              "segment": "日本事業",
               "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
             },
             {
               "amount_jpy": 56000000.0,
-              "segment": "Europe",
-              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+              "segment": "欧州事業",
+              "what": "Capital expenditure in the Europe segment"
             },
             {
               "amount_jpy": 3000000.0,
-              "segment": "North America",
-              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+              "segment": "北米事業",
+              "what": "Capital expenditure in the North America segment"
             },
             {
               "amount_jpy": 130000000.0,
-              "segment": "South America",
-              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+              "segment": "南米事業",
+              "what": "Capital expenditure in the South America segment"
             },
             {
               "amount_jpy": 561000000.0,
-              "segment": "Asia",
-              "what": "Directly operated store renovations, new store openings with leasehold deposits, theme park attraction and restaurant renewals"
+              "segment": "アジア事業",
+              "what": "Capital expenditure in the Asia segment"
             },
             {
               "amount_jpy": 18000000.0,
-              "segment": "Corporate",
-              "what": "Corporate assets, main contents as described for the group's stores and theme parks"
+              "segment": "全社資産",
+              "what": "Company-wide assets capital expenditure"
             }
           ],
           "actual_total_jpy": 6875000000.0,
-          "funding_summary": "No significant plan. Actual spending was funded from own funds, with no borrowings stated.",
-          "notes": "No significant new facility plan (新設: none). Only routine replacement retirements are planned, with no significant retirement plan. Segment amounts sum to 6,871 million yen versus the stated total of 6,875 million yen, a 4 million yen difference, likely from rounding in the source. Amounts converted from 百万円 to yen.",
+          "funding_summary": "Actual spend funded from own funds; no significant plan disclosed.",
+          "notes": "No significant new facilities plan; only routine replacement retirements excluded. Segment amounts sum to 6,871百万円, 4百万円 below the stated total of 6,875百万円.",
           "plan": [],
           "plan_paid_jpy": 0,
           "plan_total_jpy": 0
@@ -583,7 +583,8 @@
               "change": "unchanged",
               "holds_our_shares": true,
               "name": "㈱バンダイナムコホールディングス",
-              "purpose": "IP-based business collaboration transactions; ensure stable continued transactions and strengthened cooperation.",
+              "name_en": "Bandai Namco Holdings",
+              "purpose": "Business collaborations using IP across businesses; aims at stable future transactions and stronger cooperation.",
               "purpose_kind": "business_relationship",
               "shares": 435900
             },
@@ -592,16 +593,18 @@
               "change": "new",
               "holds_our_shares": false,
               "name": "㈱IGポート",
-              "purpose": "Transactions on video adaptation of company IP; ensure stable continued transactions and strengthened cooperation.",
+              "name_en": "IG Port",
+              "purpose": "Transactions on video adaptation of the company's IP; aims at stable future transactions and stronger cooperation.",
               "purpose_kind": "business_relationship",
               "shares": 1008000
             },
             {
               "book_value_jpy": 380000000.0,
-              "change": "unchanged",
+              "change": "increased",
               "holds_our_shares": true,
               "name": "京王電鉄㈱",
-              "purpose": "Collaboration transactions with theme parks operated by the group; contribution to corporate value through stable cooperation.",
+              "name_en": "Keio Corporation",
+              "purpose": "Collaboration transactions with the theme parks operated by the group; aims at stable transactions and higher corporate value.",
               "purpose_kind": "business_relationship",
               "shares": 493000
             },
@@ -610,7 +613,8 @@
               "change": "increased",
               "holds_our_shares": true,
               "name": "三菱鉛筆㈱",
-              "purpose": "Licensing transactions in stationery categories; ensure stable continued transactions and strengthened cooperation.",
+              "name_en": "Mitsubishi Pencil Co., Ltd.",
+              "purpose": "Licensing transactions in stationery and related categories; aims at stable future transactions and stronger cooperation.",
               "purpose_kind": "business_relationship",
               "shares": 127178
             },
@@ -619,16 +623,24 @@
               "change": "unchanged",
               "holds_our_shares": true,
               "name": "松竹㈱",
-              "purpose": "Shared business areas such as musicals; ensure stable continued transactions and strengthened cooperation.",
+              "name_en": "Shochiku Co., Ltd.",
+              "purpose": "Shared business areas such as musicals; aims at stable future transactions and stronger cooperation.",
               "purpose_kind": "business_relationship",
               "shares": 13800
             }
           ],
-          "notes": "Deemed holdings (みなし保有株式): none reported. Keio Electric Railway prior-year count of 98,600 was before a 5-for-1 split on 2026-03-31; split-adjusted it equals 493,000, so marked unchanged. Total of listed non-unlisted holdings is stated as 3,767 million yen, while the five named issues sum to 3,744 million yen; the difference is unexplained. Unlisted holdings (total line reads 63,612, apparently 6 issues and 3,612 million yen) are excluded from the issues list. Quantitative holding effects are not given; the report refers to a verification method instead.",
-          "policy_summary": "Holds listed shares of business partners for long-term stable relationships and sales promotion; reviewed annually per issue against cost of capital, with continued holding approved by the board. No commitment to reduce holdings stated.",
+          "notes": "The issue count (銘柄数) for 特定投資株式 is not legible in the flattened text, so total_issues is set to 0; five named issues are listed. The 53,767 百万円 total is the 非上場株式以外の株式 balance-sheet figure from the ⅱ table, which the flattened text does not clearly pair with its row label; it is far above the five named issues (about 3,744 百万円 combined), so the named issues are likely only part of the listed holdings. Keio Corporation's prior-year shares (98,600) reflect a 5-for-1 split effective March 31, 2026, so the 'increased' label reflects the split rather than new purchases. IG Port's prior-year value ",
+          "policy_points": [
+            "Holds shares of business partners for long-term, stable relationships and sales promotion (business collaborations, licensing, IP-related transactions).",
+            "Each issue is reviewed annually by share issue against cost of capital and profitability; the board of directors approves continued holding.",
+            "Holdings were verified as of March 31, 2026, and all current holdings were confirmed to match the holding policy.",
+            "In the year, shares increased in one issue (via a counterparty shareholding association) and none were sold; no reduction commitment is stated.",
+            "Voting on policy shares examines whether proposals could damage shareholder value before voting for or against."
+          ],
+          "policy_summary": "Sanrio holds listed shares of companies it deems necessary for long-term, stable business relationships and sales promotion. Each issue is reviewed annually against cost of capital and profitability, and the board decides whether to keep holding it. No commitment to reduce holdings is stated.",
           "reduction_stated": false,
-          "total_book_value_jpy": 3767000000.0,
-          "total_issues": 5
+          "total_book_value_jpy": 53767000000.0,
+          "total_issues": 0
         },
         "exec_pay": {
           "by_class": [
@@ -636,12 +648,12 @@
               "class_name": "取締役（監査等委員及び社外取締役を除く）",
               "fixed_jpy": 299000000.0,
               "headcount": 6,
-              "performance_jpy": 0.0,
-              "stock_jpy": 0.0,
+              "performance_jpy": 2000000.0,
+              "stock_jpy": 109000000.0,
               "total_jpy": 411000000.0
             },
             {
-              "class_name": "監査等委員（社外取締役を除く）",
+              "class_name": "監査等委員(社外取締役を除く)",
               "fixed_jpy": 12000000.0,
               "headcount": 1,
               "performance_jpy": 0.0,
@@ -650,11 +662,11 @@
             },
             {
               "class_name": "監査役（社外監査役を除く）",
-              "fixed_jpy": 33000000.0,
+              "fixed_jpy": 3000000.0,
               "headcount": 1,
               "performance_jpy": 0.0,
               "stock_jpy": 0.0,
-              "total_jpy": 33000000.0
+              "total_jpy": 3000000.0
             },
             {
               "class_name": "社外役員",
@@ -668,23 +680,252 @@
           "individuals": [
             {
               "name": "辻 朋邦",
-              "title": "取締役",
+              "name_en": "Tomokuni Tsuji",
+              "title": "Director",
               "total_jpy": 188000000.0
             },
             {
               "name": "齋藤 陽史",
-              "title": "取締役 (CEO, Sanrio, Inc.)",
+              "name_en": "Yoshifumi Saito",
+              "title": "Director (CEO, Sanrio, Inc.)",
               "total_jpy": 169000000.0
             }
           ],
-          "notes": "Flattened table digits for the 取締役 row (total 411, fixed 299) do not cleanly split into bonus, non-cash and headcount; the 112 million remainder is unsplit, and headcount 6 is a low-confidence reading. Audit committee row: 13 total with 12 fixed; the 1 million remainder is unexplained. Performance and stock columns are set to 0 because the split is not reliably recoverable. Individual breakdowns for 齋藤 are also ambiguous in the flattened text; only totals are used. Sanrio, Inc. amounts include a COLA bonus and perquisites whose legal validity is under review.",
-          "policy_summary": "Executive director pay: fixed base salary, performance bonus tied to consolidated operating profit and ROE (50–150% factor), and performance share units over three years (TSR, non-financial metrics). Target mix 50:25:25; outside and audit directors get base pay only."
+          "notes": "Figures are inferred from a flattened table: the 取締役 row's special bonus (2m) and non-monetary pay (109m) were separated from the digit string and sum to 410m against a 411m total (rounding). Its 2m special bonus is placed in performance_jpy, since it is a bonus rather than fixed pay. The 監査等委員 row (13m total, 12m fixed) and the 辻 split (fixed 140m, non-monetary 47m) are also inferred from the flattened cells. 齋藤's 169m total is 9m parent fixed pay plus 72m Sanrio, Inc. fixed pay, 69m COLA Bonus (under clawback review) and 18m perks, summing to 168m against 169m (rounding). The 監査役 row covers ",
+          "policy_points": [
+            "Target mix for executive directors (excluding audit committee and outside directors): base salary 50%, performance bonus 25%, performance stock 25%, so variable pay is about half of total.",
+            "Performance bonus: a 50–150% multiplier applied to a role-based standard amount, linked to consolidated operating profit and ROE, paid after fiscal year-end.",
+            "Performance stock: points granted by role each year over three-year periods; shares delivered on retirement, with a 50–150% multiplier on targets (initial period: operating profit growth, TSR, external-rating non-financial metrics) and part paid in cash equivalent.",
+            "Approved at the June 2026 AGM: up to ¥600m and 894,000 points over three years (1 point = 1 share) for eligible directors.",
+            "Nomination and Remuneration Advisory Committee, led by outside directors, reviews pay; the CEO sets individual amounts within board policy and must give maximum weight to the committee's advice.",
+            "Audit committee and outside directors receive base pay only, a monthly fixed amount set by role, tenure, peer benchmarks, company performance and employee pay levels."
+          ],
+          "policy_summary": "Executive director pay is split 50:25:25 across base salary, performance bonus (consolidated operating profit and ROE) and three-year performance stock tied to operating profit growth, TSR and non-financial metrics; outside and audit directors get base pay only."
+        },
+        "officers": {
+          "as_of": "",
+          "notes": "Table has no explicit as-of date; share counts are stated as of 2026年3月31日. Table shows 男性6名 女性3名 among 役員一覧 (9 directors), plus one substitute audit committee director (猪山 雄央) listed separately. Executive officers who are not directors are listed by name and title only, without career data, and are not in the officers array: 常務執行役員 辻 友子, 松本 成一郎, 三好 加奈子, 福田 英司, 山下 達也, 濵﨑 皓介; 執行役員 森田 秀樹, 山田 周平, 籠味 一成, 広木 義直, 本田 隆史, 齋藤 秀之, 山本 太郎, 藤田 和巳, 倉田 あや, 有田 真也, 藤戸 直美, 宮本 陽介, 中澤 貴昭. Term notes: 取締役（監査等委員を除く）の任期 ends at the close of the 第66回定時株主総会 (2026年6月25日) or the final-year AGM within one year of electio",
+          "officers": [
+            {
+              "age": 0,
+              "background_tags": [
+                "sales_marketing",
+                "overseas"
+              ],
+              "birth_year": 1988,
+              "career_summary": "Joined Sanrio 2014; Executive Officer for Planning & Sales 2015; Director and Deputy Head of Planning & Sales 2016; Senior Managing Director 2017; President and Representative Director since 2020; concurrently Chairman of Sanrio Southeast Asia (2020) and Representative Director Chairman of Sanrio Entertainment and Kokoro (2022).",
+              "director_since_year": 2016,
+              "is_ceo": true,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 2014,
+              "name": "辻 朋邦",
+              "name_en": "Tomokuni Tsuji",
+              "outside": false,
+              "role_kind": "representative_director",
+              "shares_held": 2488000,
+              "term_end": "（注）1",
+              "title": "代表取締役社長"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "consulting",
+                "overseas",
+                "other_company_executive",
+                "planning_strategy"
+              ],
+              "birth_year": 1983,
+              "career_summary": "Joined Oriental Land 2005; A.T. Kearney 2009; COO, KOKOTEL (Thailand) 2016; Boston Consulting Group 2019; joined Sanrio 2021 as Managing Executive Officer; Director from 2022; Senior Managing Director since 2024.",
+              "director_since_year": 2022,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 2021,
+              "name": "中塚 亘",
+              "name_en": "Wataru Nakatsuka",
+              "outside": false,
+              "role_kind": "director",
+              "shares_held": 103000,
+              "term_end": "（注）1",
+              "title": "専務取締役専務執行役員 経営戦略本部担当 グローバル総括本部担当ブランド管理本部担当"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "consulting",
+                "overseas",
+                "other_company_executive",
+                "sales_marketing"
+              ],
+              "birth_year": 1973,
+              "career_summary": "Joined Daiei 1997; Tohmatsu Consulting (later Deloitte Tohmatsu Consulting) 2004; seconded to Deloitte Consulting Ltd, Thailand 2012; Executive Officer at Deloitte Tohmatsu Consulting 2020; joined Sanrio 2021; Sanrio group CEO of overseas subsidiaries from 2024.",
+              "director_since_year": 2022,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 2021,
+              "name": "大塚 泰之",
+              "name_en": "Yasuyuki Otsuka",
+              "outside": false,
+              "role_kind": "director",
+              "shares_held": 103000,
+              "term_end": "（注）1",
+              "title": "専務取締役専務執行役員 営業本部担当 グローバル物販本部担当"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "overseas",
+                "other_company_executive",
+                "sales_marketing"
+              ],
+              "birth_year": 1964,
+              "career_summary": "Joined Recruit 1988; President and CEO of MTV Networks Japan 2002; Executive Officer and Managing Executive Officer at Microsoft Japan 2007-2009; Representative Director of Twitter Japan 2014; Twitter Inc. regional VP 2017-2021; CEO of DAZN Japan Investment from 2024.",
+              "director_since_year": 2021,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "笹本 裕",
+              "name_en": "Yutaka Sasamoto",
+              "outside": true,
+              "role_kind": "outside_director",
+              "shares_held": 0,
+              "term_end": "（注）1",
+              "title": "取締役"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "other_company_executive"
+              ],
+              "birth_year": 1963,
+              "career_summary": "Joined IBM Japan 1987; Business Executive Officer at Microsoft Japan 2009; Executive Officer at LIXIL 2015; Managing Director at Panasonic Connect 2017; Executive Vice President at Panasonic System Solutions Japan 2017; Executive Officer and Vice President at Panasonic Connect 2022.",
+              "director_since_year": 2021,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "山中 雅恵",
+              "name_en": "Masae Yamanaka",
+              "outside": true,
+              "role_kind": "outside_director",
+              "shares_held": 0,
+              "term_end": "（注）1",
+              "title": "取締役"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "legal"
+              ],
+              "birth_year": 1980,
+              "career_summary": "Registered as a lawyer 2008 and joined Ogasawara International Law Office; founded RITA Law Office representative practice 2018; outside director of S Foods from 2019; Sanrio outside director since 2024; outside auditor of Roland from 2026.",
+              "director_since_year": 2024,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "鴨田 視寿子",
+              "name_en": "Shizuko Kamoda",
+              "outside": true,
+              "role_kind": "outside_director",
+              "shares_held": 0,
+              "term_end": "（注）1",
+              "title": "取締役"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "ex_bank",
+                "overseas",
+                "planning_strategy"
+              ],
+              "birth_year": 1970,
+              "career_summary": "Joined Mitsubishi Bank 1993; General Manager and Frankfurt branch head at MUFG Bank (Europe) 2020; joined Sanrio 2023 as adviser in Corporate Planning; Standing Corporate Auditor 2023; Standing Audit and Supervisory Committee Director from 2025.",
+              "director_since_year": 2025,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 2023,
+              "name": "奥村 信一",
+              "name_en": "Shinichi Okumura",
+              "outside": false,
+              "role_kind": "audit_committee_member",
+              "shares_held": 0,
+              "term_end": "（注）2",
+              "title": "取締役（常勤監査等委員）"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "finance_accounting",
+                "other_company_executive"
+              ],
+              "birth_year": 1954,
+              "career_summary": "Joined Chuo Accounting Firm 1980; CPA registration 1983; partner from 1993 and representative senior partner from 1998; joined Shin Nihon LLC 2006 as representative senior partner; opened Ohashi CPA office 2016; outside auditor of Graphite Design 2019.",
+              "director_since_year": 2025,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "大橋 一生",
+              "name_en": "Kazuo Ohashi",
+              "outside": true,
+              "role_kind": "audit_committee_member",
+              "shares_held": 0,
+              "term_end": "（注）2",
+              "title": "取締役（監査等委員）"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "legal"
+              ],
+              "birth_year": 1970,
+              "career_summary": "Joined Dentsu Information Technology Service 1992; registered as a lawyer 2001 and joined Okamura Law Office; opened Morikawa Law Office 2010; outside auditor of Toyo Technica 2014 and Temona 2015; outside auditor of Infocom 2020; Sanrio outside auditor 2024.",
+              "director_since_year": 2025,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "森川 紀代",
+              "name_en": "Kiyo Morikawa",
+              "outside": true,
+              "role_kind": "audit_committee_member",
+              "shares_held": 0,
+              "term_end": "（注）2",
+              "title": "取締役（監査等委員）"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "legal",
+                "other_company_executive"
+              ],
+              "birth_year": 1975,
+              "career_summary": "Registered as a lawyer 2007 and joined Shimoyama Law Office; partner 2012; outside director of Tokyo Theatre from 2016; representative partner of Shimoyama Law Office from 2016.",
+              "director_since_year": 0,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "猪山 雄央",
+              "name_en": "Takeo Inoyama",
+              "outside": false,
+              "role_kind": "audit_committee_member",
+              "shares_held": 0,
+              "term_end": "",
+              "title": "補欠の監査等委員である取締役"
+            }
+          ]
         }
       },
       "usage": {
-        "input": 9157,
-        "output": 13115,
-        "usd": 0.0074732
+        "input": 16112,
+        "output": 34501,
+        "usd": 0.018861700000000002
       }
     }
   ]
