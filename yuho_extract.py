@@ -328,7 +328,7 @@ _SIGNATURES = {
                  ("対象となる役員の員数", 2), ("連結報酬等", 2)),
 }
 MIN_SCORE = 3
-HINT_SCORE = 3
+HINT_SCORE = 5
 
 
 def _hint_kind(element: str, label: str) -> str:
@@ -470,12 +470,14 @@ def _schema_officers():
                       "the document states it (e.g. '2026年6月24日現在'); empty if absent."},
             "officers": {"type": "array", "items": {
                 "type": "object", "additionalProperties": False,
-                "required": ["name", "title", "role_kind", "outside", "age", "birth_year",
+                "required": ["name", "name_en", "title", "role_kind", "outside", "age", "birth_year",
                              "joined_company_year", "director_since_year", "is_ceo",
                              "is_chair", "is_cfo", "career_summary", "background_tags",
                              "shares_held", "term_end"],
                 "properties": {
-                    "name": {"type": "string"},
+                    "name": {"type": "string", "description": "As printed."},
+                    "name_en": {"type": "string",
+                                "description": "Romanised, given name first, e.g. 'Tomokuni Tsuji'."},
                     "title": {"type": "string", "description": "役職名 as printed."},
                     "role_kind": {"type": "string", "enum": list(ROLE_KINDS)},
                     "outside": {"type": "boolean",
@@ -538,13 +540,18 @@ def _schema_shareholders():
 def _schema_cross():
     return {
         "type": "object", "additionalProperties": False,
-        "required": ["policy_summary", "total_issues", "total_book_value_jpy", "issues",
-                     "reduction_stated", "notes"],
+        "required": ["policy_summary", "policy_points", "total_issues", "total_book_value_jpy",
+                     "issues", "reduction_stated", "notes"],
         "properties": {
             "policy_summary": {"type": "string",
                                "description": "In English, at most 60 words: the company's "
                                "stated policy on holding other companies' shares, and any "
                                "commitment to reduce them."},
+            "policy_points": {"type": "array", "items": {"type": "string"},
+                              "description": "The same policy as 2-5 short English bullet "
+                              "points: what is held and why, how holdings are reviewed "
+                              "(by whom, against what), any reduction commitment or sales "
+                              "in the year, voting policy if stated."},
             "total_issues": {"type": "integer",
                              "description": "Number of 特定投資株式 issues (純投資目的以外); "
                              "0 if not stated."},
@@ -553,10 +560,13 @@ def _schema_cross():
                                      "(convert from 百万円); 0 if not stated."},
             "issues": {"type": "array", "items": {
                 "type": "object", "additionalProperties": False,
-                "required": ["name", "shares", "book_value_jpy", "purpose", "purpose_kind",
-                             "holds_our_shares", "change"],
+                "required": ["name", "name_en", "shares", "book_value_jpy", "purpose",
+                             "purpose_kind", "holds_our_shares", "change"],
                 "properties": {
-                    "name": {"type": "string"},
+                    "name": {"type": "string", "description": "As printed."},
+                    "name_en": {"type": "string",
+                                "description": "The issuer's English name as the company itself "
+                                "uses it, e.g. 'Bandai Namco Holdings', 'Keio Corporation'."},
                     "shares": {"type": "integer", "description": "Current-year shares held."},
                     "book_value_jpy": {"type": "number",
                                        "description": "Current-year 貸借対照表計上額 in yen."},
@@ -632,7 +642,7 @@ def _schema_capex():
 def _schema_pay():
     return {
         "type": "object", "additionalProperties": False,
-        "required": ["by_class", "individuals", "policy_summary", "notes"],
+        "required": ["by_class", "individuals", "policy_summary", "policy_points", "notes"],
         "properties": {
             "by_class": {"type": "array", "items": {
                 "type": "object", "additionalProperties": False,
@@ -649,13 +659,21 @@ def _schema_pay():
             }},
             "individuals": {"type": "array", "items": {
                 "type": "object", "additionalProperties": False,
-                "required": ["name", "title", "total_jpy"],
-                "properties": {"name": {"type": "string"}, "title": {"type": "string"},
+                "required": ["name", "name_en", "title", "total_jpy"],
+                "properties": {"name": {"type": "string"},
+                               "name_en": {"type": "string",
+                                           "description": "Romanised, given name first."},
+                               "title": {"type": "string", "description": "In English."},
                                "total_jpy": {"type": "number"}},
             }, "description": "Officers named individually (連結報酬等の総額が1億円以上)."},
             "policy_summary": {"type": "string",
                                "description": "In English, at most 40 words: what pay is tied "
                                "to (which metrics, what split)."},
+            "policy_points": {"type": "array", "items": {"type": "string"},
+                              "description": "The pay design as 2-6 short English bullets: "
+                              "the components and their target mix, the metrics performance "
+                              "pay is tied to and their ranges, the stock plan's terms, who "
+                              "decides (committee), what outside directors get."},
             "notes": {"type": "string"},
         },
     }
@@ -694,7 +712,10 @@ _PROMPTS = {
         "入社 line; the year they became a director is the first 取締役 appointment at "
         "this company. Ages and years must come from the text — never estimate. Tag "
         "backgrounds only where the career history supports the tag. Shares are "
-        "given in the table's unit (usually 千株 or 株) — convert to shares."),
+        "given in the table's unit (usually 千株 or 株) — convert to shares. The text "
+        "may be a flattened table with no cell separators: an officer's entry runs "
+        "title, name, birth date, career lines, term, shares, then the next officer. "
+        "Give name_en romanised, given name first."),
     "major_shareholders": (
         "Below is the 大株主の状況 section of a Japanese annual securities report "
         "(有価証券報告書){who}, flattened from HTML. Return every holder in the "
@@ -722,7 +743,7 @@ _PROMPTS = {
         "company holds this company's shares. Return the policy, the totals and every "
         "named issue. Amounts in the table are usually 百万円 — convert to yen. Do not "
         "include みなし保有株式 (deemed holdings) in the issues list; mention them in "
-        "notes if present."),
+        "notes if present. Give each issuer's English name as it uses it itself."),
     "capex": (
         "Below are two sections of a Japanese annual securities report "
         "(有価証券報告書){who}, flattened from HTML: 設備投資等の概要 (capital "
@@ -737,14 +758,19 @@ _PROMPTS = {
         "Below is the 役員の報酬等 section of a Japanese annual securities report "
         "(有価証券報告書){who}, flattened from HTML. Return pay by officer class "
         "(the 役員区分 table), any individuals named with their total, and a short "
-        "summary of what pay is tied to. Amounts are usually 百万円 — convert to yen."),
+        "summary of what pay is tied to, plus the same as short bullet points. Amounts "
+        "are usually 百万円 — convert to yen. Romanise individuals' names, given name first."),
 }
 
 
-def _read_jobs(blocks: dict) -> list:
+def _read_jobs(blocks: dict, include_officers: bool = False) -> list:
     """[(kind, text)] for the sections a model reads. The capex plan and
-    the capex overview go in one call."""
+    the capex overview go in one call. The officers section is included only
+    when the table could not be parsed (EDINET's CSV strips the HTML, so it
+    is plain text more often than not) — a small read on the default model."""
     jobs = []
+    if include_officers and blocks.get("officers"):
+        jobs.append(("officers", html_to_text(blocks["officers"])))
     for kind in READ_KINDS:
         if kind != "capex" and blocks.get(kind):
             jobs.append((kind, html_to_text(blocks[kind])))
@@ -758,10 +784,10 @@ def _read_jobs(blocks: dict) -> list:
     return jobs
 
 
-def estimate_cost(blocks: dict, model: str = MODEL) -> dict:
+def estimate_cost(blocks: dict, model: str = MODEL, include_officers: bool = False) -> dict:
     """A rough cost for reading the sections a model reads: Japanese text
     runs about one token per character on this model family."""
-    jobs = _read_jobs(blocks)
+    jobs = _read_jobs(blocks, include_officers)
     n_in = sum(min(len(t), MAX_BLOCK_CHARS) for _, t in jobs) + 600 * len(jobs)
     n_out = 2500 * len(jobs)
     return {"input_tokens": n_in, "output_tokens": n_out, "jobs": [k for k, _ in jobs],
@@ -836,7 +862,8 @@ def normalise(kind: str, raw: dict) -> dict:
             if not _s(o.get("name")):
                 continue
             offs.append({
-                "name": _s(o.get("name"), 80), "title": _s(o.get("title"), 120),
+                "name": _s(o.get("name"), 80), "name_en": _s(o.get("name_en"), 80),
+                "title": _s(o.get("title"), 120),
                 "role_kind": o.get("role_kind") if o.get("role_kind") in ROLE_KINDS else "other",
                 "outside": bool(o.get("outside")), "age": _i(o.get("age")),
                 "birth_year": _i(o.get("birth_year")),
@@ -875,7 +902,8 @@ def normalise(kind: str, raw: dict) -> dict:
         for x in raw.get("issues") or []:
             if not _s(x.get("name")):
                 continue
-            iss.append({"name": _s(x.get("name"), 120), "shares": _i(x.get("shares")),
+            iss.append({"name": _s(x.get("name"), 120), "name_en": _s(x.get("name_en"), 120),
+                        "shares": _i(x.get("shares")),
                         "book_value_jpy": _f(x.get("book_value_jpy")),
                         "purpose": _s(x.get("purpose"), 200),
                         "purpose_kind": (x.get("purpose_kind")
@@ -886,6 +914,7 @@ def normalise(kind: str, raw: dict) -> dict:
                                    else "unknown")})
         iss.sort(key=lambda x: -x["book_value_jpy"])
         return {"policy_summary": _s(raw.get("policy_summary"), 600),
+                "policy_points": [_s(x, 300) for x in (raw.get("policy_points") or []) if _s(x)][:8],
                 "total_issues": _i(raw.get("total_issues")),
                 "total_book_value_jpy": _f(raw.get("total_book_value_jpy")),
                 "issues": iss[:60], "reduction_stated": bool(raw.get("reduction_stated")),
@@ -914,11 +943,12 @@ def normalise(kind: str, raw: dict) -> dict:
                 "headcount": _i(c.get("headcount")), "fixed_jpy": _f(c.get("fixed_jpy")),
                 "performance_jpy": _f(c.get("performance_jpy")), "stock_jpy": _f(c.get("stock_jpy"))}
                for c in (raw.get("by_class") or []) if _s(c.get("class_name"))]
-        ind = [{"name": _s(i.get("name"), 80), "title": _s(i.get("title"), 120),
-                "total_jpy": _f(i.get("total_jpy"))}
+        ind = [{"name": _s(i.get("name"), 80), "name_en": _s(i.get("name_en"), 80),
+                "title": _s(i.get("title"), 120), "total_jpy": _f(i.get("total_jpy"))}
                for i in (raw.get("individuals") or []) if _s(i.get("name"))]
         return {"by_class": cls, "individuals": ind,
                 "policy_summary": _s(raw.get("policy_summary"), 400),
+                "policy_points": [_s(x, 300) for x in (raw.get("policy_points") or []) if _s(x)][:8],
                 "notes": _s(raw.get("notes"), 600)}
     return {}
 
@@ -938,13 +968,13 @@ def prepare(csv_zip: bytes, filed: str = "") -> dict:
 
 
 def read_blocks(blocks: dict, api_key: str, code: str = "", name: str = "",
-                progress=None, model: str = MODEL) -> tuple:
+                progress=None, model: str = MODEL, include_officers: bool = False) -> tuple:
     """(sections, errors, usage) — every block the model could read, normalised.
     `progress(kind)` is called before each block so a screen can say which one
     is running. The capex plan and the capex overview go in one call."""
     sections, errors = {}, {}
     usage = {"input": 0, "output": 0, "usd": 0.0}
-    for kind, text in _read_jobs(blocks):
+    for kind, text in _read_jobs(blocks, include_officers):
         if progress:
             progress(kind)
         try:
@@ -1405,7 +1435,8 @@ def parse_officers(html: str, filed: str = "") -> dict:
         sh = _num(re.sub(r"[^\d.,-]", "", o["shares"]) or "")
         summ = "; ".join(f"{y}.{mo} {ev}" for y, mo, ev in (lines[:2] + lines[-1:] if len(lines) > 3 else lines))
         out.append({
-            "name": o["name"][:80], "title": title[:120], "role_kind": _role(title, outside),
+            "name": o["name"][:80], "name_en": "", "title": title[:120],
+            "role_kind": _role(title, outside),
             "outside": outside, "age": age if 18 < age < 100 else 0, "birth_year": by,
             "joined_company_year": joined, "director_since_year": since,
             "is_ceo": bool(re.search(r"(?<!副)社長|CEO|最高経営責任者", title)),
@@ -1423,9 +1454,10 @@ def _schema_careers():
         "type": "object", "additionalProperties": False, "required": ["items"],
         "properties": {"items": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
-            "required": ["name", "summary", "background_tags"],
+            "required": ["name", "name_en", "summary", "background_tags"],
             "properties": {
                 "name": {"type": "string", "description": "Exactly as given."},
+                "name_en": {"type": "string", "description": "Romanised, given name first."},
                 "summary": {"type": "string",
                             "description": "In English, at most 40 words: prior employers "
                             "and the functions held, in order, then the current role."},
@@ -1452,8 +1484,9 @@ def summarise_careers(board: dict, api_key: str, code: str = "", name: str = "",
     listing = "\n\n".join(f"### {o['name']} — {o['title']}\n{o.get('_career') or o['career_summary']}"
                           for o in offs)
     prompt = (f"Below are the career histories (略歴) of the officers{who}, from the company's "
-              "annual securities report. For each, give a one-sentence English summary and "
-              "the background tags the history supports. Use the names exactly as given.\n\n"
+              "annual securities report. For each, give a one-sentence English summary, the "
+              "romanised name (given name first) and the background tags the history "
+              "supports. Use the names exactly as given.\n\n"
               + listing)
     client = anthropic.Anthropic(api_key=api_key)
     attempts = ({"output_config": {"format": {"type": "json_schema", "schema": _schema_careers()}}}, {})
@@ -1477,6 +1510,8 @@ def summarise_careers(board: dict, api_key: str, code: str = "", name: str = "",
         if hit:
             if _s(hit.get("summary")):
                 o["career_summary"] = _s(hit.get("summary"), 400)
+            if _s(hit.get("name_en")):
+                o["name_en"] = _s(hit.get("name_en"), 80)
             tags = set(o["background_tags"]) | {t for t in (hit.get("background_tags") or [])
                                                 if t in BACKGROUND_TAGS}
             o["background_tags"] = [t for t in BACKGROUND_TAGS if t in tags]
@@ -1485,6 +1520,17 @@ def summarise_careers(board: dict, api_key: str, code: str = "", name: str = "",
     usage = {"input": getattr(u, "input_tokens", 0) or 0, "output": getattr(u, "output_tokens", 0) or 0}
     usage["usd"] = cost_usd(usage, model)
     return {**board, "officers": out}, usage
+
+
+def policy_bullets(section: dict) -> list:
+    """The policy as bullet points: the model's own list where the entry has
+    one, else the summary split at sentence ends (entries read before the
+    list was asked for)."""
+    pts = [p for p in (section or {}).get("policy_points") or [] if p]
+    if pts:
+        return pts
+    text = (section or {}).get("policy_summary") or ""
+    return [t.strip() for t in re.split(r"(?<=[.;])\s+", text) if t.strip()]
 
 
 def strip_private(board: dict) -> dict:

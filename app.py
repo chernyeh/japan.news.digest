@@ -1380,6 +1380,10 @@ a.research-link:hover { background: #F0EDE8; }
 .tr-table th:first-child, .tr-table td:first-child { text-align: left; }
 .tr-steps td { white-space: normal; text-align: left; line-height: 1.5; }
 .tr-adj td { color: #B26A00; font-weight: 600; background: #FFFBF3; }
+/* Yuho card: bullet lists in the table face, and a quiet romanisation beside a name. */
+.yx-list { font-size: 0.74rem; margin: 0.15rem 0 0.4rem 1.1rem; padding: 0; line-height: 1.45; }
+.yx-list li { margin: 0.05rem 0; }
+.yx-sub { color: #9B8B7A; font-size: 0.66rem; font-weight: 400; }
 .tr-steps td:first-child { white-space: nowrap; }
 /* Read-only result tables (_frame): the tr-table look, text columns left and
    wrapping, numbers right. Scrolls inside a box past ~14 rows, as the canvas
@@ -9115,15 +9119,17 @@ with tab_research:
                 except Exception as _e:
                     print(f"capex history read error: {_e}")
 
-            st.markdown(
-                '<div class="fc-note">Who runs the company, who owns it, what it holds in other '
-                'companies and where it says next year\'s capex goes — read out of the '
-                '有価証券報告書 on a button press, once a year. Numbers the filing tags come '
-                'straight off it; the narrative sections are read by Claude. <strong>Only the '
-                'extracted figures are stored, never the document.</strong></div>',
-                unsafe_allow_html=True)
-
             # ── The card ──────────────────────────────────────────────
+            def _nm(_jp, _en):
+                """A name as printed, with its romanisation where the read gave one."""
+                return (_safe_text(_jp) + (f' <span class="yx-sub">{_safe_text(_en)}</span>' if _en else ''))
+
+            def _bullets(_items):
+                _items = [i for i in _items if i]
+                if _items:
+                    st.markdown('<ul class="yx-list">' + "".join(f'<li>{i}</li>' for i in _items)
+                                + '</ul>', unsafe_allow_html=True)
+
             if _latest:
                 _secs = _latest.get("sections") or {}
                 _stale = bool(_newest and _newest.get("DocID") != _latest.get("doc_id")
@@ -9134,11 +9140,14 @@ with tab_research:
                     + (f' · <span class="fc-neg">a newer yuho ({_safe_text(YX.fy_label(_newest["PeriodEnd"]))}, '
                        f'filed {_safe_text((_newest.get("SubmitDateTime") or "")[:10])}) is in the index — '
                        f're-read below</span>' if _stale else '') + '</div>', unsafe_allow_html=True)
+
+                # Board
+                _offs = (_secs.get("officers") or {}).get("officers") or []
+                st.markdown('<div class="fc-qhead">Board and senior management</div>', unsafe_allow_html=True)
                 _read = YX.bias_read(_latest, _price)
                 if _read:
                     st.markdown(f'<div class="fc-reads"><span class="fc-read">{_safe_text(_read)}</span></div>',
                                 unsafe_allow_html=True)
-                _offs = (_secs.get("officers") or {}).get("officers") or []
                 if _offs:
                     _fyy = int(_latest["fy"][2:]) if _latest.get("fy", "").startswith("FY") else None
                     _board = [o for o in _offs if o["role_kind"] in
@@ -9154,7 +9163,7 @@ with tab_research:
                                if _o["shares_held"] else "—")
                         _flag = " ".join(k for k, v in (("CEO", _o["is_ceo"]), ("Chair", _o["is_chair"]),
                                                         ("CFO", _o["is_cfo"])) if v)
-                        _h += (f'<tr><td><b>{_safe_text(_o["name"])}</b>'
+                        _h += (f'<tr><td><b>{_nm(_o["name"], _o.get("name_en"))}</b>'
                                + (f' <span class="fc-pastest">{_flag}</span>' if _flag else '')
                                + (' <span class="fc-na">outside</span>' if _o["outside"] else '')
                                + f'</td><td>{_safe_text(_o["title"])}</td>'
@@ -9165,60 +9174,44 @@ with tab_research:
                                f'<td title="{_safe_text(_o["career_summary"])}">{_safe_text(_tags) or "—"}</td>'
                                f'<td>{_sh}</td></tr>')
                     st.markdown(_h + '</table>', unsafe_allow_html=True)
+                    _careers = [f'<b>{_nm(_o["name"], _o.get("name_en"))}</b> — {_safe_text(_o["career_summary"])}'
+                                for _o in _board if _o.get("career_summary")]
+                    if _careers:
+                        _bullets(_careers)
                     if _rest:
                         st.markdown(f'<div class="fc-note">{_rest} more in the table (auditors, '
-                                    'executive officers) not shown. Hover a background for the '
-                                    'career summary.</div>', unsafe_allow_html=True)
+                                    'executive officers) not shown.</div>', unsafe_allow_html=True)
                     if (_secs.get("officers") or {}).get("notes"):
                         st.markdown(f'<div class="fc-note">{_safe_text(_secs["officers"]["notes"])}</div>',
                                     unsafe_allow_html=True)
-
-                # Ownership
-                _ms = _secs.get("major_shareholders") or {}
-                _fp = YX.foreign_pct(_latest)
-                _nsh = YX.shareholders_count(_latest)
-                _own_bits = []
-                if _fp is not None:
-                    _own_bits.append(f"foreign holders {_fp:.1f}%")
-                if _nsh:
-                    _own_bits.append(f"{int(_nsh):,} shareholders")
-                if _ms.get("holders"):
-                    _top = _ms["holders"]
-                    _grp = sum(h["pct"] for h in _top if h["kind"] in ("parent_or_group", "founder_family"))
-                    _own_bits.append(f"top {len(_top)} hold {sum(h['pct'] for h in _top):.1f}%")
-                    if _grp:
-                        _own_bits.append(f"parent / group / founder {_grp:.1f}%")
-                if _own_bits or _ms.get("holders"):
-                    st.markdown('<div class="fc-qhead">Ownership' + (' — ' + " · ".join(_own_bits) if _own_bits else '')
-                                + '</div>', unsafe_allow_html=True)
-                if _ms.get("holders"):
-                    _h = '<table class="tr-table"><tr><th>Holder</th><th>%</th><th>Kind</th></tr>'
-                    for _hd in _ms["holders"]:
-                        _h += (f'<tr><td>{_safe_text(_hd["name"])}</td><td>{_hd["pct"]:.2f}%</td>'
-                               f'<td style="text-align:left">{_safe_text(_hd["kind"].replace("_", " "))}</td></tr>')
-                    st.markdown(_h + '</table>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="fc-note fc-warn">No board in this read. Re-read the yuho '
+                                'below: where the officers table cannot be parsed, the model now '
+                                'reads it.</div>', unsafe_allow_html=True)
 
                 # Cross-shareholdings
                 _ch = YX.cross_holdings_read(_latest, _mcap, _equity)
+                _chs = _secs.get("cross_holdings") or {}
                 if _ch:
-                    _bits = [f"{_ch['issues']} issues", _ybn(_ch["total_jpy"]),
-                             f"{_pct_or_dash(_ch['pct_mcap'])} of market cap",
-                             f"{_pct_or_dash(_ch['pct_equity'], 0)} of equity"]
+                    st.markdown('<div class="fc-qhead">Cross-shareholdings</div>', unsafe_allow_html=True)
+                    _items = [f"<b>{_ch['issues']} issues</b>, book value <b>{_ybn(_ch['total_jpy'])}</b>",
+                              f"{_pct_or_dash(_ch['pct_mcap'])} of market cap · "
+                              f"{_pct_or_dash(_ch['pct_equity'], 0)} of shareholders' equity"]
                     if _ch["named"]:
-                        _bits.append(f"{_ch['mutual']} of {_ch['named']} named hold this company's shares")
-                        _bits.append(f"{_ch['vague_purpose']} with only a generic purpose")
-                    _bits.append("reduction stated" if _ch["reduction_stated"] else "no reduction stated")
-                    st.markdown('<div class="fc-qhead">Cross-shareholdings — ' + " · ".join(_bits) + '</div>',
-                                unsafe_allow_html=True)
-                    _chs = _secs.get("cross_holdings") or {}
-                    if _chs.get("policy_summary"):
-                        st.markdown(f'<div class="fc-note">{_safe_text(_chs["policy_summary"])}</div>',
-                                    unsafe_allow_html=True)
+                        _items.append(f"{_ch['mutual']} of the {_ch['named']} named issuers hold this "
+                                      "company's shares in return")
+                        _items.append(f"{_ch['vague_purpose']} of {_ch['named']} held for a generic "
+                                      "\"business relationship\"; "
+                                      f"{_ch['named'] - _ch['vague_purpose']} with a specific or "
+                                      "quantified rationale")
+                    _items.append("Reduction commitment: <b>" + ("stated" if _ch["reduction_stated"] else "none stated") + "</b>")
+                    _items += [f"Policy: {_safe_text(b)}" for b in YX.policy_bullets(_chs)]
+                    _bullets(_items)
                     if _chs.get("issues"):
-                        _h = ('<table class="tr-table tr-steps"><tr><th>Issue</th><th>Book ¥bn</th>'
+                        _h = ('<table class="tr-table tr-steps"><tr><th>Issuer</th><th>Book ¥bn</th>'
                               '<th>Purpose</th><th>Mutual</th><th>Change</th></tr>')
                         for _x in _chs["issues"][:12]:
-                            _h += (f'<tr><td>{_safe_text(_x["name"])}</td>'
+                            _h += (f'<tr><td>{_nm(_x.get("name_en") or _x["name"], _x["name"] if _x.get("name_en") else "")}</td>'
                                    f'<td style="text-align:right">{_x["book_value_jpy"] / 1e9:,.1f}</td>'
                                    f'<td>{_safe_text(_x["purpose"])}</td>'
                                    f'<td>{"yes" if _x["holds_our_shares"] else "—"}</td>'
@@ -9228,23 +9221,39 @@ with tab_research:
                             st.markdown(f'<div class="fc-note">Largest 12 of {len(_chs["issues"])} named.</div>',
                                         unsafe_allow_html=True)
 
-                # Capex plan
+                # Capex
                 _cx = YX.capex_read(_latest, _last_capex, _last_da)
+                _cxs = _secs.get("capex") or {}
                 if _cx:
-                    _bits = [f"spent {_ybn(_cx['actual_jpy'])} last year",
-                             f"plan {_ybn(_cx['plan_total_jpy'])} ({_cx['lines']} lines)",
-                             f"paid {_ybn(_cx['plan_paid_jpy'])}", f"remaining {_ybn(_cx['remaining_jpy'])}"]
-                    if _cx["remaining_vs_actual"] is not None:
-                        _bits.append(f"= {_cx['remaining_vs_actual']:.1f}× last year's capex")
-                    if _cx["remaining_vs_da"] is not None:
-                        _bits.append(f"{_cx['remaining_vs_da']:.1f}× D&A")
-                    st.markdown('<div class="fc-qhead">Capex plan — ' + " · ".join(_bits) + '</div>',
+                    st.markdown('<div class="fc-qhead">Capex — last year and the plan</div>',
                                 unsafe_allow_html=True)
-                    _cxs = _secs.get("capex") or {}
+                    _items = [f"Spent last year: <b>{_ybn(_cx['actual_jpy'])}</b>"
+                              + (f" across {len(_cxs.get('actual_by_segment') or [])} segments"
+                                 if _cxs.get("actual_by_segment") else "")]
+                    if _cx["lines"]:
+                        _pl = (f"Plan: <b>{_ybn(_cx['plan_total_jpy'])}</b> over {_cx['lines']} "
+                               f"line{'s' if _cx['lines'] != 1 else ''}; {_ybn(_cx['plan_paid_jpy'])} paid, "
+                               f"<b>{_ybn(_cx['remaining_jpy'])} remaining</b>")
+                        if _cx["remaining_vs_actual"] is not None:
+                            _pl += f" = {_cx['remaining_vs_actual']:.1f}× last year's capex"
+                        if _cx["remaining_vs_da"] is not None:
+                            _pl += f", {_cx['remaining_vs_da']:.1f}× D&A"
+                        _items.append(_pl)
+                    else:
+                        _items.append("Plan: <b>no significant new-facility plan stated</b>")
+                    if _cxs.get("funding_summary"):
+                        _items.append(f"Funding: {_safe_text(_cxs['funding_summary'])}")
+                    if _cxs.get("notes"):
+                        _items.append(_safe_text(_cxs["notes"]))
+                    _bullets(_items)
                     if _cxs.get("actual_by_segment"):
-                        st.markdown('<div class="fc-note">Spent last year: ' + " · ".join(
-                            f'{_safe_text(s["segment"])} {_ybn(s["amount_jpy"])}'
-                            for s in _cxs["actual_by_segment"]) + '</div>', unsafe_allow_html=True)
+                        _h = ('<table class="tr-table tr-steps"><tr><th>Segment</th><th>Spent ¥bn</th>'
+                              '<th>On what</th></tr>')
+                        for _sg in _cxs["actual_by_segment"]:
+                            _h += (f'<tr><td>{_safe_text(_sg["segment"])}</td>'
+                                   f'<td style="text-align:right">{_sg["amount_jpy"] / 1e9:,.1f}</td>'
+                                   f'<td>{_safe_text(_sg["what"])}</td></tr>')
+                        st.markdown(_h + '</table>', unsafe_allow_html=True)
                     if _cxs.get("plan"):
                         _h = ('<table class="tr-table tr-steps"><tr><th>Site</th><th>Segment</th><th>What</th>'
                               '<th>Planned ¥bn</th><th>Paid</th><th>Finish</th><th>Funding</th></tr>')
@@ -9257,40 +9266,34 @@ with tab_research:
                                    f'<td style="text-align:right">{_p["paid_to_date_jpy"] / 1e9:,.1f}</td>'
                                    f'<td>{_safe_text(_p["finish"])}</td><td>{_safe_text(_p["funding"])}</td></tr>')
                         st.markdown(_h + '</table>', unsafe_allow_html=True)
-                    if _cxs.get("notes"):
-                        st.markdown(f'<div class="fc-note">{_safe_text(_cxs["notes"])}</div>',
-                                    unsafe_allow_html=True)
 
-                # Employees and pay
-                _emp_bits = []
-                for _k, _lbl, _fmt in (("employees", "employees", lambda v: f"{int(v):,}"),
-                                       ("avg_salary", "avg salary", lambda v: f"¥{v / 1e6:.2f}m"),
-                                       ("avg_age", "avg age", lambda v: f"{v:.1f}"),
-                                       ("avg_tenure", "avg tenure", lambda v: f"{v:.1f}y")):
-                    _ser = YX.yoy(_entries, _k, None if _k == "employees" else "parent")
-                    if not _ser:
-                        continue
-                    _cur = _ser[-1][1]
-                    _txt = f"{_lbl} {_fmt(_cur)}"
-                    if len(_ser) > 1 and _ser[-2][1]:
-                        _d = _cur / _ser[-2][1] - 1
-                        _txt += f' <span class="{"fc-pos" if _d >= 0 else "fc-neg"}">({_d * 100:+.1f}% YoY)</span>'
-                    _emp_bits.append(_txt)
-                _pe = YX.fact(_latest, "employees", "parent")
-                if _pe and YX.fact(_latest, "employees", "consolidated"):
-                    _emp_bits.append(f"parent-only {int(_pe):,}")
+                # Director pay
                 _pay = _secs.get("exec_pay") or {}
-                if _pay.get("by_class"):
-                    _tot = sum(c["total_jpy"] for c in _pay["by_class"])
-                    _emp_bits.append(f"director pay {_ym(_tot)} total")
-                for _ind in (_pay.get("individuals") or [])[:4]:
-                    _emp_bits.append(f"{_safe_text(_ind['name'])} {_ym(_ind['total_jpy'])}")
-                if _emp_bits:
-                    st.markdown('<div class="fc-qhead">Employees & pay — ' + " · ".join(_emp_bits)
-                                + '</div>', unsafe_allow_html=True)
-                    if _pay.get("policy_summary"):
-                        st.markdown(f'<div class="fc-note">Pay policy: {_safe_text(_pay["policy_summary"])}'
-                                    '</div>', unsafe_allow_html=True)
+                if _pay.get("by_class") or _pay.get("individuals"):
+                    _tot = sum(c["total_jpy"] for c in (_pay.get("by_class") or []))
+                    st.markdown('<div class="fc-qhead">Director pay'
+                                + (f' — {_ym(_tot)} in total' if _tot else '') + '</div>',
+                                unsafe_allow_html=True)
+                    _h = ('<table class="tr-table"><tr><th>Class</th><th>Total ¥m</th><th>People</th>'
+                          '<th>Avg ¥m</th><th>Fixed</th><th>Performance</th><th>Stock</th></tr>')
+                    for _c in _pay.get("by_class") or []:
+                        _n_ = _c["headcount"] or 0
+                        _h += (f'<tr><td>{_safe_text(_c["class_name"])}</td>'
+                               f'<td>{_c["total_jpy"] / 1e6:,.0f}</td><td>{_n_ or "—"}</td>'
+                               f'<td>{(_c["total_jpy"] / _n_ / 1e6):,.0f}</td>' if _n_ else
+                               f'<tr><td>{_safe_text(_c["class_name"])}</td>'
+                               f'<td>{_c["total_jpy"] / 1e6:,.0f}</td><td>—</td><td>—</td>')
+                        _h += "".join(f'<td>{(v / 1e6):,.0f}</td>' if v else '<td>—</td>'
+                                      for v in (_c["fixed_jpy"], _c["performance_jpy"], _c["stock_jpy"]))
+                        _h += '</tr>'
+                    for _ind in _pay.get("individuals") or []:
+                        _h += (f'<tr class="tr-adj"><td>{_nm(_ind["name"], _ind.get("name_en"))} '
+                               f'<span class="fc-na">{_safe_text(_ind["title"])}</span></td>'
+                               f'<td>{_ind["total_jpy"] / 1e6:,.0f}</td><td colspan="5" style="text-align:left">'
+                               'named individually (¥100m or more)</td></tr>')
+                    st.markdown(_h + '</table>', unsafe_allow_html=True)
+                    _bullets([_safe_text(b) for b in YX.policy_bullets(_pay)])
+
                 if _latest.get("errors"):
                     st.markdown('<div class="fc-note fc-warn">Sections that could not be read: '
                                 + " · ".join(f'{_safe_text(k)} — {_safe_text(v[:120])}'
@@ -9331,36 +9334,28 @@ with tab_research:
                     st.markdown('<div class="fc-note">EDINET_API_KEY is not set in Streamlit Secrets, '
                                 'so filings cannot be fetched.</div>', unsafe_allow_html=True)
                 else:
-                    st.markdown('<div class="fc-note">Step 1 fetches the filing\'s tagged values and '
-                                'parses the officers table (no AI, no cost) and shows what sections '
-                                'it has; step 2 reads cross-holdings, the capex plan and pay with '
-                                'Claude and saves the card.</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="fc-note">Step 1 fetches the filing (no AI, no cost) and '
+                                'shows what it has; step 2 reads the board, cross-holdings, the capex '
+                                'plan and pay, and saves the card. Only the extracted figures are '
+                                'stored, never the document.</div>', unsafe_allow_html=True)
             _prep = st.session_state.get(_pkey)
             if _prep:
-                _f = _prep["facts"]
-                _fbits = []
-                for _k, _lbl in (("employees", "employees"), ("avg_salary", "avg salary ¥"),
-                                 ("avg_age", "avg age"), ("avg_tenure", "avg tenure"),
-                                 ("foreign_pct", "foreign %"), ("shareholders", "shareholders"),
-                                 ("cross_issues", "cross-holdings (issues)"),
-                                 ("cross_book_value", "cross-holdings book value")):
-                    _slot = _f.get(_k) or {}
-                    _v = (_slot.get("consolidated") or _slot.get("parent") or {})
-                    if _v.get("value") is not None:
-                        _fbits.append(f'{_lbl} {_plain_num(_v["value"])}'
-                                      + (f' {_safe_text(_v["unit"])}' if _v.get("unit") and _k == "cross_book_value" else ""))
                 _nblk = len(_prep.get("catalog") or [])
                 _unmatched = [c for c in (_prep.get("catalog") or []) if not c["kind"]][:6]
                 _board = _prep.get("officers") or {}
                 _nboard = len(_board.get("officers") or [])
-                st.markdown('<div class="fc-note">Tagged values: ' + (" · ".join(_fbits) or "none found")
-                            + f'. Sections found: {", ".join(sorted(_prep["blocks"])) or "none"} '
-                            f'(of {_nblk} text blocks in the filing; {_prep["n_rows"]:,} tagged rows). '
-                            + (f'<b>Board: {_nboard} officers parsed from the table, no AI.</b> '
-                               if _nboard else '<b>No officers table could be parsed.</b> ')
-                            + (('Largest blocks not taken for any section: ' + ", ".join(
+                _model_board = (not _nboard) and bool(_prep["blocks"].get("officers"))
+                _found = [k for k in sorted(_prep["blocks"]) if k not in ("major_shareholders", "share_status")]
+                st.markdown('<div class="fc-note">Sections found: '
+                            + (", ".join(_found).replace("_", " ") or "none")
+                            + f' (of {_nblk} text blocks in the filing). '
+                            + (f'<b>Board: {_nboard} officers parsed from the table, no AI.</b>' if _nboard else
+                               '<b>Board: the officers section is plain text in this filing, so the model '
+                               'reads it</b> (a fraction of a cent on Haiku).' if _model_board else
+                               '<b>No officers section found.</b>')
+                            + (' Largest blocks not taken for any section: ' + ", ".join(
                                 f'{_safe_text(c["label"] or c["element"])} ({c["chars"]:,} chars)'
-                                for c in _unmatched) + '. ') if _unmatched and len(_prep["blocks"]) < 5 else '')
+                                for c in _unmatched) + '.' if _unmatched and len(_found) < 4 else '')
                             + '</div>', unsafe_allow_html=True)
                 _m1, _m2 = st.columns([1.2, 2])
                 with _m1:
@@ -9369,22 +9364,21 @@ with tab_research:
                         format_func=lambda m: f"{m.replace('claude-', '')}  (${models.price(m)[0]:g} / "
                                               f"${models.price(m)[1]:g} per MTok)",
                         key=f"yx_model_{_rcode}", label_visibility="collapsed",
-                        help="What reads cross-holdings, the capex plan and pay. Haiku reads a "
-                             "table against a fixed schema well; pick a larger one if a read "
-                             "looks wrong.")
+                        help="What reads the sections. Haiku reads a table against a fixed schema "
+                             "well; pick a larger one if a read looks wrong.")
                 with _m2:
                     _summ_on = st.checkbox(
-                        "English career summaries for the board (Haiku, well under 1¢)",
+                        "English career summaries and romanised names for the board (Haiku, well under 1¢)",
                         value=True, key=f"yx_summ_{_rcode}", disabled=not _nboard)
-                _est = YX.estimate_cost(_prep["blocks"], _model)
+                _est = YX.estimate_cost(_prep["blocks"], _model, include_officers=_model_board)
                 _jobs = _est["jobs"]
-                st.markdown(f'<div class="fc-note">Reading {", ".join(_jobs) or "nothing"} is about '
-                            f'${_est["usd"]:.3f} ({_est["input_tokens"]:,} input tokens, estimated) '
+                st.markdown(f'<div class="fc-note">Reading {", ".join(_jobs).replace("_", " ") or "nothing"} '
+                            f'is about ${_est["usd"]:.3f} ({_est["input_tokens"]:,} input tokens, estimated) '
                             f'on <code>{_model}</code>.</div>', unsafe_allow_html=True)
                 if not _api_key:
                     st.markdown('<div class="fc-note">ANTHROPIC_API_KEY is not set in Streamlit '
-                                'Secrets, so the sections cannot be read; the board can still be '
-                                'saved from the parsed table.</div>', unsafe_allow_html=True)
+                                'Secrets, so the sections cannot be read; a parsed board can still be '
+                                'saved.</div>', unsafe_allow_html=True)
                 if st.button(f"🏛️ Read and save (~${_est['usd']:.2f})",
                              key=f"yx_go_{_rcode}_{_pick}", type="primary",
                              disabled=not (_nboard or (_api_key and _jobs))):
@@ -9394,7 +9388,7 @@ with tab_research:
                         _secs, _errs, _use = YX.read_blocks(
                             _prep["blocks"], _api_key, _rcode, _rname,
                             progress=lambda k: _status.write(f"Reading {k.replace('_', ' ')}…"),
-                            model=_model)
+                            model=_model, include_officers=_model_board)
                     if _nboard:
                         if _summ_on and _api_key:
                             _status.write("English career summaries…")
@@ -9412,8 +9406,10 @@ with tab_research:
                                                          _rcode, [_entry], ())
                     st.session_state.pop(_pkey, None)
                     _status.update(label="Done", state="complete", expanded=False)
-                    _msg = (f"Saved the {_entry['fy']} yuho: board of {_nboard}"
-                            + (f", {', '.join(k for k in _secs if k != 'officers')}" if len(_secs) > 1 else "")
+                    _nb = len((_secs.get("officers") or {}).get("officers") or [])
+                    _msg = (f"Saved the {_entry['fy']} yuho: board of {_nb}"
+                            + (f", {', '.join(k.replace('_', ' ') for k in _secs if k != 'officers')}"
+                               if len([k for k in _secs if k != 'officers']) else "")
                             + f" (${_use['usd']:.3f}). "
                             + (f"Could not read: {', '.join(_errs)}. " if _errs else "")
                             + (_m if _ok else f"Kept for this session, not saved: {_m}"))
@@ -9524,7 +9520,7 @@ with tab_research:
                     _cls = ("fc-neg" if _r["approval_pct"] and _r["approval_pct"] < HX.LOW_APPROVAL else "")
                     _h += (f'<tr><td>{_safe_text(_r["number"])}'
                            + (' <span class="fc-neg">shareholder proposal</span>' if _r["proposed_by_shareholder"] else '')
-                           + f'</td><td>{_safe_text(_r["person_name"] or _r["title"])}</td>'
+                           + f'</td><td>{_nm(_r["person_name"], _r.get("person_name_en")) if _r["person_name"] else _safe_text(_r["title"])}</td>'
                            f'<td style="text-align:right" class="{_cls}">'
                            f'{_r["approval_pct"]:.1f}%</td>'
                            f'<td style="text-align:right">{"—" if _pp is None else format(_pp, ".1f") + "%"}</td>'
