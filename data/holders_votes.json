@@ -1,4 +1,125 @@
 {
+  "6952": [
+    {
+      "agm_date": "2026-06-26",
+      "date": "2026-07-02",
+      "doc_id": "S100YO16",
+      "fy": "FY2026",
+      "id": "agm_FY2026",
+      "notes": "The approval rate is the number of votes confirmed as for each proposal, among shareholders who exercised voting rights in advance or attended on the day, divided by the total voting rights of those shareholders. Voting rights of attending shareholders whose for/against/abstain positions could not be confirmed are not added to the denominator.",
+      "read_on": "2026-11-12",
+      "resolutions": [
+        {
+          "approval_pct": 99.85,
+          "kind": "dividend",
+          "number": "第1号議案",
+          "passed": true,
+          "person_name": "",
+          "person_name_en": "",
+          "proposed_by_shareholder": false,
+          "title": "Appropriation of surplus: year-end dividend of 22.5 yen per share",
+          "votes_abstain": 0,
+          "votes_against": 1332,
+          "votes_for": 1957511
+        },
+        {
+          "approval_pct": 93.06,
+          "kind": "director_election",
+          "number": "第2号議案 1",
+          "passed": true,
+          "person_name": "樫尾和宏",
+          "person_name_en": "Kazuhiro Kashio",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members: Kazuhiro Kashio",
+          "votes_abstain": 119775,
+          "votes_against": 14707,
+          "votes_for": 1824360
+        },
+        {
+          "approval_pct": 93.19,
+          "kind": "director_election",
+          "number": "第2号議案 2",
+          "passed": true,
+          "person_name": "高野 晋",
+          "person_name_en": "Susumu Takano",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members: Susumu Takano",
+          "votes_abstain": 119648,
+          "votes_against": 12342,
+          "votes_for": 1826851
+        },
+        {
+          "approval_pct": 93.3,
+          "kind": "director_election",
+          "number": "第2号議案 3",
+          "passed": true,
+          "person_name": "田村誠治",
+          "person_name_en": "Seiji Tamura",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members: Seiji Tamura",
+          "votes_abstain": 119648,
+          "votes_against": 10126,
+          "votes_for": 1829071
+        },
+        {
+          "approval_pct": 92.05,
+          "kind": "director_election",
+          "number": "第2号議案 4",
+          "passed": true,
+          "person_name": "数原英一郎",
+          "person_name_en": "Eiichiro Kazuhara",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members: Eiichiro Kazuhara",
+          "votes_abstain": 119648,
+          "votes_against": 34668,
+          "votes_for": 1804529
+        },
+        {
+          "approval_pct": 93.46,
+          "kind": "director_election",
+          "number": "第2号議案 5",
+          "passed": true,
+          "person_name": "倉澤佳子",
+          "person_name_en": "Yoshiko Kurasawa",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members: Yoshiko Kurasawa",
+          "votes_abstain": 119648,
+          "votes_against": 6914,
+          "votes_for": 1832284
+        },
+        {
+          "approval_pct": 99.82,
+          "kind": "director_election",
+          "number": "第2号議案 6",
+          "passed": true,
+          "person_name": "坂下智保",
+          "person_name_en": "Chiho Sakashita",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members: Chiho Sakashita",
+          "votes_abstain": 0,
+          "votes_against": 1905,
+          "votes_for": 1956942
+        },
+        {
+          "approval_pct": 99.82,
+          "kind": "director_election",
+          "number": "第3号議案",
+          "passed": true,
+          "person_name": "伊集院邦光",
+          "person_name_en": "Kunimitsu Ijuin",
+          "proposed_by_shareholder": false,
+          "title": "Election of substitute director who is an audit committee member: Kunimitsu Ijuin",
+          "votes_abstain": 0,
+          "votes_against": 2025,
+          "votes_for": 1956808
+        }
+      ],
+      "usage": {
+        "input": 2159,
+        "output": 2710
+      }
+    }
+  ],
   "8136": [
     {
       "agm_date": "2026-06-25",
