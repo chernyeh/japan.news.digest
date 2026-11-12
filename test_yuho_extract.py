@@ -161,7 +161,7 @@ def test_officers_normalise_and_board_stats_and_bias_read():
     read = YX.bias_read(entry, price=5000)
     assert "CEO 服部 真二" in read and "42 years at the company" in read
     assert "¥6,000m" in read and "top-line and expansion" in read
-    assert "board of 2, 1 outside (50%)" in read
+    assert "Board of 2, 1 outside (50%)" in read
 
 
 def test_cross_holdings_and_capex_reads():
@@ -417,3 +417,33 @@ def test_officers_go_to_the_model_only_when_the_table_did_not_parse():
                                              "person_name": "辻 朋邦", "person_name_en": "Tomokuni Tsuji",
                                              "approval_pct": 89.4, "passed": True}]})
     assert agm["resolutions"][0]["person_name_en"] == "Tomokuni Tsuji"
+
+
+def test_ages_come_from_birth_dates_and_board_and_management_split():
+    sec = YX.normalise("officers", {"officers": [
+        {"name": "辻 朋邦", "title": "代表取締役社長", "role_kind": "representative_director", "outside": False,
+         "age": 0, "birth_year": 1988, "birth_month": 8, "is_ceo": True, "joined_company_year": 2014,
+         "director_since_year": 2016, "shares_held": 2488000, "background_tags": ["sales_marketing"]},
+        {"name": "笹本 裕", "title": "取締役", "role_kind": "outside_director", "outside": True,
+         "age": 0, "birth_year": 1964, "birth_month": 0},
+        {"name": "猪山 雄央", "title": "補欠の監査等委員である取締役", "role_kind": "audit_committee_member",
+         "outside": False, "birth_year": 1975},
+        {"name": "森田 英樹", "title": "執行役員", "role_kind": "executive_officer", "outside": False}],
+        "executive_officers": [{"name": "辻 友子", "name_en": "Tomoko Tsuji", "title": "常務執行役員",
+                                "title_en": "Managing Executive Officer"},
+                               {"name": "森田 英樹", "title": "執行役員"}],
+        "notes": "long text"})
+    assert sec["notes"] == ""
+    o = sec["officers"]
+    assert YX.age_of(o[0], "2026-06-30") == (37, True)          # birthday in August, not yet
+    assert YX.age_of(o[1], "2026-06-30") == (62, False)         # year only: approximate
+    assert YX.age_of({"birth_year": 0}, "2026-06-30") is None
+    board, mgmt, subs = YX.board_and_management(sec)
+    assert [b["name"] for b in board] == ["辻 朋邦", "笹本 裕"]
+    assert [m["name"] for m in mgmt] == ["森田 英樹", "辻 友子"]   # no duplicate
+    assert [x["name"] for x in subs] == ["猪山 雄央"]
+    pts = YX.bias_points({"fy": "FY2026", "date": "2026-06-30", "sections": {"officers": sec}}, price=1000)
+    assert pts[0] == "CEO 辻 朋邦, 37: sales"
+    assert "12 years at the company; director since 2016" in pts
+    assert "Holds 2,488,000 shares (¥2,488m)" in pts
+    assert any(p.startswith("Board of 2, 1 outside (50%)") for p in pts)
