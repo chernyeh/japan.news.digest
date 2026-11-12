@@ -146,6 +146,18 @@
       "unit": "jpy",
       "value": 517.68
     },
+    "eps|FY2027|consensus": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 945.81
+    },
+    "eps|FY2028|consensus": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 1196.37
+    },
     "net_sales|FY2026|consensus": {
       "as_of": "2026-11-12",
       "source": "typed:Company data",
