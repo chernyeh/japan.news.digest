@@ -140,6 +140,18 @@
     }
   },
   "4004": {
+    "cash|latest|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 274464000000.0
+    },
+    "debt|latest|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 782090000000.0
+    },
     "eps|FY2026|company": {
       "as_of": "2026-11-13",
       "source": "typed:Company data",
@@ -259,6 +271,12 @@
       "source": "typed:Koyfin",
       "unit": "jpy_abs",
       "value": 327240000000.0
+    },
+    "sh_equity|latest|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 775817000000.0
     }
   },
   "4203": {
