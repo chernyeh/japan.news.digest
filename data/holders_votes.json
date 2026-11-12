@@ -1,0 +1,103 @@
+{
+  "8136": [
+    {
+      "agm_date": "2026-06-25",
+      "date": "2026-07-02",
+      "doc_id": "S100YO9P",
+      "fy": "FY2026",
+      "id": "agm_FY2026",
+      "notes": "Approval percentage as printed. Votes of attending shareholders whose for/against/abstain positions could not be confirmed were not added to the counts. Director elections require attendance by holders of at least one-third of voting rights and a majority of attending votes in favour (注1); the compensation resolution requires a majority of attending votes in favour (注2). Resolution No. 2 (election",
+      "read_on": "2026-11-12",
+      "resolutions": [
+        {
+          "approval_pct": 89.39,
+          "kind": "director_election",
+          "number": "第1号議案 1",
+          "passed": true,
+          "person_name": "辻　朋邦",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members",
+          "votes_abstain": 38583,
+          "votes_against": 201398,
+          "votes_for": 1495417
+        },
+        {
+          "approval_pct": 95.62,
+          "kind": "director_election",
+          "number": "第1号議案 2",
+          "passed": true,
+          "person_name": "中塚　亘",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members",
+          "votes_abstain": 33618,
+          "votes_against": 102116,
+          "votes_for": 1599665
+        },
+        {
+          "approval_pct": 95.65,
+          "kind": "director_election",
+          "number": "第1号議案 3",
+          "passed": true,
+          "person_name": "大塚　泰之",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members",
+          "votes_abstain": 33624,
+          "votes_against": 101738,
+          "votes_for": 1600037
+        },
+        {
+          "approval_pct": 96.25,
+          "kind": "director_election",
+          "number": "第1号議案 4",
+          "passed": true,
+          "person_name": "笹本　裕",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members",
+          "votes_abstain": 33624,
+          "votes_against": 91599,
+          "votes_for": 1610176
+        },
+        {
+          "approval_pct": 95.49,
+          "kind": "director_election",
+          "number": "第1号議案 5",
+          "passed": true,
+          "person_name": "山中　雅恵",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members",
+          "votes_abstain": 33623,
+          "votes_against": 104331,
+          "votes_for": 1597445
+        },
+        {
+          "approval_pct": 96.42,
+          "kind": "director_election",
+          "number": "第1号議案 6",
+          "passed": true,
+          "person_name": "鴨田　視寿子",
+          "proposed_by_shareholder": false,
+          "title": "Election of six directors excluding audit committee members",
+          "votes_abstain": 32412,
+          "votes_against": 89946,
+          "votes_for": 1613041
+        },
+        {
+          "approval_pct": 74.76,
+          "kind": "compensation",
+          "number": "第3号議案",
+          "passed": true,
+          "person_name": "",
+          "proposed_by_shareholder": false,
+          "title": "Performance-linked share compensation for non-audit, non-outside directors",
+          "votes_abstain": 92868,
+          "votes_against": 391826,
+          "votes_for": 1250729
+        }
+      ],
+      "usage": {
+        "input": 1991,
+        "output": 2206
+      }
+    }
+  ]
+}
