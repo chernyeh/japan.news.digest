@@ -464,13 +464,14 @@ PURPOSE_KINDS = ("business_relationship", "financing_relationship", "alliance",
 def _schema_officers():
     return {
         "type": "object", "additionalProperties": False,
-        "required": ["as_of", "officers", "notes"],
+        "required": ["as_of", "officers", "executive_officers", "notes"],
         "properties": {
             "as_of": {"type": "string", "description": "The date the table is as of, as "
                       "the document states it (e.g. '2026年6月24日現在'); empty if absent."},
             "officers": {"type": "array", "items": {
                 "type": "object", "additionalProperties": False,
-                "required": ["name", "name_en", "title", "role_kind", "outside", "age", "birth_year",
+                "required": ["name", "name_en", "title", "title_en", "role_kind", "outside", "age",
+                             "birth_year", "birth_month",
                              "joined_company_year", "director_since_year", "is_ceo",
                              "is_chair", "is_cfo", "career_summary", "background_tags",
                              "shares_held", "term_end"],
@@ -479,11 +480,17 @@ def _schema_officers():
                     "name_en": {"type": "string",
                                 "description": "Romanised, given name first, e.g. 'Tomokuni Tsuji'."},
                     "title": {"type": "string", "description": "役職名 as printed."},
+                    "title_en": {"type": "string",
+                                 "description": "The title in English, e.g. 'President and "
+                                 "Representative Director', 'Outside Director (Audit & "
+                                 "Supervisory Committee Member)'."},
                     "role_kind": {"type": "string", "enum": list(ROLE_KINDS)},
                     "outside": {"type": "boolean",
                                 "description": "Marked 社外 (outside director / auditor)."},
                     "age": {"type": "integer", "description": "0 if not stated."},
-                    "birth_year": {"type": "integer", "description": "Western year; 0 if absent."},
+                    "birth_year": {"type": "integer", "description": "Western year of 生年月日; "
+                                   "convert 昭和/平成 (昭和1 = 1926, 平成1 = 1989). 0 if absent."},
+                    "birth_month": {"type": "integer", "description": "Month of 生年月日, 1-12; 0 if absent."},
                     "joined_company_year": {"type": "integer",
                                             "description": "Year they joined this company "
                                             "(入社). 0 for an outsider or if not stated."},
@@ -507,8 +514,24 @@ def _schema_officers():
                                  "empty if absent."},
                 },
             }},
-            "notes": {"type": "string", "description": "Anything the table says that the "
-                      "fields cannot hold, e.g. a planned CEO change. Empty if none."},
+            "executive_officers": {"type": "array", "items": {
+                "type": "object", "additionalProperties": False,
+                "required": ["name", "name_en", "title", "title_en", "birth_year", "birth_month",
+                             "joined_company_year", "career_summary"],
+                "properties": {
+                    "name": {"type": "string"},
+                    "name_en": {"type": "string", "description": "Romanised, given name first."},
+                    "title": {"type": "string"},
+                    "title_en": {"type": "string"},
+                    "birth_year": {"type": "integer", "description": "0 if not given."},
+                    "birth_month": {"type": "integer", "description": "0 if not given."},
+                    "joined_company_year": {"type": "integer", "description": "0 if not given."},
+                    "career_summary": {"type": "string",
+                                       "description": "English, at most 30 words; empty if "
+                                       "no career is given."},
+                }}, "description": "Executive officers (執行役員 etc.) who are NOT directors, "
+                "usually listed after the director table by name and title. Empty if none."},
+            "notes": {"type": "string", "description": "Leave empty."},
         },
     }
 
@@ -715,7 +738,9 @@ _PROMPTS = {
         "given in the table's unit (usually 千株 or 株) — convert to shares. The text "
         "may be a flattened table with no cell separators: an officer's entry runs "
         "title, name, birth date, career lines, term, shares, then the next officer. "
-        "Give name_en romanised, given name first."),
+        "Give name_en romanised, given name first, and title_en in English. Put "
+        "executive officers who are not directors (listed after the directors, often "
+        "name and title only) in executive_officers, not in officers."),
     "major_shareholders": (
         "Below is the 大株主の状況 section of a Japanese annual securities report "
         "(有価証券報告書){who}, flattened from HTML. Return every holder in the "
@@ -863,7 +888,8 @@ def normalise(kind: str, raw: dict) -> dict:
                 continue
             offs.append({
                 "name": _s(o.get("name"), 80), "name_en": _s(o.get("name_en"), 80),
-                "title": _s(o.get("title"), 120),
+                "title": _s(o.get("title"), 120), "title_en": _s(o.get("title_en"), 160),
+                "birth_month": _i(o.get("birth_month")),
                 "role_kind": o.get("role_kind") if o.get("role_kind") in ROLE_KINDS else "other",
                 "outside": bool(o.get("outside")), "age": _i(o.get("age")),
                 "birth_year": _i(o.get("birth_year")),
@@ -876,8 +902,14 @@ def normalise(kind: str, raw: dict) -> dict:
                                     if t in BACKGROUND_TAGS],
                 "shares_held": _i(o.get("shares_held")), "term_end": _s(o.get("term_end"), 40),
             })
+        execs = [{"name": _s(x.get("name"), 80), "name_en": _s(x.get("name_en"), 80),
+                  "title": _s(x.get("title"), 120), "title_en": _s(x.get("title_en"), 160),
+                  "birth_year": _i(x.get("birth_year")), "birth_month": _i(x.get("birth_month")),
+                  "joined_company_year": _i(x.get("joined_company_year")),
+                  "career_summary": _s(x.get("career_summary"), 300)}
+                 for x in (raw.get("executive_officers") or []) if _s(x.get("name"))]
         return {"as_of": _s(raw.get("as_of"), 40), "officers": offs,
-                "notes": _s(raw.get("notes"), 600)}
+                "executive_officers": execs, "notes": ""}
     if kind == "major_shareholders":
         hs = []
         for h in raw.get("holders") or []:
@@ -1047,15 +1079,55 @@ _TAG_LABEL = {
 }
 
 
+def age_of(o: dict, as_of: str = ""):
+    """(age, exact) at `as_of` (ISO date, usually the filing date), worked
+    out from the birth year and month rather than trusted from a read.
+    exact is False when only the year is known (then the age may be one
+    too high). None when there is no birth year."""
+    by, bm = o.get("birth_year") or 0, o.get("birth_month") or 0
+    try:
+        y, m = int(as_of[:4]), int(as_of[5:7])
+    except (TypeError, ValueError):
+        return (o.get("age") or None, True) if o.get("age") else None
+    if not by:
+        return (o.get("age"), True) if o.get("age") else None
+    if bm:
+        return y - by - (1 if m < bm else 0), True
+    return y - by, False
+
+
+def is_substitute(o: dict) -> bool:
+    return "補欠" in (o.get("title") or "")
+
+
+DIRECTOR_ROLES = ("representative_director", "director", "outside_director", "audit_committee_member")
+
+
+def board_and_management(section: dict) -> tuple:
+    """(board, management, substitutes): directors; executive officers who
+    are not directors (from the officers list or the separate list); and
+    substitute directors, who are not on the board."""
+    offs = (section or {}).get("officers") or []
+    board = [o for o in offs if o.get("role_kind") in DIRECTOR_ROLES and not is_substitute(o)]
+    subs = [o for o in offs if is_substitute(o)]
+    mgmt = [o for o in offs if o.get("role_kind") == "executive_officer" and not is_substitute(o)]
+    seen = {re.sub(r"[\s\u3000]+", "", o["name"]) for o in offs}
+    for x in (section or {}).get("executive_officers") or []:
+        if re.sub(r"[\s\u3000]+", "", x["name"]) not in seen:
+            mgmt.append(x)
+    return board, mgmt, subs
+
+
 def board_stats(officers: list, fy_year: int = None) -> dict:
     """Counts the card leads with. Directors only (auditors and executive
     officers are listed in the same table but are not the board)."""
-    board = [o for o in officers if o["role_kind"] in
-             ("representative_director", "director", "outside_director", "audit_committee_member")]
+    board = [o for o in officers if o["role_kind"] in DIRECTOR_ROLES and not is_substitute(o)]
     if not board:
         return {}
     outside = [o for o in board if o["outside"]]
-    ages = [o["age"] for o in board if o["age"]]
+    ages = [o["age"] or (fy_year - o["birth_year"] if fy_year and o.get("birth_year") else 0)
+            for o in board]
+    ages = [a for a in ages if a]
     ex_bank = sum(1 for o in board if "ex_bank" in o["background_tags"])
     ex_parent = sum(1 for o in board if "ex_parent_group" in o["background_tags"])
     lifers = sum(1 for o in board if not o["outside"] and o["joined_company_year"]
@@ -1080,35 +1152,39 @@ def key_people(officers: list) -> dict:
     return out
 
 
-def bias_read(entry: dict, price=None) -> str:
-    """One deterministic sentence on what the people at the top are likely
-    biased toward, from their backgrounds and ownership. Rules, not a model,
-    so the same facts always give the same sentence. Empty when there is
-    not enough to say."""
+def bias_points(entry: dict, price=None) -> list:
+    """What the people at the top are likely biased toward, from their
+    backgrounds and ownership, as bullet points. Rules, not a model, so the
+    same facts always give the same read. Empty when there is not enough."""
     secs = entry.get("sections") or {}
     offs = (secs.get("officers") or {}).get("officers") or []
     if not offs:
-        return ""
+        return []
     fy_year = int(entry["fy"][2:]) if entry.get("fy", "").startswith("FY") else None
-    kp = key_people(offs)
+    kp = key_people([o for o in offs if not is_substitute(o)])
     bs = board_stats(offs, fy_year)
-    bits = []
+    pts = []
     ceo = kp.get("ceo")
     if ceo:
         tags = [t for t in ceo["background_tags"] if t in _TAG_LABEL]
-        bg = ", ".join(_TAG_LABEL[t] for t in tags[:3]) or "unstated background"
-        tenure = (f"{fy_year - ceo['joined_company_year']} years at the company"
-                  if fy_year and ceo["joined_company_year"] else
-                  "an outsider" if ceo["outside"] or "other_company_executive" in tags
-                  else "tenure unstated")
-        since = (f", CEO-level director since {ceo['director_since_year']}"
-                 if ceo["director_since_year"] else "")
-        own = ""
-        if ceo["shares_held"] and price:
-            own = f", holds ¥{ceo['shares_held'] * price / 1e6:,.0f}m of stock"
-        elif ceo["shares_held"]:
-            own = f", holds {ceo['shares_held']:,} shares"
-        bits.append(f"CEO {ceo['name']}: {bg}, {tenure}{since}{own}")
+        bg = ", ".join(_TAG_LABEL[t] for t in tags[:3]) or "background not stated"
+        nm = ceo["name"] + (f" ({ceo['name_en']})" if ceo.get("name_en") else "")
+        a = age_of(ceo, entry.get("date") or "")
+        line = f"CEO {nm}" + (f", {'' if a[1] else '~'}{a[0]}" if a else "") + f": {bg}"
+        pts.append(line)
+        if fy_year and ceo["joined_company_year"]:
+            t = f"{fy_year - ceo['joined_company_year']} years at the company"
+        elif ceo["outside"] or "other_company_executive" in tags:
+            t = "an outsider"
+        else:
+            t = ""
+        if ceo["director_since_year"]:
+            t += ("; " if t else "") + f"director since {ceo['director_since_year']}"
+        if t:
+            pts.append(t[0].upper() + t[1:])
+        if ceo["shares_held"]:
+            pts.append(f"Holds {ceo['shares_held']:,} shares"
+                       + (f" (¥{ceo['shares_held'] * price / 1e6:,.0f}m)" if price else ""))
         leans = []
         if "founder_family" in tags:
             leans.append("control and continuity over payout")
@@ -1121,19 +1197,24 @@ def bias_read(entry: dict, price=None) -> str:
         if "ex_bank" in tags or "ex_parent_group" in tags:
             leans.append("the lender's / parent's interests")
         if leans:
-            bits.append("likely to favour " + "; ".join(leans))
+            pts.append("Likely to favour " + "; ".join(leans))
     if bs:
-        board_bits = [f"board of {bs['size']}, {bs['outside']} outside ({bs['outside_pct'] * 100:.0f}%)"]
-        if bs["ex_bank"]:
-            board_bits.append(f"{bs['ex_bank']} ex-bank")
-        if bs["ex_parent"]:
-            board_bits.append(f"{bs['ex_parent']} ex-parent")
-        if bs["lifers"]:
-            board_bits.append(f"{bs['lifers']} lifers (25+ years)")
-        bits.append(", ".join(board_bits))
+        b = f"Board of {bs['size']}, {bs['outside']} outside ({bs['outside_pct'] * 100:.0f}%)"
+        extra = [x for x in (f"{bs['ex_bank']} ex-bank" if bs["ex_bank"] else "",
+                             f"{bs['ex_parent']} ex-parent" if bs["ex_parent"] else "",
+                             f"{bs['lifers']} lifers (25+ years)" if bs["lifers"] else "") if x]
+        if bs.get("avg_age"):
+            extra.append(f"average age {bs['avg_age']:.0f}")
+        pts.append(b + ("; " + ", ".join(extra) if extra else ""))
         if bs["outside_pct"] < 1 / 3:
-            bits.append("outside directors under a third: expect the inside view to prevail")
-    return "; ".join(bits) + "." if bits else ""
+            pts.append("Outside directors under a third: expect the inside view to prevail")
+    return pts
+
+
+def bias_read(entry: dict, price=None) -> str:
+    """bias_points as one sentence (kept for callers that want a line)."""
+    pts = bias_points(entry, price)
+    return "; ".join(pts) + "." if pts else ""
 
 
 def cross_holdings_read(entry: dict, market_cap=None, equity=None) -> dict:
@@ -1435,7 +1516,8 @@ def parse_officers(html: str, filed: str = "") -> dict:
         sh = _num(re.sub(r"[^\d.,-]", "", o["shares"]) or "")
         summ = "; ".join(f"{y}.{mo} {ev}" for y, mo, ev in (lines[:2] + lines[-1:] if len(lines) > 3 else lines))
         out.append({
-            "name": o["name"][:80], "name_en": "", "title": title[:120],
+            "name": o["name"][:80], "name_en": "", "title": title[:120], "title_en": "",
+            "birth_month": bmo,
             "role_kind": _role(title, outside),
             "outside": outside, "age": age if 18 < age < 100 else 0, "birth_year": by,
             "joined_company_year": joined, "director_since_year": since,
@@ -1446,7 +1528,7 @@ def parse_officers(html: str, filed: str = "") -> dict:
             "shares_held": int(sh * shares_unit) if sh else 0, "term_end": o["term"][:40],
             "_career": o["career"][:4000],
         })
-    return {"as_of": as_of, "officers": out, "notes": ""}
+    return {"as_of": as_of, "officers": out, "executive_officers": [], "notes": ""}
 
 
 def _schema_careers():
@@ -1454,10 +1536,11 @@ def _schema_careers():
         "type": "object", "additionalProperties": False, "required": ["items"],
         "properties": {"items": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
-            "required": ["name", "name_en", "summary", "background_tags"],
+            "required": ["name", "name_en", "title_en", "summary", "background_tags"],
             "properties": {
                 "name": {"type": "string", "description": "Exactly as given."},
                 "name_en": {"type": "string", "description": "Romanised, given name first."},
+                "title_en": {"type": "string", "description": "The title in English."},
                 "summary": {"type": "string",
                             "description": "In English, at most 40 words: prior employers "
                             "and the functions held, in order, then the current role."},
@@ -1512,6 +1595,8 @@ def summarise_careers(board: dict, api_key: str, code: str = "", name: str = "",
                 o["career_summary"] = _s(hit.get("summary"), 400)
             if _s(hit.get("name_en")):
                 o["name_en"] = _s(hit.get("name_en"), 80)
+            if _s(hit.get("title_en")):
+                o["title_en"] = _s(hit.get("title_en"), 160)
             tags = set(o["background_tags"]) | {t for t in (hit.get("background_tags") or [])
                                                 if t in BACKGROUND_TAGS}
             o["background_tags"] = [t for t in BACKGROUND_TAGS if t in tags]

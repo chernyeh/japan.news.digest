@@ -9142,53 +9142,75 @@ with tab_research:
                        f'filed {_safe_text((_newest.get("SubmitDateTime") or "")[:10])}) is in the index — '
                        f're-read below</span>' if _stale else '') + '</div>', unsafe_allow_html=True)
 
-                # Board
-                _offs = (_secs.get("officers") or {}).get("officers") or []
-                st.markdown('<div class="fc-qhead">Board and senior management</div>', unsafe_allow_html=True)
-                _read = YX.bias_read(_latest, _price)
-                if _read:
-                    st.markdown(f'<div class="fc-reads"><span class="fc-read">{_safe_text(_read)}</span></div>',
-                                unsafe_allow_html=True)
-                if _offs:
-                    _fyy = int(_latest["fy"][2:]) if _latest.get("fy", "").startswith("FY") else None
-                    _board = [o for o in _offs if o["role_kind"] in
-                              ("representative_director", "director", "outside_director",
-                               "audit_committee_member") or o["is_cfo"]]
-                    _rest = len(_offs) - len(_board)
+                # Board, then management
+                _osec = _secs.get("officers") or {}
+                _brd, _mgmt, _subs = YX.board_and_management(_osec)
+                _fyy = int(_latest["fy"][2:]) if _latest.get("fy", "").startswith("FY") else None
+                _asof = _latest.get("date") or ""
+
+                def _age_txt(_o):
+                    _a = YX.age_of(_o, _asof)
+                    return "—" if not _a else (f"{_a[0]}" if _a[1] else f"~{_a[0]}")
+
+                def _title_txt(_o):
+                    _en, _jp = _o.get("title_en") or "", _o.get("title") or ""
+                    return (_safe_text(_en) + (f' <span class="yx-sub">{_safe_text(_jp)}</span>' if _jp else '')
+                            if _en else _safe_text(_jp))
+
+                def _joined_txt(_o):
+                    _j = _o.get("joined_company_year") or 0
+                    return (f'{_j} ({_fyy - _j}y)' if _j and _fyy else (str(_j) if _j else "—"))
+
+                st.markdown('<div class="fc-qhead">Board of directors'
+                            + (f' — {len(_brd)}' if _brd else '') + '</div>', unsafe_allow_html=True)
+                _bullets([_safe_text(b) for b in YX.bias_points(_latest, _price)])
+                if _brd:
                     _h = ('<table class="tr-table tr-steps"><tr><th>Name</th><th>Title</th><th>Age</th>'
-                          '<th>Joined</th><th>Director since</th><th>Background</th><th>Shares</th></tr>')
-                    for _o in _board:
+                          '<th>Joined</th><th>Director since</th><th>Background</th><th>Career</th>'
+                          '<th>Shares</th></tr>')
+                    for _o in _brd:
                         _tags = ", ".join(YX._TAG_LABEL.get(t, t) for t in _o["background_tags"][:4])
                         _sh = (f'{_o["shares_held"]:,}'
-                               + (f' (¥{_o["shares_held"] * _price / 1e6:,.0f}m)' if _price and _o["shares_held"] else '')
+                               + (f'<br><span class="yx-sub">¥{_o["shares_held"] * _price / 1e6:,.0f}m</span>'
+                                  if _price and _o["shares_held"] else '')
                                if _o["shares_held"] else "—")
                         _flag = " ".join(k for k, v in (("CEO", _o["is_ceo"]), ("Chair", _o["is_chair"]),
                                                         ("CFO", _o["is_cfo"])) if v)
                         _h += (f'<tr><td><b>{_nm(_o["name"], _o.get("name_en"))}</b>'
-                               + (f' <span class="fc-pastest">{_flag}</span>' if _flag else '')
-                               + (' <span class="fc-na">outside</span>' if _o["outside"] else '')
-                               + f'</td><td>{_safe_text(_o["title"])}</td>'
-                               f'<td>{_o["age"] or "—"}</td>'
-                               f'<td>{_o["joined_company_year"] or "—"}'
-                               + (f' ({_fyy - _o["joined_company_year"]}y)' if _fyy and _o["joined_company_year"] else '')
-                               + f'</td><td>{_o["director_since_year"] or "—"}</td>'
-                               f'<td title="{_safe_text(_o["career_summary"])}">{_safe_text(_tags) or "—"}</td>'
-                               f'<td>{_sh}</td></tr>')
+                               + (f'<br><span class="fc-pastest">{_flag}</span>' if _flag else '')
+                               + ('<br><span class="fc-na">outside</span>' if _o["outside"] else '')
+                               + f'</td><td>{_title_txt(_o)}</td><td>{_age_txt(_o)}</td>'
+                               f'<td>{_joined_txt(_o)}</td><td>{_o["director_since_year"] or "—"}</td>'
+                               f'<td>{_safe_text(_tags) or "—"}</td>'
+                               f'<td>{_safe_text(_o.get("career_summary") or "") or "—"}</td>'
+                               f'<td style="text-align:right">{_sh}</td></tr>')
                     st.markdown(_h + '</table>', unsafe_allow_html=True)
-                    _careers = [f'<b>{_nm(_o["name"], _o.get("name_en"))}</b> — {_safe_text(_o["career_summary"])}'
-                                for _o in _board if _o.get("career_summary")]
-                    if _careers:
-                        _bullets(_careers)
-                    if _rest:
-                        st.markdown(f'<div class="fc-note">{_rest} more in the table (auditors, '
-                                    'executive officers) not shown.</div>', unsafe_allow_html=True)
-                    if (_secs.get("officers") or {}).get("notes"):
-                        st.markdown(f'<div class="fc-note">{_safe_text(_secs["officers"]["notes"])}</div>',
-                                    unsafe_allow_html=True)
+                    if _subs:
+                        st.markdown('<div class="fc-note">Substitute director (not on the board): '
+                                    + " · ".join(_nm(o["name"], o.get("name_en")) for o in _subs)
+                                    + '</div>', unsafe_allow_html=True)
                 else:
                     st.markdown('<div class="fc-note fc-warn">No board in this read. Re-read the yuho '
-                                'below: where the officers table cannot be parsed, the model now '
-                                'reads it.</div>', unsafe_allow_html=True)
+                                'below.</div>', unsafe_allow_html=True)
+
+                st.markdown('<div class="fc-qhead">Senior management (executive officers not on the board)'
+                            + (f' — {len(_mgmt)}' if _mgmt else '') + '</div>', unsafe_allow_html=True)
+                if _mgmt:
+                    _h = ('<table class="tr-table tr-steps"><tr><th>Name</th><th>Title</th><th>Age</th>'
+                          '<th>Joined</th><th>Career</th></tr>')
+                    for _o in _mgmt:
+                        _h += (f'<tr><td><b>{_nm(_o["name"], _o.get("name_en"))}</b></td>'
+                               f'<td>{_title_txt(_o)}</td><td>{_age_txt(_o)}</td><td>{_joined_txt(_o)}</td>'
+                               f'<td>{_safe_text(_o.get("career_summary") or "") or "—"}</td></tr>')
+                    st.markdown(_h + '</table>', unsafe_allow_html=True)
+                    if not any(YX.age_of(_o, _asof) for _o in _mgmt):
+                        st.markdown('<div class="fc-note">The yuho lists executive officers who are not '
+                                    'directors by name and title only, so their ages are not given.</div>',
+                                    unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="fc-note">None listed in this read'
+                                + (' — re-read the yuho to pick up executive officers.' if _brd else '.')
+                                + '</div>', unsafe_allow_html=True)
 
                 # Cross-shareholdings
                 _ch = YX.cross_holdings_read(_latest, _mcap, _equity)
