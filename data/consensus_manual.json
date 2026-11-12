@@ -158,6 +158,18 @@
       "unit": "jpy_abs",
       "value": 305000000000.0
     },
+    "net_sales|FY2027|consensus": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 1342820000000.0
+    },
+    "net_sales|FY2028|consensus": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 1475510000000.0
+    },
     "operating_profit|FY2026|consensus": {
       "as_of": "2026-11-12",
       "source": "typed:Company data",
