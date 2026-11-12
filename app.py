@@ -1380,6 +1380,26 @@ a.research-link:hover { background: #F0EDE8; }
 .tr-table th:first-child, .tr-table td:first-child { text-align: left; }
 .tr-steps td { white-space: normal; text-align: left; line-height: 1.5; }
 .tr-adj td { color: #B26A00; font-weight: 600; background: #FFFBF3; }
+/* What-if price: a quiet popover button under the summary card, a compact box inside. */
+.st-key-research_px_row { margin: -0.4rem 0 -0.2rem 0; }
+.st-key-research_px_row button { font-size: 0.68rem !important; min-height: 0 !important;
+    padding: 2px 10px !important; color: #9B8B7A !important; border-color: #E3DDD3 !important; }
+.st-key-research_px_row button p { font-size: 0.68rem !important; }
+[data-testid="stPopoverBody"]:has(.st-key-research_px_pop) { width: 300px !important;
+    min-width: 0 !important; max-width: 92vw !important; padding: 10px 12px !important; }
+.st-key-research_px_pop .px-label { font-size: 0.78rem; color: #3A3A3A; white-space: nowrap;
+    line-height: 2rem; margin: 0 !important; }
+.st-key-research_px_pop [data-testid="stMarkdownContainer"] { margin: 0 !important; }
+.st-key-research_px_pop [data-testid="stHorizontalBlock"] { gap: 0.5rem !important;
+    align-items: center !important; }
+.st-key-research_px_pop .fc-note { margin-top: 2px !important; }
+.st-key-research_px_pop input { font-size: 0.8rem !important; height: 1.9rem !important;
+    padding: 2px 8px !important; }
+.st-key-research_px_pop [data-testid="stNumberInputContainer"] { height: 2rem !important; min-height: 0 !important; }
+.st-key-research_px_pop button { min-height: 0 !important; height: 2rem !important; padding: 0 6px !important; }
+.st-key-research_px_active button { font-size: 0.68rem !important; min-height: 0 !important;
+    padding: 2px 10px !important; }
+.st-key-research_px_active button p { font-size: 0.68rem !important; }
 /* Yuho card: bullet lists in the table face, and a quiet romanisation beside a name. */
 ul.yx-list { font-size: 0.74rem !important; margin: 0.15rem 0 0.4rem 1.1rem !important;
              padding: 0 !important; line-height: 1.45 !important; }
@@ -8974,44 +8994,61 @@ with tab_research:
                         unsafe_allow_html=True)
                 else:
                     # The price the panel values at: the latest close, or one typed
-                    # here for a what-if. Not saved; the Watchlist and the
-                    # Valuation Screen keep using the close.
+                    # in the "Value at another price" popover for a what-if. Read
+                    # from the widget's state here, drawn below the summary card.
+                    # Not saved; the Watchlist and Valuation Screen keep the close.
                     _pxk = f"research_px_{_rcode}"
                     _close = (st.session_state.research_prices_map or {}).get(_rcode)
                     _pd = _price_date(_rcode)
-                    _c1, _c2 = st.columns([1, 2.6])
-                    with _c1:
-                        _px_in = st.number_input(
-                            "Value at price ¥", min_value=0.0, value=None, step=10.0,
-                            format="%.0f", key=_pxk,
-                            placeholder=(f"{_close:,.0f}" if _close else "price"),
-                            help="Leave blank to value at the latest close. Type a price to see "
-                                 "every multiple in this panel at that price. Not saved.")
-                    with _c2:
-                        _close_txt = (f"Close <b>¥{_close:,.0f}</b>"
-                                      + (f" on {_safe_text(_pd)}" if _pd else "")) if _close else "No close on file"
-                        if _px_in:
-                            _dv = (_px_in / _close - 1) if _close else None
-                            st.markdown(
-                                f'<div class="fc-note fc-warn">Valued at <b>¥{_px_in:,.0f}</b> — your price, '
-                                f'not the close'
-                                + (f' ({_dv * 100:+.1f}% vs close)' if _dv is not None else '')
-                                + f'. {_close_txt}.</div>', unsafe_allow_html=True)
-                            st.button("↺ Reset to close", key=f"{_pxk}_reset",
-                                      on_click=lambda k=_pxk: st.session_state.update({k: None}))
-                        else:
-                            st.markdown(f'<div class="fc-note" style="margin-top:1.9rem !important">'
-                                        f'Valued at the latest {_close_txt.replace("Close", "close", 1)}; '
-                                        'market cap = that price × shares outstanding.</div>',
-                                        unsafe_allow_html=True)
-                    _vi = _valuation_inputs(_rcode, _rmcap, _px_in or None)
+                    _px_in = st.session_state.get(_pxk) or None
+                    _vi = _valuation_inputs(_rcode, _rmcap, _px_in)
                     _price, _shares, _mcap = _vi["price"], _vi["shares"], _vi["mcap"]
                     _years, _get, _src = _vi["years"], _vi["get"], _vi["src"]
                     _profile, _split_factor = _vi["profile"], _vi["split_factor"]
+                    _close_txt = ((f"¥{_close:,.0f}" + (f" on {_safe_text(_pd)}" if _pd else ""))
+                                  if _close else "")
+
+                    # A what-if price is never hidden: while one is set, it is
+                    # stated above every figure it changes.
+                    if _px_in:
+                        _dv = (_px_in / _close - 1) if _close else None
+                        with st.container(key="research_px_active"):
+                            _w1, _w2 = st.columns([5, 1], vertical_alignment="center")
+                            with _w1:
+                                st.markdown(
+                                    f'<div class="fc-note fc-warn">Valued at <b>¥{_px_in:,.0f}</b> — your '
+                                    f'price, not the close'
+                                    + (f' ({_dv * 100:+.1f}% vs the close of {_close_txt})' if _dv is not None else '')
+                                    + '.</div>', unsafe_allow_html=True)
+                            with _w2:
+                                st.button("↺ Reset to close", key=f"{_pxk}_reset",
+                                          on_click=lambda k=_pxk: st.session_state.update({k: None}))
 
                     # Forward view first: the summary card, its flags and the
                     # three charts. The full table follows as the detail.
                     _fc_forward(_rcode, _rname, _fc_map, _vi, _fundrow)
+
+                    with st.container(key="research_px_row"):
+                        _sp, _pc = st.columns([4, 1])
+                        with _pc:
+                            with st.popover("¥ Value at another price"):
+                                with st.container(key="research_px_pop"):
+                                    _l, _r = st.columns([1, 1.15], vertical_alignment="center")
+                                    with _l:
+                                        st.markdown('<div class="px-label">Value at price ¥</div>',
+                                                    unsafe_allow_html=True)
+                                    with _r:
+                                        st.number_input(
+                                            "Value at price ¥", min_value=0.0, value=None, step=10.0,
+                                            format="%.0f", key=_pxk, label_visibility="collapsed",
+                                            placeholder=(f"{_close:,.0f}" if _close else "price"))
+                                    st.markdown(
+                                        '<div class="fc-note">'
+                                        + (f'Valued at the latest close {_close_txt}' if _close
+                                           else 'No close on file')
+                                        + '; market cap = that price × shares outstanding. Type a '
+                                          'price to see every multiple in this panel at it. Not saved.'
+                                          '</div>', unsafe_allow_html=True)
 
                     _fc_render({
                         "one_offs": _one_offs_for(_rcode),
