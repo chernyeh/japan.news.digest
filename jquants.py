@@ -580,39 +580,91 @@ def fetch_3m_performance_batch(codes: list) -> dict:
 
 
 
-def load_mktcap_from_github(repo: str, token: str = None) -> dict:
-    """
-    Load market cap from mktcap_full.csv (primary) or jquants_prices_latest.csv (fallback).
-    mktcap_full.csv is generated locally from archive prices × metadata shares.
-    Returns dict: {code_4digit: market_cap_b_float}
-    """
+def _csv_rows(repo: str, path: str, token: str = None) -> list:
     import csv, io, gh_read
+    status, text = gh_read.raw_get(repo, path, token)
+    if status != 200 or not text:
+        return []
+    return list(csv.DictReader(io.StringIO(text)))
 
-    # Try mktcap_full.csv first (generated locally, full coverage)
-    for filename in ["mktcap_full.csv", "jquants_prices_latest.csv"]:
-        status, text = gh_read.raw_get(repo, f"data/{filename}", token)
-        if status != 200:
+
+def _code4(row: dict) -> str:
+    code = str(row.get("Code", "")).strip().zfill(4)[:4]
+    return code if code.isdigit() else ""
+
+
+def shares_map_from_rows(jq_rows: list, meta_rows: list) -> dict:
+    """{code: shares outstanding}: J-Quants' dated count where there is one,
+    else metadata.csv's."""
+    out = {}
+    for row in meta_rows or ():
+        code = _code4(row)
+        try:
+            sh = float(row.get("Shares") or 0)
+        except (TypeError, ValueError):
+            sh = 0
+        if code and sh > 0:
+            out[code] = sh
+    for row in jq_rows or ():
+        code = _code4(row)
+        try:
+            sh = float(row.get("SharesOutstanding") or 0)
+        except (TypeError, ValueError):
+            sh = 0
+        if code and sh > 0:
+            out[code] = sh
+    return out
+
+
+def mktcap_from_rows(price_rows: list, shares: dict, stored_rows: list = ()) -> dict:
+    """{code: market cap ¥bn}: the latest close x shares outstanding for every
+    company with both; the stored mktcap_full.csv figure only for companies
+    with no current close (it is a one-off snapshot no job refreshes, months
+    old, so it must never win over a current price)."""
+    out = {}
+    for row in price_rows or ():
+        code = _code4(row)
+        try:
+            close = float(row.get("Close") or 0)
+        except (TypeError, ValueError):
+            close = 0
+        if code and close > 0 and shares.get(code):
+            out[code] = round(close * shares[code] / 1e9, 2)
+    for row in stored_rows or ():
+        code = _code4(row)
+        if not code or code in out:
             continue
-        r = type("R", (), {"text": text})()
+        try:
+            mc = float(row.get("MarketCapB") or 0)
+        except (TypeError, ValueError):
+            mc = 0
+        if mc > 0:
+            out[code] = mc
+    return out
 
-        mktcap = {}
-        for row in csv.DictReader(io.StringIO(r.text)):
-            code = str(row.get("Code", "")).strip().zfill(4)[:4]
-            if not code or not code.isdigit():
-                continue
-            try:
-                mc = row.get("MarketCapB", "")
-                if mc and mc not in ("", "None", "null"):
-                    mktcap[code] = float(mc)
-            except (ValueError, TypeError):
-                pass
 
-        if mktcap:
-            print(f"Market cap loaded: {len(mktcap)} companies (from {filename})")
-            return mktcap
+def load_mktcap_from_github(repo: str, token: str = None) -> dict:
+    """{code_4digit: market cap ¥bn} at the latest close (close x shares),
+    with the old stored snapshot only where there is no current close."""
+    prices = _csv_rows(repo, "data/jquants_prices_latest.csv", token)
+    shares = shares_map_from_rows(_csv_rows(repo, "data/jquants_shares.csv", token),
+                                  _csv_rows(repo, "data/metadata.csv", token))
+    stored = _csv_rows(repo, "data/mktcap_full.csv", token)
+    mktcap = mktcap_from_rows(prices, shares, stored)
+    fresh = sum(1 for r in prices if _code4(r) in shares)
+    print(f"Market cap: {len(mktcap)} companies ({fresh} at the latest close, "
+          f"{len(mktcap) - fresh} from the old stored snapshot)")
+    return mktcap
 
-    print("Market cap: no data found")
-    return {}
+
+def load_price_dates_from_github(repo: str, token: str = None) -> dict:
+    """{code_4digit: 'YYYY-MM-DD'} — the trading day each latest close is for."""
+    out = {}
+    for row in _csv_rows(repo, "data/jquants_prices_latest.csv", token):
+        code = _code4(row)
+        if code and row.get("Date"):
+            out[code] = str(row["Date"])[:10]
+    return out
 
 
 def load_3m_perf_from_github(repo: str, token: str = None) -> dict:
