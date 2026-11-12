@@ -1,4 +1,164 @@
 {
+  "4203": [
+    {
+      "agm_date": "2026-06-24",
+      "date": "2026-06-26",
+      "doc_id": "S100YLFG",
+      "fy": "FY2026",
+      "id": "agm_FY2026",
+      "notes": "Votes of attending shareholders whose for, against or abstain position could not be confirmed were not added to the counts. Resolutions were found to satisfy the approval requirements using advance-exercised votes and confirmed attendee votes. The approval percentages are as printed; the stated approval requirements are: Resolution 1 needs a majority of voting rights of attending shareholders; Res",
+      "read_on": "2026-11-12",
+      "resolutions": [
+        {
+          "approval_pct": 99.39,
+          "kind": "dividend",
+          "number": "第1号議案",
+          "passed": true,
+          "person_name": "",
+          "person_name_en": "",
+          "proposed_by_shareholder": false,
+          "title": "Appropriation of surplus: dividend of 60 yen per share",
+          "votes_abstain": 847,
+          "votes_against": 1863,
+          "votes_for": 753246
+        },
+        {
+          "approval_pct": 85.8,
+          "kind": "director_election",
+          "number": "第2号議案 1",
+          "passed": true,
+          "person_name": "藤原一彦",
+          "person_name_en": "Kazuhiko Fujiwara",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Kazuhiko Fujiwara",
+          "votes_abstain": 847,
+          "votes_against": 104873,
+          "votes_for": 650245
+        },
+        {
+          "approval_pct": 94.98,
+          "kind": "director_election",
+          "number": "第2号議案 2",
+          "passed": true,
+          "person_name": "鍜治屋伸一",
+          "person_name_en": "Shinichi Kajiya",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Shinichi Kajiya",
+          "votes_abstain": 847,
+          "votes_against": 35252,
+          "votes_for": 719865
+        },
+        {
+          "approval_pct": 98.76,
+          "kind": "director_election",
+          "number": "第2号議案 3",
+          "passed": true,
+          "person_name": "小林孝",
+          "person_name_en": "Takashi Kobayashi",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Takashi Kobayashi",
+          "votes_abstain": 847,
+          "votes_against": 6612,
+          "votes_for": 748510
+        },
+        {
+          "approval_pct": 98.76,
+          "kind": "director_election",
+          "number": "第2号議案 4",
+          "passed": true,
+          "person_name": "倉知圭介",
+          "person_name_en": "Keisuke Kurachi",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Keisuke Kurachi",
+          "votes_abstain": 847,
+          "votes_against": 6617,
+          "votes_for": 748505
+        },
+        {
+          "approval_pct": 98.76,
+          "kind": "director_election",
+          "number": "第2号議案 5",
+          "passed": true,
+          "person_name": "平井俊也",
+          "person_name_en": "Toshiya Hirai",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Toshiya Hirai",
+          "votes_abstain": 847,
+          "votes_against": 6615,
+          "votes_for": 748507
+        },
+        {
+          "approval_pct": 98.18,
+          "kind": "director_election",
+          "number": "第2号議案 6",
+          "passed": true,
+          "person_name": "松田和雄",
+          "person_name_en": "Kazuo Matsuda",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Kazuo Matsuda",
+          "votes_abstain": 847,
+          "votes_against": 11054,
+          "votes_for": 744068
+        },
+        {
+          "approval_pct": 99.21,
+          "kind": "director_election",
+          "number": "第2号議案 7",
+          "passed": true,
+          "person_name": "永島惠津子",
+          "person_name_en": "Etsuko Nagashima",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Etsuko Nagashima",
+          "votes_abstain": 847,
+          "votes_against": 3186,
+          "votes_for": 751938
+        },
+        {
+          "approval_pct": 99.22,
+          "kind": "director_election",
+          "number": "第2号議案 8",
+          "passed": true,
+          "person_name": "若林宏之",
+          "person_name_en": "Hiroyuki Wakabayashi",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Hiroyuki Wakabayashi",
+          "votes_abstain": 847,
+          "votes_against": 3133,
+          "votes_for": 751991
+        },
+        {
+          "approval_pct": 98.89,
+          "kind": "director_election",
+          "number": "第2号議案 9",
+          "passed": true,
+          "person_name": "星正幸",
+          "person_name_en": "Masayuki Hoshi",
+          "proposed_by_shareholder": false,
+          "title": "Election of director: Masayuki Hoshi",
+          "votes_abstain": 847,
+          "votes_against": 5635,
+          "votes_for": 749490
+        },
+        {
+          "approval_pct": 99.57,
+          "kind": "auditor_election",
+          "number": "第3号議案",
+          "passed": true,
+          "person_name": "由布節子",
+          "person_name_en": "Setsuko Yufu",
+          "proposed_by_shareholder": false,
+          "title": "Election of substitute corporate auditor: Setsuko Yufu",
+          "votes_abstain": 847,
+          "votes_against": 511,
+          "votes_for": 754615
+        }
+      ],
+      "usage": {
+        "input": 2124,
+        "output": 2713
+      }
+    }
+  ],
   "6952": [
     {
       "agm_date": "2026-06-26",
