@@ -1561,10 +1561,22 @@
       "value": 180.36
     },
     "eps|FY2026|consensus_q3": {
-      "as_of": "2026-11-12",
-      "source": "typed:Company data",
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
       "unit": "jpy",
       "value": 49.89
+    },
+    "eps|FY2026|consensus_q4": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 14.96
+    },
+    "eps|FY2028|consensus": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 238.8
     },
     "net_sales|FY2026|consensus": {
       "as_of": "2026-11-12",
