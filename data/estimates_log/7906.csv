@@ -14,6 +14,8 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-11-13,eps,FY2027,ytd_1q,65.34,typed:Company data,typed,2026-11-13
 2026-11-13,eps,FY2027,ytd_2q,95.97,typed:Company data,typed,2026-11-13
 2026-08-27,eps,FY2028,consensus,172.3,yfinance,backfill,2026-08-27
+2026-11-13,eps,FY2028,consensus,177.2,typed:Koyfin,typed,2026-11-13
+2026-11-13,eps,FY2029,consensus,190.03,typed:Koyfin,typed,2026-11-13
 2026-05-12,net_profit,FY2026,company,11600000000.0,jquants,backfill,2026-08-27
 2026-05-12,net_profit,FY2027,company,13200000000.0,jquants,backfill,2026-08-27
 2026-11-12,net_profit,FY2027,company,14200000000.0,typed:Company data,typed,2026-11-13
