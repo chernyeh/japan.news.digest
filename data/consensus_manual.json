@@ -1234,6 +1234,66 @@
     }
   },
   "7906": {
+    "capex|FY2026|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 9383000000.0
+    },
+    "capex|FY2027|fin_h1": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 3850000000.0
+    },
+    "cash|FY2026|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 34311999999.999996
+    },
+    "cash|FY2027|fin_h1": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 34293999999.999996
+    },
+    "cfo|FY2026|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 9485000000.0
+    },
+    "cfo|FY2027|fin_h1": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 4561000000.0
+    },
+    "debt|FY2026|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 16340000000.0
+    },
+    "debt|FY2027|fin_h1": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 16082999999.999998
+    },
+    "dep_amort|FY2026|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 3361000000.0
+    },
+    "dep_amort|FY2027|fin_h1": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 1925000000.0
+    },
     "eps|FY2027|company": {
       "as_of": "2026-11-12",
       "source": "typed:Company data",
@@ -1365,6 +1425,18 @@
       "source": "typed:Company data",
       "unit": "jpy_abs",
       "value": 10897000000.0
+    },
+    "sh_equity|FY2026|fin": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 74932000000.0
+    },
+    "sh_equity|FY2027|fin_h1": {
+      "as_of": "2026-11-13",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 82200000000.0
     }
   },
   "8050": {
