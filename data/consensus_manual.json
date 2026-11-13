@@ -1386,6 +1386,12 @@
       "unit": "jpy_abs",
       "value": 29198000000.0
     },
+    "net_sales|FY2027|consensus": {
+      "as_of": "2026-11-13",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 236620000000.0
+    },
     "net_sales|FY2027|consensus_q2": {
       "as_of": "2026-11-05",
       "source": "typed:Company data",
