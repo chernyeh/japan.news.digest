@@ -1553,6 +1553,44 @@
       "value": 82200000000.0
     }
   },
+  "7936": {
+    "eps|FY2026|consensus": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 180.36
+    },
+    "eps|FY2026|consensus_q3": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy",
+      "value": 49.89
+    },
+    "net_sales|FY2026|consensus": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 1042859999999.9999
+    },
+    "net_sales|FY2026|consensus_q3": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 272040000000.00003
+    },
+    "operating_profit|FY2026|consensus": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 197730000000.0
+    },
+    "operating_profit|FY2026|consensus_q3": {
+      "as_of": "2026-11-12",
+      "source": "typed:Company data",
+      "unit": "jpy_abs",
+      "value": 57370000000.0
+    }
+  },
   "8050": {
     "dps|FY2027|company": {
       "as_of": "2026-11-11",
