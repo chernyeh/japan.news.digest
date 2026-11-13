@@ -1187,7 +1187,7 @@ a.research-link:hover { background: #F0EDE8; }
 .fc-delta.u { color: #2E7D32; }
 .fc-delta.d { color: #C62828; }
 .fc-src { font-family: monospace; font-size: 0.56rem; vertical-align: super;
-          margin-left: 0.18em; font-weight: 700; cursor: help; }
+          margin-left: 0.18em; font-weight: 700; cursor: default; }
 .fc-src-a { color: #9B8B7A; }
 .fc-src-s { color: #E65100; }
 .fc-src-t { color: #8B4513; }
@@ -1199,7 +1199,7 @@ a.research-link:hover { background: #F0EDE8; }
 /* "n/c" — a street cell whose estimate is not measuring the filed line beside
    it. Deliberately not styled as a missing value: the number exists, it just
    cannot be put on this row. */
-.fc-nc { color: #9B8B7A; font-style: italic; cursor: help; }
+.fc-nc { color: #9B8B7A; font-style: italic; cursor: default; }
 /* Derived ratio rows, below the ¥bn flows. The rule above the group is what
    stops a percentage being read as another money line; the rows themselves
    stay quieter than the figures they are computed from. */
@@ -1256,7 +1256,9 @@ a.research-link:hover { background: #F0EDE8; }
 .st-key-fc_view_row [data-testid="stHorizontalBlock"] { align-items: center; gap: 0.8rem; }
 .st-key-fc_view_row [data-testid="stRadio"] { display: flex; flex-direction: row;
                                               align-items: center; gap: 0.6rem; }
-.st-key-fc_view_row [data-testid="stRadio"] [data-testid="stWidgetLabel"] { margin: 0; min-height: 0; }
+.st-key-fc_view_row [data-testid="stRadio"] [data-testid="stWidgetLabel"] { margin: 0; min-height: 0;
+    flex-shrink: 0; white-space: nowrap; }
+.st-key-fc_view_row [data-testid="stRadio"] [data-testid="stWidgetLabel"] p { white-space: nowrap; }
 .st-key-fc_view_row p { font-size: 0.7rem !important; }
 .st-key-fc_view_row [role="radiogroup"] { gap: 0.2rem 0.8rem; }
 .st-key-fc_view_row [data-testid="stCheckbox"] label { min-height: 0; }
@@ -1334,22 +1336,22 @@ a.research-link:hover { background: #F0EDE8; }
 .fv-bad  { background: #FBEDEC; border-color: #F0CFCB; color: #8E2A20; }
 .fv-warn { background: #FDF3E4; border-color: #F1DDBA; color: #7A4A12; }
 .fv-info { background: #F1F3F6; border-color: #DCE2EA; color: #34495E; }
-.fv-oo { color: #B26A00; cursor: help; }
+.fv-oo { color: #B26A00; cursor: default; }
 .fc-more { background: #FFFDFA; }
 .fc-more[open] { background: #FFFDFA; }
 .fc-more .fc-vgrid { margin-top: 4px; }
 /* The "ex one-offs" line: same weight as the other sub-lines, amber label. */
 .fc-metric.fc-exoo { color: #B26A00; }
 .fc-metric.fc-adj { font-weight: 600; }
-.fc-bubble { cursor: help; border-bottom: 1px dotted #B26A00; white-space: nowrap; }
+.fc-bubble { cursor: default; border-bottom: 1px dotted #B26A00; white-space: nowrap; }
 /* Hover notes in the forecast table. The table's title= attributes are
    rewritten to data-tip= when it is built: the browser's native tooltip only
    appears after holding still for a second or more, so all a reader saw was
-   the "?" (help) cursor. This one opens at once, under the thing hovered,
+   the "?" (help) cursor. This one opens at once, with a plain pointer (no "?"), under the thing hovered,
    leftwards from its right edge (cells are right-aligned), rightwards in the
    first two columns (.fc-tl) where leftwards would run under the pinned
    metric column. */
-.fc-table [data-tip]:not(.fc-metric) { position: relative; cursor: help; }
+.fc-table [data-tip]:not(.fc-metric) { position: relative; cursor: default; }
 .fc-table [data-tip]:not(.fc-metric):hover::after {
     content: attr(data-tip); position: absolute; top: calc(100% + 3px); right: 0;
     z-index: 30; width: max-content; max-width: 300px; white-space: pre-line;
@@ -5451,7 +5453,7 @@ with tab_research:
                                            "in this same column"),
                     "derived:quarter": ("D", "derived here — the difference between two "
                                              "filed cumulative figures; companies file the "
-                                             "year to date, not the quarter on its own"),
+                                             "YTD, not the quarter on its own"),
                     "derived:street": ("D", "derived here with a street figure in it — a "
                                             "street YTD or full year less the quarters "
                                             "before it, or street quarters summed"),
@@ -5567,9 +5569,9 @@ with tab_research:
         _QN = {"q1": 1, "q2": 2, "q3": 3, "q4": 4, _H1: 2, _H2: 4}
         _Q_HELP = {"q1": "First quarter",
                    "q2": "Second quarter on its own (YTD 2Q less 1Q); the small line "
-                         "under it is the year to date",
+                         "under it is YTD",
                    "q3": "Third quarter on its own (YTD 3Q less YTD 2Q); the small line "
-                         "under it is the year to date",
+                         "under it is YTD",
                    "q4": "Fourth quarter on its own — the full year less YTD 3Q"}
         _Q_DERIVED_MARK = {"derived": "derived:quarter", "street_derived": "derived:street",
                            "company_derived": "derived:guidance"}
@@ -5603,10 +5605,7 @@ with tab_research:
                 with _vc1:
                     _q_mode = st.radio(
                         "Quarters", ["Latest 2 years", "All years", "Off"], horizontal=True,
-                        key="research_fc_quarters",
-                        help="Which fiscal years show their quarters (1Q–4Q) beside the "
-                             "annual columns. The year before the earliest one shown is "
-                             "still read for YoY.")
+                        key="research_fc_quarters")
                 with _vc2:
                     _show_growth = st.checkbox(
                         "Margins & growth", value=True, key="research_fc_growth",
@@ -5771,7 +5770,7 @@ with tab_research:
                                          "2H to its left.",
                            "company": "Company guidance — full year",
                            "consensus": "Street consensus — full year", **_Q_HELP,
-                           _H1: "First half — 1Q + 2Q (the year to date at 2Q). "
+                           _H1: "First half — 1Q + 2Q (YTD at 2Q). "
                                 "DPS here is the interim (2Q) dividend.",
                            _H2: "Second half — 3Q + 4Q as shown. Where those are "
                                 "estimates, this is what they add up to; compare with "
@@ -5861,7 +5860,7 @@ with tab_research:
                 if _p == "q3" or (_p == "q2" and _H1 not in _cols.get(_y, ())):
                     _ytd = _qb(_m, _y).get(f"ytd_{_p[1]}q")
                     if _ytd:
-                        _html += (f'<div class="fc-ytd" title="Year to date through '
+                        _html += (f'<div class="fc-ytd" title="YTD thru '
                                   f'{_Q_LABEL[_p]}"><small>YTD</small> '
                                   f'{_fnum(_ytd[0], _dp, "", _scale)}</div>')
                 return _cls, _html
@@ -6061,7 +6060,7 @@ with tab_research:
                         _yb = f"ytd_{_b[1]}q"
                         _yv, _ypv = _qv(_m, _y, _yb), _qv(_m, fund.prior_fy(_y), _yb)
                         if _yv is not None:
-                            _html += (f'<div class="fc-ytd" title="Year to date vs the same '
+                            _html += (f'<div class="fc-ytd" title="YTD vs the same '
                                       f'period last year"><small>YTD</small> '
                                       + (_chg_html(fund.change(_yv, _ypv), _ypv is not None)
                                          or '<span class="fc-na">—</span>') + '</div>')
@@ -6102,7 +6101,7 @@ with tab_research:
                 + ('<span title="Parent-only (単体) — no consolidated figure filed">'
                    '<b class="fc-src fc-src-p">P</b> parent only</span>' if _has_nc else '')
                 + (f'<span>basis: {_safe_text(_std)}</span>' if _std else '')
-                + '<span>¥bn except per-share · small grey line = year to date</span>'
+                + '<span>¥bn except per-share · small grey line = YTD</span>'
                 '<span>▲▼ beat / miss vs Street (quarters) · revision since first filed '
                 '(Co. FY) · gap to guidance ≥5% (Street) · hover for numbers</span></div>',
                 unsafe_allow_html=True)
@@ -6848,7 +6847,7 @@ with tab_research:
                                       key=f"rd_date_{_rcode}").isoformat()
             with _c4:
                 _mode = st.radio("Enter figures as",
-                                 ["Year to date (as the tanshin prints)", "Single quarter"],
+                                 ["YTD (as the tanshin prints)", "Single quarter"],
                                  horizontal=True, key=f"rd_mode_{_rcode}",
                                  disabled=_period == "FY")
             with _c5:
@@ -7015,9 +7014,9 @@ with tab_research:
 
             st.markdown(f'<div class="fc-qhead">1 · Reported — {_safe_text(_period)} '
                         f'{_safe_text(_fy)}</div>', unsafe_allow_html=True)
-            _what = ("the full year" if _n == 4 else
-                     f"the single quarter ({_period})" if _single else
-                     f"the year to date through {_period}")
+            _what = ("full year" if _n == 4 else
+                     f"single quarter {_period}" if _single else
+                     f"YTD thru {_period}")
             _vs_what = "FY" if _n == 4 else "quarter"
             _cfg = {
                 "metric": st.column_config.TextColumn("Line", disabled=True),
@@ -7035,7 +7034,7 @@ with tab_research:
                     "Co. 1H guidance", format="%.2f",
                     help="First-half company guidance going in, saved dated the day before."),
                 "reported": st.column_config.NumberColumn(
-                    f"Reported — {_what}", format="%.2f",
+                    f"Reported {_what}", format="%.2f",
                     help="¥bn, or ¥ per share for EPS. Leave blank to skip a line."),
                 "q": st.column_config.NumberColumn("Quarter", format="%.2f", disabled=True),
                 "ytd": st.column_config.NumberColumn("YTD", format="%.2f", disabled=True),
@@ -7067,7 +7066,13 @@ with tab_research:
                 "vs_h1": st.column_config.TextColumn("vs 1H guide", disabled=True),
             }
             _order = (["metric", "street", "guide"] + (["h1"] if _n == 2 else [])
-                      + ["reported", "q"] + (["ytd"] if _n > 1 else []) + ["vs_st", "read"]
+                      + ["reported"]
+                      # The derived column that just repeats what was typed is left out:
+                      # YTD is dropped when YTD (or FY) is typed, Quarter when the single
+                      # quarter is; at 1Q both equal the input. The other one is derived
+                      # (the quarter vs the street; at FY, 4Q on its own) and stays.
+                      + ([] if _n == 1 else ["ytd"] if _single else ["q"])
+                      + ["vs_st", "read"]
                       + (["oo", "adj_q"] + (["adj_ytd"] if _n > 1 else [])
                          + ["adj_vs", "adj_read"] if _has_oo else [])
                       + ["yoy", "vs_guide"] + (["vs_h1"] if _n == 2 else []))
