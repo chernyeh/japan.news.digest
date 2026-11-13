@@ -1,7 +1,11 @@
 {
   "2802": {
     "added_at": "2026-11-07",
-    "name": "Ajinomoto Co., Inc."
+    "name": "Ajinomoto Co., Inc.",
+    "thesis": {
+      "note": "Some overhang as the co has Russian assets, given what has happened to JT. But Ajinomoto's exposure does not seem that large."
+    },
+    "thesis_updated": "2026-11-13"
   },
   "4004": {
     "added_at": "2026-11-12",
