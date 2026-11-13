@@ -49,7 +49,11 @@
   },
   "8136": {
     "added_at": "2026-11-06",
-    "name": "Sanrio Company, Ltd."
+    "name": "Sanrio Company, Ltd.",
+    "thesis": {
+      "note": "Margins forecast to rise, but I think they will moderate, as the co invests in A&P and branding-related activities (movie, games) while also reassessing licensing partners ie. impacting growth."
+    },
+    "thesis_updated": "2026-11-13"
   },
   "9983": {
     "added_at": "2026-11-12",
