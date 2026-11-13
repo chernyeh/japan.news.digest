@@ -50,6 +50,8 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-11-12,operating_profit,FY2027,consensus,19200000000.0,typed:Company data,typed,2026-11-13
 2026-11-13,operating_profit,FY2027,ytd_1q,6867000000.0,typed:Company data,typed,2026-11-13
 2026-11-13,operating_profit,FY2027,ytd_2q,10822000000.0,typed:Company data,typed,2026-11-13
+2026-11-13,operating_profit,FY2028,consensus,21050000000.0,typed:Koyfin,typed,2026-11-13
+2026-11-13,operating_profit,FY2029,consensus,22460000000.0,typed:Koyfin,typed,2026-11-13
 2026-05-12,ordinary_profit,FY2027,company,17600000000.0,jquants,backfill,2026-08-27
 2026-11-12,ordinary_profit,FY2027,company,19100000000.0,typed:Company data,typed,2026-11-13
 2026-05-12,ordinary_profit,FY2027,company_h1,9400000000.0,jquants,backfill,2026-08-27
