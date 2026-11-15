@@ -22,11 +22,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-09-05,eps,FY2027,consensus,188.07187,yfinance,backfill,2026-09-05
 2026-09-19,eps,FY2027,consensus,187.43187,yfinance,backfill,2026-09-19
 2026-10-10,eps,FY2027,consensus,132.22849,yfinance,backfill,2026-10-10
+2026-11-15,eps,FY2027,consensus,-6.85377,yfinance,collect,2026-11-14
 2026-08-06,eps,FY2027,ytd_1q,60.08,jquants,filing,2026-11-01
 2026-08-27,eps,FY2028,consensus,117.96302,yfinance,backfill,2026-08-27
 2026-08-27,eps,FY2028,consensus,115.09542,yfinance,backfill,2026-08-27
 2026-09-05,eps,FY2028,consensus,117.96302,yfinance,backfill,2026-09-05
 2026-09-19,eps,FY2028,consensus,112.9834,yfinance,backfill,2026-09-19
+2026-11-15,eps,FY2028,consensus,123.047,yfinance,collect,2026-11-14
 2025-05-13,net_profit,FY2025,actual,1153332000000.0,jquants,filing,2026-11-01
 2024-11-12,net_profit,FY2025,ytd_2q,1005319000000.0,jquants,filing,2026-11-01
 2025-02-12,net_profit,FY2025,ytd_3q,636154000000.0,jquants,filing,2026-11-01
@@ -53,6 +55,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-10-03,net_sales,FY2027,consensus,8522569216700.0,yfinance,backfill,2026-10-03
 2026-10-10,net_sales,FY2027,consensus,8537407164480.0,yfinance,backfill,2026-10-10
 2026-10-31,net_sales,FY2027,consensus,8535196091700.0,yfinance,backfill,2026-10-31
+2026-11-15,net_sales,FY2027,consensus,8606243396870.0,yfinance,collect,2026-11-14
 2026-08-06,net_sales,FY2027,ytd_1q,2019591000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2028,consensus,9064817068490.0,yfinance,backfill,2026-08-27
 2026-08-27,net_sales,FY2028,consensus,9077138206390.0,yfinance,backfill,2026-08-27
@@ -60,6 +63,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-09-19,net_sales,FY2028,consensus,9133765319430.0,yfinance,backfill,2026-09-19
 2026-10-03,net_sales,FY2028,consensus,9133747852770.0,yfinance,backfill,2026-10-03
 2026-10-10,net_sales,FY2028,consensus,9129015556530.0,yfinance,backfill,2026-10-10
+2026-11-15,net_sales,FY2028,consensus,9149501399850.0,yfinance,collect,2026-11-14
 2025-05-13,ordinary_profit,FY2025,actual,-481572000000.0,jquants,filing,2026-11-01
 2026-05-13,ordinary_profit,FY2026,actual,1009950000000.0,jquants,filing,2026-11-01
 2025-05-13,shares,FY2025,actual,1469995230.0,jquants,filing,2026-11-01

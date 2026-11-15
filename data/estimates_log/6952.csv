@@ -23,10 +23,12 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,eps,FY2027,consensus,124.22256,yfinance,backfill,2026-08-27
 2026-09-12,eps,FY2027,consensus,124.1688,yfinance,backfill,2026-09-12
 2026-11-11,eps,FY2027,consensus,117.39,typed:Company data,typed,2026-11-12
+2026-11-14,eps,FY2027,consensus,122.8525,yfinance,collect,2026-11-14
 2026-07-31,eps,FY2027,ytd_1q,41.92,jquants,filing,2026-11-01
 2026-11-12,eps,FY2027,ytd_2q,74.96,typed:Company data,typed,2026-11-12
 2026-08-27,eps,FY2028,consensus,119.27003,yfinance,backfill,2026-08-27
 2026-09-12,eps,FY2028,consensus,124.01878,yfinance,backfill,2026-09-12
+2026-11-14,eps,FY2028,consensus,124.44378,yfinance,collect,2026-11-14
 2026-11-06,eps,FY2029,consensus,149.34,typed:Koyfin,typed,2026-11-06
 2025-05-13,net_profit,FY2025,actual,8064000000.0,jquants,filing,2026-11-01
 2024-11-27,net_profit,FY2025,company,8000000000.0,jquants,backfill,2024-11-27
@@ -67,6 +69,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,net_sales,FY2027,consensus,305800000000.0,yfinance,backfill,2026-08-27
 2026-09-12,net_sales,FY2027,consensus,306183333330.0,yfinance,backfill,2026-09-12
 2026-11-11,net_sales,FY2027,consensus,301510000000.0,typed:Company data,typed,2026-11-12
+2026-11-14,net_sales,FY2027,consensus,307133333330.0,yfinance,collect,2026-11-14
 2026-11-06,net_sales,FY2027,consensus_q2,79120000000.0,typed:Koyfin,typed,2026-11-06
 2026-11-06,net_sales,FY2027,consensus_q3,80980000000.0,typed:Koyfin,typed,2026-11-06
 2026-11-06,net_sales,FY2027,consensus_q4,72150000000.0,typed:Koyfin,typed,2026-11-06
@@ -74,6 +77,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-11-12,net_sales,FY2027,ytd_2q,157504000000.0,typed:Company data,typed,2026-11-12
 2026-08-27,net_sales,FY2028,consensus,307162500000.0,yfinance,backfill,2026-08-27
 2026-09-12,net_sales,FY2028,consensus,309637500000.0,yfinance,backfill,2026-09-12
+2026-11-14,net_sales,FY2028,consensus,309462500000.0,yfinance,collect,2026-11-14
 2026-11-06,net_sales,FY2029,consensus,332070000000.0,typed:Koyfin,typed,2026-11-06
 2025-05-13,operating_profit,FY2025,actual,14236000000.0,jquants,filing,2026-11-01
 2024-11-27,operating_profit,FY2025,company,14000000000.0,jquants,backfill,2024-11-27

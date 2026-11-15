@@ -68,6 +68,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,net_sales,FY2027,consensus,1888700000000.0,yfinance,backfill,2026-08-27
 2026-09-05,net_sales,FY2027,consensus,1887450000000.0,yfinance,backfill,2026-09-05
 2026-10-03,net_sales,FY2027,consensus,1867450000000.0,yfinance,backfill,2026-10-03
+2026-11-15,net_sales,FY2027,consensus,1901000000000.0,yfinance,collect,2026-11-14
 2026-08-10,net_sales,FY2027,ytd_1q,460532000000.0,jquants,filing,2026-11-06
 2026-08-27,net_sales,FY2028,consensus,1962650000000.0,yfinance,backfill,2026-08-27
 2026-09-05,net_sales,FY2028,consensus,1976550000000.0,yfinance,backfill,2026-09-05
