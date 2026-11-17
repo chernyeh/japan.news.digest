@@ -462,6 +462,30 @@
       "unit": "jpy_abs",
       "value": 4136999999.9999995
     },
+    "net_sales|FY2025|actual_q1": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 11180000000.0
+    },
+    "net_sales|FY2025|actual_q2": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 13630000000.0
+    },
+    "net_sales|FY2025|actual_q3": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 13020000000.0
+    },
+    "net_sales|FY2025|actual_q4": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 15040000000.0
+    },
     "net_sales|FY2026|ytd_3q": {
       "as_of": "2026-11-16",
       "source": "typed:Company data",
