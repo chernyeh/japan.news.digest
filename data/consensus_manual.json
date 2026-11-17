@@ -450,6 +450,12 @@
       "unit": "jpy",
       "value": 130.24
     },
+    "eps|FY2028|consensus": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 175.88
+    },
     "net_profit|FY2026|ytd_3q": {
       "as_of": "2026-11-16",
       "source": "typed:Company data",
