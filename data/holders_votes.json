@@ -280,6 +280,205 @@
       }
     }
   ],
+  "7747": [
+    {
+      "agm_date": "2026-09-29",
+      "date": "2026-09-30",
+      "doc_id": "S100Z5EH",
+      "fy": "FY2026",
+      "id": "agm_FY2026",
+      "notes": "Per item (4), votes at the meeting whose for, against or abstain status could not be confirmed were not added to the counts. Approval rates are as printed in the report.",
+      "read_on": "2026-11-17",
+      "resolutions": [
+        {
+          "approval_pct": 99.78,
+          "kind": "dividend",
+          "number": "第1号議案",
+          "passed": true,
+          "person_name": "",
+          "person_name_en": "",
+          "proposed_by_shareholder": false,
+          "title": "Appropriation of surplus (dividend of ¥48.24 per share)",
+          "votes_abstain": 164,
+          "votes_against": 336,
+          "votes_for": 2082015
+        },
+        {
+          "approval_pct": 88.19,
+          "kind": "director_election",
+          "number": "第2号議案 1",
+          "passed": true,
+          "person_name": "宮田昌彦",
+          "person_name_en": "Masahiko Miyata",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 5767,
+          "votes_against": 259055,
+          "votes_for": 1817683
+        },
+        {
+          "approval_pct": 86.28,
+          "kind": "director_election",
+          "number": "第2号議案 2",
+          "passed": true,
+          "person_name": "宮田憲次",
+          "person_name_en": "Kenji Miyata",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 5767,
+          "votes_against": 302533,
+          "votes_for": 1774205
+        },
+        {
+          "approval_pct": 97.84,
+          "kind": "director_election",
+          "number": "第2号議案 3",
+          "passed": true,
+          "person_name": "西内誠",
+          "person_name_en": "Makoto Nishiuchi",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 164,
+          "votes_against": 44507,
+          "votes_for": 2037839
+        },
+        {
+          "approval_pct": 97.83,
+          "kind": "director_election",
+          "number": "第2号議案 4",
+          "passed": true,
+          "person_name": "寺井芳徳",
+          "person_name_en": "Yoshinori Terai",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 164,
+          "votes_against": 44686,
+          "votes_for": 2037660
+        },
+        {
+          "approval_pct": 97.34,
+          "kind": "director_election",
+          "number": "第2号議案 5",
+          "passed": true,
+          "person_name": "伊藤瑞穂",
+          "person_name_en": "Mizuho Ito",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 164,
+          "votes_against": 55978,
+          "votes_for": 2026368
+        },
+        {
+          "approval_pct": 97.84,
+          "kind": "director_election",
+          "number": "第2号議案 6",
+          "passed": true,
+          "person_name": "石原和人",
+          "person_name_en": "Kazuto Ishihara",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 164,
+          "votes_against": 44504,
+          "votes_for": 2037842
+        },
+        {
+          "approval_pct": 97.84,
+          "kind": "director_election",
+          "number": "第2号議案 7",
+          "passed": true,
+          "person_name": "大谷真二郎",
+          "person_name_en": "Shinjiro Otani",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 164,
+          "votes_against": 44552,
+          "votes_for": 2037794
+        },
+        {
+          "approval_pct": 99.15,
+          "kind": "director_election",
+          "number": "第2号議案 8",
+          "passed": true,
+          "person_name": "草刈貴弘",
+          "person_name_en": "Takahiro Kusakari",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 164,
+          "votes_against": 14630,
+          "votes_for": 2067719
+        },
+        {
+          "approval_pct": 95.73,
+          "kind": "director_election",
+          "number": "第2号議案 9",
+          "passed": true,
+          "person_name": "田口晶弘",
+          "person_name_en": "Akihiro Taguchi",
+          "proposed_by_shareholder": false,
+          "title": "Election of director (not audit committee member)",
+          "votes_abstain": 164,
+          "votes_against": 92721,
+          "votes_for": 1989625
+        },
+        {
+          "approval_pct": 96.87,
+          "kind": "auditor_election",
+          "number": "第3号議案 1",
+          "passed": true,
+          "person_name": "富田隆司",
+          "person_name_en": "Ryuji Tomita",
+          "proposed_by_shareholder": false,
+          "title": "Election of audit committee director",
+          "votes_abstain": 164,
+          "votes_against": 66743,
+          "votes_for": 2015605
+        },
+        {
+          "approval_pct": 99.36,
+          "kind": "auditor_election",
+          "number": "第3号議案 2",
+          "passed": true,
+          "person_name": "深谷玲子",
+          "person_name_en": "Reiko Fukaya",
+          "proposed_by_shareholder": false,
+          "title": "Election of audit committee director",
+          "votes_abstain": 164,
+          "votes_against": 9938,
+          "votes_for": 2072412
+        },
+        {
+          "approval_pct": 77.33,
+          "kind": "auditor_election",
+          "number": "第3号議案 3",
+          "passed": true,
+          "person_name": "森口茂樹",
+          "person_name_en": "Shigeki Moriguchi",
+          "proposed_by_shareholder": false,
+          "title": "Election of audit committee director",
+          "votes_abstain": 164,
+          "votes_against": 512225,
+          "votes_for": 1570118
+        },
+        {
+          "approval_pct": 99.49,
+          "kind": "auditor_election",
+          "number": "第4号議案",
+          "passed": true,
+          "person_name": "清水綾子",
+          "person_name_en": "Ayako Shimizu",
+          "proposed_by_shareholder": false,
+          "title": "Election of substitute audit committee director",
+          "votes_abstain": 164,
+          "votes_against": 6874,
+          "votes_for": 2075477
+        }
+      ],
+      "usage": {
+        "input": 2362,
+        "output": 3098
+      }
+    }
+  ],
   "8136": [
     {
       "agm_date": "2026-06-25",
