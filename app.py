@@ -5608,15 +5608,12 @@ with tab_research:
                         key="research_fc_quarters")
                 with _vc2:
                     _show_growth = st.checkbox(
-                        "Margins & growth", value=True, key="research_fc_growth",
-                        help="Margin, YoY and QoQ lines under each figure.")
+                        "Margins & growth", value=True, key="research_fc_growth")
                 with _vc3:
                     # Street estimates for quarters already reported are kept,
                     # not deleted; they are hidden unless asked for.
                     _show_past = st.checkbox(
-                        "Past street est.", value=False, key="research_fc_past_est",
-                        help="Under each reported quarter, the street estimate that was "
-                             "logged for it before the result. Kept, but hidden by default.")
+                        "Past street est.", value=False, key="research_fc_past_est")
 
             _ROWS = _fc_rows(_profile, with_progress=True)
             _MONEY_ROWS = [r for r in _ROWS if r[4] == "flow"]
