@@ -1362,6 +1362,12 @@
     }
   },
   "7747": {
+    "net_sales|FY2027|actual_q1": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 43730000000.0
+    },
     "net_sales|FY2027|consensus": {
       "as_of": "2026-11-17",
       "source": "typed:Koyfin",
