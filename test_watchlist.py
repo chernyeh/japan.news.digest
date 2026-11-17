@@ -280,7 +280,7 @@ def test_flag_below_munger_and_still_on_watch():
     r = _row(thesis={"munger_price": 1100, "action": "WATCH"})
     fl = G.decision_flags(r, TODAY)
     assert fl[0]["kind"] == "below_munger" and fl[0]["severity"] == "act"
-    assert "Still on WATCH" in fl[0]["text"]
+    assert "still WATCH" in fl[0]["text"] and fl[0]["key"] == "1100"
 
 
 def test_flags_near_and_past_exit_unless_already_trimming():

@@ -347,6 +347,31 @@ def reaction_after(series: list, topix_series: list, result_date, events: list =
     return round(((1 + r) / (1 + rt) - 1) * 100, 1), end[0].isoformat(), settled
 
 
+def rel_since(series: list, topix_series: list, start, events: list = None):
+    """The stock against TOPIX, in % of geometric excess, from the last weekly
+    close on or before `start` to the latest close — the price move to set
+    beside a consensus revision over the same stretch. None when either end
+    is missing or more than a week from where it should be."""
+    d0 = _as_date(start)
+    if not d0 or not series or not topix_series:
+        return None
+    pts = sorted((_as_date(d), float(c)) for d, c in series if _as_date(d) and c)
+    tpts = sorted((_as_date(d), float(c)) for d, c in topix_series if _as_date(d) and c)
+    before = [p for p in pts if p[0] <= d0]
+    if not before or not pts or (d0 - before[-1][0]).days > 7 or pts[-1][0] <= before[-1][0]:
+        return None
+    base, end = before[-1], pts[-1]
+    tb = [p for p in tpts if p[0] <= base[0]]
+    te = [p for p in tpts if p[0] <= end[0]]
+    if not tb or not te or (base[0] - tb[-1][0]).days > 7 or (end[0] - te[-1][0]).days > 7:
+        return None
+    events = events or []
+    if S.unresolved_between(events, base[0], end[0]):
+        return None
+    b = base[1] / S.cumulative_factor(events, base[0], end[0])
+    return round(((end[1] / b) / (te[-1][1] / tb[-1][1]) - 1) * 100, 1)
+
+
 # ── Decision flags ──────────────────────────────────────────────────────────
 # Each flag is something that asks for a decision, not a fact to admire. The
 # wording leans on the behaviours the flag exists to catch: sitting on an
@@ -378,12 +403,27 @@ def beat(row: dict) -> bool:
     return (row.get("guide_move") or 0) > 0
 
 
+def short_date(iso) -> str:
+    """2026-11-06 -> "6 Nov"; "" if unreadable."""
+    d = _as_date(iso)
+    return f"{d.day} {d:%b}" if d else ""
+
+
+def _yen_txt(v) -> str:
+    return f"¥{v:,.0f}"
+
+
 def decision_flags(row: dict, today: date = None, settings: dict = None) -> list:
-    """[{"kind", "severity", "short", "text"}] for one grid row."""
+    """[{"kind", "severity", "short", "text", "key"}] for one grid row.
+
+    Text is note-style: short, no full sentences, known abbreviations. `key`
+    is what identifies this particular occurrence of the flag, so a cleared
+    flag stays cleared until the thing it is about changes (a new exit
+    price, a new result, a new review date)."""
     today = today or date.today()
     cfg = {**DEFAULTS, **(settings or {})}
     out = []
-    price, action = row.get("price"), (row.get("action") or "")
+    action = row.get("action") or ""
     rr = row.get("rr")
 
     vm = row.get("vs_munger")
@@ -391,25 +431,25 @@ def decision_flags(row: dict, today: date = None, settings: dict = None) -> list
         holding_back = action in ("", "WATCH")
         out.append({
             "kind": "below_munger", "severity": "act", "short": "≤ Munger",
-            "text": (f"At {vm * 100:+.0f}% to your Munger price of ¥{row['munger_price']:,.0f}: "
-                     "the price you said would be an extraordinary margin of safety. "
-                     + ("Still on WATCH — if the thesis holds, this is the price you said you would buy at."
-                        if holding_back else f"Action is {action}."))})
+            "key": f"{row['munger_price']:g}",
+            "text": (f"{vm * 100:+.0f}% vs Munger {_yen_txt(row['munger_price'])}"
+                     + (" · still WATCH → your buy price, if thesis holds"
+                        if holding_back else f" · action {action}"))})
 
     te = row.get("to_exit")
     if te is not None and action not in ("TRIM", "SELL"):
         if te <= 0:
             out.append({
                 "kind": "past_exit", "severity": "act", "short": "Past exit",
-                "text": (f"Price is {-te * 100:.0f}% above your exit of ¥{row['exit_price']:,.0f}. "
-                         "Trim, or raise the exit with the reason written down — not because "
-                         "it has gone up (house money).")})
+                "key": f"{row['exit_price']:g}",
+                "text": (f"{-te * 100:.0f}% above exit {_yen_txt(row['exit_price'])} · trim, "
+                         "or raise exit w/ written reason (not house money)")})
         elif te <= cfg["near_exit"]:
             out.append({
                 "kind": "near_exit", "severity": "warn", "short": "Near exit",
-                "text": (f"Within {te * 100:.0f}% of your exit of ¥{row['exit_price']:,.0f}. "
-                         "Decide now whether to trim at the exit, while it is a plan rather "
-                         "than a reaction.")})
+                "key": f"{row['exit_price']:g}",
+                "text": (f"{te * 100:.0f}% to exit {_yen_txt(row['exit_price'])} · "
+                         "set trim plan now, not at the time")})
 
     if action == "WATCH" and rr is not None and rr >= cfg["rr_hurdle"]:
         since = row.get("action_since") or row.get("thesis_updated") or row.get("added_at")
@@ -417,32 +457,32 @@ def decision_flags(row: dict, today: date = None, settings: dict = None) -> list
         if days is not None and days >= cfg["watch_days"]:
             out.append({
                 "kind": "stuck_watch", "severity": "act", "short": "Stuck on WATCH",
-                "text": (f"Reward-to-risk {_rr_txt(rr)} clears your {cfg['rr_hurdle']:.0f}:1 hurdle "
-                         f"and it has been on WATCH for {days} days. Name the single fact you "
-                         "are waiting for — if there is none, this is fortification, not diligence.")})
+                "key": str(since or ""),
+                "text": (f"R:R {_rr_txt(rr)} > {cfg['rr_hurdle']:.0f}:1 hurdle · WATCH {days}d · "
+                         "name the missing fact, else fortifying")})
 
     rd = _days_since(row.get("review_date"), today)
     if rd is not None and rd >= 0:
         out.append({
             "kind": "review_due", "severity": "warn", "short": "Review due",
-            "text": ("Review date is today." if rd == 0 else
-                     f"Review date passed {rd} day{'s' if rd != 1 else ''} ago "
-                     f"({row['review_date']}).")})
+            "key": str(row.get("review_date")),
+            "text": ("Review due today" if rd == 0 else
+                     f"Review overdue {rd}d ({short_date(row['review_date'])})")})
 
     rx = row.get("reaction")
     rdays = _days_since(row.get("result_date"), today)
     if (rx is not None and rx <= 0 and beat(row)
             and rdays is not None and rdays <= cfg["result_window_days"]):
-        how = (f"beat the street by {row['op_vs_street'] * 100:+.1f}% on OP"
+        how = (f"beat cons. {row['op_vs_street'] * 100:+.1f}% on OP"
                if row.get("op_vs_street") is not None
-               else f"raised OP guidance {row['guide_move'] * 100:+.1f}%")
+               else f"OP guide raised {row['guide_move'] * 100:+.1f}%")
         out.append({
             "kind": "beat_fell", "severity": "warn", "short": "Beat, stock fell",
-            "text": (f"{row.get('result_label', 'Latest result')}: {how}, but the stock is "
-                     f"{rx:+.1f}% vs TOPIX since"
-                     + ("" if row.get("reaction_settled") else " (so far)")
-                     + ". Good results not rewarded: already assumed, or the sector is "
-                       "over-owned (rule 10).")})
+            "key": str(row.get("result_date")),
+            "text": (f"{row.get('result_period') or 'Result'} ({short_date(row.get('result_date'))}): "
+                     f"{how}, but stock {rx:+.1f}% vs TOPIX"
+                     + ("" if row.get("reaction_settled") else " so far")
+                     + " · priced in / over-owned? (rule 10)")})
     return sorted(out, key=lambda f: SEVERITY_ORDER[f["severity"]])
 
 
@@ -462,9 +502,9 @@ def peer_flags(rows: list, today: date = None, settings: dict = None) -> dict:
         peers = [p for p in fell if p["code"] != r["code"]
                  and p.get("sector") and p.get("sector") == r.get("sector")]
         if peers:
-            names = ", ".join(f"{p.get('name') or p['code']} ({p['reaction']:+.1f}%)" for p in peers)
+            names = ", ".join(f"{p.get('name') or p['code']} {p['reaction']:+.1f}%" for p in peers)
             out[r["code"]] = [{
                 "kind": "peer_beat_fell", "severity": "info", "short": "Peer beat, fell",
-                "text": (f"Sector peer beat and fell: {names}. A red flag for the sector — "
-                         "good results may already be priced in.")}]
+                "key": ",".join(sorted(f"{p['code']}:{p.get('result_date')}" for p in peers)),
+                "text": f"Sector peer beat, stock fell vs TOPIX: {names} · sector priced in?"}]
     return out
