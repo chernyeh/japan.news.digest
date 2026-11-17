@@ -70,6 +70,7 @@ date,metric,fy,basis,value,source,origin,logged_at
 2025-11-14,net_sales,FY2026,ytd_1q,36058000000.0,jquants,filing,2026-11-01
 2026-02-13,net_sales,FY2026,ytd_2q,71266000000.0,jquants,filing,2026-11-01
 2026-05-15,net_sales,FY2026,ytd_3q,108366000000.0,jquants,filing,2026-11-01
+2026-11-17,net_sales,FY2027,actual_q1,43730000000.0,typed:Koyfin,typed,2026-11-17
 2026-08-14,net_sales,FY2027,company,161794000000.0,jquants,filing,2026-11-06
 2026-08-27,net_sales,FY2027,consensus,161146636580.0,yfinance,backfill,2026-08-27
 2026-08-27,net_sales,FY2027,consensus,174798203830.0,yfinance,backfill,2026-08-27
