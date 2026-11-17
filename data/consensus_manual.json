@@ -444,6 +444,12 @@
     }
   },
   "4919": {
+    "cash|latest|fin": {
+      "as_of": "2026-11-17",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 11028000000.0
+    },
     "eps|FY2026|consensus": {
       "as_of": "2026-11-17",
       "source": "typed",
@@ -557,6 +563,12 @@
       "source": "typed:Company data",
       "unit": "jpy_abs",
       "value": 5839000000.0
+    },
+    "sh_equity|latest|fin": {
+      "as_of": "2026-11-17",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 44818000000.0
     }
   },
   "5331": {
