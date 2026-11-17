@@ -474,6 +474,30 @@
       "unit": "jpy_abs",
       "value": 62020000000.0
     },
+    "operating_profit|FY2025|actual_q1": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 712000000.0
+    },
+    "operating_profit|FY2025|actual_q2": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 1230000000.0
+    },
+    "operating_profit|FY2025|actual_q3": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 1550000000.0
+    },
+    "operating_profit|FY2025|actual_q4": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 2160000000.0
+    },
     "operating_profit|FY2026|consensus_q4": {
       "as_of": "2026-11-17",
       "source": "typed:Koyfin",
