@@ -1362,6 +1362,30 @@
     }
   },
   "7747": {
+    "net_sales|FY2026|actual_q1": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 36600000000.0
+    },
+    "net_sales|FY2026|actual_q2": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 35210000000.0
+    },
+    "net_sales|FY2026|actual_q3": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 37100000000.0
+    },
+    "net_sales|FY2026|actual_q4": {
+      "as_of": "2026-11-17",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 37050000000.0
+    },
     "net_sales|FY2027|actual_q1": {
       "as_of": "2026-11-17",
       "source": "typed:Koyfin",
