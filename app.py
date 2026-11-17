@@ -67,6 +67,8 @@ from capital_events import load_from_github as load_capital_events
 import results_day as RD
 import forward as FW
 import one_offs as OO
+import consensus_revisions as CR
+import flag_dismissals as FD
 import notice_reader as NR
 import models
 import consensus_vision
@@ -2057,6 +2059,20 @@ def _watchlist_grid_data(codes: list) -> dict:
         _events = {}
     _tpx = WG.topix_series(_hist)
 
+    # The next scheduled result per company, from the JPX calendar, so a
+    # consensus move can be read against how close the print is.
+    _next_res = {}
+    try:
+        _cal = _shared("earnings_cal",
+                       lambda: load_earnings_cal_from_github(_ec_repo, _gh_token)) or []
+        _t0 = now_local().date().isoformat()
+        for _e in _cal:
+            _d, _cc = _e.get("announcement_date") or "", _e.get("code") or ""
+            if _cc in codes and _d >= _t0 and (_cc not in _next_res or _d < _next_res[_cc]):
+                _next_res[_cc] = _d
+    except Exception as _e:
+        print(f"watchlist earnings calendar error: {_e}")
+
     # The whole collected universe, for the sector reference rows.
     try:
         _uni_rows = _shared("valuation_rows_all", _valuation_rows_all) or []
@@ -2086,7 +2102,7 @@ def _watchlist_grid_data(codes: list) -> dict:
                 "price": _vr.get("price") or _prices.get(_c),
                 "mcap_bn": _vr.get("mcap_bn") or _mc.get(_c),
                 "fy1": _vr.get("fy1", ""), "covered": _c in _cons,
-                "split": _vr.get("split", False)}
+                "split": _vr.get("split", False), "next_result": _next_res.get(_c)}
         for _k in _WL_VAL_KEYS:
             _row[_k] = _vr.get(_k)
 
@@ -2097,6 +2113,7 @@ def _watchlist_grid_data(codes: list) -> dict:
                          "guide_move": _sm.get("guide_move"),
                          "street_move": _sm.get("street_move"),
                          "result_label": f'{_sm["period"]} {_sm["fy"]}, reported {_sm["date"]}',
+                         "result_period": f'{_sm["period"]} {CR.fy_short(_sm["fy"])}',
                          "result_date": _sm["date"]})
             if _sm.get("op_vs_street") is not None and _sm.get("op_quarter") is not None \
                     and _sm["period"] != "FY":
@@ -2139,6 +2156,10 @@ def _watchlist_grid_data(codes: list) -> dict:
             "uni_med": WG.medians(_uni_rows, WG.SECTOR_MEDIAN_KEYS),
             "topix": _topix or {},
             "prices": {r["code"]: r["price"] for r in _rows},
+            # Kept for the consensus-revision flags, which are built at draw
+            # time (their thresholds are adjustable) and need the price move
+            # against TOPIX over the same stretch as the revision.
+            "hist": {c: _hist.get(c) for c in codes}, "events": _events, "tpx": _tpx,
             "built": now_local()}
 
 
@@ -4410,9 +4431,9 @@ with tab_watchlist:
         if _gc:
             # Thresholds for the flags. Session-only: they tune what is
             # flagged, they are not part of any company's thesis.
-            _flag_cfg = dict(WG.DEFAULTS)
+            _flag_cfg = {**WG.DEFAULTS, **CR.DEFAULTS}
             if st.toggle("Flag thresholds", key="wl_flag_cfg_show"):
-                _t1, _t2, _t3, _t4 = st.columns(4)
+                _t1, _t2, _t3, _t4, _t5 = st.columns(5)
                 with _t1:
                     _flag_cfg["watch_days"] = st.number_input(
                         "On WATCH for at least (days)", 1, 3650, WG.DEFAULTS["watch_days"], 5,
@@ -4429,8 +4450,24 @@ with tab_watchlist:
                     _flag_cfg["result_window_days"] = st.number_input(
                         "Results reported within (days)", 7, 365,
                         WG.DEFAULTS["result_window_days"], 7, key="wl_cfg_window")
+                with _t5:
+                    _flag_cfg["cons_move"] = st.number_input(
+                        "Cons. revision ≥ (%)", 0.5, 50.0, CR.DEFAULTS["cons_move"] * 100, 0.5,
+                        key="wl_cfg_cons",
+                        help="OP or EPS consensus (FY1/FY2) moved at least this much since "
+                             "the latest result, or over 30 days between results. "
+                             f"≥ {CR.DEFAULTS['cons_big'] * 100:.0f}% is marked to act on.") / 100
 
             _today = now_local().date()
+            if "flag_dismissals" not in st.session_state:
+                try:
+                    st.session_state.flag_dismissals = FD.load_from_github(_ec_repo, _gh_token) or {}
+                except Exception as _de:
+                    print(f"flag dismissals load error: {_de}")
+                    st.session_state.flag_dismissals = {}
+            _fd = st.session_state.flag_dismissals
+            _hidden = FD.hidden_ids(_fd, _today)
+            _logs_map = st.session_state.get("estimates_log_map") or {}
             _rows = []
             for _r in _gc["rows"]:
                 _r = dict(_r)
@@ -4442,10 +4479,24 @@ with tab_watchlist:
                 _r["news"] = len(st.session_state.watchlist_hits.get(_r["name"]) or [])
                 _r["_rr_hurdle"] = _flag_cfg["rr_hurdle"]
                 _r["flags"] = WG.decision_flags(_r, _today, _flag_cfg)
+                # Has the street moved its numbers? Read against the stock's
+                # move vs TOPIX over the same stretch.
+                _h = (_gc.get("hist") or {}).get(_r["code"])
+                _cf = CR.revision_flag(
+                    _r, _logs_map.get(_r["code"]) or [], _today, _flag_cfg,
+                    rel_since=(lambda d, _h=_h, _c=_r["code"]: WG.rel_since(
+                        _h, _gc.get("tpx") or [], d, (_gc.get("events") or {}).get(_c, [])))
+                    if _h else None)
+                if _cf:
+                    _r["flags"].append(_cf)
                 _rows.append(_r)
             _peer = WG.peer_flags(_rows, _today, _flag_cfg)
             for _r in _rows:
-                _r["flags"] = _r["flags"] + _peer.get(_r["code"], [])
+                _fl = sorted(_r["flags"] + _peer.get(_r["code"], []),
+                             key=lambda f: WG.SEVERITY_ORDER[f["severity"]])
+                # Cleared flags leave the list and the grid's Flags column;
+                # they are kept in data/flag_dismissals.json (Alert log below).
+                _r["flags"], _r["flags_cleared"] = FD.split(_r["code"], _fl, _hidden)
                 _r["flags_n"] = len(_r["flags"]) or None
 
             # ── Decisions waiting ─────────────────────────────────────────
@@ -4454,11 +4505,12 @@ with tab_watchlist:
             _all_flags = sorted(((f, _r) for _r in _rows for f in _r["flags"]),
                                 key=lambda t: (WG.SEVERITY_ORDER[t[0]["severity"]],
                                                (t[1].get("name") or "").lower()))
+            _n_cleared = sum(len(_r.get("flags_cleared") or []) for _r in _rows)
             if _all_flags:
                 _n_act = sum(1 for f, _ in _all_flags if f["severity"] == "act")
                 _dh = [f'<div class="wl-decisions"><div class="wl-dec-head">🚩 Decisions waiting · '
                        f'{len(_all_flags)}' + (f' · {_n_act} to act on' if _n_act else '')
-                       + '</div>']
+                       + (f' · {_n_cleared} cleared' if _n_cleared else '') + '</div>']
                 for _f, _r in _all_flags:
                     _dh.append(
                         f'<div class="wl-dec wl-dec-{_f["severity"]}">'
@@ -4468,10 +4520,131 @@ with tab_watchlist:
                         f'<span class="fc-na">{_safe_text(_r["code"])}</span> — '
                         f'{_safe_text(_f["text"])}</div>')
                 st.markdown("".join(_dh) + '</div>', unsafe_allow_html=True)
+
+                # Clear the ones that are not relevant. Nothing is deleted:
+                # each clearing is logged, with the flag's text as it stood.
+                _opt = {f'{_r.get("name") or _r["code"]} · {_f["short"]}'
+                        + (f' · {_f["text"][:48]}…' if len(_f["text"]) > 48 else f' · {_f["text"]}'):
+                        (_f, _r) for _f, _r in _all_flags}
+                # A fresh key after each clear resets the picker: popping the
+                # old key leaves the cleared item showing in the box.
+                _gen = st.session_state.get("wl_clear_gen", 0)
+                _k1, _k2, _k3 = st.columns([5, 2.4, 1])
+                with _k1:
+                    _sel = st.multiselect("Clear alerts", list(_opt), key=f"wl_clear_sel_{_gen}",
+                                          placeholder="Clear alerts that are not relevant…",
+                                          label_visibility="collapsed")
+                with _k2:
+                    _note = st.text_input("Why", key=f"wl_clear_note_{_gen}",
+                                          label_visibility="collapsed",
+                                          placeholder="Why (optional, kept in log)")
+                with _k3:
+                    if st.button("✓ Clear", key="wl_clear_btn", disabled=not _sel,
+                                 use_container_width=True):
+                        _by = {}
+                        for _lbl in _sel:
+                            _f, _r = _opt[_lbl]
+                            _by.setdefault(_r["code"], []).append(
+                                FD.make_entry(_r["code"], _r.get("name"), _f, _today, _note))
+                        _errs = []
+                        for _c, _ents in _by.items():
+                            st.session_state.flag_dismissals = FD.apply(
+                                st.session_state.flag_dismissals, _c, _ents)
+                            _ok, _msg = FD.save_via_github(_ec_repo, _gh_token, _c, _ents)
+                            if not _ok:
+                                _errs.append(f"{_c}: {_msg}")
+                        st.session_state.watchlist_flash = (
+                            ("warning", "Cleared for this session only — " + "; ".join(_errs))
+                            if _errs else ("success", f"Cleared {len(_sel)} alert"
+                                           f"{'s' if len(_sel) != 1 else ''} · see Alert log"))
+                        st.session_state.wl_clear_gen = _gen + 1
+                        st.rerun()
+            elif _n_cleared:
+                st.markdown(f'<div class="wl-sub" style="margin:0.2rem 0 0.4rem;">🚩 No decisions '
+                            f'waiting · {_n_cleared} cleared (Alert log below)</div>',
+                            unsafe_allow_html=True)
             else:
                 st.markdown('<div class="wl-sub" style="margin:0.2rem 0 0.4rem;">🚩 No decisions '
-                            'flagged. Flags need thesis figures: a Munger, bear and exit price, an '
-                            'action and a review date.</div>', unsafe_allow_html=True)
+                            'flagged. Flags need thesis figures (Munger, bear, exit, action, '
+                            'review date) or a consensus revision.</div>', unsafe_allow_html=True)
+
+            # ── Alert log ─────────────────────────────────────────────────
+            # Two records: what you cleared (and why), and every consensus
+            # change the revision flags are drawn from.
+            _fd_log = FD.log(st.session_state.flag_dismissals)
+            _wl_set = set(_wl_codes)
+            with st.expander(f"🗂 Alert log · {len(_fd_log)} cleared · consensus changes",
+                             expanded=False):
+                import pandas as _pd
+                if _fd_log:
+                    st.markdown('<div class="wl-sub">Cleared alerts, newest first. A cleared '
+                                'alert returns by itself if its trigger changes (new result, '
+                                'exit, review date); a 30-day consensus alert after '
+                                f'{CR.ROLLING_CLEAR_DAYS}d.</div>', unsafe_allow_html=True)
+
+                    def _status(e):
+                        if e.get("restored"):
+                            return f"Restored {CR.short_date(e['restored'])}"
+                        if not FD.active(e, _today):
+                            return f"Lapsed {CR.short_date(e.get('until'))}"
+                        return "Cleared" + (f" to {CR.short_date(e['until'])}" if e.get("until") else "")
+                    st.dataframe(_pd.DataFrame([{
+                        "Cleared": e.get("date", ""), "Company": e.get("name") or e.get("code"),
+                        "Flag": e.get("short", ""), "Alert": e.get("text", ""),
+                        "Why": e.get("note", ""), "Status": _status(e)} for e in _fd_log]),
+                        hide_index=True, use_container_width=True,
+                        height=min(36 + 35 * len(_fd_log), 290))
+                    _act = {f'{e.get("name") or e.get("code")} · {e.get("short")} · {e.get("date")}': e
+                            for e in _fd_log if FD.active(e, _today)}
+                    if _act:
+                        _r1, _r2 = st.columns([5, 1])
+                        with _r1:
+                            _rs = st.multiselect("Restore", list(_act),
+                                                 key=f"wl_restore_sel_{st.session_state.get('wl_clear_gen', 0)}",
+                                                 placeholder="Bring a cleared alert back…",
+                                                 label_visibility="collapsed")
+                        with _r2:
+                            if st.button("↺ Restore", key="wl_restore_btn", disabled=not _rs,
+                                         use_container_width=True):
+                                for _lbl in _rs:
+                                    _e = FD.restored_entry(_act[_lbl], _today)
+                                    st.session_state.flag_dismissals = FD.apply(
+                                        st.session_state.flag_dismissals, _e["code"], [_e])
+                                    FD.save_via_github(_ec_repo, _gh_token, _e["code"], [_e])
+                                st.session_state.wl_clear_gen = (
+                                    st.session_state.get("wl_clear_gen", 0) + 1)
+                                st.rerun()
+                else:
+                    st.markdown('<div class="wl-sub">No alerts cleared yet.</div>',
+                                unsafe_allow_html=True)
+
+                _since = (_today - _timedelta(days=120)).isoformat()
+                _chg_rows = []
+                for _r in _rows:
+                    for _e in CR.change_log(_logs_map.get(_r["code"]) or [], since=_since,
+                                            min_chg=_flag_cfg["cons_show"]):
+                        _money = (lambda v, m=_e["metric"]: round(v, 1) if m == "eps"
+                                  else round(v / 1e9, 1))
+                        _chg_rows.append({
+                            "Date": _e["date"], "Company": _r.get("name") or _r["code"],
+                            "Metric": CR.METRIC_LABEL.get(_e["metric"], _e["metric"])
+                                      + (" ¥" if _e["metric"] == "eps" else " ¥bn"),
+                            "FY": CR.fy_short(_e["fy"]), "From": _money(_e["old"]),
+                            "To": _money(_e["new"]), "Chg %": round(_e["chg"] * 100, 1),
+                            "Source": _e["source"]})
+                st.markdown(f'<div class="wl-sub" style="margin-top:0.5rem;">Consensus changes '
+                            f'≥ {_flag_cfg["cons_show"] * 100:.0f}%, watchlist, last 120 days · '
+                            'each source compared only with itself (Yahoo vs your typed Koyfin '
+                            'figures)</div>', unsafe_allow_html=True)
+                if _chg_rows:
+                    _chg_rows.sort(key=lambda x: x["Date"], reverse=True)
+                    st.dataframe(_pd.DataFrame(_chg_rows), hide_index=True,
+                                 use_container_width=True,
+                                 height=min(36 + 35 * len(_chg_rows), 360),
+                                 column_config={"Chg %": st.column_config.NumberColumn(format="%+.1f")})
+                else:
+                    st.markdown('<div class="wl-sub">No consensus changes logged in the window.</div>',
+                                unsafe_allow_html=True)
 
             st.markdown(_watchlist_grid_html(_rows, _gc, _wl_show, _wl_sort, _wl_desc, _wl_bysector),
                         unsafe_allow_html=True)
@@ -4502,8 +4675,8 @@ with tab_watchlist:
             with _e4:
                 st.markdown(f'<div class="wl-sub" style="padding-top:0.4rem;">Built '
                             f'{_gc["built"]:%Y-%m-%d %H:%M}. Prices are the latest daily close; '
-                            f'consensus is refreshed weekly and after each watched company '
-                            f'reports.</div>', unsafe_allow_html=True)
+                            f'watchlist consensus is refreshed daily (06:30 JST), '
+                            f'the wider universe weekly.</div>', unsafe_allow_html=True)
 
     # ── Thesis figures (typed here) ──────────────────────────────────────
     if _wl_codes:

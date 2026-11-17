@@ -43,15 +43,16 @@ jobs:
 
       # data/consensus.csv is rebuilt weekly, on Saturdays. In results season
       # that leaves the forecast table up to six days stale in exactly the week
-      # it matters, so a company on the watchlist that filed a 決算短信 this
-      # evening gets re-collected now rather than waiting for the weekend.
-      # Quiet days cost nothing: with no matches the collector never runs.
-      - name: Pick watchlist companies that reported today
+      # it matters. So every watchlist company is re-collected each morning —
+      # today's 決算短信 filers first — which also gives the Watchlist tab's
+      # consensus-revision flags a daily reading: brokers revise in the days
+      # after a result, not on the evening of it.
+      - name: Pick watchlist companies (today's filers first)
         id: pick
         run: |
           # A bare `echo "$(...)"` would swallow a crash in the picker and
           # quietly skip the refresh; assigning first lets `bash -e` fail loudly.
-          codes=$(python select_refresh_codes.py)
+          codes=$(python select_refresh_codes.py --all-watched)
           echo "codes=$codes" >> "$GITHUB_OUTPUT"
 
       - name: Refresh consensus for those companies

@@ -13,6 +13,13 @@ not run.
 
     python select_refresh_codes.py                 # today's watchlist filers
     python select_refresh_codes.py --date 2026-08-06 --cap 5
+    python select_refresh_codes.py --all-watched   # today's filers, then every watched name
+
+--all-watched is what the daily job runs. Brokers revise in the days *after*
+a result, and Yahoo picks the revision up later still, so collecting a
+company only on the evening it files misses the move; the consensus-revision
+flags on the Watchlist tab need a reading every day. A watchlist is a few
+dozen names at most, so this costs a minute.
 """
 import argparse
 import csv
@@ -25,6 +32,7 @@ import watchlist
 # cumulative year-to-date figures that the progress rate is computed from.
 RESULTS_MARKER = "決算短信"
 DEFAULT_CAP = 20
+WATCHED_CAP = 60
 TDNET_PATH = "data/tdnet_filings.csv"
 
 
@@ -72,12 +80,23 @@ def select_refresh_codes(rows: list, watched, cap: int = DEFAULT_CAP,
     return out[:cap]
 
 
+def with_all_watched(filers: list, watched, cap: int = WATCHED_CAP) -> list:
+    """Today's filers first, then every other watched code, capped."""
+    out = list(filers)
+    for c in sorted(str(c) for c in (watched or [])):
+        if c not in out:
+            out.append(c)
+    return out[:cap]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--filings", default=TDNET_PATH)
     ap.add_argument("--date", default="", help="YYYY-MM-DD; default is the newest in the index")
     ap.add_argument("--cap", type=int, default=DEFAULT_CAP)
+    ap.add_argument("--all-watched", action="store_true",
+                    help="append every watched code after today's filers")
     args = ap.parse_args()
 
     rows = read_filings(args.filings)
@@ -91,6 +110,8 @@ def main() -> int:
 
     day = args.date or newest_date(rows)
     codes = select_refresh_codes(rows, watched, args.cap, args.date)
+    if args.all_watched:
+        codes = with_all_watched(codes, watched)
     print(f"{len(watched)} watched, filings dated {day or '?'}, "
           f"{len(codes)} to refresh: {', '.join(codes) or 'none'}", file=sys.stderr)
     print(",".join(codes))
