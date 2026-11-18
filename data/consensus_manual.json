@@ -1036,6 +1036,36 @@
     }
   },
   "6588": {
+    "net_sales|FY2027|actual_q1": {
+      "as_of": "2026-11-19",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 148890000000.0
+    },
+    "net_sales|FY2027|actual_q2": {
+      "as_of": "2026-11-19",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 153100000000.0
+    },
+    "net_sales|FY2027|consensus_q3": {
+      "as_of": "2026-11-19",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 148350000000.0
+    },
+    "net_sales|FY2027|consensus_q4": {
+      "as_of": "2026-11-19",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 171400000000.0
+    },
+    "net_sales|FY2029|consensus": {
+      "as_of": "2026-11-19",
+      "source": "typed:Koyfin",
+      "unit": "jpy_abs",
+      "value": 582550000000.0
+    },
     "operating_profit|FY2027|consensus": {
       "as_of": "2026-08-31",
       "source": "typed",
