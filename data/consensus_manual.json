@@ -1036,17 +1036,35 @@
     }
   },
   "6588": {
+    "capex|FY2027|fin_h1": {
+      "as_of": "2026-11-19",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 4418000000.0
+    },
     "cash|FY2027|fin_h1": {
       "as_of": "2026-11-19",
       "source": "typed",
       "unit": "jpy_abs",
       "value": 37000000000.0
     },
+    "cfo|FY2027|fin_h1": {
+      "as_of": "2026-11-19",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": -2708000000.0
+    },
     "debt|FY2027|fin_h1": {
       "as_of": "2026-11-19",
       "source": "typed",
       "unit": "jpy_abs",
       "value": 33200000000.000004
+    },
+    "dep_amort|FY2027|fin_h1": {
+      "as_of": "2026-11-19",
+      "source": "typed",
+      "unit": "jpy_abs",
+      "value": 9715000000.0
     },
     "eps|FY2027|actual_q1": {
       "as_of": "2026-11-19",
