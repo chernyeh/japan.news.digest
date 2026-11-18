@@ -1042,6 +1042,12 @@
       "unit": "jpy",
       "value": 37.94
     },
+    "eps|FY2027|actual_q2": {
+      "as_of": "2026-11-19",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": -0.35
+    },
     "eps|FY2027|consensus_q3": {
       "as_of": "2026-11-19",
       "source": "typed:Koyfin",
