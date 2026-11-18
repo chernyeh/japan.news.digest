@@ -1042,6 +1042,12 @@
       "unit": "jpy",
       "value": 57.8
     },
+    "eps|FY2029|consensus": {
+      "as_of": "2026-11-19",
+      "source": "typed:Koyfin",
+      "unit": "jpy",
+      "value": 254.9
+    },
     "net_sales|FY2026|actual_q1": {
       "as_of": "2026-11-19",
       "source": "typed:Koyfin",
