@@ -43,11 +43,16 @@ date,metric,fy,basis,value,source,origin,logged_at
 2025-08-06,net_sales,FY2026,ytd_1q,121367000000.0,jquants,filing,2026-11-01
 2025-11-10,net_sales,FY2026,ytd_2q,257655000000.0,jquants,filing,2026-11-01
 2026-02-09,net_sales,FY2026,ytd_3q,399835000000.0,jquants,filing,2026-11-01
+2026-11-19,net_sales,FY2027,actual_q1,148890000000.0,typed:Koyfin,typed,2026-11-18
+2026-11-19,net_sales,FY2027,actual_q2,153100000000.0,typed:Koyfin,typed,2026-11-18
 2026-05-11,net_sales,FY2027,company,590000000000.0,jquants,backfill,2026-08-27
 2026-08-07,net_sales,FY2027,company,610000000000.0,jquants,backfill,2026-10-31
 2026-08-27,net_sales,FY2027,consensus,598450000000.0,yfinance,backfill,2026-08-27
+2026-11-19,net_sales,FY2027,consensus_q3,148350000000.0,typed:Koyfin,typed,2026-11-18
+2026-11-19,net_sales,FY2027,consensus_q4,171400000000.0,typed:Koyfin,typed,2026-11-18
 2026-08-07,net_sales,FY2027,ytd_1q,148894000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2028,consensus,598450000000.0,yfinance,backfill,2026-08-27
+2026-11-19,net_sales,FY2029,consensus,582550000000.0,typed:Koyfin,typed,2026-11-18
 2025-05-12,operating_profit,FY2025,actual,20251000000.0,jquants,filing,2026-11-01
 2024-11-08,operating_profit,FY2025,company,18000000000.0,jquants,backfill,2024-11-08
 2024-11-08,operating_profit,FY2025,ytd_2q,9473000000.0,jquants,filing,2026-11-01
