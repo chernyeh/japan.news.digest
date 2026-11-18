@@ -38,6 +38,10 @@ date,metric,fy,basis,value,source,origin,logged_at
 2024-11-08,net_sales,FY2025,ytd_2q,289172000000.0,jquants,filing,2026-11-01
 2025-02-06,net_sales,FY2025,ytd_3q,425517000000.0,jquants,filing,2026-11-01
 2026-05-11,net_sales,FY2026,actual,569265000000.0,jquants,filing,2026-11-01
+2026-11-19,net_sales,FY2026,actual_q1,121370000000.0,typed,typed,2026-11-18
+2026-11-19,net_sales,FY2026,actual_q2,136289999999.99998,typed,typed,2026-11-18
+2026-11-19,net_sales,FY2026,actual_q3,142180000000.0,typed,typed,2026-11-18
+2026-11-19,net_sales,FY2026,actual_q4,169430000000.0,typed,typed,2026-11-18
 2025-08-06,net_sales,FY2026,company,550000000000.0,jquants,backfill,2025-08-06
 2026-02-09,net_sales,FY2026,company,570000000000.0,jquants,backfill,2026-02-09
 2025-08-06,net_sales,FY2026,ytd_1q,121367000000.0,jquants,filing,2026-11-01
