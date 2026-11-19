@@ -3022,6 +3022,1238 @@
       }
     }
   ],
+  "6588": [
+    {
+      "blocks_catalog": [
+        {
+          "chars": 9150,
+          "element": "OverviewOfCorporateGovernanceTextBlock",
+          "kind": "officers",
+          "label": "コーポレート・ガバナンスの概要 [テキストブロック]"
+        },
+        {
+          "chars": 9130,
+          "element": "CorporateGovernanceCompanyWithCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "企業統治の体制の概要（監査役設置会社） [テキストブロック]"
+        },
+        {
+          "chars": 8548,
+          "element": "InformationAboutOfficersTextBlock",
+          "kind": "officers",
+          "label": "役員の状況 [テキストブロック]"
+        },
+        {
+          "chars": 8524,
+          "element": "ManagementAnalysisOfFinancialPositionOperatingResultsAndCashFlowsTextBlock",
+          "kind": "capex_overview",
+          "label": "経営者による財政状態、経営成績及びキャッシュ・フローの状況の分析 [テキストブロック]"
+        },
+        {
+          "chars": 6029,
+          "element": "BusinessPolicyBusinessEnvironmentIssuesToAddressEtcTextBlock",
+          "kind": "",
+          "label": "経営方針、経営環境及び対処すべき課題等 [テキストブロック]"
+        },
+        {
+          "chars": 5696,
+          "element": "NotesFinancialInstrumentsConsolidatedFinancialStatementsTextBlock",
+          "kind": "capex_overview",
+          "label": "金融商品関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 4310,
+          "element": "NotesSegmentInformationEtcConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "セグメント情報等、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 4165,
+          "element": "DisclosureOfSustainabilityRelatedFinancialInformationTextBlock",
+          "kind": "",
+          "label": "サステナビリティに関する考え方及び取組 [テキストブロック]"
+        },
+        {
+          "chars": 4154,
+          "element": "NotesSignificantAccountingPoliciesForPreparationOfConsolidatedFinancialStatement",
+          "kind": "",
+          "label": "連結財務諸表作成のための基本となる重要な事項 [テキストブロック]"
+        },
+        {
+          "chars": 3492,
+          "element": "DisclosureOfAccountingPoliciesTextBlock",
+          "kind": "",
+          "label": "会計方針に関する事項 [テキストブロック]"
+        },
+        {
+          "chars": 3452,
+          "element": "ResearchAndDevelopmentActivitiesTextBlock",
+          "kind": "",
+          "label": "研究開発活動 [テキストブロック]"
+        },
+        {
+          "chars": 3374,
+          "element": "ShareholdingsTextBlock",
+          "kind": "cross_holdings",
+          "label": "株式の保有状況 [テキストブロック]"
+        },
+        {
+          "chars": 3286,
+          "element": "StrategyTextBlock",
+          "kind": "",
+          "label": "戦略 [テキストブロック]"
+        },
+        {
+          "chars": 3283,
+          "element": "BusinessRisksTextBlock",
+          "kind": "",
+          "label": "事業等のリスク [テキストブロック]"
+        },
+        {
+          "chars": 3253,
+          "element": "RemunerationForDirectorsAndOtherOfficersTextBlock",
+          "kind": "exec_pay",
+          "label": "役員の報酬等 [テキストブロック]"
+        },
+        {
+          "chars": 2967,
+          "element": "NotesSignificantAccountingPoliciesFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "重要な会計方針、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 2894,
+          "element": "AuditsTextBlock",
+          "kind": "",
+          "label": "監査の状況 [テキストブロック]"
+        },
+        {
+          "chars": 2779,
+          "element": "OutsideDirectorsAndOutsideCorporateAuditorsTextBlock",
+          "kind": "",
+          "label": "社外取締役（及び社外監査役） [テキストブロック]"
+        },
+        {
+          "chars": 2762,
+          "element": "OverviewOfAffiliatedEntitiesTextBlock",
+          "kind": "",
+          "label": "関係会社の状況 [テキストブロック]"
+        },
+        {
+          "chars": 2366,
+          "element": "NotesRetirementBenefitsConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "退職給付関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 2303,
+          "element": "NotesTaxEffectAccountingConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "税効果会計関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 2011,
+          "element": "NotesRevenueRecognitionConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "収益認識関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1706,
+          "element": "NotesRelatedPartiesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "関連当事者情報、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1611,
+          "element": "PolicyOnDevelopmentOfHumanResourcesAndInternalEnvironmentStrategyTextBlock",
+          "kind": "",
+          "label": "人材の育成及び社内環境整備に関する方針、戦略 [テキストブロック]"
+        },
+        {
+          "chars": 1465,
+          "element": "ConsolidatedBalanceSheetTextBlock",
+          "kind": "",
+          "label": "連結貸借対照表 [テキストブロック]"
+        },
+        {
+          "chars": 1410,
+          "element": "InformationAboutEmployeesTextBlock",
+          "kind": "",
+          "label": "従業員の状況 [テキストブロック]"
+        },
+        {
+          "chars": 1393,
+          "element": "ConsolidatedStatementOfChangesInEquityTextBlock",
+          "kind": "",
+          "label": "連結株主資本等変動計算書 [テキストブロック]"
+        },
+        {
+          "chars": 1354,
+          "element": "BalanceSheetTextBlock",
+          "kind": "",
+          "label": "貸借対照表 [テキストブロック]"
+        },
+        {
+          "chars": 1338,
+          "element": "ConsolidatedStatementOfCashFlowsTextBlock",
+          "kind": "",
+          "label": "連結キャッシュ・フロー計算書 [テキストブロック]"
+        },
+        {
+          "chars": 1328,
+          "element": "NotesShareOptionsEtcConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "ストック・オプション等関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1313,
+          "element": "OtherReferenceInformationTextBlock",
+          "kind": "",
+          "label": "その他の参考情報 [テキストブロック]"
+        },
+        {
+          "chars": 1281,
+          "element": "MajorShareholdersTextBlock",
+          "kind": "major_shareholders",
+          "label": "大株主の状況 [テキストブロック]"
+        },
+        {
+          "chars": 1183,
+          "element": "CompanyHistoryTextBlock",
+          "kind": "",
+          "label": "沿革 [テキストブロック]"
+        },
+        {
+          "chars": 1174,
+          "element": "StatementOfChangesInEquityTextBlock",
+          "kind": "",
+          "label": "株主資本等変動計算書 [テキストブロック]"
+        },
+        {
+          "chars": 1154,
+          "element": "SignificantAccountingEstimatesFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "重要な会計上の見積り、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1124,
+          "element": "BusinessResultsOfReportingCompanyTextBlock",
+          "kind": "",
+          "label": "提出会社の経営指標等 [テキストブロック]"
+        },
+        {
+          "chars": 1049,
+          "element": "SignificantAccountingEstimatesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "重要な会計上の見積り、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 1029,
+          "element": "NotesTaxEffectAccountingFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "税効果会計関係、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 986,
+          "element": "DescriptionOfBusinessTextBlock",
+          "kind": "",
+          "label": "事業の内容 [テキストブロック]"
+        },
+        {
+          "chars": 970,
+          "element": "DetailsOfEmployeeShareOptionProgramTextBlock",
+          "kind": "",
+          "label": "ストックオプション制度の内容 [テキストブロック]"
+        },
+        {
+          "chars": 965,
+          "element": "NotesDerivativesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "デリバティブ取引関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 957,
+          "element": "BusinessResultsOfGroupTextBlock",
+          "kind": "",
+          "label": "連結経営指標等 [テキストブロック]"
+        },
+        {
+          "chars": 957,
+          "element": "MajorFacilitiesTextBlock",
+          "kind": "",
+          "label": "主要な設備の状況 [テキストブロック]"
+        },
+        {
+          "chars": 924,
+          "element": "NotesSecuritiesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "有価証券関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 909,
+          "element": "NotesLeasesConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "リース取引関係、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 850,
+          "element": "ConsolidatedStatementOfIncomeTextBlock",
+          "kind": "",
+          "label": "連結損益計算書 [テキストブロック]"
+        },
+        {
+          "chars": 839,
+          "element": "AnnexedDetailedScheduleOfPropertyPlantAndEquipmentEtcTextBlock",
+          "kind": "",
+          "label": "有形固定資産等明細表 [テキストブロック]"
+        },
+        {
+          "chars": 766,
+          "element": "GovernanceAndRiskManagementTextBlock",
+          "kind": "",
+          "label": ""
+        },
+        {
+          "chars": 735,
+          "element": "StatementOfIncomeTextBlock",
+          "kind": "",
+          "label": "損益計算書 [テキストブロック]"
+        },
+        {
+          "chars": 711,
+          "element": "NotesPerShareInformationConsolidatedFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "１株当たり情報、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 626,
+          "element": "NotesRegardingReclassificationAdjustmentsIncomeTaxesAndTaxEffectsRelatingToOther",
+          "kind": "",
+          "label": "その他の包括利益に関する組替調整額、法人税等及び税効果額 [テキストブロック]"
+        },
+        {
+          "chars": 614,
+          "element": "DescriptionOfReportableSegmentsTextBlock",
+          "kind": "",
+          "label": "報告セグメントの概要 [テキストブロック]"
+        },
+        {
+          "chars": 572,
+          "element": "NotesRegardingImpairmentLossTextBlock",
+          "kind": "",
+          "label": "減損損失に関する注記 [テキストブロック]"
+        },
+        {
+          "chars": 547,
+          "element": "AnnexedConsolidatedDetailedScheduleOfBorrowingsTextBlock",
+          "kind": "",
+          "label": "借入金等明細表、連結財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 512,
+          "element": "DividendPolicyTextBlock",
+          "kind": "",
+          "label": "配当政策 [テキストブロック]"
+        },
+        {
+          "chars": 499,
+          "element": "DescriptionOfSignificantTransactionsNotRequiringUseOfCashOrCashEquivalentsTextBl",
+          "kind": "",
+          "label": "重要な非資金取引の内容 [テキストブロック]"
+        },
+        {
+          "chars": 479,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 451,
+          "element": "MajorComponentsOfAssetsAndLiabilitiesOfConsolidatedSubsidiaryAcquiredByPurchaseO",
+          "kind": "",
+          "label": "株式の取得により新たに連結子会社となった会社がある場合には、当該会社の資産及び負債の主な内訳 [テキストブロック]"
+        },
+        {
+          "chars": 450,
+          "element": "OtherInformationConsolidatedFinancialStatementsEtcTextBlock",
+          "kind": "",
+          "label": "その他、連結財務諸表等 [テキストブロック]"
+        },
+        {
+          "chars": 448,
+          "element": "OverviewOfOperationalProceduresForSharesTextBlock",
+          "kind": "",
+          "label": "提出会社の株式事務の概要 [テキストブロック]"
+        },
+        {
+          "chars": 421,
+          "element": "NotesSecuritiesFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "有価証券関係、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 416,
+          "element": "NotesRegardingProvisionForEconomicCompensationContributionTextBlock",
+          "kind": "",
+          "label": ""
+        },
+        {
+          "chars": 388,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 386,
+          "element": "NotesChangesInPresentationFinancialStatementsTextBlock",
+          "kind": "",
+          "label": "表示方法の変更、財務諸表 [テキストブロック]"
+        },
+        {
+          "chars": 376,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 350,
+          "element": "DisposalsOrHoldingOfAcquiredTreasurySharesTextBlock",
+          "kind": "",
+          "label": "取得自己株式の処理状況及び保有状況 [テキストブロック]"
+        },
+        {
+          "chars": 349,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 346,
+          "element": "ShareholdingByShareholderCategoryTextBlock",
+          "kind": "share_status",
+          "label": "所有者別状況 [テキストブロック]"
+        },
+        {
+          "chars": 336,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 328,
+          "element": "PropertyPlantAndEquipmentInformationForEachRegionTextBlock",
+          "kind": "",
+          "label": "有形固定資産、地域ごとの情報 [テキストブロック]"
+        },
+        {
+          "chars": 325,
+          "element": "IssuedSharesVotingRightsTextBlock",
+          "kind": "",
+          "label": "発行済株式、議決権の状況 [テキストブロック]"
+        },
+        {
+          "chars": 325,
+          "element": "ConsolidatedStatementOfComprehensiveIncomeTextBlock",
+          "kind": "",
+          "label": "連結包括利益計算書 [テキストブロック]"
+        },
+        {
+          "chars": 324,
+          "element": "NotesRegardingIssuedSharesAndTreasurySharesTextBlock",
+          "kind": "",
+          "label": "発行済株式及び自己株式に関する注記 [テキストブロック]"
+        },
+        {
+          "chars": 320,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 316,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 315,
+          "element": "MetricsAndTargetsTextBlock",
+          "kind": "",
+          "label": "指標及び目標 [テキストブロック]"
+        },
+        {
+          "chars": 302,
+          "element": "RevenuesFromExternalCustomersInformationForEachRegionTextBlock",
+          "kind": "",
+          "label": "売上高、地域ごとの情報 [テキストブロック]"
+        },
+        {
+          "chars": 298,
+          "element": "CareerSummaryInformationAboutDirectorsAndCorporateAuditorsTextBlock",
+          "kind": "officers",
+          "label": "略歴、役員の状況（取締役（及び監査役）） [テキストブロック]"
+        },
+        {
+          "chars": 298,
+          "element": "MajorComponentsOfSellingGeneralAndAdministrativeExpensesTextBlock",
+          "kind": "",
+          "label": "主要な販売費及び一般管理費 [テキストブロック]"
+        },
+        {
+          "chars": 290,
+          "element": "NotesRegardingProvisionOfAllowanceForDoubtfulAccountsTextBlock",
+          "kind": "",
+          "label": ""
+        }
+      ],
+      "blocks_found": [
+        "capex_overview",
+        "capex_plan",
+        "cross_holdings",
+        "exec_pay",
+        "major_shareholders",
+        "officers",
+        "share_status"
+      ],
+      "date": "2026-06-24",
+      "doc_id": "S100YHCF",
+      "errors": {},
+      "facts": {
+        "avg_age": {
+          "parent": {
+            "label": "平均年齢（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 45.69
+          }
+        },
+        "avg_salary": {
+          "parent": {
+            "label": "平均年間給与、提出会社の状況、従業員の状況",
+            "unit": "円",
+            "value": 8044000.0
+          }
+        },
+        "avg_tenure": {
+          "parent": {
+            "label": "平均勤続年数（年）、提出会社の状況、従業員の状況",
+            "unit": "",
+            "value": 14.99
+          }
+        },
+        "employees": {
+          "consolidated": {
+            "label": "従業員数",
+            "unit": "",
+            "value": 15078.0
+          },
+          "parent": {
+            "label": "従業員数",
+            "unit": "",
+            "value": 2894.0
+          }
+        }
+      },
+      "fy": "FY2026",
+      "id": "yuho_FY2026",
+      "model": "claude-haiku-5-5",
+      "period_end": "2026-03-31",
+      "read_on": "2026-11-19",
+      "sections": {
+        "capex": {
+          "actual_by_segment": [
+            {
+              "amount_jpy": 1733000000.0,
+              "segment": "リテールソリューション事業",
+              "what": "Mainly new product molds and dies."
+            },
+            {
+              "amount_jpy": 7885000000.0,
+              "segment": "ワークプレイスソリューション事業",
+              "what": "Mainly rental assets such as multifunction devices leased to customers."
+            }
+          ],
+          "actual_total_jpy": 9618000000.0,
+          "funding_summary": "No significant plan stated, so no funding method is given.",
+          "notes": "The company states there is no significant new facility plan and no significant removal plan.",
+          "plan": [],
+          "plan_paid_jpy": 0,
+          "plan_total_jpy": 0
+        },
+        "cross_holdings": {
+          "issues": [
+            {
+              "book_value_jpy": 1853000000.0,
+              "change": "unchanged",
+              "holds_our_shares": true,
+              "name": "㈱デジタルガレージ",
+              "name_en": "Digital Garage, Inc.",
+              "purpose": "Retail Solutions business counterparty; leverage its payment and digital marketing technology and human resources to expand our business and raise corporate value.",
+              "purpose_kind": "business_relationship",
+              "shares": 949500
+            },
+            {
+              "book_value_jpy": 825000000.0,
+              "change": "unchanged",
+              "holds_our_shares": false,
+              "name": "㈱フジオフードグループ本社",
+              "name_en": "Fujio Food Group, Inc.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 764800
+            },
+            {
+              "book_value_jpy": 104000000.0,
+              "change": "decreased",
+              "holds_our_shares": true,
+              "name": "㈱フジ",
+              "name_en": "Fuji Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 50200
+            },
+            {
+              "book_value_jpy": 62000000.0,
+              "change": "increased",
+              "holds_our_shares": false,
+              "name": "イオン㈱",
+              "name_en": "AEON Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 33104
+            },
+            {
+              "book_value_jpy": 47000000.0,
+              "change": "increased",
+              "holds_our_shares": false,
+              "name": "㈱オークワ",
+              "name_en": "Okuwa Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 58245
+            },
+            {
+              "book_value_jpy": 39000000.0,
+              "change": "increased",
+              "holds_our_shares": false,
+              "name": "㈱セブン＆アイ・ホールディングス",
+              "name_en": "Seven & i Holdings Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 18805
+            },
+            {
+              "book_value_jpy": 38000000.0,
+              "change": "unchanged",
+              "holds_our_shares": false,
+              "name": "㈱ダイイチ",
+              "name_en": "Daiichi Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 24000
+            },
+            {
+              "book_value_jpy": 11000000.0,
+              "change": "unchanged",
+              "holds_our_shares": false,
+              "name": "ミニストップ㈱",
+              "name_en": "MINISTOP Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 6531
+            },
+            {
+              "book_value_jpy": 9000000.0,
+              "change": "unchanged",
+              "holds_our_shares": false,
+              "name": "㈱True Data",
+              "name_en": "True Data Inc.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 20000
+            },
+            {
+              "book_value_jpy": 8000000.0,
+              "change": "increased",
+              "holds_our_shares": false,
+              "name": "㈱キャンドゥ",
+              "name_en": "Can Do Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 2644
+            },
+            {
+              "book_value_jpy": 4000000.0,
+              "change": "unchanged",
+              "holds_our_shares": false,
+              "name": "㈱マルヨシセンター",
+              "name_en": "Maruyoshi Center Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 1000
+            },
+            {
+              "book_value_jpy": 3000000.0,
+              "change": "unchanged",
+              "holds_our_shares": false,
+              "name": "㈱リテールパートナーズ",
+              "name_en": "Retail Partners Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 3000
+            },
+            {
+              "book_value_jpy": 2000000.0,
+              "change": "unchanged",
+              "holds_our_shares": false,
+              "name": "㈱梅の花グループ",
+              "name_en": "Umenohana Group Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 2400
+            },
+            {
+              "book_value_jpy": 0.0,
+              "change": "increased",
+              "holds_our_shares": false,
+              "name": "㈱吉野家ホールディングス",
+              "name_en": "Yoshinoya Holdings Co., Ltd.",
+              "purpose": "Retail Solutions business counterparty; maintain and strengthen good relations in view of business ties.",
+              "purpose_kind": "business_relationship",
+              "shares": 68
+            },
+            {
+              "book_value_jpy": 0.0,
+              "change": "sold",
+              "holds_our_shares": false,
+              "name": "㈱イズミ",
+              "name_en": "Izumi Co., Ltd.",
+              "purpose": "Sold after consultation with the counterparty under the share reduction plan; no effect on the business relationship was confirmed.",
+              "purpose_kind": "other",
+              "shares": 0
+            },
+            {
+              "book_value_jpy": 0.0,
+              "change": "sold",
+              "holds_our_shares": false,
+              "name": "㈱大庄",
+              "name_en": "Daisho Co., Ltd.",
+              "purpose": "Sold after consultation with the counterparty under the share reduction plan; no effect on the business relationship was confirmed.",
+              "purpose_kind": "other",
+              "shares": 0
+            },
+            {
+              "book_value_jpy": 0.0,
+              "change": "decreased",
+              "holds_our_shares": false,
+              "name": "イオンモール㈱",
+              "name_en": "AEON Mall Co., Ltd.",
+              "purpose": "Held via employee shareholding association purchases; exchanged for AEON shares on 2025-07-01 and no longer held at 31 March 2026.",
+              "purpose_kind": "other",
+              "shares": 0
+            },
+            {
+              "book_value_jpy": 0.0,
+              "change": "sold",
+              "holds_our_shares": false,
+              "name": "㈱コスモス薬品",
+              "name_en": "Cosmos Pharmaceutical Corporation",
+              "purpose": "Sold after consultation with the counterparty under the share reduction plan; no effect on the business relationship was confirmed.",
+              "purpose_kind": "other",
+              "shares": 0
+            }
+          ],
+          "notes": "Amounts converted from 百万円 to yen. The stated listed-share total is 3,013 million yen, but the 14 current rows sum to 3,005 million yen; the difference is unexplained. Unlisted shares: 25 issues with 6,555 million yen book value, not itemized. The Aeon row's prior-year figures (5,989 shares; 22 million yen) were read from flattened text and may be misaligned. The four sold or exchanged names are listed with current shares and book value of 0; total_issues counts the 14 current holdings only. Aeon Mall shares were exchanged for Aeon shares (0.65 per share) on 2025-07-01, and Aeon did a 3-for-1 ",
+          "policy_points": [
+            "Holds shares only for business relationships (mainly Retail Solutions) when they are judged to enhance medium- to long-term group corporate value.",
+            "Board periodically reviews each holding for strategic need and rationale, including whether benefits and risks cover the cost of capital.",
+            "Holdings judged not to enhance corporate value will be disposed of or reduced.",
+            "In the year, several holdings were sold under a share reduction plan agreed with counterparties; some shares were also bought through the employee shareholding association."
+          ],
+          "policy_summary": "The company holds other companies' shares for purposes other than pure investment only when it judges, after weighing business strategy needs and holding rationale against cost of capital, that the holding will enhance the medium- to long-term corporate value of its group. The Board periodically reviews each holding; holdings judged not to enhance value will be sold or reduced.",
+          "reduction_stated": true,
+          "total_book_value_jpy": 3013000000.0,
+          "total_issues": 14
+        },
+        "exec_pay": {
+          "by_class": [
+            {
+              "class_name": "取締役（社外取締役を除く）",
+              "fixed_jpy": 126000000.0,
+              "headcount": 6,
+              "performance_jpy": 27000000.0,
+              "stock_jpy": 53000000.0,
+              "total_jpy": 208000000.0
+            },
+            {
+              "class_name": "社外取締役",
+              "fixed_jpy": 46000000.0,
+              "headcount": 4,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 46000000.0
+            },
+            {
+              "class_name": "監査役（社外監査役を除く）",
+              "fixed_jpy": 45000000.0,
+              "headcount": 3,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 45000000.0
+            },
+            {
+              "class_name": "社外監査役",
+              "fixed_jpy": 18000000.0,
+              "headcount": 2,
+              "performance_jpy": 0.0,
+              "stock_jpy": 0.0,
+              "total_jpy": 18000000.0
+            }
+          ],
+          "individuals": [],
+          "notes": "Table columns read as total, fixed cash, performance cash, restricted stock, performance-linked restricted stock, headcount; the executive row's parts sum to ¥206m against a ¥208m total, which looks like rounding of the 百万円 figures. No individual director or auditor is named, as no one reached ¥100m. The fixed-to-performance split for executives is inferred from the column order in the flattened table.",
+          "policy_points": [
+            "Executive directors receive fixed pay and performance pay, each in cash and stock; target mix for the president is about 50:8:17:25 (fixed cash : restricted stock : performance cash : performance stock) when targets are met.",
+            "This year's metrics: ROS target 2.2% (actual 2.5%), operating profit target ¥12.0bn (actual ¥14.34bn), operating cash flow target ¥15.0bn (actual ¥4.30bn); performance is judged on a one-year period.",
+            "Stock is restricted from transfer until leaving office, and the company can take back shares if set events occur; non-resident directors may receive phantom stock in place of shares.",
+            "The board sets each director's pay after the Remuneration Committee reviews it and reports; outside directors get fixed cash only, and auditors' pay is fixed by agreement among auditors.",
+            "Shareholder-approved caps: directors' cash up to ¥400m a year (outside directors ¥100m), restricted stock ¥30m plus performance stock ¥100m, and auditors' cash up to ¥110m."
+          ],
+          "policy_summary": "Executive directors' pay has a fixed salary plus performance-linked pay tied to operating margin (ROS), operating profit and operating cash flow, with part paid in restricted stock. Outside directors and auditors receive fixed cash only."
+        },
+        "officers": {
+          "as_of": "",
+          "executive_officers": [
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "下川 司郎",
+              "name_en": "Shiro Shimokawa",
+              "title": "常務執行役員",
+              "title_en": "Managing Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "千代 豊",
+              "name_en": "Yutaka Chiyo",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "平 和樹",
+              "name_en": "Miki Taira",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "Rance M. Poehler",
+              "name_en": "Rance M. Poehler",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "梶原 真理子",
+              "name_en": "Mariko Kajihara",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "鈴木 敏光",
+              "name_en": "Toshimitsu Suzuki",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "石川 尚",
+              "name_en": "Hisashi Ishikawa",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "弓削 慎太郎",
+              "name_en": "Shintaro Yuge",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "松本 聡",
+              "name_en": "Satoshi Matsumoto",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "池田 裕一",
+              "name_en": "Yuichi Ikeda",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            },
+            {
+              "birth_month": 0,
+              "birth_year": 0,
+              "career_summary": "",
+              "joined_company_year": 0,
+              "name": "平井 修",
+              "name_en": "Osamu Hirai",
+              "title": "執行役員",
+              "title_en": "Executive Officer"
+            }
+          ],
+          "notes": "",
+          "officers": [
+            {
+              "age": 0,
+              "background_tags": [
+                "other_company_executive",
+                "ex_parent_group"
+              ],
+              "birth_month": 8,
+              "birth_year": 1956,
+              "career_summary": "Joined Fujitsu in 1980 and became a corporate executive officer for storage products. Joined Toshiba in 2009 and led HDD, cloud and industrial ICT units; president of Toshiba Digital Solutions. Joined Toshiba Tec in 2020 as vice president executive officer, then president and CEO.",
+              "director_since_year": 2020,
+              "is_ceo": true,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "錦織 弘信",
+              "name_en": "Hironobu Nishikori",
+              "outside": false,
+              "role_kind": "representative_director",
+              "shares_held": 25626,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "代表取締役社長 社長執行役員、指名委員会委員、報酬委員会委員",
+              "title_en": "President and Representative Director; President Executive Officer; Member, Nomination Committee; Member, Compensation Committee"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "sales_marketing"
+              ],
+              "birth_month": 4,
+              "birth_year": 1964,
+              "career_summary": "Joined Toshiba Tec in 1987. Held retail sales roles in Tokyo and Kansai branches, then led merchandising and marketing, and became head of the Retail Solutions business unit.",
+              "director_since_year": 2023,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 1987,
+              "name": "大西 泰樹",
+              "name_en": "Taiju Onishi",
+              "outside": false,
+              "role_kind": "director",
+              "shares_held": 10001,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "取締役専務執行役員、社長補佐、経営企画担当、リテール・ソリューション事業本部長、指名委員会委員、報酬委員会委員",
+              "title_en": "Director; Senior Managing Executive Officer; Assistant to President; Corporate Planning; Head of Retail Solutions Business Unit; Member, Nomination Committee; M"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "ex_parent_group",
+                "other_company_executive",
+                "overseas",
+                "planning_strategy",
+                "sales_marketing"
+              ],
+              "birth_month": 10,
+              "birth_year": 1960,
+              "career_summary": "Joined Fujitsu in 1983 and worked in storage products. Joined Toshiba in 2011 in HDD sales promotion; joined Toshiba Digital Solutions in 2017 as corporate planning head and director. Joined Toshiba Tec in 2020, serving as deputy head of retail overseas business.",
+              "director_since_year": 2023,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 2020,
+              "name": "湯沢 正志",
+              "name_en": "Masashi Yuzawa",
+              "outside": false,
+              "role_kind": "director",
+              "shares_held": 7413,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "取締役常務執行役員、社長補佐、新規事業担当、全社海外事業責任者",
+              "title_en": "Director; Managing Executive Officer; Assistant to President; New Business; Global Overseas Business Head"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "finance_accounting",
+                "ex_parent_group",
+                "other_company_executive"
+              ],
+              "birth_month": 8,
+              "birth_year": 1964,
+              "career_summary": "Joined Toshiba in 1987. Served as finance head at Social Infrastructure Systems, director of Toshiba Infrastructure Systems, Toshiba finance management head, then director and accounting head at Toshiba Plant Systems before joining Toshiba Tec.",
+              "director_since_year": 2023,
+              "is_ceo": false,
+              "is_cfo": true,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "谷 尚史",
+              "name_en": "Hisashi Tani",
+              "outside": false,
+              "role_kind": "director",
+              "shares_held": 4969,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "取締役常務執行役員、財務統括責任者（ＣＦＯ）、内部管理体制推進担当、財務部長",
+              "title_en": "Director; Managing Executive Officer; Chief Financial Officer; Internal Control Promotion; Head of Finance Department"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "hr_admin",
+                "legal",
+                "overseas",
+                "ex_parent_group"
+              ],
+              "birth_month": 8,
+              "birth_year": 1967,
+              "career_summary": "Joined Toshiba in 1991. Served as general affairs head at Toshiba Asia Pacific in Singapore, then in human resources and general affairs, executive officer, and later corporate communications, legal and compliance, and internal audit at Toshiba.",
+              "director_since_year": 2021,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "三原 隆正",
+              "name_en": "Takamasa Mihara",
+              "outside": false,
+              "role_kind": "director",
+              "shares_held": 0,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "取締役（非常勤）",
+              "title_en": "Director (non-executive)"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "ex_trading_house",
+                "other_company_executive"
+              ],
+              "birth_month": 10,
+              "birth_year": 1948,
+              "career_summary": "Joined Marubine Corporation in 1972 and rose to representative director and deputy president of Marubeni. Served as president of Daiei from 2010 to 2013 and as an auditor of Tokyo University of Foreign Studies from 2016 to 2023.",
+              "director_since_year": 2016,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "桑原 道夫",
+              "name_en": "Michio Kuwahara",
+              "outside": true,
+              "role_kind": "outside_director",
+              "shares_held": 0,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "社外取締役（非常勤）、特別委員会委員長、指名委員会委員長",
+              "title_en": "Outside Director (non-executive); Chair, Special Committee; Chair, Nomination Committee"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "consulting",
+                "overseas",
+                "academic",
+                "other_company_executive"
+              ],
+              "birth_month": 4,
+              "birth_year": 1961,
+              "career_summary": "Joined Boston Consulting Group in 1983, then worked at Salomon Brothers, Pfizer and Estee Lauder. Held executive roles at Deloitte Tohmatsu Consulting and Amway Japan, was CEO of ESKEL Japan, and taught at Showa Women's University until 2025.",
+              "director_since_year": 2020,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "青木 美保",
+              "name_en": "Miho Aoki",
+              "outside": true,
+              "role_kind": "outside_director",
+              "shares_held": 0,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "社外取締役（非常勤）、報酬委員会委員長、特別委員会委員",
+              "title_en": "Outside Director (non-executive); Chair, Compensation Committee; Member, Special Committee"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "other_company_executive",
+                "academic"
+              ],
+              "birth_month": 3,
+              "birth_year": 1955,
+              "career_summary": "Joined Mitsubishi Chemical in 1977 and became petrochemical management head and director. Served as audit committee director and chair at Mitsubishi Chemical Holdings, then visiting professor at Senshu Graduate School until 2025.",
+              "director_since_year": 2024,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "梅葉 芳弘",
+              "name_en": "Yoshihiro Umeba",
+              "outside": true,
+              "role_kind": "outside_director",
+              "shares_held": 0,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "社外取締役（非常勤）、特別委員会委員、指名委員会委員、報酬委員会委員",
+              "title_en": "Outside Director (non-executive); Member, Special Committee; Member, Nomination Committee; Member, Compensation Committee"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "ex_bank",
+                "overseas",
+                "other_company_executive"
+              ],
+              "birth_month": 10,
+              "birth_year": 1953,
+              "career_summary": "Joined Fuji Bank in 1976 and later Mizuho Corporate Bank, becoming deputy president. Served as chairman of Mizuho Securities and of its US unit from 2013, then senior adviser until 2020. Later outside director or auditor at several listed companies.",
+              "director_since_year": 2024,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "永濱 光弘",
+              "name_en": "Mitsuhiro Nagahama",
+              "outside": true,
+              "role_kind": "outside_director",
+              "shares_held": 0,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "社外取締役（非常勤）、特別委員会委員、指名委員会委員、報酬委員会委員",
+              "title_en": "Outside Director (non-executive); Member, Special Committee; Member, Nomination Committee; Member, Compensation Committee"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "finance_accounting",
+                "ex_parent_group",
+                "overseas",
+                "planning_strategy"
+              ],
+              "birth_month": 4,
+              "birth_year": 1964,
+              "career_summary": "Joined Toshiba in 1987 and held accounting and audit group leader roles, including at Westinghouse and Toshiba China. Joined Toshiba Tec in 2020 as internal audit head, then full-time auditor from 2024.",
+              "director_since_year": 0,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 2020,
+              "name": "坂本 一郎",
+              "name_en": "Ichiro Sakamoto",
+              "outside": false,
+              "role_kind": "corporate_auditor",
+              "shares_held": 935,
+              "term_end": "2028年３月期に係る定時株主総会終結の時",
+              "title": "監査役（常勤）",
+              "title_en": "Full-time Corporate Auditor"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "finance_accounting",
+                "overseas"
+              ],
+              "birth_month": 8,
+              "birth_year": 1964,
+              "career_summary": "Joined Toshiba Tec in 1989. Served as accounting head for global POS business and Toshiba Tec Europe, then led several finance departments. Became director and CFO of Toshiba Tec Solutions Service in 2022 and full-time auditor in 2025.",
+              "director_since_year": 0,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 1989,
+              "name": "島野 俊介",
+              "name_en": "Shunsuke Shimano",
+              "outside": false,
+              "role_kind": "corporate_auditor",
+              "shares_held": 1600,
+              "term_end": "2029年３月期に係る定時株主総会終結の時",
+              "title": "監査役（常勤）",
+              "title_en": "Full-time Corporate Auditor"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "legal"
+              ],
+              "birth_month": 12,
+              "birth_year": 1970,
+              "career_summary": "Admitted as a lawyer in 1998 at Kajitani Sogo Law Office; admitted in New York in 2005. Outside director of Lintec and TPR, outside auditor of Otsuka Holdings, and managing director of the Business Turnaround Research Institute from 2023.",
+              "director_since_year": 0,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "大澤 加奈子",
+              "name_en": "Kanako Osawa",
+              "outside": true,
+              "role_kind": "outside_auditor",
+              "shares_held": 0,
+              "term_end": "2026年３月期に係る定時株主総会終結の時",
+              "title": "社外監査役（非常勤）",
+              "title_en": "Outside Corporate Auditor (non-executive)"
+            },
+            {
+              "age": 0,
+              "background_tags": [
+                "finance_accounting",
+                "other_company_executive"
+              ],
+              "birth_month": 7,
+              "birth_year": 1955,
+              "career_summary": "Joined Mitsubishi Gas Chemical in 1990 and led its finance and accounting center. Became executive officer, then representative director and senior managing executive officer. Served as full-time auditor there and at Mitsubishi Engineering-Plastics; outside auditor of NSD since 2022.",
+              "director_since_year": 0,
+              "is_ceo": false,
+              "is_cfo": false,
+              "is_chair": false,
+              "joined_company_year": 0,
+              "name": "河 邦雄",
+              "name_en": "Kunio Kawa",
+              "outside": true,
+              "role_kind": "outside_auditor",
+              "shares_held": 0,
+              "term_end": "2028年３月期に係る定時株主総会終結の時",
+              "title": "社外監査役（非常勤）",
+              "title_en": "Outside Corporate Auditor (non-executive)"
+            }
+          ]
+        }
+      },
+      "usage": {
+        "input": 21406,
+        "output": 33642,
+        "usd": 0.018961600000000002
+      }
+    }
+  ],
   "6952": [
     {
       "blocks_catalog": [
