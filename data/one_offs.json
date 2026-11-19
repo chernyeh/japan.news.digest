@@ -37,6 +37,20 @@
       "source": "typed:Company data"
     }
   ],
+  "6588": [
+    {
+      "amount_jpy": 4600000000.0,
+      "date": "2026-11-19",
+      "fy": "FY2027",
+      "id": "6588-2026-11-19-one-off",
+      "item": "",
+      "line": "operating",
+      "note": "",
+      "np_amount_jpy": null,
+      "period": "2Q",
+      "source": "typed:Company data"
+    }
+  ],
   "6952": [
     {
       "amount_jpy": 2100000000.0,
