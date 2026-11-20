@@ -4387,6 +4387,38 @@ with tab_watchlist:
             st.session_state.pop("wl_grid_cache", None)
             st.rerun()
 
+    # ── Remove ───────────────────────────────────────────────────────────
+    # Directly under Add, in the same layout, so both ways of changing the
+    # list sit together at the top of the tab. It used to be at the bottom,
+    # below the grid and the thesis table, where nobody found it. Removing a
+    # company also drops its thesis figures, since they live on its entry.
+    if _wl_entries:
+        _unres = [k for k in _wl_entries if k.startswith("_unresolved:")]
+        if _unres:
+            st.markdown('<div class="fc-note fc-warn">Not matched to a ticker, so no data can be '
+                        'shown for: <b>' + ", ".join(_safe_text(_wl_entries[k].get("name") or k)
+                                                     for k in _unres)
+                        + '</b>. Remove and re-add by picking the company above.</div>',
+                        unsafe_allow_html=True)
+        _rm_opts = {f'{WL.display_name(k, e, NAMES_LOOKUP)}'
+                    + ("" if k.startswith("_unresolved:") else f" ({k})"): k
+                    for k, e in _wl_entries.items()}
+        _wl_m1, _wl_m2 = st.columns([4, 1])
+        with _wl_m1:
+            _wl_rm = st.multiselect("Remove companies (pick one or more):", sorted(_rm_opts),
+                                    placeholder="Start typing a name on the list…",
+                                    key="wl_rm_pick")
+        with _wl_m2:
+            st.markdown("<div style='margin-top:1.55rem'></div>", unsafe_allow_html=True)
+            if st.button("✕ Remove", use_container_width=True, key="wl_rm_btn",
+                         disabled=not _wl_rm,
+                         help="Also deletes the thesis figures typed for these companies."):
+                _ok, _msg = WL.remove_many([_rm_opts[x] for x in _wl_rm], _ec_repo, _gh_token or "")
+                _wl_saved(_ok, _msg, _msg)
+                st.session_state.pop("wl_grid_cache", None)
+                st.session_state.pop("wl_rm_pick", None)
+                st.rerun()
+
     if not _wl_entries:
         st.markdown('<div class="info-box">Watchlist empty. Add companies above, or with '
                     '<b>☆ Add to Watchlist</b> on the Research tab.</div>', unsafe_allow_html=True)
@@ -4753,29 +4785,6 @@ with tab_watchlist:
                     }
                 _ok, _msg = WL.set_theses(_upd, _ec_repo, _gh_token or "")
                 _wl_saved(_ok, _msg, _msg)
-                st.rerun()
-
-    # ── Manage the list ──────────────────────────────────────────────────
-    if _wl_entries:
-        _unres = [k for k in _wl_entries if k.startswith("_unresolved:")]
-        if _unres:
-            st.markdown('<div class="fc-note fc-warn">Not matched to a ticker, so no data can be '
-                        'shown for: <b>' + ", ".join(_safe_text(_wl_entries[k].get("name") or k)
-                                                     for k in _unres)
-                        + '</b>. Remove and re-add by picking the company above.</div>',
-                        unsafe_allow_html=True)
-        _rm_opts = {f'{WL.display_name(k, e, NAMES_LOOKUP)}'
-                    + ("" if k.startswith("_unresolved:") else f" ({k})"): k
-                    for k, e in _wl_entries.items()}
-        _wl_m1, _wl_m2 = st.columns([4, 1])
-        with _wl_m1:
-            _wl_rm = st.multiselect("Remove from the watchlist:", sorted(_rm_opts), key="wl_rm_pick")
-        with _wl_m2:
-            st.markdown("<div style='margin-top:1.55rem'></div>", unsafe_allow_html=True)
-            if st.button("Remove", use_container_width=True, key="wl_rm_btn", disabled=not _wl_rm):
-                _ok, _msg = WL.remove_many([_rm_opts[x] for x in _wl_rm], _ec_repo, _gh_token or "")
-                _wl_saved(_ok, _msg, _msg)
-                st.session_state.pop("wl_grid_cache", None)
                 st.rerun()
 
     # ── Results scorecard ────────────────────────────────────────────────
@@ -5554,8 +5563,18 @@ with tab_research:
             # to the same flash-message banner every other action here uses,
             # so a failed durable write is not silently swallowed either.
             if _rcode in load_watchlist_codes():
-                st.button("⭐ In Watchlist", key=f"research_wl_{_rcode}",
-                          use_container_width=True, disabled=True)
+                # Filled star = on the list; the label says what a click does.
+                if st.button("★ Remove from Watchlist", key=f"research_wl_{_rcode}",
+                             use_container_width=True,
+                             help="On your watchlist. Click to remove it (its thesis "
+                                  "figures go with it)."):
+                    _wl_ok, _wl_msg = WL.remove_many([_rcode], _ec_repo, _gh_token or "")
+                    st.session_state.watchlist_save_result = (_wl_ok, _wl_msg)
+                    st.session_state.pop("wl_grid_cache", None)
+                    st.session_state.research_flash = (
+                        ("success", f"Removed {_rname} from the watchlist.") if _wl_ok
+                        else ("warning", f"Removed for this session only — {_wl_msg}"))
+                    st.rerun()
             elif st.button("☆ Add to Watchlist", key=f"research_wl_{_rcode}", use_container_width=True):
                 # By code, not name: two listed companies can share a name.
                 _wl_ok, _wl_msg = add_to_watchlist(_rcode, _ec_repo, _gh_token or "",
