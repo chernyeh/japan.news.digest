@@ -268,6 +268,18 @@ def remove_many(keys: list, repo: str = "", token: str = "") -> tuple:
     return ok, (f"Removed {len(gone)} compan{'y' if len(gone) == 1 else 'ies'}." if ok else msg)
 
 
+def restore_entries(saved: dict, repo: str = "", token: str = "") -> tuple:
+    """Put back entries removed a moment ago, thesis figures and all (the Undo
+    after a removal). `saved` is {key: entry} exactly as it was stored."""
+    if not saved:
+        return True, "Nothing to restore."
+    entries = _read_local()
+    entries.update(saved)
+    _write_local(entries)
+    return _push(entries, repo, token, "restore " + ", ".join(
+        k.replace(_UNRESOLVED, "") for k in saved))
+
+
 # ── Thesis: the numbers you hold each company to ───────────────────────────
 # Typed in the app and kept on the entry itself, so they travel with the list
 # into data/watchlist.json and every session sees the same figures.

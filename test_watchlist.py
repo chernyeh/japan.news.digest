@@ -79,6 +79,19 @@ def test_remove_many_removes_in_one_go():
     assert list(W.load_watchlist_entries()) == ["5331"]
 
 
+
+@_in_scratch
+def test_restore_entries_undoes_a_removal_with_its_thesis():
+    W.add_to_watchlist("6971", names_lookup=NAMES)
+    W.add_to_watchlist("5331", names_lookup=NAMES)
+    W.set_theses({"6971": {"conviction": 7, "munger_price": 1500}})
+    saved = {"6971": W.load_watchlist_entries()["6971"]}
+    W.remove_many(["6971"])
+    assert list(W.load_watchlist_entries()) == ["5331"]
+    W.restore_entries(saved)
+    assert sorted(W.load_watchlist_entries()) == ["5331", "6971"]
+    assert W.get_thesis("6971") == {"conviction": 7, "munger_price": 1500.0}
+
 # ── Thesis ──────────────────────────────────────────────────────────────────
 
 def test_clean_thesis_keeps_valid_fields_and_drops_the_rest():
