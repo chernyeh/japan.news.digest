@@ -1441,6 +1441,13 @@ ul.yx-list li { font-size: 0.74rem !important; margin: 0.05rem 0 !important; lin
 .wl-grid tr.wl-ref td { color: #7A6A57; font-style: italic; background: #FAF7F2; font-size: 0.66rem; }
 .wl-grid tfoot tr.wl-ref td { border-top: 1px solid #D9D3C8; font-weight: 600; }
 .wl-grid a { color: #1A1A1A; font-weight: 600; text-decoration: none; }
+/* Remove-from-watchlist cross beside each name: faint until the row is hovered,
+   so 15 red marks do not shout down the figures, but never hidden (no hover on
+   a phone). */
+.wl-grid a.wl-x, .fc-note a.wl-x { float: right; margin-left: 6px; color: #C0392B; font-weight: 400;
+           font-size: 0.72rem; line-height: 1.3; opacity: 0.35; }
+.wl-grid tr:hover a.wl-x, a.wl-x:hover { opacity: 1; }
+.fc-note a.wl-x { float: none; opacity: 0.8; }
 .wl-grid .wl-pin { position: sticky; left: 7px; }
 .wl-est { font-style: italic; }
 .wl-sub { font-size: 0.6rem; color: #9B8B7A; line-height: 1.3; }
@@ -2266,8 +2273,10 @@ def _watchlist_grid_html(rows: list, data: dict, groups: list, sort_label: str,
         if not r.get("covered"):
             sub.append('<span class="wl-warn" title="Not in the collected universe yet: '
                        'forecasts arrive after the next weekly collection">no forecasts yet</span>')
-        out = [f'<tr><td class="wl-first"><a href="{_research_href(r["code"])}" target="_self">'
-               f'{_safe_text(r.get("name") or r["code"])}</a>'
+        _nm = _safe_text(r.get("name") or r["code"])
+        out = [f'<tr><td class="wl-first"><a class="wl-x" href="{_wl_remove_href(r["code"])}" '
+               f'target="_self" title="Remove {_nm} from the watchlist">✕</a>'
+               f'<a href="{_research_href(r["code"])}" target="_self">{_nm}</a>'
                f'<div class="wl-sub">{" · ".join(sub)}</div></td>',
                f'<td>{WG.fmt(r.get("mcap_bn"), "n0") or "—"}</td>',
                (f'<td class="wl-est" title="Latest weekly close">{WG.fmt(r.get("price"), "n0")}</td>'
@@ -2379,6 +2388,14 @@ def _research_href(code: str) -> str:
     the link does not silently reset the reader's font size."""
     _z = st.session_state.get("ui_zoom", ZOOM_DEFAULT)
     return f"?research={code}" + (f"&amp;z={_z}" if _z != ZOOM_DEFAULT else "")
+
+
+def _wl_remove_href(key: str) -> str:
+    """Link that reopens the app and removes `key` from the watchlist (handled
+    once, right after the watchlist sync). Carries ?z like _research_href."""
+    from urllib.parse import quote
+    _z = st.session_state.get("ui_zoom", ZOOM_DEFAULT)
+    return f"?wl_remove={quote(key, safe='')}" + (f"&amp;z={_z}" if _z != ZOOM_DEFAULT else "")
 
 
 def _zoom_step(delta: int):
@@ -2513,6 +2530,28 @@ if "watchlist_synced" not in st.session_state:
     except Exception as _wl_e:
         print(f"Watchlist sync error: {_wl_e}")
         st.session_state.watchlist_save_result = (False, f"Could not read the saved watchlist: {_wl_e}")
+
+# ── Arriving from a ✕ in the watchlist grid (?wl_remove=CODE) ────────────────
+# Removal happens here, after the sync above, so the freshly pulled list is
+# what is edited. The param is consumed so a reload does not repeat it. The
+# entry as it was is handed to the flash message, whose Undo puts it back with
+# its thesis figures — the cross is one click, so the way back must be too.
+_wl_rm_req = str(st.query_params.get("wl_remove", "")).strip()
+if _wl_rm_req:
+    del st.query_params["wl_remove"]
+    st.session_state.wl_open_tab = True
+    _wl_rm_ents = load_watchlist_entries()
+    if _wl_rm_req in _wl_rm_ents:
+        _wl_rm_gone = {_wl_rm_req: _wl_rm_ents[_wl_rm_req]}
+        _wl_rm_name = WL.display_name(_wl_rm_req, _wl_rm_ents[_wl_rm_req], NAMES_LOOKUP)
+        _ok, _msg = WL.remove_many([_wl_rm_req], _ec_repo, _gh_token or "")
+        st.session_state.watchlist_save_result = (_ok, _msg)
+        if _ok:
+            st.session_state.watchlist_remote_found = True
+        st.session_state.watchlist_flash = (
+            ("success", f"Removed {_wl_rm_name} from the watchlist.", _wl_rm_gone) if _ok else
+            ("warning", f"Removed {_wl_rm_name} for this session only — {_msg}", _wl_rm_gone))
+        st.session_state.pop("wl_grid_cache", None)
 
 # ── Restore from shared cache on first page load of a new session ─────────────
 if "_cache_loaded" not in st.session_state:
@@ -3570,7 +3609,8 @@ if _digest_trigger in ("premarket", "close"):
 # always opens on the first tab, so the reader landed on Markets and had to go
 # looking. Click the Research tab for them. The param is consumed further down
 # in this same run, so this fires once per arrival, not on every rerun.
-if st.query_params.get("research"):
+def _click_tab(label: str):
+    """Select the tab whose label contains `label`, client-side."""
     import streamlit.components.v1 as components
     components.html(
         """
@@ -3580,7 +3620,7 @@ if st.query_params.get("research"):
             let tries = 0;
             (function go() {
                 const tab = [...doc.querySelectorAll('[role="tab"]')]
-                    .find(t => t.innerText.includes('Research'));
+                    .find(t => t.innerText.includes(%s));
                 if (tab) {
                     if (tab.getAttribute('aria-selected') !== 'true') tab.click();
                 } else if (tries++ < 50) {
@@ -3589,9 +3629,16 @@ if st.query_params.get("research"):
             })();
         })();
         </script>
-        """,
+        """ % __import__("json").dumps(label),
         height=0,
     )
+
+
+if st.query_params.get("research"):
+    _click_tab("Research")
+# Back from a ✕ in the watchlist grid: land on the Watchlist, not Markets.
+if st.session_state.pop("wl_open_tab", False):
+    _click_tab("Watchlist")
 
 # ════════════════════════════════════════════════════════════
 # ════════════════════════════════════════════════════════════
@@ -4336,9 +4383,27 @@ with tab_watchlist:
             ("success", success) if ok else
             ("warning", msg if "session only" in msg else f"Kept for this session only — {msg}"))
 
+    def _wl_undo(saved: dict):
+        """Undo a removal: put the entry back as it was, thesis included. Runs
+        as a callback because the flash carrying the button is gone by the
+        rerun the click triggers."""
+        _ok, _msg = WL.restore_entries(saved, _ec_repo, _gh_token or "")
+        _names = ", ".join(WL.display_name(k, e, NAMES_LOOKUP) for k, e in saved.items())
+        _wl_saved(_ok, _msg, f"Restored {_names}.")
+        st.session_state.pop("wl_grid_cache", None)
+
     _wl_flash = st.session_state.pop("watchlist_flash", None)
     if _wl_flash:
-        (st.success if _wl_flash[0] == "success" else st.warning)(_wl_flash[1])
+        _wl_show_msg = st.success if _wl_flash[0] == "success" else st.warning
+        if len(_wl_flash) > 2 and _wl_flash[2]:
+            _wf1, _wf2 = st.columns([5, 1], vertical_alignment="center")
+            with _wf1:
+                _wl_show_msg(_wl_flash[1])
+            with _wf2:
+                st.button("↶ Undo", key="wl_undo_btn", use_container_width=True,
+                          on_click=_wl_undo, args=(_wl_flash[2],))
+        else:
+            _wl_show_msg(_wl_flash[1])
 
     _wl_entries = load_watchlist_entries()
     _wl_codes = load_watchlist_codes()
@@ -4388,36 +4453,18 @@ with tab_watchlist:
             st.rerun()
 
     # ── Remove ───────────────────────────────────────────────────────────
-    # Directly under Add, in the same layout, so both ways of changing the
-    # list sit together at the top of the tab. It used to be at the bottom,
-    # below the grid and the thesis table, where nobody found it. Removing a
-    # company also drops its thesis figures, since they live on its entry.
-    if _wl_entries:
-        _unres = [k for k in _wl_entries if k.startswith("_unresolved:")]
-        if _unres:
-            st.markdown('<div class="fc-note fc-warn">Not matched to a ticker, so no data can be '
-                        'shown for: <b>' + ", ".join(_safe_text(_wl_entries[k].get("name") or k)
-                                                     for k in _unres)
-                        + '</b>. Remove and re-add by picking the company above.</div>',
-                        unsafe_allow_html=True)
-        _rm_opts = {f'{WL.display_name(k, e, NAMES_LOOKUP)}'
-                    + ("" if k.startswith("_unresolved:") else f" ({k})"): k
-                    for k, e in _wl_entries.items()}
-        _wl_m1, _wl_m2 = st.columns([4, 1])
-        with _wl_m1:
-            _wl_rm = st.multiselect("Remove companies (pick one or more):", sorted(_rm_opts),
-                                    placeholder="Start typing a name on the list…",
-                                    key="wl_rm_pick")
-        with _wl_m2:
-            st.markdown("<div style='margin-top:1.55rem'></div>", unsafe_allow_html=True)
-            if st.button("✕ Remove", use_container_width=True, key="wl_rm_btn",
-                         disabled=not _wl_rm,
-                         help="Also deletes the thesis figures typed for these companies."):
-                _ok, _msg = WL.remove_many([_rm_opts[x] for x in _wl_rm], _ec_repo, _gh_token or "")
-                _wl_saved(_ok, _msg, _msg)
-                st.session_state.pop("wl_grid_cache", None)
-                st.session_state.pop("wl_rm_pick", None)
-                st.rerun()
+    # A ✕ beside each name in the grid below (and on the Research tab's star
+    # button). Entries never matched to a ticker have no grid row, so they get
+    # their ✕ here instead.
+    _unres = [k for k in _wl_entries if k.startswith("_unresolved:")]
+    if _unres:
+        st.markdown('<div class="fc-note fc-warn">Not matched to a ticker, so no data can be '
+                    'shown for: ' + ", ".join(
+                        f'<b>{_safe_text(_wl_entries[k].get("name") or k)}</b> '
+                        f'<a class="wl-x" href="{_wl_remove_href(k)}" target="_self" '
+                        f'title="Remove from the watchlist">✕</a>' for k in _unres)
+                    + '. Remove and re-add by picking the company above.</div>',
+                    unsafe_allow_html=True)
 
     if not _wl_entries:
         st.markdown('<div class="info-box">Watchlist empty. Add companies above, or with '
