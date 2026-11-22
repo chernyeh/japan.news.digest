@@ -23,11 +23,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-09-26,eps,FY2027,consensus,662.7,yfinance,backfill,2026-09-26
 2026-10-03,eps,FY2027,consensus,725.73334,yfinance,backfill,2026-10-03
 2026-11-14,eps,FY2027,consensus,672.5,yfinance,collect,2026-11-14
+2026-11-22,eps,FY2027,consensus,743.1667,yfinance,collect,2026-11-22
 2026-08-06,eps,FY2027,ytd_1q,160.69,jquants,filing,2026-11-01
 2026-08-27,eps,FY2028,consensus,694.43335,yfinance,backfill,2026-08-27
 2026-09-26,eps,FY2028,consensus,770.23334,yfinance,backfill,2026-09-26
 2026-10-03,eps,FY2028,consensus,859.1667,yfinance,backfill,2026-10-03
 2026-11-14,eps,FY2028,consensus,859.2,yfinance,collect,2026-11-14
+2026-11-22,eps,FY2028,consensus,905.73334,yfinance,collect,2026-11-22
 2025-05-14,net_profit,FY2025,actual,8299000000.0,jquants,filing,2026-11-01
 2024-11-11,net_profit,FY2025,company,9000000000.0,jquants,backfill,2024-11-11
 2025-02-06,net_profit,FY2025,company,8000000000.0,jquants,backfill,2025-02-06
@@ -58,10 +60,12 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-08-27,net_sales,FY2027,consensus,77733333330.0,yfinance,backfill,2026-08-27
 2026-09-26,net_sales,FY2027,consensus,82066666670.0,yfinance,backfill,2026-09-26
 2026-10-03,net_sales,FY2027,consensus,86066666670.0,yfinance,backfill,2026-10-03
+2026-11-22,net_sales,FY2027,consensus,87733333330.0,yfinance,collect,2026-11-22
 2026-08-06,net_sales,FY2027,ytd_1q,18304000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2028,consensus,87100000000.0,yfinance,backfill,2026-08-27
 2026-09-26,net_sales,FY2028,consensus,92100000000.0,yfinance,backfill,2026-09-26
 2026-10-03,net_sales,FY2028,consensus,98033333330.0,yfinance,backfill,2026-10-03
+2026-11-22,net_sales,FY2028,consensus,101866666670.0,yfinance,collect,2026-11-22
 2025-05-14,operating_profit,FY2025,actual,11335000000.0,jquants,filing,2026-11-01
 2024-11-11,operating_profit,FY2025,company,13000000000.0,jquants,backfill,2024-11-11
 2025-02-06,operating_profit,FY2025,company,11000000000.0,jquants,backfill,2025-02-06

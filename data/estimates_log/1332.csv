@@ -27,11 +27,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-09-19,eps,FY2027,consensus,95.83571,yfinance,backfill,2026-09-19
 2026-10-03,eps,FY2027,consensus,95.12571,yfinance,backfill,2026-10-03
 2026-11-14,eps,FY2027,consensus,95.13143,yfinance,collect,2026-11-14
+2026-11-22,eps,FY2027,consensus,94.36857,yfinance,collect,2026-11-22
 2026-08-06,eps,FY2027,ytd_1q,24.53,jquants,filing,2026-11-01
 2026-08-27,eps,FY2028,consensus,106.14333,yfinance,backfill,2026-08-27
 2026-09-05,eps,FY2028,consensus,106.14167,yfinance,backfill,2026-09-05
 2026-09-19,eps,FY2028,consensus,103.97571,yfinance,backfill,2026-09-19
 2026-10-03,eps,FY2028,consensus,103.12429,yfinance,backfill,2026-10-03
+2026-11-22,eps,FY2028,consensus,102.65,yfinance,collect,2026-11-22
 2025-05-14,net_profit,FY2025,actual,25381000000.0,jquants,filing,2026-11-01
 2025-05-21,net_profit,FY2025,actual,27213000000.0,jquants,filing,2026-11-01
 2024-11-06,net_profit,FY2025,company,24000000000.0,jquants,backfill,2024-11-06
@@ -65,11 +67,13 @@ date,metric,fy,basis,value,source,origin,logged_at
 2026-09-05,net_sales,FY2027,consensus,1000050000000.0,yfinance,backfill,2026-09-05
 2026-09-19,net_sales,FY2027,consensus,1001757142860.0,yfinance,backfill,2026-09-19
 2026-10-03,net_sales,FY2027,consensus,1005228571430.0,yfinance,backfill,2026-10-03
+2026-11-22,net_sales,FY2027,consensus,1006442857140.0,yfinance,collect,2026-11-22
 2026-08-06,net_sales,FY2027,ytd_1q,257283000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2028,consensus,1046733333330.0,yfinance,backfill,2026-08-27
 2026-09-05,net_sales,FY2028,consensus,1044400000000.0,yfinance,backfill,2026-09-05
 2026-09-19,net_sales,FY2028,consensus,1044057142860.0,yfinance,backfill,2026-09-19
 2026-10-03,net_sales,FY2028,consensus,1037057142860.0,yfinance,backfill,2026-10-03
+2026-11-22,net_sales,FY2028,consensus,1039485714290.0,yfinance,collect,2026-11-22
 2025-05-14,operating_profit,FY2025,actual,31779000000.0,jquants,filing,2026-11-01
 2024-11-06,operating_profit,FY2025,company,32500000000.0,jquants,backfill,2024-11-06
 2024-11-06,operating_profit,FY2025,ytd_2q,17276000000.0,jquants,filing,2026-11-01

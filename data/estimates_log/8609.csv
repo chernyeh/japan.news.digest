@@ -25,8 +25,10 @@ date,metric,fy,basis,value,source,origin,logged_at
 2025-10-30,net_sales,FY2026,ytd_2q,43057000000.0,jquants,filing,2026-11-01
 2026-01-29,net_sales,FY2026,ytd_3q,69304000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2027,consensus,115000000000.0,yfinance,backfill,2026-08-27
+2026-11-22,net_sales,FY2027,consensus,102000000000.0,yfinance,collect,2026-11-22
 2026-07-30,net_sales,FY2027,ytd_1q,31570000000.0,jquants,filing,2026-11-01
 2026-08-27,net_sales,FY2028,consensus,109000000000.0,yfinance,backfill,2026-08-27
+2026-11-22,net_sales,FY2028,consensus,95500000000.0,yfinance,collect,2026-11-22
 2025-04-28,operating_profit,FY2025,actual,12838000000.0,jquants,filing,2026-11-01
 2024-10-30,operating_profit,FY2025,ytd_2q,7229000000.0,jquants,filing,2026-11-01
 2025-01-30,operating_profit,FY2025,ytd_3q,10300000000.0,jquants,filing,2026-11-01
